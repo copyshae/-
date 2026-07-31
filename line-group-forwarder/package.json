@@ -1,0 +1,19 @@
+{
+  "name": "line-group-forwarder",
+  "version": "1.0.0",
+  "description": "LINE 群組群發轉發：訊息進「群發群組」後自動轉發到勾選的多個群組",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^9.5.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

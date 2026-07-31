@@ -35,3 +35,9 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# LINE forwarder secrets / runtime #
+####################################
+line-group-forwarder/.env
+line-group-forwarder/data/
+line-group-forwarder/node_modules/
