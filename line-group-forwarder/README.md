@@ -1,85 +1,94 @@
-# LINE 群組群發轉發
+# LINE 群組群發轉發｜使用說明（以 LINE 為主）
 
-把某個 LINE 群組設成「群發群組」：訊息丟進去後，自動轉發到你勾選的多個目標群組。
+目標：在 LINE 裡指定一個「群發群組」，把訊息丟進去後，自動出現在你勾選的多個群組。
 
-> **重要限制（LINE 平台規則）**  
-> 這不是去操控你手機上的一般 LINE App，而是透過 **LINE 官方帳號（Messaging API）** 合法轉發。  
-> 我無法直接在你的實體手機上安裝 App；請用下方方式部署後，用手機瀏覽器開啟管理後台（可加到主畫面當捷徑）。
+---
 
-## 你會得到什麼
+## 在 LINE App 裡怎麼用（日常）
 
-1. **Webhook 機器人**：官方帳號在「群發群組」收到訊息 → 自動 push 到勾選的群組  
-2. **手機友善管理後台**：選來源群組、勾選目標群組、儲存規則  
-3. **支援類型**：文字、貼圖、位置、圖片（需 HTTPS 公開網址）；影片／語音目前改以文字提示
+### 1. 準備群組
+1. 開一個專用群組，名稱建議：`群發中繼`（或你習慣的名稱）  
+2. 確認你平常要通知的目標群組都已存在（例如：業務A群、業務B群）
 
-## 使用前準備
+### 2. 把官方帳號加進群組
+1. 先把官方帳號加為好友（用 QR code / ID）  
+2. 在 `群發中繼`：群組設定 → 邀請 → 選官方帳號  
+3. 用同樣方式，把官方帳號也邀請進**每一個目標群組**
 
-1. 到 [LINE Developers](https://developers.line.biz/) 建立 Provider → Messaging API Channel  
-2. 建立或連結 **LINE 官方帳號**  
-3. 在 Channel 的 Messaging API 分頁：
-   - 取得 **Channel secret**、**Channel access token**
+> LINE 規定：同一個群組同時間只能有 **一個** 官方帳號。
+
+### 3. 在管理後台勾選要轉發的群組
+1. 用手機瀏覽器打開管理後台網址  
+2. 輸入管理密碼  
+3. 選「群發群組（來源）」＝ `群發中繼`  
+4. 勾選要自動收到訊息的目標群組  
+5. 按「儲存規則」
+
+### 4. 之後每天這樣發
+1. 在 LINE 把文字、圖片、貼圖、位置等 **分享／貼到 `群發中繼`**  
+2. 系統會自動轉發到你勾選的群組  
+3. 目標群組會看到訊息，發送者顯示為 **官方帳號**（不是你的個人名稱）
+
+### 可轉發／限制
+| 類型 | 在 LINE 的效果 |
+| --- | --- |
+| 文字 | 完整轉發 |
+| 貼圖 | 完整轉發 |
+| 位置 | 完整轉發 |
+| 圖片 | 可轉發（服務需 HTTPS） |
+| 影片／語音 | 目前多半改成文字提醒，請回中繼群看原檔 |
+
+---
+
+## 第一次設定（仍與 LINE 相關）
+
+這些步驟只要做一次：
+
+1. 到 [LINE Official Account Manager](https://manager.line.biz/) 建立／管理官方帳號  
+2. 到 [LINE Developers](https://developers.line.biz/) 開啟該帳號的 **Messaging API**  
+3. 在 Messaging API 分頁：
+   - 複製 **Channel secret**、**Channel access token**
    - 開啟 **Allow bot to join group chats**（允許加入群組）
-   - 關閉「自動回應訊息」等會搶答的功能（建議）
-4. 準備一個可公開 HTTPS 的主機（例如 Railway、Render、Fly.io、Cloudflare Tunnel + 家用電腦）
+   - 建議關閉會搶話的「自動回應訊息」
+   - 設定 Webhook：`https://你的網域/webhook`，並啟用 Use webhook  
+4. 伺服器填好 `.env` 後啟動（見下方「伺服器啟動」）  
+5. 回到上面「在 LINE App 裡怎麼用」完成邀群與勾選
 
-> LINE 規定：**同一個群組同時間只能有一個官方帳號**。請把本 Bot 加進「群發群組」與所有目標群組。
+---
 
-## 快速啟動
+## 伺服器啟動（維運用）
 
 ```bash
 cd line-group-forwarder
 cp .env.example .env
-# 編輯 .env 填入金鑰與密碼
+# 編輯 .env：CHANNEL_SECRET、CHANNEL_ACCESS_TOKEN、ADMIN_PASSWORD、PUBLIC_BASE_URL
 npm install
 npm start
 ```
 
-`.env` 範例：
+管理後台：`https://你的網域/`  
+Webhook：`https://你的網域/webhook`
 
-```env
-CHANNEL_SECRET=...
-CHANNEL_ACCESS_TOKEN=...
-ADMIN_PASSWORD=請改成強密碼
-PORT=3000
-PUBLIC_BASE_URL=https://你的網域
-```
+---
 
-在 LINE Developers Console 把 Webhook URL 設成：
+## 常見問題（LINE 使用面）
 
-```text
-https://你的網域/webhook
-```
+**Q：我能不能用個人帳號，不要官方帳號？**  
+不能。LINE 不開放一般個人帳號自動讀取／代發多個群組。
 
-啟用 Use webhook，並用 Verify 測試。
+**Q：訊息會不會顯示是我本人發的？**  
+不會。目標群會顯示為官方帳號發送。
 
-## 操作流程（手機可完成）
+**Q：為什麼某個群收不到？**  
+檢查：官方帳號是否已在該群、後台是否有勾選、Webhook 是否正常、訊息額度是否用完。
 
-1. 用手機瀏覽器開啟 `https://你的網域/`  
-2. 輸入管理密碼進入後台  
-3. 在 LINE 裡把官方帳號 **邀請進**：
-   - 一個「群發／中繼」群組  
-   - 所有要收到訊息的目標群組  
-4. 回後台按「重新整理」，選來源群組，勾選目標，按「儲存規則」  
-5. 之後只要把資料 **分享／貼到群發群組**，Bot 會自動轉發到勾選的群組
+**Q：群組裡已經有別的官方帳號？**  
+需先請該帳號離開，才能加入本 Bot（一群只能一個官方帳號）。
 
-## 為什麼不能做成「純手機 App 監控一般 LINE」？
+---
 
-LINE 不開放一般個人帳號讀取／代發群組訊息的 API。若用無障礙服務或腳本去點 LINE App，會違反服務條款且不穩定。  
-**官方帳號 Bot** 才是可長期維護的做法。
+## 注意
 
-## 目錄說明
-
-```text
-line-group-forwarder/
-  src/           伺服器與 webhook
-  public/        手機友善管理介面
-  data/          執行後產生的設定與暫存（已 gitignore）
-  .env.example   環境變數範本
-```
-
-## 注意事項
-
-- 轉發訊息會消耗官方帳號的月訊息額度  
-- 轉發內容會顯示為「官方帳號發送」，不是你的個人帳號  
-- `PUBLIC_BASE_URL` 必須是 HTTPS，圖片轉發才會成功  
-- 請勿把 `.env`、token 提交到 Git
+- 轉發會消耗官方帳號每月訊息額度  
+- 請勿把 `.env`、token 提交到 Git  
+- 詳細技術目錄見 `src/`、`public/`
