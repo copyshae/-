@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#06C755" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>LINE 群組群發轉發</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <p class="brand">LINE 群組群發</p>
+        <h1>自動轉發設定</h1>
+        <p class="lead">
+          選一個「群發群組」當入口，勾選要同步的目標群組。之後把訊息丟進群發群組，就會自動轉發。
+        </p>
+      </header>
+
+      <section id="login" class="panel">
+        <label for="password">管理密碼</label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          placeholder="與伺服器 ADMIN_PASSWORD 相同"
+        />
+        <button id="loginBtn" type="button">進入設定</button>
+        <p id="loginError" class="error" hidden></p>
+      </section>
+
+      <main id="dashboard" hidden>
+        <section class="panel">
+          <div class="row">
+            <h2>群發群組（來源）</h2>
+            <button id="refreshBtn" type="button" class="ghost">重新整理</button>
+          </div>
+          <p class="hint">請先把官方帳號 Bot 加進所有相關群組，群組才會出現在這裡。</p>
+          <div id="hubList" class="list"></div>
+        </section>
+
+        <section class="panel" id="targetsPanel" hidden>
+          <h2>自動轉發到這些群組</h2>
+          <p class="hint">勾選後按儲存。同一個群組不能同時當來源與目標。</p>
+          <div id="targetList" class="list"></div>
+          <button id="saveBtn" type="button">儲存規則</button>
+          <p id="saveMsg" class="ok" hidden></p>
+        </section>
+
+        <section class="panel rules">
+          <h2>目前規則</h2>
+          <div id="rulesView" class="rules-view"></div>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>
