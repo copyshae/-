@@ -50,12 +50,12 @@ try {
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '修復 Gemini 自動批閱：改用 gemini-2.5-flash，預設 API 自動批；並更新習作台。'
+  $msg = 'Gemini 依正確答案全自動批：強制答案對照、連續自動批、gemini-2.5-flash。'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'
   Write-Host '請再跑：powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1'
-  Write-Host '習作批改請選「請 Gemini 自動批閱（API＝真正自動）」並設定 Gemini金鑰。'
+  Write-Host '習作批改：先載入正確答案 → Gemini金鑰 →「依答案·Gemini自動批」或「連續自動批」。'
 } finally {
   Pop-Location
 }

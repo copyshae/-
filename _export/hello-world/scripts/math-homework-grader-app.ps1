@@ -1412,7 +1412,9 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
     [void]$sb.AppendLine('F. 最後給「老師認知輸入清單」：要我補哪幾格文字／是否建議學生重謄。')
     [void]$sb.AppendLine('G. 程度判定：若 ? 太多，程度可寫「待判定」，並說明待認知後再定。')
   } else {
-    [void]$sb.AppendLine('規則：以我提供的正確答案為準；接受合理等價解法；看不懂標 ? 存疑（供我人工確認／重謄）。')
+    [void]$sb.AppendLine('【強制｜對照正確答案】')
+    [void]$sb.AppendLine('規則：必須以我一併提供的「正確答案」檔為批改依據；學生卷與答案不一致才可判 ✗。')
+    [void]$sb.AppendLine('接受合理等價解法；看不懂標 ? 存疑（供我人工確認／重謄）。禁止憑空自訂標準。')
     [void]$sb.AppendLine('若字跡潦草：寧可多標 ?，不要猜錯；可先給看得懂題目的診斷與練習。')
   }
   [void]$sb.AppendLine('請務必輸出：')
@@ -1461,14 +1463,14 @@ $font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 12)
 $fontBig = New-Object System.Drawing.Font('Microsoft JhengHei UI', 15, [System.Drawing.FontStyle]::Bold)
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = '數學習作批改（一人一檔｜Cursor／Gemini／自己對照）'
-$form.Size = New-Object System.Drawing.Size(1000, 780)
+$form.Text = '數學習作批改（正確答案＋Gemini 自動批｜一人一檔）'
+$form.Size = New-Object System.Drawing.Size(1060, 780)
 $form.StartPosition = 'CenterScreen'
 $form.Font = $font
 $form.BackColor = [System.Drawing.Color]::FromArgb(245, 248, 244)
 
 $lbl = New-Object System.Windows.Forms.Label
-$lbl.Text = '建議：先載入正確答案 → 再一檔一檔批（自己對照／Cursor／Gemini）'
+$lbl.Text = '流程：載入正確答案 → 選「Gemini 自動批閱」→ 開始批（AI 依答案自動處理）'
 $lbl.Font = $fontBig
 $lbl.ForeColor = [System.Drawing.Color]::FromArgb(20, 70, 50)
 $lbl.Location = New-Object System.Drawing.Point(16, 10)
@@ -1692,18 +1694,45 @@ $grp.Controls.Add($txtPractice)
 $status = New-Object System.Windows.Forms.Label
 $status.Location = New-Object System.Drawing.Point(16, 648)
 $status.Size = New-Object System.Drawing.Size(950, 40)
-$status.Text = '請先「載入正確答案」，再選批閱方式'
+$status.Text = '請先「載入正確答案」，再按開始批（預設 Gemini 依答案自動批）'
 
 $script:files = @()
 $script:current = $null
+# 連續自動批：成功後不跳確認窗，直接下一位
+$script:SilentAutoContinue = $false
+$script:AutoBatchDone = 0
 
 function Refresh-PathLabel {
   $lblPath.Text = '工作資料夾：' + $script:WorkDir + '　　（輸入＝學生卷｜輸出＝註記PDF）'
 }
 
 function Ensure-AnswerOrWarn {
+  param([switch]$RequireForAuto)
   $files = @(Get-AnswerFiles $script:WorkDir)
   if ($files.Count -eq 0) {
+    if ($RequireForAuto) {
+      $ask = [System.Windows.Forms.MessageBox]::Show(
+        "Gemini 自動批閱需要「正確答案」當對照。`n`n現在載入嗎？",
+        '請先載入正確答案',
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Warning
+      )
+      if ($ask -ne 'Yes') { return $false }
+      $ofd = New-Object System.Windows.Forms.OpenFileDialog
+      $ofd.Title = '選擇正確答案（可多選）'
+      $ofd.Filter = '答案檔|*.pdf;*.png;*.jpg;*.jpeg;*.txt;*.md|所有檔|*.*'
+      $ofd.Multiselect = $true
+      if ($ofd.ShowDialog() -ne 'OK') { return $false }
+      $dest = Join-Path $script:WorkDir '標準答案'
+      New-Item -ItemType Directory -Force -Path $dest | Out-Null
+      foreach ($f in $ofd.FileNames) {
+        Copy-Item -LiteralPath $f -Destination (Join-Path $dest ([IO.Path]::GetFileName($f))) -Force
+      }
+      Refresh-AnswerLabel
+      $files = @(Get-AnswerFiles $script:WorkDir)
+      if ($files.Count -eq 0) { return $false }
+      return $true
+    }
     $r = [System.Windows.Forms.MessageBox]::Show(
       "尚未載入正確答案。`n建議先載入以便比對。`n仍要繼續嗎？",
       '正確答案',
@@ -1843,10 +1872,24 @@ function Start-GradeCurrent {
 
     $p = Build-CursorPromptOne $script:WorkDir $script:current -HandwritingHard:$hw
     if ($useGemini) {
-      $p = "（請用 Google Gemini 批閱。學生試卷與標準答案檔已一併提供；請依檔案內容批改，不要要求我再貼檔。）`r`n`r`n" + $p
+      $p = ("【任務】你是數學老師助理，用 Google Gemini 自動批閱。`r`n" +
+        "【已附檔】1) 學生試卷 2) 正確答案（可能多檔）。`r`n" +
+        "【必做】先看正確答案，再對學生卷逐題判 ✓／✗／?；以答案為準，等價解法可給 ✓。`r`n" +
+        "【禁止】不要要我再貼檔；不要忽略正確答案自行出標準。`r`n`r`n") + $p
     }
 
     if ($useGeminiAuto) {
+      if (-not (Ensure-AnswerOrWarn -RequireForAuto)) {
+        $script:SilentAutoContinue = $false; $script:AutoBatchDone = 0
+        return
+      }
+      $ansList = @(Get-AnswerFiles $script:WorkDir)
+      if ($ansList.Count -eq 0) {
+        $script:SilentAutoContinue = $false; $script:AutoBatchDone = 0
+        [void][System.Windows.Forms.MessageBox]::Show('沒有正確答案檔，無法自動對照批閱。', '提示')
+        return
+      }
+
       $key = Get-GeminiApiKey $script:WorkDir
       if ([string]::IsNullOrWhiteSpace($key)) {
         $ask = [System.Windows.Forms.MessageBox]::Show(
@@ -1854,20 +1897,21 @@ function Start-GradeCurrent {
           '需要 Gemini 金鑰',
           [System.Windows.Forms.MessageBoxButtons]::YesNo
         )
-        if ($ask -ne 'Yes') { return }
-        if (-not (Show-GeminiKeyDialog)) { return }
+        if ($ask -ne 'Yes') { $script:SilentAutoContinue = $false; $script:AutoBatchDone = 0; return }
+        if (-not (Show-GeminiKeyDialog)) { $script:SilentAutoContinue = $false; $script:AutoBatchDone = 0; return }
         $key = Get-GeminiApiKey $script:WorkDir
-        if ([string]::IsNullOrWhiteSpace($key)) { return }
+        if ([string]::IsNullOrWhiteSpace($key)) { $script:SilentAutoContinue = $false; $script:AutoBatchDone = 0; return }
       }
 
       $sid = Get-StudentId $script:current.Name
       $files = New-Object System.Collections.ArrayList
       [void]$files.Add($script:current.FullName)
-      foreach ($a in @(Get-AnswerFiles $script:WorkDir | Select-Object -First 4)) {
+      # 附上全部正確答案（以答案為準自動批）
+      foreach ($a in $ansList) {
         [void]$files.Add($a.FullName)
       }
 
-      $status.Text = "Gemini 自動批閱中（座號 $sid）…請稍候"
+      $status.Text = "Gemini 依正確答案自動批閱中（座號 $sid｜答案 $($ansList.Count) 檔）…"
       $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
       [System.Windows.Forms.Application]::DoEvents()
       try {
@@ -1877,18 +1921,50 @@ function Start-GradeCurrent {
         $text = [string]$result.Text
         Apply-GeminiReplyToForm $text
         $outDir = Join-Path $script:WorkDir '輸出'
+        New-Item -ItemType Directory -Force -Path $outDir | Out-Null
         $utf8 = New-Object System.Text.UTF8Encoding $true
         [IO.File]::WriteAllText((Join-Path $outDir ($sid + '-Gemini提示.txt')), $p, $utf8)
         [IO.File]::WriteAllText((Join-Path $outDir ($sid + '-Gemini回覆.md')), $text, $utf8)
-        $status.Text = "Gemini 自動批完（$($result.Model)）｜已填入右側｜可再按「輸出此生PDF」"
-        [void][System.Windows.Forms.MessageBox]::Show(
-          "已自動批完座號 $sid（模型：$($result.Model)）。`n`n回覆已填入右側診斷欄，並存到：`n輸出\$sid-Gemini回覆.md`n`n請快速過目後按「輸出此生PDF」。",
-          'Gemini 自動批閱'
-        )
+        # 自動寫入註記並嘗試產 PDF（老師仍可再改）
+        $saved = $false
+        try { $saved = [bool](Save-Current) } catch { $saved = $false }
+        if ($script:SilentAutoContinue) { $script:AutoBatchDone++ }
+        $status.Text = "Gemini 已依答案自動批完（$($result.Model)）｜座號 $sid｜註記已寫入"
+        $extra = if ($saved) { "`n已自動輸出此生 PDF／註記。" } else { "`n請再按「輸出此生PDF」確認。" }
+
+        if ($script:SilentAutoContinue) {
+          # 連續模式：不跳確認，直接下一位未批
+          $form.Cursor = [System.Windows.Forms.Cursors]::Default
+          Select-NextUngraded -Quiet
+          if ($script:current) {
+            Start-GradeCurrent
+          } else {
+            $n = $script:AutoBatchDone
+            $script:SilentAutoContinue = $false
+            $script:AutoBatchDone = 0
+            $status.Text = "連續自動批完成｜共 $n 份（皆依正確答案）"
+            [void][System.Windows.Forms.MessageBox]::Show(
+              ("連續自動批完成。`n已依正確答案處理 $n 份。`n`n請抽查「輸出」夾的註記／PDF。"),
+              '連續自動批完成'
+            )
+          }
+        } else {
+          $next = [System.Windows.Forms.MessageBox]::Show(
+            ("已依正確答案自動批完座號 $sid（模型：$($result.Model)）。`n答案檔：$($ansList.Count) 個`n回覆：輸出\$sid-Gemini回覆.md" + $extra + "`n`n要繼續自動批「下一位未批」嗎？"),
+            'Gemini 依答案自動批閱',
+            [System.Windows.Forms.MessageBoxButtons]::YesNo
+          )
+          if ($next -eq 'Yes') {
+            Select-NextUngraded -Quiet
+            if ($script:current) { Start-GradeCurrent }
+          }
+        }
       } catch {
+        $script:SilentAutoContinue = $false
+        $script:AutoBatchDone = 0
         $status.Text = 'Gemini 自動批閱失敗'
         [void][System.Windows.Forms.MessageBox]::Show(
-          ("自動批閱失敗：`n" + $_.Exception.Message + "`n`n可改選「網頁批閱」手動貼檔，或檢查金鑰／網路。"),
+          ("自動批閱失敗：`n" + $_.Exception.Message + "`n`n請確認：已載入正確答案、金鑰有效、網路正常。"),
           '錯誤'
         )
       } finally {
@@ -1962,6 +2038,7 @@ function Save-Current {
 }
 
 function Select-NextUngraded {
+  param([switch]$Quiet)
   Refresh-List
   for ($i = 0; $i -lt $script:files.Count; $i++) {
     $id = Get-StudentId $script:files[$i].Name
@@ -1969,12 +2046,15 @@ function Select-NextUngraded {
     if (-not (Test-Path -LiteralPath $note)) {
       $list.SelectedIndex = $i
       Load-Selected
-      Start-GradeCurrent
       $status.Text = "下一位未批：座號 $id"
-      return
+      return $true
     }
   }
-  [void][System.Windows.Forms.MessageBox]::Show("全員都有註記了。`n可按「產生全班存疑清單」處理看不懂的地方。", '完成')
+  $script:current = $null
+  if (-not $Quiet) {
+    [void][System.Windows.Forms.MessageBox]::Show("全員都有註記了。`n可按「產生全班存疑清單」處理看不懂的地方。", '完成')
+  }
+  return $false
 }
 
 $y1 = 520
@@ -2023,7 +2103,7 @@ $btnOpenOut.Size = New-Object System.Drawing.Size(90, 36)
 $btnOpenOut.Add_Click({ Start-Process explorer.exe (Join-Path $script:WorkDir '輸出') })
 
 $btnGrade = New-Object System.Windows.Forms.Button
-$btnGrade.Text = '開始批此生'
+$btnGrade.Text = '依答案·Gemini自動批'
 $btnGrade.Location = New-Object System.Drawing.Point(356, $y1)
 $btnGrade.Size = New-Object System.Drawing.Size(120, 36)
 $btnGrade.BackColor = [System.Drawing.Color]::FromArgb(40, 90, 140)
@@ -2043,13 +2123,59 @@ $btnSave.Add_Click({ [void](Save-Current) })
 $btnNext = New-Object System.Windows.Forms.Button
 $btnNext.Text = '下一位未批'
 $btnNext.Location = New-Object System.Drawing.Point(626, $y1)
-$btnNext.Size = New-Object System.Drawing.Size(120, 36)
+$btnNext.Size = New-Object System.Drawing.Size(100, 36)
 $btnNext.Add_Click({ Select-NextUngraded })
+
+$btnAutoAll = New-Object System.Windows.Forms.Button
+$btnAutoAll.Text = '連續自動批'
+$btnAutoAll.Location = New-Object System.Drawing.Point(736, $y1)
+$btnAutoAll.Size = New-Object System.Drawing.Size(110, 36)
+$btnAutoAll.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnAutoAll.ForeColor = [System.Drawing.Color]::White
+$btnAutoAll.FlatStyle = 'Flat'
+$btnAutoAll.Add_Click({
+  # 強制：正確答案＋Gemini API 連續自動批
+  $cmbMode.SelectedIndex = 3
+  if (-not (Ensure-AnswerOrWarn -RequireForAuto)) { return }
+  $key = Get-GeminiApiKey $script:WorkDir
+  if ([string]::IsNullOrWhiteSpace($key)) {
+    $askKey = [System.Windows.Forms.MessageBox]::Show(
+      "連續自動批需要 Gemini API 金鑰。`n`n現在設定嗎？",
+      '需要 Gemini 金鑰',
+      [System.Windows.Forms.MessageBoxButtons]::YesNo
+    )
+    if ($askKey -ne 'Yes') { return }
+    if (-not (Show-GeminiKeyDialog)) { return }
+  }
+  # 若目前這份已有註記，跳到下一位未批
+  if ($script:current) {
+    $curId = Get-StudentId $script:current.Name
+    $curNote = Get-NotePath $script:WorkDir $curId
+    if (Test-Path -LiteralPath $curNote) { [void](Select-NextUngraded -Quiet) }
+  } else {
+    [void](Select-NextUngraded -Quiet)
+  }
+  if (-not $script:current) {
+    [void][System.Windows.Forms.MessageBox]::Show('沒有未批學生（請把試卷放入「輸入」夾）。', '提示')
+    return
+  }
+  $confirm = [System.Windows.Forms.MessageBox]::Show(
+    ("將依「正確答案」用 Gemini 連續自動批所有未批學生。`n`n每份成功會自動存註記／PDF，再處理下一位。`n中途失敗會停下。`n`n開始？"),
+    '連續自動批',
+    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+    [System.Windows.Forms.MessageBoxIcon]::Question
+  )
+  if ($confirm -ne 'Yes') { return }
+  $script:SilentAutoContinue = $true
+  $script:AutoBatchDone = 0
+  $status.Text = '連續自動批開始｜依正確答案＋Gemini…'
+  Start-GradeCurrent
+})
 
 $btnRefresh = New-Object System.Windows.Forms.Button
 $btnRefresh.Text = '重新整理'
-$btnRefresh.Location = New-Object System.Drawing.Point(756, $y1)
-$btnRefresh.Size = New-Object System.Drawing.Size(100, 36)
+$btnRefresh.Location = New-Object System.Drawing.Point(856, $y1)
+$btnRefresh.Size = New-Object System.Drawing.Size(90, 36)
 $btnRefresh.Add_Click({ Refresh-List; Refresh-AnswerLabel })
 
 $y2 = 566
@@ -2264,7 +2390,7 @@ $status.Size = New-Object System.Drawing.Size(950, 40)
 
 $form.Controls.AddRange(@(
     $lbl, $grpStart, $lblPath, $list, $grp, $status,
-    $btnWork, $btnOpenIn, $btnOpenOut, $btnGrade, $btnSave, $btnNext, $btnRefresh,
+    $btnWork, $btnOpenIn, $btnOpenOut, $btnGrade, $btnSave, $btnNext, $btnAutoAll, $btnRefresh,
     $btnCsv, $btnUnclear, $btnClarify, $btnOpenCog,
     $btnDigital, $btnCopyLine, $btnPrintPack, $btnOpenDigital,
     $btnTools, $btnLoop, $btnRetFolder, $btnJunyi, $btnTablet
