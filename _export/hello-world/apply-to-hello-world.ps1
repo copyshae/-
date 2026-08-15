@@ -37,7 +37,7 @@ Push-Location $dest
 try {
   git add directory/apps/teacher-desk scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md .cursor/rules/teacher-desk.mdc 2>$null
   git status --short
-  $msg = '強化習作台：掃描檔名自動座號、桌面掃描匯入夾處理與班級資料互通。'
+  $msg = '強化習作台：繁體中文介面、掃描檔名自動座號、桌面掃描匯入與班級資料互通。'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。線上頁：https://copyshae.github.io/hello-world/directory/apps/teacher-desk/'

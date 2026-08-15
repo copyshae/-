@@ -9,7 +9,9 @@ globs:
 
 # 習作台
 
-- 介面、說明、commit 一律繁體中文。
+- 介面、說明、toast、對話框、commit 一律**繁體中文**（zh-Hant）；品牌名可保留「PDF」等通用檔案格式。
+- 管道選項顯示「通訊軟體班級群組／Google 教室／雲端…」，勿用英文 Classroom。
+- 掃描來源寫「掃描王」，勿只寫 CS。
 - 只用座號，禁止存學生姓名。
 - 手機 PWA：`directory/apps/teacher-desk/`；桌面：`scripts/teacher-desk-app.ps1`。
 - 狀態檔：`班級狀態.json`（相容 `class-state.json`）。

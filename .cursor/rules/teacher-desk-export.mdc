@@ -8,4 +8,5 @@ alwaysApply: false
 - 正式程式在 `copyshae/hello-world` 的 `directory/apps/teacher-desk` 與 `scripts/teacher-desk*`。
 - 本倉庫（`copyshae/-`）以 `_export/hello-world/` 暫存待套用變更。
 - 套用：`_export/hello-world/apply-to-hello-world.ps1`（需本機 Desktop\hello-world）。
-- 介面與 commit 用繁體中文；只用座號、不存姓名。
+- **介面、提示、對話框必須繁體中文**（zh-Hant）；管道用「Google 教室／通訊軟體群組」，掃描來源寫「掃描王」。
+- 只用座號、不存姓名。

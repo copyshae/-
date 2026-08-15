@@ -4,10 +4,10 @@
 
 ## 本包內容
 
-- `directory/apps/teacher-desk/` — 手機 PWA（檔名猜座號、PDF 提示、favicon、SW v4）
-- `scripts/teacher-desk-app.ps1` — 桌面：處理掃描匯入、匯出／匯入班級資料、已發→待回
+- `directory/apps/teacher-desk/` — 手機 PWA（繁中介面、檔名猜座號、PDF 提示、SW v5）
+- `scripts/teacher-desk-app.ps1` — 桌面繁中：處理掃描匯入、匯出／匯入班級資料、已發→待回
 - `scripts/install-teacher-desk.ps1`、`scripts/README-teacher-desk.md`
-- `.cursor/rules/teacher-desk.mdc`
+- `.cursor/rules/teacher-desk.mdc`（強制繁體中文介面）
 
 ## 在有 hello-world 權限的電腦執行
 

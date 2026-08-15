@@ -26,6 +26,11 @@ try {
   Add-Type -AssemblyName System.Windows.Forms
   Add-Type -AssemblyName System.Drawing
   [System.Windows.Forms.Application]::EnableVisualStyles()
+  try {
+    $zh = [System.Globalization.CultureInfo]::GetCultureInfo('zh-TW')
+    [System.Threading.Thread]::CurrentThread.CurrentUICulture = $zh
+    [System.Threading.Thread]::CurrentThread.CurrentCulture = $zh
+  } catch {}
 
   $desk = [Environment]::GetFolderPath('Desktop')
   if ([string]::IsNullOrWhiteSpace($WorkDir)) {
@@ -219,7 +224,7 @@ try {
 【$($script:State.classLabel)｜今日練習】
 請座號：$list
 1. 依老師發的檔／連結完成練習
-2. 完成後請個別傳老師，不要傳班級群組
+2. 完成後請個別傳給老師，不要傳班級群組
 3. 截止：$($script:State.deadline)
 "@
   }
@@ -249,7 +254,7 @@ try {
   $top.Controls.Add($lblBrand)
 
   $lblSub = New-Object System.Windows.Forms.Label
-  $lblSub.Text = '掌握程度／發送 · 複製 LINE 文案（只用座號）'
+  $lblSub.Text = '掌握程度／發送 · 複製群發文案（只用座號）'
   $lblSub.ForeColor = [System.Drawing.Color]::FromArgb(220, 240, 230)
   $lblSub.Location = New-Object System.Drawing.Point(16, 42)
   $lblSub.AutoSize = $true
@@ -310,16 +315,28 @@ try {
   $lblSid.AutoSize = $true
   $right.Controls.Add($lblSid)
 
+  $lblLevel = New-Object System.Windows.Forms.Label
+  $lblLevel.Text = '程度'
+  $lblLevel.Location = New-Object System.Drawing.Point(0, 38)
+  $lblLevel.AutoSize = $true
+  $right.Controls.Add($lblLevel)
+
   $cmbLevel = New-Object System.Windows.Forms.ComboBox
   $cmbLevel.DropDownStyle = 'DropDownList'
-  $cmbLevel.Location = New-Object System.Drawing.Point(0, 36); $cmbLevel.Width = 150
+  $cmbLevel.Location = New-Object System.Drawing.Point(40, 34); $cmbLevel.Width = 110
   $Levels | ForEach-Object { [void]$cmbLevel.Items.Add($_) }
   $cmbLevel.SelectedIndex = 0
   $right.Controls.Add($cmbLevel)
 
+  $lblSend = New-Object System.Windows.Forms.Label
+  $lblSend.Text = '發送'
+  $lblSend.Location = New-Object System.Drawing.Point(160, 38)
+  $lblSend.AutoSize = $true
+  $right.Controls.Add($lblSend)
+
   $cmbSend = New-Object System.Windows.Forms.ComboBox
   $cmbSend.DropDownStyle = 'DropDownList'
-  $cmbSend.Location = New-Object System.Drawing.Point(160, 36); $cmbSend.Width = 150
+  $cmbSend.Location = New-Object System.Drawing.Point(200, 34); $cmbSend.Width = 110
   $Sends | ForEach-Object { [void]$cmbSend.Items.Add($_) }
   $cmbSend.SelectedIndex = 0
   $right.Controls.Add($cmbSend)
@@ -334,7 +351,7 @@ try {
   $right.Controls.Add($btnSaveSeat)
 
   $btnCopySend = New-Object System.Windows.Forms.Button
-  $btnCopySend.Text = '複製 LINE 群發文'
+  $btnCopySend.Text = '複製群發文'
   $btnCopySend.Location = New-Object System.Drawing.Point(0, 126)
   $btnCopySend.Size = New-Object System.Drawing.Size(310, 36)
   $btnCopySend.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
@@ -465,7 +482,7 @@ try {
     $msg = Build-SendMessage
     [System.Windows.Forms.Clipboard]::SetText($msg)
     $txtPreview.Text = $msg
-    [void][System.Windows.Forms.MessageBox]::Show('已複製，請貼到 LINE 班級群。', '習作台')
+    [void][System.Windows.Forms.MessageBox]::Show('已複製，請貼到班級群組。', '習作台')
   })
   $btnMarkSent.Add_Click({
     Persist-Header
@@ -493,7 +510,7 @@ try {
     $files = @(Get-ChildItem -LiteralPath $scanDir -File -ErrorAction SilentlyContinue |
       Where-Object { $_.Extension -match '\.(pdf|png|jpe?g|gif|webp|heic|heif)$' })
     if ($files.Count -eq 0) {
-      [void][System.Windows.Forms.MessageBox]::Show("掃描匯入夾沒有 PDF／圖檔。`r`n請把手機下載的 05-R01.pdf 放到：`r`n$scanDir", '習作台')
+      [void][System.Windows.Forms.MessageBox]::Show("掃描匯入夾沒有 PDF／圖片檔。`r`n請把手機下載的 05-R01.pdf 放到：`r`n$scanDir", '習作台')
       return
     }
     $done = 0
@@ -537,7 +554,7 @@ try {
 
   $btnImport.Add_Click({
     $dlg = New-Object System.Windows.Forms.OpenFileDialog
-    $dlg.Filter = '班級資料 (*.json)|*.json|所有檔案 (*.*)|*.*'
+    $dlg.Filter = '班級資料檔 (*.json)|*.json|所有檔案 (*.*)|*.*'
     $dlg.Title = '匯入班級資料'
     if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
     try {

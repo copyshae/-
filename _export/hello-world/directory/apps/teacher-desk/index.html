@@ -131,8 +131,8 @@
   <div class="wrap">
     <header class="hero">
       <div class="brand">習作台</div>
-      <p class="lead">與電腦版相同：掌握程度、發送狀態、LINE 文案；可接收 CS 掃描匯出的 PDF／圖檔。</p>
-      <p class="install">iPhone：CS 掃描 → 分享 →「儲存到檔案」→ 打開習作台 →「匯入掃描檔」。檔名若含座號（如 <code>05-R01</code>）會自動帶入。已加入主畫面後，部分系統也可「分享到習作台」。</p>
+      <p class="lead">與電腦版相同：掌握程度、發送狀態、群發文案；可接收掃描王匯出的 PDF／圖片。</p>
+      <p class="install">手機：掃描王 → 分享 →「儲存到檔案」→ 打開習作台 →「匯入掃描檔」。檔名若含座號（如 <code>05-R01</code>）會自動帶入。已加入主畫面後，部分系統也可「分享到習作台」。</p>
       <p class="summary" id="summary">—</p>
     </header>
 
@@ -151,8 +151,8 @@
       <div class="row">
         <label for="sendCh">發放</label>
         <select id="sendCh" class="grow">
-          <option value="line_group">LINE 班級群組</option>
-          <option value="classroom">Classroom</option>
+          <option value="line_group">通訊軟體班級群組</option>
+          <option value="classroom">Google 教室</option>
           <option value="cloud">雲端資料夾</option>
           <option value="print">無裝置列印</option>
         </select>
@@ -160,8 +160,8 @@
       <div class="row">
         <label for="retCh">回傳</label>
         <select id="retCh" class="grow">
-          <option value="line_dm">LINE 個別傳老師</option>
-          <option value="classroom">Classroom</option>
+          <option value="line_dm">個別傳給老師</option>
+          <option value="classroom">Google 教室</option>
           <option value="cloud">雲端回傳夾</option>
         </select>
       </div>
@@ -209,7 +209,7 @@
       <p class="tips" id="channelTip"></p>
       <textarea id="preview" readonly aria-label="文案預覽"></textarea>
       <div class="actions">
-        <button type="button" class="btn" id="btnCopySend">複製 LINE 群發文</button>
+        <button type="button" class="btn" id="btnCopySend">複製群發文</button>
         <button type="button" class="btn secondary" id="btnCopyRet">複製回傳說明</button>
         <button type="button" class="btn secondary" id="btnMarkSent">將「未發」全部標為已發</button>
         <button type="button" class="btn secondary" id="btnMarkPending">將「已發」改為待回</button>
@@ -220,17 +220,17 @@
       <h2>今日流程（與電腦批改銜接）</h2>
       <ul class="tips">
         <li>電腦「習作批改」：載入答案 → 批閱 → 自產練習到「數位練習」。</li>
-        <li>手機／電腦「習作台」：標程度與未發 → 複製群發文 → 貼 LINE 群。</li>
+        <li>手機／電腦「習作台」：標程度與未發 → 複製群發文 → 貼到班級群組。</li>
         <li>學生個別回傳 → 標待回／已回；需補先備採多次少題。</li>
         <li>沒裝置者才走列印包；有手機仍用數位。</li>
       </ul>
     </section>
 
     <section id="scanSection">
-      <h2>掃描匯入（CS）</h2>
-      <p class="tips">把 CS 匯出的 PDF／照片拉進習作台，指定座號後可標「待回」，並下載成 <code>05-R01.pdf</code>；傳到電腦後放進 <code>桌面\習作台資料\掃描匯入</code>，桌面習作台可一鍵處理。</p>
+      <h2>掃描匯入（掃描王）</h2>
+      <p class="tips">把掃描王匯出的 PDF／照片拉進習作台，指定座號後可標「待回」，並下載成 <code>05-R01.pdf</code>；傳到電腦後放進 <code>桌面\習作台資料\掃描匯入</code>，桌面習作台可一鍵處理。</p>
       <div class="actions">
-        <button type="button" class="btn" id="btnPickScan">匯入掃描檔（PDF／圖）</button>
+        <button type="button" class="btn" id="btnPickScan">匯入掃描檔（PDF／圖片）</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
       </div>
       <div class="row" style="margin-top:0.65rem">
@@ -240,7 +240,7 @@
         <input id="defaultRound" type="number" min="1" max="99" value="1" />
       </div>
       <ul class="scan-list" id="scanList"></ul>
-      <p class="tips" id="scanEmpty">尚無掃描檔。用上方按鈕匯入，或從 CS 分享進來。</p>
+      <p class="tips" id="scanEmpty">尚無掃描檔。用上方按鈕匯入，或從掃描王分享進來。</p>
     </section>
 
     <section>
@@ -333,14 +333,14 @@
 
       function channelTip() {
         var sendMap = {
-          line_group: "發：LINE 班級群組（貼群發文）",
-          classroom: "發：Classroom 作業／公告",
+          line_group: "發：通訊軟體班級群組（貼群發文）",
+          classroom: "發：Google 教室作業／公告",
           cloud: "發：雲端「數位練習」連結",
           print: "發：僅無裝置列印包"
         };
         var retMap = {
-          line_dm: "回：LINE 個別傳老師（勿塞群組）",
-          classroom: "回：Classroom 繳交",
+          line_dm: "回：個別傳給老師（勿塞群組）",
+          classroom: "回：Google 教室繳交",
           cloud: "回：雲端回傳夾"
         };
         document.getElementById("channelTip").textContent =
@@ -414,16 +414,16 @@
           "【" + state.classLabel + "｜今日練習】\n" +
           "請座號：" + seats + "\n" +
           "1. 依老師發的檔／連結完成練習（含指導與影片）\n" +
-          "2. 完成後請「個別傳老師」，不要傳班級群組\n" +
+          "2. 完成後請「個別傳給老師」，不要傳班級群組\n" +
           "3. 截止：" + state.deadline + "\n" +
-          "有問題先看指導；仍不懂再私訊老師。"
+          "有問題先看指導；仍不懂再私下詢問老師。"
         );
       }
 
       function buildRet() {
         return (
           "【" + state.classLabel + "｜回傳方式】\n" +
-          "請用 LINE「個別傳老師」交練習圖／PDF。\n" +
+          "請用「個別傳給老師」交練習圖／PDF。\n" +
           "檔名建議：座號-次數，例如 05-R01.jpg\n" +
           "不要傳進班級群組，方便老師對座號批改。"
         );
@@ -549,7 +549,7 @@
         });
       });
 
-      /* —— 掃描匯入（CS PDF／圖）—— */
+      /* —— 掃描匯入（掃描王 PDF／圖片）—— */
       var DB_NAME = "teacher-desk-scans";
       var DB_STORE = "inbox";
 
@@ -730,7 +730,7 @@
             } else {
               var badge = document.createElement("div");
               badge.className = "pdf-badge";
-              badge.textContent = "PDF／檔案預覽：下載後用電腦開啟；檔名會改成座號-次數。";
+              badge.textContent = "此為 PDF／檔案：請下載後用電腦開啟；檔名會改成座號-次數。";
               li.insertBefore(badge, li.querySelector(".row"));
             }
 
