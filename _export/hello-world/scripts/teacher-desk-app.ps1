@@ -27,6 +27,12 @@ try {
   Add-Type -AssemblyName System.Drawing
   [System.Windows.Forms.Application]::EnableVisualStyles()
 
+  # 啟動瞬間先寫一個標記，方便確認有跑到 App
+  try {
+    $bootMark = Join-Path ([Environment]::GetFolderPath('Desktop')) 'TeacherDesk-booting.txt'
+    [System.IO.File]::WriteAllText($bootMark, ("booting {0}`r`n" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')), (New-Object System.Text.UTF8Encoding $true))
+  } catch {}
+
   $desk = [Environment]::GetFolderPath('Desktop')
   if ([string]::IsNullOrWhiteSpace($WorkDir)) {
     $preferred = Join-Path $desk 'TeacherDeskData'
@@ -430,6 +436,8 @@ try {
 
   Refresh-Grid
   if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue }
+  $bootMark = Join-Path $desk 'TeacherDesk-booting.txt'
+  if (Test-Path -LiteralPath $bootMark) { Remove-Item -LiteralPath $bootMark -Force -ErrorAction SilentlyContinue }
   [void]$form.ShowDialog()
 }
 catch {
