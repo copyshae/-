@@ -16,7 +16,7 @@
 ## 桌面安裝／更新
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/copyshae/-/f2642096636a6a4a27b7b7a564b7b400eb187738/_export/hello-world/scripts/emergency-repair-teacher-desk.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/copyshae/-/102807a55a8681d1c3e05abc0945e9608c184871/_export/hello-world/scripts/emergency-repair-teacher-desk.ps1 | iex"
 ```
 
 （更新完整版 app 後請改用對話提供的最新 SHA。）
