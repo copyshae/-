@@ -22,9 +22,11 @@ Write-Host "Source: $base"
 Write-Host ""
 
 function Save-RemoteFile([string]$Rel) {
-  $url = "$base/$($Rel.Replace('\', '/'))"
+  $relUrl = $Rel.Replace([string][char]92, "/")
+  $url = "$base/$relUrl"
   Write-Host "Download $Rel"
-  $path = Join-Path $root ($Rel.Replace('/', '\'))
+  $relPath = $Rel.Replace("/", [string][char]92)
+  $path = Join-Path $root $relPath
   $parent = Split-Path -Parent $path
   New-Item -ItemType Directory -Force -Path $parent | Out-Null
   $tmp = Join-Path $env:TEMP ("hw-pull-" + [guid]::NewGuid().ToString() + ".bin")
