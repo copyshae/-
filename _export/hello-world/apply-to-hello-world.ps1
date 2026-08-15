@@ -9,13 +9,22 @@ if (-not (Test-Path -LiteralPath $dest)) {
 
 $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
+  @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
-  @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' }
+  @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
+  @{ Src = 'scripts\math-homework-grader-app.ps1'; Dst = 'scripts\math-homework-grader-app.ps1' },
+  @{ Src = 'scripts\install-math-homework-grader.ps1'; Dst = 'scripts\install-math-homework-grader.ps1' },
+  @{ Src = 'scripts\README-math-homework-grader.md'; Dst = 'scripts\README-math-homework-grader.md' },
+  @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' }
 )
 
 foreach ($p in $pairs) {
   $from = Join-Path $here $p.Src
+  if (-not (Test-Path -LiteralPath $from)) {
+    Write-Host "略過（沒有）：$($p.Src)"
+    continue
+  }
   $to = Join-Path $dest $p.Dst
   $parent = Split-Path -Parent $to
   New-Item -ItemType Directory -Force -Path $parent | Out-Null
@@ -27,21 +36,26 @@ foreach ($p in $pairs) {
   Write-Host "已複製 $($p.Src)"
 }
 
-if (Test-Path -LiteralPath (Join-Path $here '.cursor\rules\teacher-desk.mdc')) {
+$rulesSrc = Join-Path $here '.cursor\rules'
+if (Test-Path -LiteralPath $rulesSrc) {
   $rules = Join-Path $dest '.cursor\rules'
   New-Item -ItemType Directory -Force -Path $rules | Out-Null
-  Copy-Item -LiteralPath (Join-Path $here '.cursor\rules\teacher-desk.mdc') -Destination (Join-Path $rules 'teacher-desk.mdc') -Force
+  Copy-Item -LiteralPath (Join-Path $rulesSrc '*') -Destination $rules -Force -ErrorAction SilentlyContinue
 }
 
 Push-Location $dest
 try {
-  git add directory/apps/teacher-desk scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md .cursor/rules/teacher-desk.mdc 2>$null
+  git add directory/apps/teacher-desk directory/apps/math-grader `
+    scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
+    scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
+    scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '強化習作台：繁體中文介面、掃描檔名自動座號、桌面掃描匯入與班級資料互通。'
+  $msg = '修復 Gemini 自動批閱：改用 gemini-2.5-flash，預設 API 自動批；並更新習作台。'
   git commit -m $msg
   git push origin HEAD
-  Write-Host '完成。線上頁：https://copyshae.github.io/hello-world/directory/apps/teacher-desk/'
-  Write-Host '本機請再跑：powershell -ExecutionPolicy Bypass -File .\scripts\install-teacher-desk.ps1'
+  Write-Host '完成。'
+  Write-Host '請再跑：powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1'
+  Write-Host '習作批改請選「請 Gemini 自動批閱（API＝真正自動）」並設定 Gemini金鑰。'
 } finally {
   Pop-Location
 }
