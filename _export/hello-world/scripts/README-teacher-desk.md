@@ -1,46 +1,34 @@
-# 習作台｜老師掌握與發送（繁體中文）
+# 習作台｜完整版（繁體中文）
 
-桌面視窗與 iPhone 網頁 App 皆為**繁體中文介面**。功能：程度／發送狀態、篩選、發放與回傳管道、LINE 文案、批次改狀態、班級資料互通、掃描匯入。只用座號，不存姓名。
+桌面視窗與 iPhone 網頁 App 對齊。只用座號，不存姓名。
 
-## 桌面安裝／修復（一定要跑）
+## 完整功能
+
+- 掌握程度（跟上／略落後／明顯落後／需補先備）
+- 發送狀態（未發／已發／待回／已回）＋篩選
+- 發放／回傳管道設定
+- 複製 LINE 群發文、複製回傳說明
+- 批次：未發→已發、已發→待回
+- 班級資料匯出／匯入（與手機互通）
+- 開啟工作夾、掃描匯入夾、手機版網頁
+- 備註（每座號）
+
+## 桌面安裝／更新
 
 ```powershell
-cd $env:USERPROFILE\Desktop\hello-world
-git pull origin master
-powershell -ExecutionPolicy Bypass -File .\scripts\install-teacher-desk.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/copyshae/-/c65942c62a1e4e1acb0dbcc8a848ab3e257cf447/_export/hello-world/scripts/emergency-repair-teacher-desk.ps1 | iex"
 ```
 
-或一併安裝批改：
+（更新完整版 app 後請改用對話提供的最新 SHA。）
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1
-```
-
-### 啟動（請用這個）
-
-雙擊桌面 **`TeacherDesk-start.cmd`**（最穩）
-
-也可：`習作台.cmd`／`TeacherDesk-start.vbs`／`習作台.vbs`
-
-| 路徑 | 說明 |
-|------|------|
-| `Desktop\TeacherDeskApp\` | 程式 |
-| `Desktop\TeacherDeskData\` | 資料（班級狀態.json） |
-| `Desktop\TeacherDesk-error.txt` | 啟動失敗時的錯誤紀錄 |
-| `Desktop\習作台-啟動說明.txt` | 說明 |
-
-### 若 `.vbs` 開不起來、`.cmd` 一閃就沒
-
-1. **重新執行上方安裝指令**（舊版會把中文路徑寫成 `?????`）
-2. 改雙擊 **`TeacherDesk-start.cmd`**
-3. 若仍失敗，把桌面 `TeacherDesk-error.txt` 內容貼給 Cursor
+啟動：桌面 **TeacherDesk-ABS.cmd**
 
 ## 手機
 
 https://copyshae.github.io/hello-world/directory/apps/teacher-desk/
 
-Safari → 分享 → **加入主畫面**（圖示名稱「習作台」）
+Safari → 加入主畫面（圖示名「習作台」）
 
-## 手機 ↔ 電腦同步
+## 同步
 
-一端「匯出班級資料」→ AirDrop／雲端傳檔 → 另一端「匯入班級資料」
+一端「匯出班級資料」→ 傳到另一端「匯入班級資料」
