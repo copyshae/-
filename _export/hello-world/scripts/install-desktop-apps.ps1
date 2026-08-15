@@ -28,3 +28,5 @@ Write-Host "  習作批改.vbs　＝　批閱習作／產出練習（若已安�
 Write-Host "工作資料夾："
 Write-Host "  桌面\習作台資料\"
 Write-Host "  桌面\MathGrading\（習作批改用，內含中文子資料夾）"
+Write-Host ""
+Write-Host "習作批改：Gemini金鑰 → Gemini自動批（有答案對照／無答案直接 AI）"
