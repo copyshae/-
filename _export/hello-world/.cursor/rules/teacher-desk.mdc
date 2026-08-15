@@ -1,0 +1,18 @@
+---
+description: 習作台（teacher-desk）手機／桌面通則
+globs:
+  - directory/apps/teacher-desk/**
+  - scripts/teacher-desk*
+  - scripts/install-teacher-desk.ps1
+  - scripts/README-teacher-desk.md
+---
+
+# 習作台
+
+- 介面、說明、commit 一律繁體中文。
+- 只用座號，禁止存學生姓名。
+- 手機 PWA：`directory/apps/teacher-desk/`；桌面：`scripts/teacher-desk-app.ps1`。
+- 狀態檔：`班級狀態.json`（相容 `class-state.json`）。
+- 掃描命名：`座號-R次數.ext`（例 `05-R01.pdf`）。
+- 桌面資料夾：`習作台資料\掃描匯入` →「處理掃描匯入」→ `練習回傳`。
+- 與「習作批改」分工：批改產練習；習作台掌握發送與回傳。
