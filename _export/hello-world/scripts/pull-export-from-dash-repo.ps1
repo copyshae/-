@@ -76,9 +76,30 @@ foreach ($f in @(
 }
 
 Write-Host ""
-Write-Host "檔案已更新。開始安裝桌面捷徑…"
+Write-Host "檔案已更新。重設本機模型設定（避免卡在已下線的 2.0-flash）…"
+$mg = Join-Path ([Environment]::GetFolderPath('Desktop')) 'MathGrading'
+$settingsPath = Join-Path $mg 'settings.json'
+if (Test-Path -LiteralPath $settingsPath) {
+  try {
+    $raw = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8
+    if ($raw -match 'gemini-2\.0|gemini-1\.5') {
+      $raw2 = $raw -replace '"geminiModel"\s*:\s*"[^"]*"', '"geminiModel": "gemini-2.5-flash"'
+      $utf8 = New-Object System.Text.UTF8Encoding $true
+      [System.IO.File]::WriteAllText($settingsPath, $raw2, $utf8)
+      Write-Host "  已把 settings.json 的 geminiModel 改成 gemini-2.5-flash"
+    } else {
+      Write-Host "  settings.json 模型設定 OK"
+    }
+  } catch {
+    Write-Host "  （略過 settings 修正：$($_.Exception.Message)）"
+  }
+}
+
+Write-Host ""
+Write-Host "開始安裝桌面捷徑…"
 $install = Join-Path $root 'scripts\install-desktop-apps.ps1'
 & $install
 Write-Host ""
 Write-Host "完成。請關閉舊的「習作批改」視窗，再雙擊桌面 習作批改.vbs"
-Write-Host "然後：Gemini金鑰 → Gemini自動批"
+Write-Host "標題應類似：Gemini 自動批｜對照答案或直接 AI"
+Write-Host "然後：Gemini金鑰 → Gemini自動批（不要再用網頁版）"
