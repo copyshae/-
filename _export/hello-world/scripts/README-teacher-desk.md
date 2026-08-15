@@ -2,48 +2,44 @@
 
 桌面視窗與 iPhone 網頁 App 皆為**繁體中文介面**。功能：程度／發送狀態、篩選、發放與回傳管道、LINE 文案、批次改狀態、班級資料互通、掃描匯入。只用座號，不存姓名。
 
-## 桌面安裝（一定要跑）
+## 桌面安裝／修復（一定要跑）
 
 ```powershell
 cd $env:USERPROFILE\Desktop\hello-world
 git pull origin master
+powershell -ExecutionPolicy Bypass -File .\scripts\install-teacher-desk.ps1
+```
+
+或一併安裝批改：
+
+```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1
 ```
 
-桌面捷徑：
-- **習作台.vbs**
-- **習作批改.vbs**（若一併安裝）
+### 啟動（請用這個）
 
-資料夾：
-- `桌面\習作台程式\`
-- `桌面\習作台資料\`（班級狀態.json、掃描匯入）
+雙擊桌面 **`TeacherDesk-start.cmd`**（最穩）
 
-## 手機（不是 App Store）
+也可：`習作台.cmd`／`TeacherDesk-start.vbs`／`習作台.vbs`
 
-網址：https://copyshae.github.io/hello-world/directory/apps/teacher-desk/
-
-主畫面圖示名稱：**習作台**（不是 teacher-desk）
-
-### iPhone
-
-1. 用 **Safari** 打開上方網址（不要用 LINE／Cursor 內建瀏覽器）
-2. 點底部分享 → **加入主畫面**
-3. 回到桌面找綠色圖示「習作台」
-
-### Android
-
-1. 用 **Chrome** 打開上方網址
-2. 選單 → **加到主畫面**（或頁面上的「加到主畫面」按鈕）
-3. 回到桌面找「習作台」
-
-### 為什麼手機上沒看到？
-
-| 情況 | 作法 |
+| 路徑 | 說明 |
 |------|------|
-| 還沒加入主畫面 | 依上面步驟加一次 |
-| 在 App Store／Play 商店找 | 找不到是正常的；這是網頁 App |
-| 圖示名稱不對 | 找「習作台」，不是英文名 |
-| 用內建瀏覽器開啟 | 改用 Safari／Chrome 再開一次再加入 |
+| `Desktop\TeacherDeskApp\` | 程式 |
+| `Desktop\TeacherDeskData\` | 資料（班級狀態.json） |
+| `Desktop\TeacherDesk-error.txt` | 啟動失敗時的錯誤紀錄 |
+| `Desktop\習作台-啟動說明.txt` | 說明 |
+
+### 若 `.vbs` 開不起來、`.cmd` 一閃就沒
+
+1. **重新執行上方安裝指令**（舊版會把中文路徑寫成 `?????`）
+2. 改雙擊 **`TeacherDesk-start.cmd`**
+3. 若仍失敗，把桌面 `TeacherDesk-error.txt` 內容貼給 Cursor
+
+## 手機
+
+https://copyshae.github.io/hello-world/directory/apps/teacher-desk/
+
+Safari → 分享 → **加入主畫面**（圖示名稱「習作台」）
 
 ## 手機 ↔ 電腦同步
 
