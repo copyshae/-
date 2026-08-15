@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 # Teacher Desk emergency repair (ASCII-only)
 $ErrorActionPreference = 'Stop'
-$base = 'https://raw.githubusercontent.com/copyshae/-/d00fbd2f1a3e2151e4ce9f508b5e0a183324af97/_export/hello-world/scripts'
+\$base = 'https://raw.githubusercontent.com/copyshae/-/051a7791ba647d1e24a07fcf61ccf28316ccfd08/_export/hello-world/scripts'
 $tmp = Join-Path $env:TEMP 'teacher-desk-repair'
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
