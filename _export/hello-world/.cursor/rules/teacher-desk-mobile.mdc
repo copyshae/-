@@ -1,0 +1,16 @@
+---
+description: 習作台手機是 PWA，需加入主畫面才會出現圖示
+globs:
+  - directory/apps/teacher-desk/**
+  - scripts/**teacher-desk*
+alwaysApply: false
+---
+
+# 習作台（手機）
+
+- 線上：https://copyshae.github.io/hello-world/directory/apps/teacher-desk/
+- **不是** App Store／Play 商店 App；主畫面名稱為 **「習作台」**
+- iPhone：Safari → 分享 → 加入主畫面
+- Android：Chrome → 加到主畫面
+- 內建瀏覽器（LINE／Cursor）通常沒有「加入主畫面」
+- Cloud Agent 若只能寫 `copyshae/-`，修正放 `_export/hello-world/` 再套用到 hello-world
