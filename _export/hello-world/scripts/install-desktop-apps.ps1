@@ -1,16 +1,16 @@
 #Requires -Version 5.1
-# 一鍵安裝桌面視窗程式（介面與提示皆繁體中文）
+# Install desktop apps (Traditional Chinese UI in child scripts)
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $desk = [Environment]::GetFolderPath('Desktop')
 
-Write-Host "桌面位置：$desk"
-Write-Host "安裝腳本：$here"
+Write-Host "Desktop: $desk"
+Write-Host "Scripts: $here"
 Write-Host ""
 
 $teacherInstall = Join-Path $here 'install-teacher-desk.ps1'
 if (-not (Test-Path -LiteralPath $teacherInstall)) {
-  throw "找不到 install-teacher-desk.ps1，請先執行：git pull origin master"
+  throw "Missing install-teacher-desk.ps1. Run git pull first."
 }
 & $teacherInstall
 
@@ -18,15 +18,13 @@ $graderInstall = Join-Path $here 'install-math-homework-grader.ps1'
 if (Test-Path -LiteralPath $graderInstall) {
   & $graderInstall
 } else {
-  Write-Host "（略過習作批改：尚未找到安裝腳本）"
+  Write-Host "Skip math grader (install script not found)"
 }
 
 Write-Host ""
-Write-Host "安裝完成。請到桌面雙擊："
-Write-Host "  習作台.vbs　　＝　掌握程度／發送練習／與手機同步"
-Write-Host "  習作批改.vbs　＝　批閱習作／產出練習（若已安裝）"
-Write-Host "工作資料夾："
-Write-Host "  桌面\習作台資料\"
-Write-Host "  桌面\MathGrading\（習作批改用，內含中文子資料夾）"
+Write-Host "Install done. Double-click on Desktop:"
+Write-Host "  teacher-desk VBS / grader VBS"
+Write-Host "Work folders:"
+Write-Host "  Desktop\TeacherDesk data / Desktop\MathGrading"
 Write-Host ""
-Write-Host "習作批改：Gemini金鑰 → Gemini自動批（有答案對照／無答案直接 AI）"
+Write-Host "Grader: set Gemini key, then Gemini auto grade"
