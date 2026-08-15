@@ -531,7 +531,10 @@ function Invoke-GeminiGenerateContent {
     [string[]]$FilePaths
   )
   if ([string]::IsNullOrWhiteSpace($ApiKey)) { throw '尚未設定 Gemini API 金鑰' }
-  if ([string]::IsNullOrWhiteSpace($Model)) { $Model = 'gemini-2.0-flash' }
+  # 預設務必用仍上線的模型（2.0-flash 已於 2026-06-01 下線 → 404）
+  if ([string]::IsNullOrWhiteSpace($Model) -or $Model -match 'gemini-2\.0|gemini-1\.5') {
+    $Model = 'gemini-2.5-flash'
+  }
 
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -560,9 +563,18 @@ function Invoke-GeminiGenerateContent {
   $json = $ser.Serialize($payload)
   $bytes = [Text.Encoding]::UTF8.GetBytes($json)
 
-  $models = @($Model, 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash') | Select-Object -Unique
+  # 依序嘗試；跳過已下線／404 的模型
+  $models = @(
+    $Model,
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-flash-latest',
+    'gemini-2.5-pro'
+  ) | Where-Object { $_ -and $_ -notmatch 'gemini-2\.0' } | Select-Object -Unique
+  $tried = New-Object System.Collections.ArrayList
   $lastErr = $null
   foreach ($m in $models) {
+    [void]$tried.Add($m)
     $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$ApiKey"
     try {
       $resp = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec 180
@@ -581,14 +593,20 @@ function Invoke-GeminiGenerateContent {
     } catch {
       $lastErr = $_
       $msg = [string]$_.Exception.Message
-      if ($msg -match '404|not found|NOT_FOUND|is not found|not supported') { continue }
-      if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key') {
+      # 也抓取內層 WebException／中文「找不到」
+      try {
+        if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message }
+      } catch {}
+      if ($msg -match '404|not found|NOT_FOUND|找不到|is not found|not supported|was not found') { continue }
+      if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
         throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
       }
+      # 其他錯誤也試下一個模型（例如該模型不支援圖檔）
+      if ($msg -match 'INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400') { continue }
       throw
     }
   }
-  $hint = '目前可用模型：gemini-2.5-flash（2.0-flash 已於 2026-06 下線）。請更新習作批改後重試。'
+  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。`n請先更新習作批改（pull-export）後重試。"
   if ($lastErr) { throw (($lastErr.Exception.Message) + "`n`n" + $hint) }
   throw $hint
 }
@@ -1933,7 +1951,12 @@ function Start-GradeCurrent {
       [System.Windows.Forms.Application]::DoEvents()
       try {
         $model = 'gemini-2.5-flash'
-        try { if ($script:settings.geminiModel) { $model = [string]$script:settings.geminiModel } } catch {}
+        try {
+          if ($script:settings.geminiModel) {
+            $cand = [string]$script:settings.geminiModel
+            if ($cand -and $cand -notmatch 'gemini-2\.0|gemini-1\.5') { $model = $cand }
+          }
+        } catch {}
         $result = Invoke-GeminiGenerateContent -ApiKey $key -Model $model -Prompt $p -FilePaths @($files.ToArray())
         $text = [string]$result.Text
         Apply-GeminiReplyToForm $text
