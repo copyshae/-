@@ -1,4 +1,4 @@
-﻿﻿#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
   習作台（桌面，繁體中文介面）：掌握程度／發送、LINE 文案、管道偏好、與手機資料互通。
   只用座號、不存姓名。資料：工作夾\班級狀態.json
@@ -100,9 +100,34 @@ function Ensure-Seats($state) {
       }
     }
   }
+  # 固定試發座號 00（不占人數）
+  if (-not $state.seats.ContainsKey('00')) {
+    $state.seats['00'] = @{ level = '未標'; send = '未發'; note = '試發' }
+  } else {
+    $trial = $state.seats['00']
+    if ($trial -is [hashtable]) {
+      if (-not $trial.ContainsKey('note') -or [string]::IsNullOrWhiteSpace([string]$trial['note'])) {
+        $trial['note'] = '試發'
+      }
+      if (-not $trial.ContainsKey('level')) { $trial['level'] = '未標' }
+      if (-not $trial.ContainsKey('send')) { $trial['send'] = '未發' }
+    } else {
+      $state.seats['00'] = @{
+        level = $(if ($trial.level) { [string]$trial.level } else { '未標' })
+        send  = $(if ($trial.send) { [string]$trial.send } else { '未發' })
+        note  = $(if ($trial.note) { [string]$trial.note } else { '試發' })
+      }
+    }
+  }
   foreach ($k in @($state.seats.Keys)) {
     $num = 0
-    if (-not [int]::TryParse($k, [ref]$num) -or $num -lt 1 -or $num -gt $n) {
+    if (-not [int]::TryParse($k, [ref]$num)) {
+      $state.seats.Remove($k)
+      continue
+    }
+    # 允許 00 試發；其餘須在 1..n
+    if ($num -eq 0) { continue }
+    if ($num -lt 1 -or $num -gt $n) {
       $state.seats.Remove($k)
     }
   }
@@ -482,7 +507,7 @@ function Refresh-Grid {
     $b.Size = New-Object Drawing.Size(70, 50)
     $b.Margin = New-Object Windows.Forms.Padding(3)
     $b.FlatStyle = 'Flat'
-    $b.Text = "$k`n$($s.send)"
+    $b.Text = $(if ($k -eq '00') { "00 試發`n$($s.send)" } else { "$k`n$($s.send)" })
     $b.BackColor = Get-LevelColor $s.level
     $b.Tag = $k
     if (-not (Test-SeatFilter $s)) { $b.Enabled = $false }

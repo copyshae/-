@@ -299,9 +299,17 @@
           if (!state.seats[id]) state.seats[id] = { level: "未標", send: "未發", note: "" };
           if (state.seats[id].note == null) state.seats[id].note = "";
         }
+        // 固定試發座號 00（不占人數）
+        if (!state.seats["00"]) {
+          state.seats["00"] = { level: "未標", send: "未發", note: "試發" };
+        } else if (!state.seats["00"].note) {
+          state.seats["00"].note = "試發";
+        }
         Object.keys(state.seats).forEach(function (k) {
           var num = parseInt(k, 10);
-          if (!num || num < 1 || num > n) delete state.seats[k];
+          if (isNaN(num)) { delete state.seats[k]; return; }
+          if (num === 0) return; // keep 試發
+          if (num < 1 || num > n) delete state.seats[k];
         });
         return state;
       }
@@ -375,11 +383,12 @@
           b.type = "button";
           var show = matchFilter(s);
           b.className = "seat lv-" + s.level + (selected === id ? " active" : "") + (show ? "" : " dim");
-          b.innerHTML = '<span class="sid">' + id + '</span><span class="st">' + s.send + "</span>";
+          var sidLabel = id === "00" ? "00 試發" : id;
+          b.innerHTML = '<span class="sid">' + sidLabel + '</span><span class="st">' + s.send + "</span>";
           b.addEventListener("click", function () {
             selected = id;
             document.getElementById("editPanel").hidden = false;
-            document.getElementById("editTitle").textContent = "座號 " + id;
+            document.getElementById("editTitle").textContent = id === "00" ? "座號 00（試發）" : ("座號 " + id);
             document.getElementById("level").value = s.level;
             document.getElementById("send").value = s.send;
             document.getElementById("note").value = s.note || "";
