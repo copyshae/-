@@ -1,30 +1,39 @@
-# 匯出：習作台＋習作批改（Gemini 自動批修復）
+# 匯出：習作台＋習作批改（Gemini 自動批）
 
 此 Cloud Agent 只能寫入 `copyshae/-`，**無法直接推送** `copyshae/hello-world`。
 
 ## 本包內容
 
 - `directory/apps/teacher-desk/` — 手機習作台（繁中）
-- `directory/apps/math-grader/` — 手機批改輔助（網頁仍手動）
-- `scripts/math-homework-grader-app.ps1` — **修復 Gemini 自動批閱**
-  - 模型改 **gemini-2.5-flash**（2.0-flash 已下線）
-  - 預設模式 **API 自動批**（不是網頁手動）
-- `scripts/teacher-desk-*`、`install-desktop-apps.ps1`、rules
+- `directory/apps/math-grader/` — 手機批改輔助
+- `scripts/math-homework-grader-app.ps1` — Gemini 自動批（有答案對照／無答案直接 AI）
+- `scripts/pull-export-from-dash-repo.ps1` — **在桌面 hello-world 一鍵下載＋安裝**
+- `scripts/install-desktop-apps.ps1`、習作台腳本、rules
 
-## 為何「Gemini 無法自動接手批閱」
+## 套用（推薦｜人在桌面\hello-world）
 
-1. 選了「網頁批閱」→ 只開瀏覽器，要自己貼＝**非自動**  
-2. 未設定 AI Studio **API 金鑰**（網頁 Pro 訂閱不夠）  
-3. 舊版打 `gemini-2.0-flash` → **2026-06 已下線** → 自動失敗  
-
-## 套用（電腦）
+若出現「找不到 `_export\...`」或 `install-desktop-apps.ps1` 字串錯誤，在 PowerShell **整段貼上**：
 
 ```powershell
-cd <此倉庫>
+cd $env:USERPROFILE\Desktop\hello-world
+$dir = Join-Path $PWD 'scripts'
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+$url = 'https://raw.githubusercontent.com/copyshae/-/cursor/teacher-desk-scan-parity-c36c/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
+Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
+```
+
+完成後：**關掉舊的習作批改** → 再雙擊桌面 `習作批改.vbs` → Gemini金鑰 → Gemini自動批。
+
+## 套用（若已 clone 了 `-` 倉庫）
+
+```powershell
+cd <copyshae/- 倉庫>
 git pull
+git checkout cursor/teacher-desk-scan-parity-c36c
 powershell -ExecutionPolicy Bypass -File .\_export\hello-world\apply-to-hello-world.ps1
 cd $env:USERPROFILE\Desktop\hello-world
 powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1
 ```
 
-然後開 **習作批改** →「Gemini金鑰」→ 選 **請 Gemini 自動批閱（API＝真正自動）** →「開始批此生」。
+注意：`_export\...` 只存在於 **`-` 倉庫**，不在 `Desktop\hello-world` 裡。
