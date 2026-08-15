@@ -104,7 +104,7 @@
   <div class="wrap">
     <header>
       <div class="brand">習作批改</div>
-      <p class="lead">手機版：掌握進度、複製「對照正確答案」提示給 Gemini。真正自動批（API＋答案＋連續批）請用電腦「習作批改」。</p>
+      <p class="lead">手機版：掌握進度、複製提示給 Gemini。電腦「習作批改」可真正自動：有答案對照／無答案直接 AI。</p>
       <p class="install">Safari 開啟本頁 → 分享 → 往下找「加入主畫面」。含試發座號 00，人數預設到 35。</p>
       <p class="summary" id="summary">—</p>
     </header>
@@ -305,8 +305,9 @@
           )
           : (
             "請直接批閱這一位學生的數學試卷（一人一檔）。\n" +
-            "【強制｜對照正確答案】必須以我提供的正確答案為準；不一致才可判 ✗。\n" +
-            "接受合理等價解法；看不懂標 ?。字跡潦草寧可多標 ?。禁止憑空自訂標準。\n"
+            "【若有正確答案】必須對照答案判 ✓／✗；不一致才可判 ✗。\n" +
+            "【若無正確答案】依題意與數學正確性直接批（等價解法給 ✓）。\n" +
+            "看不懂標 ?。字跡潦草寧可多標 ?。\n"
           );
         return (
           head +
@@ -437,10 +438,10 @@
         var hard = true;
         copyText(
           "【任務】用 Google Gemini 批閱。\n" +
-          "【已附檔／請上傳】1) 學生試卷 2) 正確答案。\n" +
-          "【必做】先看正確答案，再對學生卷逐題判 ✓／✗／?；以答案為準。\n" +
-          "【禁止】不要忽略正確答案自行出標準。\n\n" + buildPromptOne(selected, hard),
-          "已複製 → 開 Gemini，請上傳學生卷＋正確答案"
+          "【模式】有正確答案就對照；沒有就直接 AI 批。\n" +
+          "【請上傳】學生試卷（＋正確答案若有）。\n" +
+          "【必做】逐題判 ✓／✗／?；等價解法可給 ✓。\n\n" + buildPromptOne(selected, hard),
+          "已複製 → 開 Gemini，上傳學生卷（答案可選）"
         );
         window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
       });
