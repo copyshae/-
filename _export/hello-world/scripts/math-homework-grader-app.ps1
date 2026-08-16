@@ -2016,7 +2016,7 @@ function Start-GradeCurrent {
         $script:AutoBatchDone = 0
         $status.Text = 'Gemini 自動批閱失敗'
         [void][System.Windows.Forms.MessageBox]::Show(
-          ("自動批閱失敗：`n" + $_.Exception.Message + "`n`n請確認：Gemini 金鑰有效、網路正常（答案檔可選）。"),
+          ("自動批閱失敗：`n" + $_.Exception.Message + "`n`n請確認：Gemini 金鑰有效、網路正常。`n若是 503，等 1～2 分鐘再按一次「Gemini自動批」。"),
           '錯誤'
         )
       } finally {
