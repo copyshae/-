@@ -18,3 +18,5 @@ globs:
 - API key 存在本機 `MathGrading\gemini-api-key.txt`，禁止提交 Git。
 - 金鑰申請：https://aistudio.google.com/apikey（與網頁 Pro 訂閱分開）。
 - 介面、說明、commit 一律繁體中文；只用座號、不存姓名。
+- 跨裝置同步：匯出 `習作批改進度.json`；桌面可「同步程度→習作台」寫入 `習作台資料\班級狀態.json`。詳見 `scripts/README-sync.md`。
+- 程度權威在批改；發送狀態權威在習作台。

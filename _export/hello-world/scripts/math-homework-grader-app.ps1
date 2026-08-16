@@ -453,6 +453,130 @@ function Export-ClassCsv([string]$root) {
   return $csv
 }
 
+function Get-TeacherDeskWorkDir {
+  Join-Path ([Environment]::GetFolderPath('Desktop')) '習作台資料'
+}
+
+function Map-LevelForDesk([string]$level) {
+  if ($level -eq '待判定') { return '需補先備' }
+  if ([string]::IsNullOrWhiteSpace($level)) { return '未標' }
+  return $level
+}
+
+function Export-LevelsToTeacherDesk([string]$root) {
+  $deskDir = Get-TeacherDeskWorkDir
+  New-Item -ItemType Directory -Force -Path $deskDir | Out-Null
+  $path = Join-Path $deskDir '班級狀態.json'
+  $legacy = Join-Path $deskDir 'class-state.json'
+  $st = $null
+  if (Test-Path -LiteralPath $path) {
+    try {
+      $obj = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+      $st = @{
+        classLabel    = $(if ($obj.classLabel) { [string]$obj.classLabel } else { '本班數學' })
+        seatCount     = $(if ($obj.seatCount) { [int]$obj.seatCount } else { 35 })
+        deadline      = $(if ($obj.deadline) { [string]$obj.deadline } else { '今晚 21:00' })
+        sendChannel   = $(if ($obj.sendChannel) { [string]$obj.sendChannel } else { 'line_group' })
+        returnChannel = $(if ($obj.returnChannel) { [string]$obj.returnChannel } else { 'line_dm' })
+        seats         = @{}
+      }
+      if ($obj.seats) {
+        foreach ($p in $obj.seats.PSObject.Properties) {
+          $v = $p.Value
+          $st.seats[$p.Name] = @{
+            level = $(if ($v.level) { [string]$v.level } else { '未標' })
+            send  = $(if ($v.send) { [string]$v.send } else { '未發' })
+            note  = $(if ($v.note) { [string]$v.note } else { '' })
+          }
+        }
+      }
+    } catch { $st = $null }
+  }
+  if ($null -eq $st) {
+    $st = @{
+      classLabel = '本班數學'; seatCount = 35; deadline = '今晚 21:00'
+      sendChannel = 'line_group'; returnChannel = 'line_dm'; seats = @{}
+    }
+    $st.seats['00'] = @{ level = '未標'; send = '未發'; note = '試發' }
+    for ($i = 1; $i -le 35; $i++) {
+      $id = '{0:D2}' -f $i
+      $st.seats[$id] = @{ level = '未標'; send = '未發'; note = '' }
+    }
+  }
+  $outDir = Join-Path $root '輸出'
+  $n = 0
+  Get-ChildItem -LiteralPath $outDir -Filter '*-註記.md' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $note = Load-Note $_.FullName
+    $id = if ($note.studentId) { Get-StudentId $note.studentId } else { Get-StudentId $_.Name.Replace('-註記', '') }
+    if (-not $id) { return }
+    $lv = Map-LevelForDesk ([string]$note.level)
+    if ($lv -eq '未標') { return }
+    if (-not $st.seats.ContainsKey($id)) {
+      $st.seats[$id] = @{ level = '未標'; send = '未發'; note = $(if ($id -eq '00') { '試發' } else { '' }) }
+    }
+    $st.seats[$id].level = $lv
+    if (-not $st.seats[$id].send) { $st.seats[$id].send = '未發' }
+    $n++
+  }
+  $orderedSeats = [ordered]@{}
+  foreach ($k in ($st.seats.Keys | Sort-Object)) { $orderedSeats[$k] = $st.seats[$k] }
+  $payload = [ordered]@{
+    _schema       = 'teacher-desk-v1'
+    exportedAt    = (Get-Date).ToString('o')
+    classLabel    = $st.classLabel
+    seatCount     = $st.seatCount
+    deadline      = $st.deadline
+    sendChannel   = $st.sendChannel
+    returnChannel = $st.returnChannel
+    seats         = $orderedSeats
+  }
+  $utf8Bom = New-Object System.Text.UTF8Encoding $true
+  $json = $payload | ConvertTo-Json -Depth 6
+  [IO.File]::WriteAllText($path, $json, $utf8Bom)
+  Copy-Item -LiteralPath $path -Destination $legacy -Force -ErrorAction SilentlyContinue
+  $exportDir = Join-Path $deskDir '匯出給手機'
+  New-Item -ItemType Directory -Force -Path $exportDir | Out-Null
+  Copy-Item -LiteralPath $path -Destination (Join-Path $exportDir '班級狀態.json') -Force
+  return @{ Path = $path; Count = $n }
+}
+
+function Export-GraderProgressJson([string]$root) {
+  $outDir = Join-Path $root '輸出'
+  $seats = [ordered]@{}
+  $seats['00'] = @{ status = '未批'; level = '未標'; note = '試發' }
+  for ($i = 1; $i -le 35; $i++) {
+    $id = '{0:D2}' -f $i
+    $seats[$id] = @{ status = '未批'; level = '未標'; note = '' }
+  }
+  Get-ChildItem -LiteralPath $outDir -Filter '*-註記.md' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $note = Load-Note $_.FullName
+    $id = if ($note.studentId) { Get-StudentId $note.studentId } else { Get-StudentId $_.Name.Replace('-註記', '') }
+    if (-not $id) { return }
+    if (-not $seats.Contains($id)) {
+      $seats[$id] = @{ status = '未批'; level = '未標'; note = '' }
+    }
+    $lv = [string]$note.level
+    if ($lv -eq '待判定') { $lv = '需補先備' }
+    $seats[$id].level = $(if ($lv) { $lv } else { '未標' })
+    $seats[$id].status = '已批'
+    $ov = [string]$note.overall
+    if ($ov.Length -gt 40) { $ov = $ov.Substring(0, 40) }
+    $seats[$id].note = $ov
+    if ($note.summary) { $seats[$id].lastReply = [string]$note.summary }
+  }
+  $payload = [ordered]@{
+    _schema    = 'math-grader-v1'
+    exportedAt = (Get-Date).ToString('o')
+    classLabel = '本班數學'
+    seatCount  = 35
+    seats      = $seats
+  }
+  $path = Join-Path $outDir '習作批改進度.json'
+  $utf8Bom = New-Object System.Text.UTF8Encoding $true
+  [IO.File]::WriteAllText($path, ($payload | ConvertTo-Json -Depth 6), $utf8Bom)
+  return $path
+}
+
 function Get-AnswerFiles([string]$root) {
   $dir = Join-Path $root '標準答案'
   if (-not (Test-Path -LiteralPath $dir)) { return @() }
@@ -2345,9 +2469,47 @@ $btnCsv.Add_Click({
     }
   })
 
+$btnSyncDesk = New-Object System.Windows.Forms.Button
+$btnSyncDesk.Text = '同步程度→習作台'
+$btnSyncDesk.Location = New-Object System.Drawing.Point(156, $y2)
+$btnSyncDesk.Size = New-Object System.Drawing.Size(140, 28)
+$btnSyncDesk.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnSyncDesk.ForeColor = [System.Drawing.Color]::White
+$btnSyncDesk.FlatStyle = 'Flat'
+$btnSyncDesk.Add_Click({
+    try {
+      $r = Export-LevelsToTeacherDesk $script:WorkDir
+      $status.Text = "已同步 $($r.Count) 個程度 → $($r.Path)"
+      [void][System.Windows.Forms.MessageBox]::Show(
+        ("已把註記程度寫入習作台班級狀態。`n更新 {0} 座`n`n{1}`n`n請打開桌面「習作台」查看；也可把匯出檔傳到另一台／手機。" -f $r.Count, $r.Path),
+        '同步習作台'
+      )
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("同步失敗：$($_.Exception.Message)", '同步習作台')
+    }
+  })
+
+$btnExportProgress = New-Object System.Windows.Forms.Button
+$btnExportProgress.Text = '匯出批改進度JSON'
+$btnExportProgress.Location = New-Object System.Drawing.Point(306, $y2)
+$btnExportProgress.Size = New-Object System.Drawing.Size(150, 28)
+$btnExportProgress.Add_Click({
+    try {
+      $p = Export-GraderProgressJson $script:WorkDir
+      $status.Text = '已匯出：' + $p
+      Start-Process explorer.exe "/select,`"$p`""
+      [void][System.Windows.Forms.MessageBox]::Show(
+        "已匯出手機／另一台可用的批改進度：`n$p`n`n傳到另一端「習作批改 → 匯入批改進度」或「習作台 → 匯入批改進度（只更新程度）」。",
+        '匯出批改進度'
+      )
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("匯出失敗：$($_.Exception.Message)", '匯出批改進度')
+    }
+  })
+
 $btnUnclear = New-Object System.Windows.Forms.Button
 $btnUnclear.Text = '產生全班存疑清單'
-$btnUnclear.Location = New-Object System.Drawing.Point(156, $y2)
+$btnUnclear.Location = New-Object System.Drawing.Point(466, $y2)
 $btnUnclear.Size = New-Object System.Drawing.Size(160, 28)
 $btnUnclear.Add_Click({
     if (Invoke-MakePdf -Root $script:WorkDir -UnclearList) {
@@ -2359,8 +2521,8 @@ $btnUnclear.Add_Click({
 
 $btnClarify = New-Object System.Windows.Forms.Button
 $btnClarify.Text = '套用認知／重謄並重產PDF'
-$btnClarify.Location = New-Object System.Drawing.Point(300, $y2)
-$btnClarify.Size = New-Object System.Drawing.Size(200, 28)
+$btnClarify.Location = New-Object System.Drawing.Point(636, $y2)
+$btnClarify.Size = New-Object System.Drawing.Size(190, 28)
 $btnClarify.Add_Click({
     if (Invoke-MakePdf -Root $script:WorkDir -ApplyClarifications -UnclearList -MergeOriginal) {
       $status.Text = '已套用認知／重謄並重產 PDF'
@@ -2370,8 +2532,8 @@ $btnClarify.Add_Click({
 
 $btnOpenCog = New-Object System.Windows.Forms.Button
 $btnOpenCog.Text = '認知／重謄夾'
-$btnOpenCog.Location = New-Object System.Drawing.Point(512, $y2)
-$btnOpenCog.Size = New-Object System.Drawing.Size(120, 28)
+$btnOpenCog.Location = New-Object System.Drawing.Point(836, $y2)
+$btnOpenCog.Size = New-Object System.Drawing.Size(110, 28)
 $btnOpenCog.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '認知輸入')
     Start-Process explorer.exe (Join-Path $script:WorkDir '重謄補充')

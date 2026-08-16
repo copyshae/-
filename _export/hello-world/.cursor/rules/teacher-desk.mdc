@@ -14,7 +14,10 @@ globs:
 - 掃描來源寫「掃描王」，勿只寫 CS。
 - 只用座號，禁止存學生姓名。
 - 手機 PWA：`directory/apps/teacher-desk/`；桌面：`scripts/teacher-desk-app.ps1`。
-- 狀態檔：`班級狀態.json`（相容 `class-state.json`）。
+- 狀態檔：`班級狀態.json`（相容 `class-state.json`）；匯出含 `_schema: teacher-desk-v1`。
 - 掃描命名：`座號-R次數.ext`（例 `05-R01.pdf`）。
 - 桌面資料夾：`習作台資料\掃描匯入` →「處理掃描匯入」→ `練習回傳`。
-- 與「習作批改」分工：批改產練習；習作台掌握發送與回傳。
+- 與「習作批改」分工：批改產練習與程度；習作台掌握發送與回傳。
+- 跨裝置：兩份 JSON（`班級狀態.json`＋`習作批改進度.json`）；詳見 `scripts/README-sync.md`。
+- 同源可「從習作批改同步程度」；跨裝置用檔案匯入。桌面可「從批改進度匯入程度」。
+- 預設座位數 35；保留座號 00 試發。

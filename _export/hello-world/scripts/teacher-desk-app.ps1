@@ -58,13 +58,14 @@ try {
 
   function Get-DefaultState {
     $seats = @{}
-    for ($i = 1; $i -le 30; $i++) {
+    $seats['00'] = @{ level = '未標'; send = '未發'; note = '試發' }
+    for ($i = 1; $i -le 35; $i++) {
       $id = '{0:D2}' -f $i
       $seats[$id] = @{ level = '未標'; send = '未發'; note = '' }
     }
     return @{
       classLabel    = '本班數學'
-      seatCount     = 30
+      seatCount     = 35
       deadline      = '今晚 21:00'
       sendChannel   = 'line_group'
       returnChannel = 'line_dm'
@@ -74,8 +75,8 @@ try {
 
   function Ensure-State($st) {
     if ($null -eq $st) { return (Get-DefaultState) }
-    $n = 30
-    try { $n = [int]$st.seatCount } catch { $n = 30 }
+    $n = 35
+    try { $n = [int]$st.seatCount } catch { $n = 35 }
     if ($n -lt 1) { $n = 1 }
     if ($n -gt 60) { $n = 60 }
     $st.seatCount = $n
@@ -95,6 +96,22 @@ try {
           send  = $(if ($v.send) { [string]$v.send } else { '未發' })
           note  = $(if ($v.note) { [string]$v.note } else { '' })
         }
+      }
+    }
+    if (-not $seats.ContainsKey('00')) {
+      $seats['00'] = @{ level = '未標'; send = '未發'; note = '試發' }
+    } else {
+      $s0 = $seats['00']
+      if ($s0 -isnot [hashtable]) {
+        $seats['00'] = @{
+          level = $(if ($s0.level) { [string]$s0.level } else { '未標' })
+          send  = $(if ($s0.send) { [string]$s0.send } else { '未發' })
+          note  = $(if ($s0.note) { [string]$s0.note } else { '試發' })
+        }
+      } else {
+        if (-not $s0.ContainsKey('level') -or -not $s0.level) { $s0.level = '未標' }
+        if (-not $s0.ContainsKey('send') -or -not $s0.send) { $s0.send = '未發' }
+        if (-not $s0.ContainsKey('note') -or -not $s0.note) { $s0.note = '試發' }
       }
     }
     for ($i = 1; $i -le $n; $i++) {
@@ -117,6 +134,7 @@ try {
       }
     }
     foreach ($k in @($seats.Keys)) {
+      if ($k -eq '00') { continue }
       $num = 0
       if (-not [int]::TryParse($k, [ref]$num) -or $num -lt 1 -or $num -gt $n) { $seats.Remove($k) }
     }
@@ -126,6 +144,8 @@ try {
 
   function Save-StateFile($st, $path) {
     $obj = [ordered]@{
+      _schema       = 'teacher-desk-v1'
+      exportedAt    = (Get-Date).ToString('o')
       classLabel    = $st.classLabel
       seatCount     = $st.seatCount
       deadline      = $st.deadline
@@ -392,15 +412,21 @@ try {
   $btnImport.Size = New-Object System.Drawing.Size(150, 30)
   $right.Controls.Add($btnImport)
 
+  $btnImportGrader = New-Object System.Windows.Forms.Button
+  $btnImportGrader.Text = '從批改進度匯入程度'
+  $btnImportGrader.Location = New-Object System.Drawing.Point(0, 290)
+  $btnImportGrader.Size = New-Object System.Drawing.Size(310, 30)
+  $right.Controls.Add($btnImportGrader)
+
   $btnOpenWork = New-Object System.Windows.Forms.Button
   $btnOpenWork.Text = '開啟工作夾'
-  $btnOpenWork.Location = New-Object System.Drawing.Point(0, 290)
+  $btnOpenWork.Location = New-Object System.Drawing.Point(0, 328)
   $btnOpenWork.Size = New-Object System.Drawing.Size(150, 30)
   $right.Controls.Add($btnOpenWork)
 
   $btnOpenScan = New-Object System.Windows.Forms.Button
   $btnOpenScan.Text = '開掃描匯入夾'
-  $btnOpenScan.Location = New-Object System.Drawing.Point(160, 290)
+  $btnOpenScan.Location = New-Object System.Drawing.Point(160, 328)
   $btnOpenScan.Size = New-Object System.Drawing.Size(150, 30)
   $right.Controls.Add($btnOpenScan)
 
@@ -548,7 +574,7 @@ try {
     Save-StateFile $script:State $out
     # 相容舊檔名
     Copy-Item -LiteralPath $out -Destination (Join-Path $exportDir 'class-state.json') -Force
-    [void][System.Windows.Forms.MessageBox]::Show("已匯出：`r`n$out`r`n可傳到手機習作台匯入。", '習作台')
+    [void][System.Windows.Forms.MessageBox]::Show("已匯出：`r`n$out`r`n可傳到另一台電腦／手機習作台匯入。`r`n換機請一併帶「習作批改進度.json」。", '習作台')
     Start-Process explorer.exe $exportDir
   })
 
@@ -558,6 +584,11 @@ try {
     $dlg.Title = '匯入班級資料'
     if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
     try {
+      $rawObj = Get-Content -LiteralPath $dlg.FileName -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ($rawObj._schema -eq 'math-grader-v1') {
+        [void][System.Windows.Forms.MessageBox]::Show('這是習作批改進度檔。請改按「從批改進度匯入程度」。', '習作台')
+        return
+      }
       $script:State = Load-StateFile $dlg.FileName
       $script:StatePath = Join-Path $WorkDir '班級狀態.json'
       Save-StateFile $script:State $script:StatePath
@@ -568,6 +599,58 @@ try {
       $lblSid.Text = '座號：—（請點左側）'
       Refresh-Grid
       [void][System.Windows.Forms.MessageBox]::Show('已匯入並覆蓋本機班級資料。', '習作台')
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("匯入失敗：$($_.Exception.Message)", '習作台')
+    }
+  })
+
+  $btnImportGrader.Add_Click({
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Filter = '批改進度 (*.json)|*.json|所有檔案 (*.*)|*.*'
+    $dlg.Title = '匯入習作批改進度（只更新程度）'
+    if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+    try {
+      $g = Get-Content -LiteralPath $dlg.FileName -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ($g._schema -eq 'teacher-desk-v1') {
+        [void][System.Windows.Forms.MessageBox]::Show('這是班級狀態檔。請改按「匯入班級資料」。', '習作台')
+        return
+      }
+      if (-not $g.seats) { throw '檔案沒有 seats' }
+      Persist-Header
+      $n = 0
+      foreach ($p in $g.seats.PSObject.Properties) {
+        $id = [string]$p.Name
+        $src = $p.Value
+        if (-not $src) { continue }
+        if (-not $script:State.seats.ContainsKey($id)) {
+          $num = 0
+          if ($id -eq '00' -or ([int]::TryParse($id, [ref]$num) -and $num -ge 1 -and $num -le [int]$script:State.seatCount)) {
+            $script:State.seats[$id] = @{ level = '未標'; send = '未發'; note = $(if ($id -eq '00') { '試發' } else { '' }) }
+          } else { continue }
+        }
+        $lv = [string]$src.level
+        if ($lv -and $lv -ne '未標' -and $lv -ne '待判定') {
+          $script:State.seats[$id].level = $lv
+          $n++
+        } elseif ($lv -eq '待判定') {
+          $script:State.seats[$id].level = '需補先備'
+          $n++
+        }
+        $st = [string]$src.status
+        if (($st -eq '已批' -or $st -eq '待認知') -and $src.note) {
+          $script:State.seats[$id].note = ([string]$src.note).Substring(0, [Math]::Min(40, ([string]$src.note).Length))
+        }
+      }
+      if ($g.classLabel) { $script:State.classLabel = [string]$g.classLabel; $txtClass.Text = $script:State.classLabel }
+      if ($g.seatCount) {
+        $script:State.seatCount = [int]$g.seatCount
+        $numSeats.Value = [Math]::Max(1, [Math]::Min(60, [decimal]$script:State.seatCount))
+      }
+      $script:State = Ensure-State $script:State
+      Save-StateFile $script:State $script:StatePath
+      Refresh-Grid
+      $msg = if ($n -gt 0) { "已從批改進度匯入 $n 個座號程度。" } else { '檔案裡沒有可匯入的程度。' }
+      [void][System.Windows.Forms.MessageBox]::Show($msg, '習作台')
     } catch {
       [void][System.Windows.Forms.MessageBox]::Show("匯入失敗：$($_.Exception.Message)", '習作台')
     }

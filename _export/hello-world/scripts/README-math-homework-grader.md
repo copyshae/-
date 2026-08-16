@@ -48,3 +48,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1
 ```
 
 桌面捷徑：**習作批改.vbs**／**.cmd**
+
+## 與習作台／跨裝置同步
+
+- **同步程度→習作台**：把輸出註記的程度寫入 `桌面\習作台資料\班級狀態.json`
+- **匯出批改進度JSON**：產生手機／另一台可匯入的 `習作批改進度.json`
+- 完整流程見 `README-sync.md`
