@@ -193,6 +193,89 @@ function Get-NotePath([string]$root, [string]$studentId) {
   return (Join-Path (Join-Path $root '輸出') ($studentId + '-註記.md'))
 }
 
+function Get-TextbookMathPromptRule {
+  return @(
+    '【國中課本直式｜強制】所有算式、轉譯稿、練習題、解答一律用臺灣國中課本寫法：'
+    '・加減等於用全形：＋ － ＝；乘除用 × ÷；分數寫 a／b（全形斜線）。'
+    '・省略號用 ……；括號可用 （ ）；題號／選項可用 ①②③ 寫在右側。'
+    '・禁止 LaTeX 與英文算式符號：不要 $$、\dfrac、\frac、\times、\cdots、\div、*、以及半形 + - = /。'
+    '・直式計算請用空白對齊位值，不要用程式碼框或表格硬排。'
+  ) -join "`r`n"
+}
+
+function Convert-ToWinFormsText([string]$text) {
+  if ($null -eq $text) { return '' }
+  $t = [string]$text
+  $t = $t -replace "`r`n", "`n"
+  $t = $t -replace "`r", "`n"
+  $t = $t -replace "`n", "`r`n"
+  return $t
+}
+
+function Convert-ToTextbookMath([string]$text) {
+  if ([string]::IsNullOrEmpty($text)) { return $text }
+  $lines = [regex]::Split([string]$text, '\r\n|\n|\r')
+  $out = New-Object System.Collections.Generic.List[string]
+  foreach ($line in $lines) {
+    if ($line -match 'https?://|www\.|youtube\.com|search_query=') {
+      $out.Add($line)
+      continue
+    }
+    $t = $line
+    # 先清 LaTeX
+    $t = [regex]::Replace($t, '\$\$', '')
+    $t = [regex]::Replace($t, '(?<![\\])\$', '')
+    $t = [regex]::Replace($t, '\\dfrac\s*\{([^{}]*)\}\s*\{([^{}]*)\}', '$1／$2')
+    $t = [regex]::Replace($t, '\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}', '$1／$2')
+    $t = [regex]::Replace($t, '\\sqrt\s*\{([^{}]*)\}', '√($1)')
+    $t = [regex]::Replace($t, '\\times', '×')
+    $t = [regex]::Replace($t, '\\cdot', '·')
+    $t = [regex]::Replace($t, '\\cdots', '……')
+    $t = [regex]::Replace($t, '\\ldots', '……')
+    $t = [regex]::Replace($t, '\\dots', '……')
+    $t = [regex]::Replace($t, '\\div', '÷')
+    $t = [regex]::Replace($t, '\\pm', '±')
+    $t = [regex]::Replace($t, '\\leq|\\le', '≦')
+    $t = [regex]::Replace($t, '\\geq|\\ge', '≧')
+    $t = [regex]::Replace($t, '\\neq|\\ne', '≠')
+    $t = [regex]::Replace($t, '\\left\(', '（')
+    $t = [regex]::Replace($t, '\\right\)', '）')
+    $t = [regex]::Replace($t, '\\left\[', '［')
+    $t = [regex]::Replace($t, '\\right\]', '］')
+    $t = [regex]::Replace($t, '\\,', ' ')
+    $t = [regex]::Replace($t, '\\;', ' ')
+    $t = [regex]::Replace($t, '\\!', '')
+    $t = [regex]::Replace($t, '\\{|\\}', '')
+    # 半形運算符 → 課本符號（避開已經是全形者）
+    $t = $t -replace '\.\.\.', '……'
+    $t = $t -replace '\.\.', '……'
+    $t = $t -replace '=', '＝'
+    $t = $t -replace '\+', '＋'
+    # 減號：數字間或運算減
+    $t = [regex]::Replace($t, '(?<=\d)\s*-\s*(?=\d)', '－')
+    $t = [regex]::Replace($t, '(?<=[）\)])\s*-\s*(?=\d)', '－')
+    $t = [regex]::Replace($t, '(?<=[＋×÷＝])\s*-\s*(?=\d)', '－')
+    $t = [regex]::Replace($t, '(?<=^|[\s（\(])-(?=\d)', '－')
+    $t = [regex]::Replace($t, '(?<=\d)\s*/\s*(?=\d)', '／')
+    $t = [regex]::Replace($t, '(?<=\d)\s*[xX×*]\s*(?=\d)', '×')
+    $t = [regex]::Replace($t, '(?<=\d)\s*÷\s*(?=\d)', '÷')
+    # 半形括號 → 全形（略過座標風格過多時仍轉常見括號）
+    $t = $t -replace '\(', '（'
+    $t = $t -replace '\)', '）'
+    # (1)(2) → ①②（常見選項／步驟）
+    $circ = @{
+      '1' = '①'; '2' = '②'; '3' = '③'; '4' = '④'; '5' = '⑤'
+      '6' = '⑥'; '7' = '⑦'; '8' = '⑧'; '9' = '⑨'; '10' = '⑩'
+    }
+    foreach ($k in @('10','9','8','7','6','5','4','3','2','1')) {
+      $t = [regex]::Replace($t, '\(\s*' + $k + '\s*\)', [string]$circ[$k])
+      $t = [regex]::Replace($t, '(?<=^|[\s　])' + $k + '\)\s*', ([string]$circ[$k] + ' '))
+    }
+    $out.Add($t)
+  }
+  return ($out -join "`r`n")
+}
+
 function Load-Note([string]$path) {
   if (-not (Test-Path -LiteralPath $path)) {
     return [pscustomobject]@{
@@ -404,6 +487,11 @@ function Save-Note {
   if ([string]::IsNullOrWhiteSpace($Practice)) {
     $Practice = Get-PracticeTemplate $Level
   }
+  $ItemsText = Convert-ToTextbookMath (Convert-ToWinFormsText $ItemsText)
+  $Summary = Convert-ToTextbookMath (Convert-ToWinFormsText $Summary)
+  $Diagnosis = Convert-ToTextbookMath (Convert-ToWinFormsText $Diagnosis)
+  $Advice = Convert-ToTextbookMath (Convert-ToWinFormsText $Advice)
+  $Practice = Convert-ToTextbookMath (Convert-ToWinFormsText $Practice)
   $lines = @(
     "# 批閱註記｜座號 $StudentId"
     ''
@@ -413,6 +501,7 @@ function Save-Note {
     '- 程度：' + $Level
     '- 批改時間：' + (Get-Date -Format 'yyyy-MM-dd HH:mm')
     '- 原則：接受其他合理等價解法；存疑項請人工終核'
+    '- 算式格式：國中課本直式（全形＋－＝、分數 a／b、……、①；禁止 LaTeX）'
     ''
     '## 題號註記'
     $(if ($ItemsText) { $ItemsText } else { '（尚未填題號；格式例：1 ✓｜2 ✗ 計算錯｜3 ? 潦草）' })
@@ -654,6 +743,7 @@ function Merge-HistoryAttempts($existing, $incoming) {
 
 function Write-PracticeHtmlFile([string]$root, [string]$id, [string]$body, [string]$level) {
   if ([string]::IsNullOrWhiteSpace($body)) { return $null }
+  $body = Convert-ToTextbookMath $body
   $digDir = Join-Path $root '數位練習'
   New-Item -ItemType Directory -Force -Path $digDir | Out-Null
   $safe = ($body -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')
@@ -1018,8 +1108,9 @@ function Invoke-GeminiGenerateContent {
 }
 
 function Apply-GeminiReplyToForm([string]$text) {
+  $text = Convert-ToTextbookMath (Convert-ToWinFormsText $text)
   $txtDiagnosis.Text = $text
-  $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾）'
+  $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾｜已轉國中課本直式）'
   if ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
     $txtItems.Text = $Matches[0].Trim()
   } elseif ($text -match '(?m)(^\d+\s*[✓✗?xX].*)$') {
@@ -1559,6 +1650,7 @@ function Build-ReturnCursorPrompt([string]$root, [string]$sid, $returnFile, [int
   $level = Get-StudentLevelFromNote $root $sid
   $sb = New-Object System.Text.StringBuilder
   [void]$sb.AppendLine('請批閱這位學生「練習回傳」第 ' + $round + ' 次（PDF／圖檔）。')
+  [void]$sb.AppendLine((Get-TextbookMathPromptRule))
   [void]$sb.AppendLine('程度：' + $level)
   [void]$sb.AppendLine('每次回饋都要含：分數、問題點、進步說明、下一次練習（含自學指導＋建議影片連結或 YouTube 搜尋頁）。')
   [void]$sb.AppendLine('不要依賴均一指派；請直接自動產生練習題、逐步指導、合適教學影片連結／搜尋關鍵詞。')
@@ -1840,6 +1932,7 @@ function Build-CursorPrompt([string]$root) {
   $sb = New-Object System.Text.StringBuilder
   [void]$sb.AppendLine('請初核下列數學習作（加速人工打勾；非最終成績）。')
   [void]$sb.AppendLine('規則：有標準答案時以答案為準；接受其他合理等價解法；潦草／不確定標「存疑」。')
+  [void]$sb.AppendLine((Get-TextbookMathPromptRule))
   [void]$sb.AppendLine('每位學生輸出一份註記：題號註記、對錯摘要、診斷、程度、建議、自學練習（含自學指導＋建議影片＋練習題＋解答）。')
   [void]$sb.AppendLine('不要用均一指派；請直接自動產生練習題、指導步驟、合適網路教學影片連結或 YouTube 搜尋頁。')
   [void]$sb.AppendLine('跟上者：少鞏固、多再提升挑戰；好的學生要能再進步。')
@@ -1860,6 +1953,7 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
   $ansFiles = @(Get-AnswerFiles $root)
   $sb = New-Object System.Text.StringBuilder
   [void]$sb.AppendLine('請直接批閱這一位學生的數學試卷（一人一檔）。')
+  [void]$sb.AppendLine((Get-TextbookMathPromptRule))
   if ($HandwritingHard) {
     [void]$sb.AppendLine('【手寫加強模式｜辨識優先】')
     [void]$sb.AppendLine('這份是手寫／掃描，字跡可能很差。請依下列強制規則：')
@@ -2354,13 +2448,15 @@ function Start-GradeCurrent {
           "【模式】對照正確答案`r`n" +
           "【已附檔】1) 學生試卷 2) 正確答案（可能多檔）。`r`n" +
           "【必做】先看正確答案，再對學生卷逐題判 ✓／✗／?；以答案為準，等價解法可給 ✓。`r`n" +
-          "【禁止】不要要我再貼檔；不要忽略正確答案自行出標準。`r`n`r`n") + $p
+          "【禁止】不要要我再貼檔；不要忽略正確答案自行出標準。`r`n" +
+          (Get-TextbookMathPromptRule) + "`r`n`r`n") + $p
       } else {
         $p = ("【任務】你是數學老師助理，用 Google Gemini 自動批閱。`r`n" +
           "【模式】直接 AI 批閱（未附正確答案檔）`r`n" +
           "【已附檔】學生試卷。`r`n" +
           "【必做】依題意與數學正確性逐題判 ✓／✗／?；等價解法可給 ✓；看不清標 ?。`r`n" +
-          "【禁止】不要要我再貼檔。`r`n`r`n") + $p
+          "【禁止】不要要我再貼檔。`r`n" +
+          (Get-TextbookMathPromptRule) + "`r`n`r`n") + $p
       }
     }
 
@@ -2399,7 +2495,7 @@ function Start-GradeCurrent {
           }
         } catch {}
         $result = Invoke-GeminiGenerateContent -ApiKey $key -Model $model -Prompt $p -FilePaths @($files.ToArray())
-        $text = [string]$result.Text
+        $text = Convert-ToTextbookMath (Convert-ToWinFormsText ([string]$result.Text))
         Apply-GeminiReplyToForm $text
         $outDir = Join-Path $script:WorkDir '輸出'
         New-Item -ItemType Directory -Force -Path $outDir | Out-Null

@@ -1,0 +1,22 @@
+---
+description: Gemini 輸出一律國中課本直式算式
+globs:
+  - scripts/math-homework-grader*
+  - directory/apps/math-grader/**
+---
+
+# 國中課本直式（Gemini 強制）
+
+之後所有 Gemini 批閱／練習產出須用**臺灣國中課本寫法**：
+
+- 加減等於：全形 `＋` `－` `＝`
+- 乘除：`×` `÷`
+- 分數：`a／b`（全形斜線）
+- 省略：`……`
+- 題號／選項可用：`①②③`
+- **禁止** LaTeX：`$$`、`\dfrac`、`\frac`、`\times`、`\cdots`、半形 `+ - = /`
+
+實作：
+
+- 提示詞加入 `Get-TextbookMathPromptRule`／`textbookMathRule()`
+- 存檔後處理 `Convert-ToTextbookMath`／`toTextbookMath`（URL 列不轉）

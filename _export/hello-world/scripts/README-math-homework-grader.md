@@ -49,6 +49,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1
 
 桌面捷徑：**習作批改.vbs**／**.cmd**
 
+## 國中課本直式（Gemini）
+
+之後 Gemini 自動批／練習產出一律用課本寫法：全形 `＋－＝`、分數 `a／b`、`……`、`①`；禁止 LaTeX。存檔會再自動轉換。重裝桌面程式後生效。
+
 ## 與習作台／跨裝置同步
 
 - **同步程度→習作台**：把輸出註記的程度寫入 `桌面\習作台資料\班級狀態.json`
