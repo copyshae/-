@@ -28,3 +28,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 ## 電腦版
 
 桌面「習作批改」本來就有 0803 後續（自產練習、回傳循環、數位練習包）。關掉舊視窗後再雙擊 `習作批改.vbs` 即可。
+
+桌面「習作台」若雙擊 `習作台.vbs` 出現 **80070002 找不到檔案**，請在 hello-world 重跑：
+
+```powershell
+cd $env:USERPROFILE\Desktop\hello-world
+git pull origin master
+powershell -ExecutionPolicy Bypass -File .\scripts\install-teacher-desk.ps1
+```
+
+（會覆寫捷徑；`習作台資料` 保留。）然後再雙擊 **習作台.vbs**。

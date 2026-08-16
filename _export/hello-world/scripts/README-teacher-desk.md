@@ -32,6 +32,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install-teacher-desk.ps1
 - `桌面\習作台資料\練習回傳\` ← 「處理掃描匯入」輸出
 - `桌面\習作台資料\匯出給手機\`
 
+### 若雙擊「習作台.vbs」出現 Windows Script Host 80070002（找不到檔案）
+
+舊版安裝會用 ASCII 寫入捷徑，中文路徑變成亂碼。請重新跑上方 `install-teacher-desk.ps1`（會覆寫桌面捷徑；`習作台資料` 不會清掉），再雙擊 **習作台.vbs**。
+
 ## 手機
 
 https://copyshae.github.io/hello-world/directory/apps/teacher-desk/
