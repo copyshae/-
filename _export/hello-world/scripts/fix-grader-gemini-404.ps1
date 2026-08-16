@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "cursor/sync-desk-grader-devices-2663" }
-$needBuild = "20260817-aq25"
+$needBuild = "20260817-aq26"
 $repo = "copyshae/-"
 $relPath = "_export/hello-world/scripts/math-homework-grader-app.ps1"
 

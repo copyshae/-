@@ -27,7 +27,7 @@ Add-Type -AssemblyName System.Drawing
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:PyMakePdf = Join-Path $script:ScriptDir 'math_grade_make_note_pdf.py'
 # 視窗標題會顯示；用來確認本機是否已裝到含 AQ. 金鑰支援的版本
-$script:AppBuild = '20260817-aq25'
+$script:AppBuild = '20260817-aq26'
 # also check beside installed copy
 if (-not (Test-Path -LiteralPath $script:PyMakePdf)) {
   $alt = Join-Path (Split-Path -Parent $script:ScriptDir) 'scripts\math_grade_make_note_pdf.py'
@@ -323,155 +323,177 @@ function Load-Note([string]$path) {
   return $o
 }
 
+function Test-IsBlankPracticeSkeleton([string]$text) {
+  if ([string]::IsNullOrWhiteSpace($text)) { return $true }
+  $t = $text.Trim()
+  if ($t.Length -lt 40) { return $true }
+  $holes = ([regex]::Matches($t, '________|…|\.\.\.')).Count
+  if ($holes -ge 3) { return $true }
+  if ($t -match '重點觀念：\s*_+\s*$' -or $t -match '(?m)^1\.\s*…\s*$') { return $true }
+  # 新精簡骨架：有「觀念：」但後面幾乎空白、題號也沒題幹
+  $emptyGuide = ($t -match '(?m)^觀念：\s*$') -or ($t -match '(?m)^口訣：\s*$')
+  $emptyItems = ([regex]::Matches($t, '(?m)^\d+\.\s*$')).Count
+  if ($emptyGuide -and $emptyItems -ge 3) { return $true }
+  return $false
+}
+
+function Format-PracticeReadable([string]$text) {
+  if ([string]::IsNullOrWhiteSpace($text)) { return '' }
+  $t = Convert-ToWinFormsText $text
+  # 去掉 Markdown 噪音，改成掃讀標題
+  $t = [regex]::Replace($t, '(?m)^#{1,6}\s*', '')
+  $t = [regex]::Replace($t, '(?m)^\*{1,2}\s*', '')
+  $t = [regex]::Replace($t, '(?m)^[-•]\s*', '・')
+  $t = [regex]::Replace($t, '(?m)^自學指導（先看再做）\s*$', '■ 指導（先看）')
+  $t = [regex]::Replace($t, '(?m)^建議影片／學習連結.*$', '■ 影片（選看）')
+  $t = [regex]::Replace($t, '(?m)^練習題（先做完再看解答）\s*$', '■ 練習（先做完再看解答）')
+  $t = [regex]::Replace($t, '(?m)^解答（全部題目完成後再看）\s*$', '■ 解答（做完再開）')
+  $t = [regex]::Replace($t, '(?m)^【A\s*', "A ")
+  $t = [regex]::Replace($t, '(?m)^【B\s*', "B ")
+  $t = [regex]::Replace($t, '(?m)^【C\s*', "C ")
+  $t = [regex]::Replace($t, '(?m)^【D\s*', "D ")
+  $t = [regex]::Replace($t, '】', '')
+  $t = [regex]::Replace($t, '_{3,}', '')
+  $t = [regex]::Replace($t, '[ \t]+\r?\n', "`r`n")
+  $t = [regex]::Replace($t, '(\r?\n){3,}', "`r`n`r`n")
+  return $t.Trim()
+}
+
 function Get-PracticeTemplate([string]$level) {
+  # 精簡版：一眼看完；空白少；給老師／Gemini 填
   switch -Regex ($level) {
     '跟上' {
       return @"
-### 程度：跟上｜目標：再提升（少重複、多挑戰）
-說明：已掌握本單元。A 少練；重心 B、C。禁止整份只改數字。不使用均一；練習／指導／影片由此產生。
+【程度】跟上｜目標：再提升（少重複、多挑戰）
+說明：A 少練；重心 B、C。禁止只改數字。不用均一。
 
-#### 自學指導（先看再做）
-- 重點觀念：________
-- 解題步驟口訣：________
-- 易錯提醒：________
+■ 指導（先看）
+觀念：
+口訣：
+易錯：
 
-#### 建議影片／學習連結（1～2 個）
-- 搜尋關鍵詞：________
-- 連結：https://www.youtube.com/results?search_query=________
-- 備用關鍵詞：________
+■ 影片（選看 1～2 則）
+搜尋：
+連結：https://www.youtube.com/results?search_query=
+備用：
 
-#### 練習題（先做完再看解答）
-【A 鞏固｜少而精】
-1. …
-【B 靈活】
-2. …
-3. …
-【C 再提升｜必做】
-4. …
-5. …
-6. …
-【D 超前伸展｜選做】
-7. …
+■ 練習（先做完再看解答）
+A 鞏固｜少而精
+1.
+B 靈活
+2.
+3.
+C 再提升｜必做
+4.
+5.
+6.
+D 超前｜選做
+7.
 
----
-#### 解答（全部題目完成後再看）
-1. …
-2. …
-3. …
-4. …
-5. …
-6. …
-7. …
-提升小提示：挑戰題做完寫「我多學到什麼」。
+■ 解答（全部做完再開）
+1.
+2.
+3.
+4.
+5.
+6.
+7.
+
+小結：挑戰題做完，寫一句「我多學到什麼」。
 "@
     }
     '略落後' {
       return @"
-### 程度：略落後｜目標：跟上本單元
-先復習：________（本單元核心觀念）
-不使用均一；練習／指導／影片由此產生。
+【程度】略落後｜目標：跟上本單元
 
-#### 自學指導（先看再做）
-- 先搞懂：________
-- 步驟：1) … 2) … 3) …
-- 做完自問：________
+■ 指導（先看）
+先搞懂：
+三步驟：①  ②  ③
+做完自問：
 
-#### 建議影片／學習連結
-- 搜尋關鍵詞：________
-- 連結：https://www.youtube.com/results?search_query=________
+■ 影片（選看）
+搜尋：
+連結：https://www.youtube.com/results?search_query=
 
-#### 練習題（先做完再看解答）
-【A 關鍵基本】
-1. …
-2. …
-3. …
-【B 對應錯題類型】
-4. …
-5. …
+■ 練習（先做完再看解答）
+基本
+1.
+2.
+對應錯題
+3.
+4.
 
----
-#### 解答（全部題目完成後再看）
-1. …
-2. …
-3. …
-4. …
-5. …
+■ 解答
+1.
+2.
+3.
+4.
 "@
     }
     '明顯落後' {
       return @"
-### 程度：明顯落後｜目標：多次補齊、每次有成就（漸次跟上）
-原則：每次只補 1 個小洞、題數 ≤ 3；做對就停，隔日再補。
-本次只補：________
-不使用均一；練習／指導／影片由此自動產生。
+【程度】明顯落後｜目標：每次只補 1 點（≤3 題）
 
-#### 自學指導（短、好懂）
-- 今天只要會：________
-- 跟著做：第一步… → 第二步… → 第三步…
-- 做對的樣子：（簡短示範）
+■ 本次只補
+（寫 1 個小觀念）
 
-#### 建議影片／學習連結（對準本次這 1 點）
-- 搜尋關鍵詞：________（年級＋單元＋教學）
-- 連結：https://www.youtube.com/results?search_query=________
-- 看片重點：________（不必整部）
+■ 指導（短）
+今天只要會：
+跟著做：第一步 → 第二步 → 第三步
 
-#### 練習題（≤3 題）
-【A 本次小洞｜求做對有成就】
-1. …
-2. …
-【B 極簡銜接｜選做】
-3. …
+■ 影片
+搜尋：
+連結：https://www.youtube.com/results?search_query=
 
----
-#### 解答（逐步寫）
-1. …
-2. …
-3. …
-說明：本次成功＝有成就；其餘下次再補。
+■ 練習（≤3 題｜先做）
+1.
+2.
+3.（選做）
+
+■ 解答
+1.
+2.
+3.
 "@
     }
     '需補先備' {
       return @"
-### 程度：需補先備｜目標：分次回到起點（多次補齊）
-本次只補：________（1 個觀念）
-尚未補、下次再補：________
-不使用均一；練習／指導／影片由此產生。
+【程度】需補先備｜目標：先補 1 個起點觀念
 
-#### 自學指導
-- 先回到：________
-- 超短步驟：________
-- 不會就先看影片再做 1～2 題
+■ 本次只補
+（1 個先備觀念）
 
-#### 建議影片／學習連結（先備觀念）
-- 搜尋關鍵詞：________
-- 連結：https://www.youtube.com/results?search_query=________
+■ 指導
+先回到：
+超短步驟：
 
-#### 練習題（≤3 題）
-1. …
-2. …
-3. （選做）
+■ 影片
+搜尋：
+連結：https://www.youtube.com/results?search_query=
 
----
-#### 解答
-1. …
-2. …
-3. …
-建議：與導師協調；家長說明「多次小補」。
+■ 練習（≤3 題）
+1.
+2.
+3.（選做）
+
+■ 解答
+1.
+2.
+3.
 "@
     }
     default {
       return @"
-### 程度：待判定
-#### 自學指導
-- …
-#### 建議影片／學習連結
-- 搜尋關鍵詞：…
-- 連結：https://www.youtube.com/results?search_query=…
-#### 練習題（先做完再看解答）
-1. …
----
-#### 解答（全部題目完成後再看）
-1. …
+【程度】待判定
+
+■ 指導
+（待認知後再定）
+
+■ 練習
+1.
+
+■ 解答
+1.
 "@
     }
   }
@@ -1706,20 +1728,27 @@ function Apply-GeminiReplyToForm([string]$text) {
     }
     $txtAdvice.Text = Convert-ToTextbookMath $adv
 
-    # --- 自學練習（與試卷題號分開；練習題編號是練習用，不是多出試卷第 3 題）---
+    # --- 自學練習：優先用 Gemini 內容；空白骨架則改精簡模板 ---
+    $prac = ''
     if ($sec6 -and $sec6 -notmatch '題號註記') {
-      $prac = Strip-InventedQuestionMentions $sec6 $allowed
-      if ($prac -and $prac.Length -ge 20) {
-        $txtPractice.Text = Convert-ToTextbookMath $prac
-      } else {
-        $lvNow = [string]$cmbLevel.SelectedItem
-        if (-not $lvNow -or $lvNow -eq '待判定') { $lvNow = '略落後' }
-        $txtPractice.Text = Get-PracticeTemplate $lvNow
-      }
-    } else {
-      $lvNow = [string]$cmbLevel.SelectedItem
-      if (-not $lvNow -or $lvNow -eq '待判定') { $lvNow = '略落後' }
+      $prac = Format-PracticeReadable (Strip-InventedQuestionMentions $sec6 $allowed)
+    }
+    if (Test-IsBlankPracticeSkeleton $prac) {
+      # 再從全文抓一次「自學練習／練習題」區塊
+      $again = Get-GeminiKeywordBlock -Text $raw -StartKeys @(
+        '依程度自學練習', '依程度自學', '自學練習', '自學指導'
+      ) -StopKeys @('個別建議', '題號註記', '對錯摘要', '個別診斷', '程度分級', '總評')
+      if ($again) { $prac = Format-PracticeReadable $again }
+    }
+    $lvNow = [string]$cmbLevel.SelectedItem
+    if (-not $lvNow -or $lvNow -eq '待判定') {
+      if ($allowed.Count -gt 0 -and $marks -match '✗|\?') { $lvNow = '略落後' }
+      else { $lvNow = '跟上' }
+    }
+    if (Test-IsBlankPracticeSkeleton $prac) {
       $txtPractice.Text = Get-PracticeTemplate $lvNow
+    } else {
+      $txtPractice.Text = Convert-ToTextbookMath $prac
     }
   } finally {
     $script:SuppressPracticeAutoFill = $false
@@ -1760,7 +1789,7 @@ function Show-GeminiKeyDialog {
         )
       } catch {
         [void][System.Windows.Forms.MessageBox]::Show(
-          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq25 起，請先跑更新腳本。"),
+          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq26 起，請先跑更新腳本。"),
           '測試失敗'
         )
       }
@@ -2599,15 +2628,25 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
   [void]$sb.AppendLine('【格式強制】必須依序出現「1)」「2)」「3)」「4)」「5)」「6)」六個標題；內容不可互相塞錯欄。')
   [void]$sb.AppendLine('【題數強制】題號註記只能寫學生卷／正確答案上「實際出現」的題；禁止虛構第 3 題（若只有 1～2 題就只寫到實際題號）。')
   [void]$sb.AppendLine('【對照】1)=題號註記 2)=對錯摘要 3)=診斷 4)=程度 5)=個別建議 6)=自學練習；練習題編號屬於第 6) 段，不是試卷多出的題。')
-  [void]$sb.AppendLine('   a. 自學指導：短步驟／口訣／易錯提醒')
-  [void]$sb.AppendLine('   b. 建議影片／學習連結：給 1～2 個；優先 https://www.youtube.com/results?search_query=編碼後關鍵詞 ；有把握才給具體影片 URL；禁止捏造網址')
-  [void]$sb.AppendLine('   c. 練習題（先全部列出）')
-  [void]$sb.AppendLine('   d. 解答（全部放在題目之後另段）')
-  [void]$sb.AppendLine('   - 跟上：少鞏固、多靈活＋再提升挑戰；禁止只改數字。')
-  [void]$sb.AppendLine('   - 略落後：對應錯題，少而精。')
-  [void]$sb.AppendLine('   - 明顯落後／需補先備：多次補齊（每次 1 點、≤3 題），先有成就再漸次跟上。')
-  [void]$sb.AppendLine('   - 待判定：先給「已確認錯題」對應的少量練習；存疑題等我認知後再補。')
-  [void]$sb.AppendLine('不要要求學生另上均一完成任務；練習與指導由此直接產生。')
+  [void]$sb.AppendLine('【6) 閱讀格式｜強制簡易明瞭】勿用 ###／大量底線／空白骨架。請用下列結構（填實質內容）：')
+  [void]$sb.AppendLine('【程度】跟上／略落後／…｜目標：…')
+  [void]$sb.AppendLine('■ 指導（先看）')
+  [void]$sb.AppendLine('觀念：（一句）')
+  [void]$sb.AppendLine('口訣：（短）')
+  [void]$sb.AppendLine('易錯：（一句）')
+  [void]$sb.AppendLine('■ 影片（選看 1～2）')
+  [void]$sb.AppendLine('搜尋：（關鍵詞）')
+  [void]$sb.AppendLine('連結：https://www.youtube.com/results?search_query=編碼後關鍵詞')
+  [void]$sb.AppendLine('（禁止捏造具體影片網址；有把握才給真實 URL）')
+  [void]$sb.AppendLine('■ 練習（先全部列出；先做完再看解答）')
+  [void]$sb.AppendLine('（跟上：A1題＋B2題＋C2～3題＋D選做1題；略落後對應錯題少而精；明顯落後／需補先備每次≤3題）')
+  [void]$sb.AppendLine('1. （完整題幹，禁止只改數字）')
+  [void]$sb.AppendLine('2. …')
+  [void]$sb.AppendLine('■ 解答（做完再開；與題號對齊）')
+  [void]$sb.AppendLine('1. …')
+  [void]$sb.AppendLine('2. …')
+  [void]$sb.AppendLine('程度策略：跟上＝少鞏固、多靈活＋挑戰；略落後＝對錯題；明顯落後／需補先備＝每次只補1點；待判定＝先練已確認錯題。')
+  [void]$sb.AppendLine('不要要求學生另上均一；練習／指導／影片由此直接產生。')
   [void]$sb.AppendLine('格式方便我貼回批改程式／存成 輸出\' + $id + '-註記.md')
   [void]$sb.AppendLine('')
   [void]$sb.AppendLine('座號：' + $id)
