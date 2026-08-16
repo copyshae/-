@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # 安裝／修復習作台（精簡穩定版；錯誤會留在桌面）
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -8,7 +8,7 @@ if (-not (Test-Path -LiteralPath $src)) { throw "找不到 $src" }
 $desk = [Environment]::GetFolderPath('Desktop')
 $appDir = Join-Path $desk '習作台程式'
 $work = Join-Path $desk '習作台資料'
-New-Item -ItemType Directory -Force -Path $appDir,$work,(Join-Path $work '掃描匯入'),(Join-Path $work '練習回傳'),(Join-Path $work '匯出給手機') | Out-Null
+New-Item -ItemType Directory -Force -Path $appDir,$work,(Join-Path $work '掃描匯入'),(Join-Path $work '匯出給手機') | Out-Null
 
 $raw = Get-Content -LiteralPath $src -Raw -Encoding UTF8
 $utf8Bom = New-Object System.Text.UTF8Encoding $true
