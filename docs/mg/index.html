@@ -127,8 +127,9 @@
     <header>
       <div class="brand">習作批改</div>
       <p class="lead">預設「快速批」：壓縮圖、精簡回覆、雙線並行。設金鑰 → 匯入試卷 → 一鍵連續批。</p>
-      <p class="install">Safari 開啟本頁 → 分享 →「加入主畫面」。金鑰只存在這支手機。卡在「批改中」可一鍵改回未批。</p>
+      <p class="install">重要：主畫面捷徑必須用<strong>同一個網址</strong>加入。換網址（例如 raw.githack 換成 rawcdn、或改開正式站）會變成另一份空白資料，已批會看起來「不見」。</p>
       <p class="summary" id="summary">—</p>
+      <p class="tips" id="originTip" style="margin-top:0.45rem">—</p>
       <div class="actions quick-actions">
         <button type="button" class="btn" id="btnAutoBatchTop">一鍵連續批（有卷未批）</button>
       </div>
@@ -211,6 +212,9 @@
       </div>
       <div class="actions" style="margin-top:0.7rem">
         <button type="button" class="btn warn" id="btnUnstickAll">全部「批改中」改回未批</button>
+        <button type="button" class="btn secondary" id="btnExportProgress">匯出批改進度</button>
+        <button type="button" class="btn secondary" id="btnImportProgress">匯入批改進度（覆蓋）</button>
+        <input class="hidden-file" id="fileProgress" type="file" accept="application/json,.json" />
       </div>
     </section>
 
@@ -1103,6 +1107,42 @@
         toast(n ? ("已把 " + n + " 個「批改中」改回未批") : "目前沒有批改中");
       });
 
+      document.getElementById("btnExportProgress").addEventListener("click", function () {
+        persistHeader();
+        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "習作批改進度.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("已匯出進度（可在另一網址匯入）");
+      });
+      document.getElementById("btnImportProgress").addEventListener("click", function () {
+        document.getElementById("fileProgress").click();
+      });
+      document.getElementById("fileProgress").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            state = ensure(Object.assign(def(), JSON.parse(reader.result)));
+            save(state);
+            syncForm();
+            selected = null;
+            document.getElementById("editPanel").hidden = true;
+            renderGrid();
+            fillSeatSelect();
+            toast("已匯入批改進度");
+          } catch (err) {
+            toast("匯入失敗");
+            document.getElementById("preview").value = String(err && err.message || err);
+          }
+        };
+        reader.readAsText(f);
+      });
+
       document.getElementById("btnCopyOne").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
@@ -1254,6 +1294,10 @@
       refreshAnswerStatus();
       renderGrid();
       renderScans();
+      try {
+        document.getElementById("originTip").textContent =
+          "目前網址：" + location.origin + location.pathname + "（主畫面請從此網址重新「加入主畫面」）";
+      } catch (e) {}
       if (location.search.indexOf("inbox=1") >= 0) {
         toast("已收到分享檔，請對應座號後自動批");
         document.getElementById("scanSection").scrollIntoView({ behavior: "smooth" });
