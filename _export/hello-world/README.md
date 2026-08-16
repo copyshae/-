@@ -14,7 +14,9 @@ Cloud Agent **無法推送** `copyshae/hello-world`。倉庫名 `copyshae/-` 的
 cd $env:USERPROFILE\Desktop\hello-world
 $dir = Join-Path $PWD 'scripts'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
+# 合併進 main 前可暫設：$env:DASH_EXPORT_BRANCH = 'cursor/sync-desk-grader-devices-2663'
 $url = 'https://raw.githubusercontent.com/copyshae/-/main/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
+# 若要用本功能分支：把上面 main 改成 cursor/sync-desk-grader-devices-2663
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
 ```
