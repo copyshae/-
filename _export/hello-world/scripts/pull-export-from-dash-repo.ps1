@@ -2,7 +2,7 @@
 # Pull latest export from copyshae/- branch into Desktop\hello-world and reinstall.
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
-$branch = "cursor/export-post-grade-hello-6a9d"
+$branch = "main"
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
