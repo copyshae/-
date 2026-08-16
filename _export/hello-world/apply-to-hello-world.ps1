@@ -16,6 +16,8 @@ $pairs = @(
   @{ Src = 'scripts\math-homework-grader-app.ps1'; Dst = 'scripts\math-homework-grader-app.ps1' },
   @{ Src = 'scripts\install-math-homework-grader.ps1'; Dst = 'scripts\install-math-homework-grader.ps1' },
   @{ Src = 'scripts\README-math-homework-grader.md'; Dst = 'scripts\README-math-homework-grader.md' },
+  @{ Src = 'scripts\README-sync.md'; Dst = 'scripts\README-sync.md' },
+  @{ Src = 'scripts\FEATURES-FROM-LOGS.md'; Dst = 'scripts\FEATURES-FROM-LOGS.md' },
   @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' }
 )
 
@@ -48,9 +50,9 @@ try {
   git add directory/apps/teacher-desk directory/apps/math-grader `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
-    scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
+    scripts/README-sync.md scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = '習作批改／習作台：跨裝置與雙 App 同步（兩份 JSON）'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'

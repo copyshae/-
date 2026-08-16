@@ -453,6 +453,352 @@ function Export-ClassCsv([string]$root) {
   return $csv
 }
 
+function Get-TeacherDeskWorkDir {
+  Join-Path ([Environment]::GetFolderPath('Desktop')) '習作台資料'
+}
+
+function Map-LevelForDesk([string]$level) {
+  if ($level -eq '待判定') { return '需補先備' }
+  if ([string]::IsNullOrWhiteSpace($level)) { return '未標' }
+  return $level
+}
+
+function Export-LevelsToTeacherDesk([string]$root) {
+  $deskDir = Get-TeacherDeskWorkDir
+  New-Item -ItemType Directory -Force -Path $deskDir | Out-Null
+  $path = Join-Path $deskDir '班級狀態.json'
+  $legacy = Join-Path $deskDir 'class-state.json'
+  $st = $null
+  if (Test-Path -LiteralPath $path) {
+    try {
+      $obj = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+      $st = @{
+        classLabel    = $(if ($obj.classLabel) { [string]$obj.classLabel } else { '本班數學' })
+        seatCount     = $(if ($obj.seatCount) { [int]$obj.seatCount } else { 35 })
+        deadline      = $(if ($obj.deadline) { [string]$obj.deadline } else { '今晚 21:00' })
+        sendChannel   = $(if ($obj.sendChannel) { [string]$obj.sendChannel } else { 'line_group' })
+        returnChannel = $(if ($obj.returnChannel) { [string]$obj.returnChannel } else { 'line_dm' })
+        seats         = @{}
+      }
+      if ($obj.seats) {
+        foreach ($p in $obj.seats.PSObject.Properties) {
+          $v = $p.Value
+          $st.seats[$p.Name] = @{
+            level = $(if ($v.level) { [string]$v.level } else { '未標' })
+            send  = $(if ($v.send) { [string]$v.send } else { '未發' })
+            note  = $(if ($v.note) { [string]$v.note } else { '' })
+          }
+        }
+      }
+    } catch { $st = $null }
+  }
+  if ($null -eq $st) {
+    $st = @{
+      classLabel = '本班數學'; seatCount = 35; deadline = '今晚 21:00'
+      sendChannel = 'line_group'; returnChannel = 'line_dm'; seats = @{}
+    }
+    $st.seats['00'] = @{ level = '未標'; send = '未發'; note = '試發' }
+    for ($i = 1; $i -le 35; $i++) {
+      $id = '{0:D2}' -f $i
+      $st.seats[$id] = @{ level = '未標'; send = '未發'; note = '' }
+    }
+  }
+  $outDir = Join-Path $root '輸出'
+  $n = 0
+  Get-ChildItem -LiteralPath $outDir -Filter '*-註記.md' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $note = Load-Note $_.FullName
+    $id = if ($note.studentId) { Get-StudentId $note.studentId } else { Get-StudentId $_.Name.Replace('-註記', '') }
+    if (-not $id) { return }
+    $lv = Map-LevelForDesk ([string]$note.level)
+    if ($lv -eq '未標') { return }
+    if (-not $st.seats.ContainsKey($id)) {
+      $st.seats[$id] = @{ level = '未標'; send = '未發'; note = $(if ($id -eq '00') { '試發' } else { '' }) }
+    }
+    $st.seats[$id].level = $lv
+    if (-not $st.seats[$id].send) { $st.seats[$id].send = '未發' }
+    $n++
+  }
+  $orderedSeats = [ordered]@{}
+  foreach ($k in ($st.seats.Keys | Sort-Object)) { $orderedSeats[$k] = $st.seats[$k] }
+  $payload = [ordered]@{
+    _schema       = 'teacher-desk-v1'
+    exportedAt    = (Get-Date).ToString('o')
+    classLabel    = $st.classLabel
+    seatCount     = $st.seatCount
+    deadline      = $st.deadline
+    sendChannel   = $st.sendChannel
+    returnChannel = $st.returnChannel
+    seats         = $orderedSeats
+  }
+  $utf8Bom = New-Object System.Text.UTF8Encoding $true
+  $json = $payload | ConvertTo-Json -Depth 6
+  [IO.File]::WriteAllText($path, $json, $utf8Bom)
+  Copy-Item -LiteralPath $path -Destination $legacy -Force -ErrorAction SilentlyContinue
+  $exportDir = Join-Path $deskDir '匯出給手機'
+  New-Item -ItemType Directory -Force -Path $exportDir | Out-Null
+  Copy-Item -LiteralPath $path -Destination (Join-Path $exportDir '班級狀態.json') -Force
+  return @{ Path = $path; Count = $n }
+}
+
+function Export-GraderProgressJson([string]$root) {
+  $outDir = Join-Path $root '輸出'
+  $histDir = Join-Path $root '練習歷程'
+  $digDir = Join-Path $root '數位練習'
+  New-Item -ItemType Directory -Force -Path $outDir, $histDir, $digDir | Out-Null
+  $seats = [ordered]@{}
+  $seats['00'] = @{ status = '未批'; level = '未標'; note = '試發'; history = @{ attempts = @() } }
+  for ($i = 1; $i -le 35; $i++) {
+    $id = '{0:D2}' -f $i
+    $seats[$id] = @{ status = '未批'; level = '未標'; note = ''; history = @{ attempts = @() } }
+  }
+  Get-ChildItem -LiteralPath $outDir -Filter '*-註記.md' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $note = Load-Note $_.FullName
+    $id = if ($note.studentId) { Get-StudentId $note.studentId } else { Get-StudentId $_.Name.Replace('-註記', '') }
+    if (-not $id) { return }
+    if (-not $seats.Contains($id)) {
+      $seats[$id] = @{ status = '未批'; level = '未標'; note = ''; history = @{ attempts = @() } }
+    }
+    $lv = [string]$note.level
+    if ($lv -eq '待判定') { $lv = '需補先備' }
+    $seats[$id].level = $(if ($lv) { $lv } else { '未標' })
+    $seats[$id].status = '已批'
+    $ov = [string]$note.overall
+    if ($ov.Length -gt 40) { $ov = $ov.Substring(0, 40) }
+    $seats[$id].note = $ov
+    if ($note.summary) { $seats[$id].lastReply = [string]$note.summary }
+    if ($note.practice) { $seats[$id].practice = [string]$note.practice }
+  }
+  # 0803：併入練習歷程 attempts
+  Get-ChildItem -LiteralPath $histDir -Filter '*-歷程.json' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $id = Get-StudentId ($_.BaseName -replace '-歷程$', '')
+    if (-not $id) { return }
+    if (-not $seats.Contains($id)) {
+      $seats[$id] = @{ status = '未批'; level = '未標'; note = ''; history = @{ attempts = @() } }
+    }
+    try {
+      $h = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+      $attempts = @()
+      foreach ($a in @($h.attempts)) {
+        $attempts += [ordered]@{
+          round         = $(if ($a.round) { [int]$a.round } else { 1 })
+          score         = $(if ($null -ne $a.score) { [double]$a.score } else { 0 })
+          maxScore      = $(if ($a.maxScore) { [double]$a.maxScore } else { 100 })
+          targetScore   = $(if ($a.targetScore) { [double]$a.targetScore } else { 80 })
+          goal          = $(if ($a.goal) { [string]$a.goal } else { '' })
+          problemPoints = $(if ($a.problemPoints) { [string]$a.problemPoints } else { '' })
+          feedback      = $(if ($a.feedback) { [string]$a.feedback } else { '' })
+          nextPractice  = $(if ($a.nextPractice) { [string]$a.nextPractice } else { '' })
+          goalMet       = [bool]$a.goalMet
+          sourceFile    = $(if ($a.sourceFile) { [string]$a.sourceFile } else { '' })
+          at            = $(if ($a.at) { $a.at } else { $null })
+        }
+      }
+      $seats[$id].history = @{ attempts = $attempts }
+      if ($attempts.Count -gt 0) {
+        $last = $attempts[-1]
+        if ($last.nextPractice) { $seats[$id].latestPractice = [string]$last.nextPractice }
+        $seats[$id].note = ('R{0} {1}/{2}' -f $last.round, $last.score, $last.maxScore)
+      }
+    } catch {}
+  }
+  # 若尚無 latestPractice，嘗試數位練習 HTML 內文（精簡）
+  Get-ChildItem -LiteralPath $digDir -Filter '*-練習題.html' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $id = Get-StudentId ($_.BaseName -replace '-練習題$', '')
+    if (-not $id -or -not $seats.Contains($id)) { return }
+    if ($seats[$id].latestPractice) { return }
+    try {
+      $raw = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+      if ($raw -match '(?s)<pre>(.*?)</pre>') {
+        $txt = [System.Net.WebUtility]::HtmlDecode($Matches[1]).Trim()
+        if ($txt.Length -gt 8000) { $txt = $txt.Substring(0, 8000) }
+        $seats[$id].latestPractice = $txt
+      }
+    } catch {}
+  }
+  $payload = [ordered]@{
+    _schema    = 'math-grader-v1'
+    exportedAt = (Get-Date).ToString('o')
+    features   = @('0803', 'history', 'practice-loop', 'level')
+    classLabel = '本班數學'
+    seatCount  = 35
+    seats      = $seats
+  }
+  $path = Join-Path $outDir '習作批改進度.json'
+  $utf8Bom = New-Object System.Text.UTF8Encoding $true
+  [IO.File]::WriteAllText($path, ($payload | ConvertTo-Json -Depth 8), $utf8Bom)
+  return $path
+}
+
+function Merge-HistoryAttempts($existing, $incoming) {
+  $map = @{}
+  foreach ($a in @($existing)) {
+    if (-not $a) { continue }
+    $r = 0
+    try { $r = [int]$a.round } catch { $r = 0 }
+    if ($r -lt 1) { continue }
+    $map[$r] = $a
+  }
+  foreach ($a in @($incoming)) {
+    if (-not $a) { continue }
+    $r = 0
+    try { $r = [int]$a.round } catch { $r = 0 }
+    if ($r -lt 1) { continue }
+    if (-not $map.ContainsKey($r)) { $map[$r] = $a; continue }
+    $oldAt = 0L; $newAt = 0L
+    try { if ($map[$r].at) { $oldAt = [int64]$map[$r].at } } catch {}
+    try { if ($a.at) { $newAt = [int64]$a.at } } catch {}
+    if ($newAt -ge $oldAt) { $map[$r] = $a }
+  }
+  return @($map.Keys | Sort-Object | ForEach-Object { $map[$_] })
+}
+
+function Write-PracticeHtmlFile([string]$root, [string]$id, [string]$body, [string]$level) {
+  if ([string]::IsNullOrWhiteSpace($body)) { return $null }
+  $digDir = Join-Path $root '數位練習'
+  New-Item -ItemType Directory -Force -Path $digDir | Out-Null
+  $safe = ($body -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;')
+  $html = @"
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>座號 $id 練習</title>
+<style>body{font-family:sans-serif;line-height:1.6;padding:1rem;max-width:40rem;margin:auto;white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>座號 $id｜$level</h1>
+<pre>$safe</pre>
+</body>
+</html>
+"@
+  $path = Join-Path $digDir ($id + '-練習題.html')
+  $utf8Bom = New-Object System.Text.UTF8Encoding $true
+  [IO.File]::WriteAllText($path, $html, $utf8Bom)
+  return $path
+}
+
+function Import-GraderProgressJson([string]$root, [string]$jsonPath) {
+  $obj = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  if ($obj._schema -eq 'teacher-desk-v1') { throw '這是班級狀態檔，請改匯入班級狀態或 0803 同步包' }
+  if ($obj._schema -eq 'sync-pack-v1' -and $obj.grader) { $obj = $obj.grader }
+  if (-not $obj.seats) { throw '不是習作批改進度檔' }
+  $histDir = Join-Path $root '練習歷程'
+  New-Item -ItemType Directory -Force -Path $histDir | Out-Null
+  $nLevel = 0; $nHist = 0; $nPrac = 0
+  foreach ($p in $obj.seats.PSObject.Properties) {
+    $id = [string]$p.Name
+    $src = $p.Value
+    if (-not $src) { continue }
+    $lv = [string]$src.level
+    if ($lv -eq '待判定') { $lv = '需補先備' }
+    if ($lv -and $lv -ne '未標') { $nLevel++ }
+
+    $incoming = @()
+    if ($src.history -and $src.history.attempts) { $incoming = @($src.history.attempts) }
+    $histPath = Join-Path $histDir ($id + '-歷程.json')
+    $existing = @()
+    if (Test-Path -LiteralPath $histPath) {
+      try {
+        $old = Get-Content -LiteralPath $histPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($old.attempts) { $existing = @($old.attempts) }
+      } catch {}
+    }
+    $merged = Merge-HistoryAttempts $existing $incoming
+    if ($merged.Count -gt 0) {
+      $payload = [ordered]@{
+        studentId = $id
+        attempts  = @($merged | ForEach-Object {
+          [ordered]@{
+            round         = $(if ($_.round) { [int]$_.round } else { 1 })
+            score         = $(if ($null -ne $_.score) { [double]$_.score } else { 0 })
+            maxScore      = $(if ($_.maxScore) { [double]$_.maxScore } else { 100 })
+            targetScore   = $(if ($_.targetScore) { [double]$_.targetScore } else { 80 })
+            goal          = $(if ($_.goal) { [string]$_.goal } else { '' })
+            problemPoints = $(if ($_.problemPoints) { [string]$_.problemPoints } else { '' })
+            feedback      = $(if ($_.feedback) { [string]$_.feedback } else { '' })
+            nextPractice  = $(if ($_.nextPractice) { [string]$_.nextPractice } else { '' })
+            goalMet       = [bool]$_.goalMet
+            sourceFile    = $(if ($_.sourceFile) { [string]$_.sourceFile } else { '' })
+            at            = $(if ($_.at) { $_.at } else { $null })
+          }
+        })
+      }
+      $utf8Bom = New-Object System.Text.UTF8Encoding $true
+      [IO.File]::WriteAllText($histPath, ($payload | ConvertTo-Json -Depth 8), $utf8Bom)
+      $nHist++
+      $last = $merged[-1]
+      $body = ''
+      if ($src.latestPractice) { $body = [string]$src.latestPractice }
+      elseif ($last.nextPractice) { $body = [string]$last.nextPractice }
+      elseif ($src.practice) { $body = [string]$src.practice }
+      if ($body) {
+        [void](Write-PracticeHtmlFile $root $id $body $(if ($lv) { $lv } else { '未標' }))
+        $nPrac++
+      }
+    } elseif ($src.latestPractice -or $src.practice) {
+      $body = if ($src.latestPractice) { [string]$src.latestPractice } else { [string]$src.practice }
+      [void](Write-PracticeHtmlFile $root $id $body $(if ($lv) { $lv } else { '未標' }))
+      $nPrac++
+    }
+  }
+  return @{ Levels = $nLevel; Histories = $nHist; Practices = $nPrac }
+}
+
+function Export-SyncPack0803([string]$root) {
+  $graderPath = Export-GraderProgressJson $root
+  $grader = Get-Content -LiteralPath $graderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  # 同步程度到習作台後一併打包
+  $deskInfo = Export-LevelsToTeacherDesk $root
+  $desk = Get-Content -LiteralPath $deskInfo.Path -Raw -Encoding UTF8 | ConvertFrom-Json
+  $pack = [ordered]@{
+    _schema    = 'sync-pack-v1'
+    exportedAt = (Get-Date).ToString('o')
+    features   = @('0803', 'history', 'practice-loop', 'level', 'send', 'digital-practice')
+    grader     = $grader
+    desk       = $desk
+  }
+  $outDir = Join-Path $root '輸出'
+  $path = Join-Path $outDir '0803同步包.json'
+  $utf8Bom = New-Object System.Text.UTF8Encoding $true
+  [IO.File]::WriteAllText($path, ($pack | ConvertTo-Json -Depth 10), $utf8Bom)
+  $exportDir = Join-Path (Get-TeacherDeskWorkDir) '匯出給手機'
+  New-Item -ItemType Directory -Force -Path $exportDir | Out-Null
+  Copy-Item -LiteralPath $path -Destination (Join-Path $exportDir '0803同步包.json') -Force
+  return $path
+}
+
+function Import-SyncPack0803([string]$root, [string]$jsonPath) {
+  $obj = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  if ($obj._schema -ne 'sync-pack-v1') {
+    # 相容：純進度檔也當部分匯入
+    if ($obj.seats) {
+      $r = Import-GraderProgressJson $root $jsonPath
+      return @{ Grader = $r; Desk = $null; Path = $jsonPath }
+    }
+    throw '請選擇 0803同步包.json（或習作批改進度.json）'
+  }
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) ('grader-progress-' + [guid]::NewGuid().ToString('n') + '.json')
+  try {
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    [IO.File]::WriteAllText($tmp, ($obj.grader | ConvertTo-Json -Depth 10), $utf8Bom)
+    $r = Import-GraderProgressJson $root $tmp
+  } finally {
+    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+  }
+  $deskPath = $null
+  if ($obj.desk) {
+    $deskDir = Get-TeacherDeskWorkDir
+    New-Item -ItemType Directory -Force -Path $deskDir | Out-Null
+    $deskPath = Join-Path $deskDir '班級狀態.json'
+    [IO.File]::WriteAllText($deskPath, ($obj.desk | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding $true))
+    Copy-Item -LiteralPath $deskPath -Destination (Join-Path $deskDir 'class-state.json') -Force -ErrorAction SilentlyContinue
+  }
+  # 再把進度程度寫進習作台（覆蓋 desk 中程度欄）
+  [void](Export-LevelsToTeacherDesk $root)
+  return @{ Grader = $r; Desk = $deskPath; Path = $jsonPath }
+}
+
 function Get-AnswerFiles([string]$root) {
   $dir = Join-Path $root '標準答案'
   if (-not (Test-Path -LiteralPath $dir)) { return @() }
@@ -2345,9 +2691,47 @@ $btnCsv.Add_Click({
     }
   })
 
+$btnSyncDesk = New-Object System.Windows.Forms.Button
+$btnSyncDesk.Text = '同步程度→習作台'
+$btnSyncDesk.Location = New-Object System.Drawing.Point(156, $y2)
+$btnSyncDesk.Size = New-Object System.Drawing.Size(140, 28)
+$btnSyncDesk.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnSyncDesk.ForeColor = [System.Drawing.Color]::White
+$btnSyncDesk.FlatStyle = 'Flat'
+$btnSyncDesk.Add_Click({
+    try {
+      $r = Export-LevelsToTeacherDesk $script:WorkDir
+      $status.Text = "已同步 $($r.Count) 個程度 → $($r.Path)"
+      [void][System.Windows.Forms.MessageBox]::Show(
+        ("已把註記程度寫入習作台班級狀態。`n更新 {0} 座`n`n{1}`n`n請打開桌面「習作台」查看；也可把匯出檔傳到另一台／手機。" -f $r.Count, $r.Path),
+        '同步習作台'
+      )
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("同步失敗：$($_.Exception.Message)", '同步習作台')
+    }
+  })
+
+$btnExportProgress = New-Object System.Windows.Forms.Button
+$btnExportProgress.Text = '匯出批改進度JSON'
+$btnExportProgress.Location = New-Object System.Drawing.Point(306, $y2)
+$btnExportProgress.Size = New-Object System.Drawing.Size(150, 28)
+$btnExportProgress.Add_Click({
+    try {
+      $p = Export-GraderProgressJson $script:WorkDir
+      $status.Text = '已匯出：' + $p
+      Start-Process explorer.exe "/select,`"$p`""
+      [void][System.Windows.Forms.MessageBox]::Show(
+        "已匯出含 0803 練習歷程的批改進度：`n$p`n`n傳到另一端「匯入批改進度」或併入「0803同步包」。",
+        '匯出批改進度'
+      )
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("匯出失敗：$($_.Exception.Message)", '匯出批改進度')
+    }
+  })
+
 $btnUnclear = New-Object System.Windows.Forms.Button
 $btnUnclear.Text = '產生全班存疑清單'
-$btnUnclear.Location = New-Object System.Drawing.Point(156, $y2)
+$btnUnclear.Location = New-Object System.Drawing.Point(466, $y2)
 $btnUnclear.Size = New-Object System.Drawing.Size(160, 28)
 $btnUnclear.Add_Click({
     if (Invoke-MakePdf -Root $script:WorkDir -UnclearList) {
@@ -2359,8 +2743,8 @@ $btnUnclear.Add_Click({
 
 $btnClarify = New-Object System.Windows.Forms.Button
 $btnClarify.Text = '套用認知／重謄並重產PDF'
-$btnClarify.Location = New-Object System.Drawing.Point(300, $y2)
-$btnClarify.Size = New-Object System.Drawing.Size(200, 28)
+$btnClarify.Location = New-Object System.Drawing.Point(636, $y2)
+$btnClarify.Size = New-Object System.Drawing.Size(190, 28)
 $btnClarify.Add_Click({
     if (Invoke-MakePdf -Root $script:WorkDir -ApplyClarifications -UnclearList -MergeOriginal) {
       $status.Text = '已套用認知／重謄並重產 PDF'
@@ -2370,14 +2754,68 @@ $btnClarify.Add_Click({
 
 $btnOpenCog = New-Object System.Windows.Forms.Button
 $btnOpenCog.Text = '認知／重謄夾'
-$btnOpenCog.Location = New-Object System.Drawing.Point(512, $y2)
-$btnOpenCog.Size = New-Object System.Drawing.Size(120, 28)
+$btnOpenCog.Location = New-Object System.Drawing.Point(836, $y2)
+$btnOpenCog.Size = New-Object System.Drawing.Size(110, 28)
 $btnOpenCog.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '認知輸入')
     Start-Process explorer.exe (Join-Path $script:WorkDir '重謄補充')
   })
 
-$y3 = 600
+$yPack = 598
+$btnExportPack = New-Object System.Windows.Forms.Button
+$btnExportPack.Text = '匯出0803同步包'
+$btnExportPack.Location = New-Object System.Drawing.Point(16, $yPack)
+$btnExportPack.Size = New-Object System.Drawing.Size(150, 28)
+$btnExportPack.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnExportPack.ForeColor = [System.Drawing.Color]::White
+$btnExportPack.FlatStyle = 'Flat'
+$btnExportPack.Add_Click({
+    try {
+      $p = Export-SyncPack0803 $script:WorkDir
+      $status.Text = '已匯出同步包：' + $p
+      Start-Process explorer.exe "/select,`"$p`""
+      [void][System.Windows.Forms.MessageBox]::Show(
+        "已匯出 0803 同步包（批改＋練習歷程日誌＋數位練習＋班級發送）：`n$p`n`n傳到另一台電腦／手機後「匯入0803同步包」。",
+        '0803同步包'
+      )
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("匯出失敗：$($_.Exception.Message)", '0803同步包')
+    }
+  })
+
+$btnImportPack = New-Object System.Windows.Forms.Button
+$btnImportPack.Text = '匯入0803同步包'
+$btnImportPack.Location = New-Object System.Drawing.Point(176, $yPack)
+$btnImportPack.Size = New-Object System.Drawing.Size(150, 28)
+$btnImportPack.Add_Click({
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Filter = '0803同步包 (*.json)|*.json|所有檔案 (*.*)|*.*'
+    $dlg.Title = '匯入 0803 同步包／批改進度'
+    if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+    try {
+      $r = Import-SyncPack0803 $script:WorkDir $dlg.FileName
+      $g = $r.Grader
+      $msg = "已匯入。`n程度相關座號：$($g.Levels)`n練習歷程日誌：$($g.Histories)`n數位練習：$($g.Practices)"
+      if ($r.Desk) { $msg += "`n班級狀態：$($r.Desk)" }
+      $status.Text = '已匯入 0803 同步包（含歷程日誌）'
+      Refresh-List
+      [void][System.Windows.Forms.MessageBox]::Show($msg, '0803同步包')
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("匯入失敗：$($_.Exception.Message)", '0803同步包')
+    }
+  })
+
+$btnOpenHist = New-Object System.Windows.Forms.Button
+$btnOpenHist.Text = '練習歷程夾'
+$btnOpenHist.Location = New-Object System.Drawing.Point(336, $yPack)
+$btnOpenHist.Size = New-Object System.Drawing.Size(120, 28)
+$btnOpenHist.Add_Click({
+    $d = Join-Path $script:WorkDir '練習歷程'
+    New-Item -ItemType Directory -Force -Path $d | Out-Null
+    Start-Process explorer.exe $d
+  })
+
+$y3 = 632
 $btnDigital = New-Object System.Windows.Forms.Button
 $btnDigital.Text = '數位練習包（手機）'
 $btnDigital.Location = New-Object System.Drawing.Point(16, $y3)
@@ -2458,7 +2896,7 @@ $btnOpenDigital.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '列印專用')
   })
 
-$y4 = 640
+$y4 = 672
 $btnTools = New-Object System.Windows.Forms.Button
 $btnTools.Text = '工具選擇（LINE群／個別…）'
 $btnTools.Location = New-Object System.Drawing.Point(16, $y4)
@@ -2528,14 +2966,15 @@ $btnTablet.ForeColor = [System.Drawing.Color]::White
 $btnTablet.FlatStyle = 'Flat'
 $btnTablet.Add_Click({ Show-TabletImportAndGrade })
 
-$form.Size = New-Object System.Drawing.Size(1000, 820)
-$status.Location = New-Object System.Drawing.Point(16, 688)
+$form.Size = New-Object System.Drawing.Size(1000, 860)
+$status.Location = New-Object System.Drawing.Point(16, 720)
 $status.Size = New-Object System.Drawing.Size(950, 40)
 
 $form.Controls.AddRange(@(
     $lbl, $grpStart, $lblPath, $list, $grp, $status,
     $btnWork, $btnOpenIn, $btnOpenOut, $btnGrade, $btnSave, $btnNext, $btnAutoAll, $btnRefresh,
-    $btnCsv, $btnUnclear, $btnClarify, $btnOpenCog,
+    $btnCsv, $btnSyncDesk, $btnExportProgress, $btnUnclear, $btnClarify, $btnOpenCog,
+    $btnExportPack, $btnImportPack, $btnOpenHist,
     $btnDigital, $btnCopyLine, $btnPrintPack, $btnOpenDigital,
     $btnTools, $btnLoop, $btnRetFolder, $btnJunyi, $btnTablet
   ))

@@ -2,7 +2,7 @@
 # Pull latest export from copyshae/- branch into Desktop\hello-world and reinstall.
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
-$branch = "main"
+$branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "main" }
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -57,6 +57,8 @@ $files = @(
   "scripts/install-teacher-desk.ps1",
   "scripts/teacher-desk-app.ps1",
   "scripts/README-teacher-desk.md",
+  "scripts/README-sync.md",
+  "scripts/FEATURES-FROM-LOGS.md",
   "directory/apps/math-grader/index.html",
   "directory/apps/math-grader/sw.js",
   "directory/apps/math-grader/manifest.json",
@@ -109,10 +111,11 @@ try {
   git add directory/apps/math-grader directory/apps/teacher-desk `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
-    scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
+    scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
+    scripts/README-teacher-desk.md scripts/README-math-homework-grader.md scripts/README-sync.md scripts/FEATURES-FROM-LOGS.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "手機習作批改：補批完後續（自產練習／發放／回傳循環）"
+    git commit -m "習作批改／習作台：日誌功能全納入與 0803 同步包（含歷程）"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"

@@ -218,6 +218,20 @@
       </div>
     </section>
 
+    <section id="syncSection">
+      <h2>跨裝置／0803 同步包（含歷程日誌）</h2>
+      <p class="tips">兩台電腦＋手機請傳 <code>0803同步包.json</code>（一份就好）：內含批改進度、練習回傳循環歷程、最新練習、班級發送狀態。也可分傳 <code>習作批改進度.json</code>＋<code>班級狀態.json</code>。正式 PDF／整班數位包仍以電腦為準。</p>
+      <div class="actions">
+        <button type="button" class="btn" id="btnExportPack">匯出0803同步包</button>
+        <button type="button" class="btn secondary" id="btnImportPack">匯入0803同步包</button>
+        <input class="hidden-file" id="fileSyncPack" type="file" accept="application/json,.json" />
+        <button type="button" class="btn" id="btnPushAllDesk">全部程度寫入習作台</button>
+        <button type="button" class="btn secondary" id="btnImportDeskLevels">從班級狀態匯入程度</button>
+        <input class="hidden-file" id="fileDeskLevels" type="file" accept="application/json,.json" />
+        <button type="button" class="btn secondary" id="btnOpenDeskSync">開啟習作台</button>
+      </div>
+    </section>
+
     <section>
       <h2>提示／批閱結果</h2>
       <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 Gemini 回覆。"></textarea>
@@ -293,6 +307,8 @@
         <li>預設「快速批」；要詳細診斷再改「完整批」。</li>
         <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
         <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
+        <li>批完後用下方「批完後續」：練習模板／發放訊息／寫入習作台／練習回傳循環。</li>
+        <li>換手機／換電腦：匯出「批改進度」＋在習作台匯出「班級狀態」，傳到另一端再匯入。</li>
         <li>只按「開啟 Gemini 貼上批」不會自動完成，又慢又會卡在批改中。</li>
       </ul>
     </section>
@@ -718,9 +734,12 @@
         );
       }
 
-      function pushLevelToDesk(id) {
-        var s = state.seats[id];
-        if (!s) throw new Error("無此座號");
+      function mapLevelForDesk(lv) {
+        if (lv === "待判定") return "需補先備";
+        return lv || "未標";
+      }
+
+      function loadDeskState() {
         var KEY_DESK = "teacher-desk-v1";
         var desk = null;
         try {
@@ -738,15 +757,67 @@
           };
         }
         if (!desk.seats) desk.seats = {};
-        if (!desk.seats[id]) desk.seats[id] = { level: "未標", send: "未發", note: "" };
-        desk.seats[id].level = s.level || "未標";
-        if (!desk.seats[id].send || desk.seats[id].send === "未發") desk.seats[id].send = "未發";
-        if (desk.classLabel == null) desk.classLabel = state.classLabel;
+        return desk;
+      }
+
+      function saveDeskState(desk) {
         try {
-          localStorage.setItem(KEY_DESK, JSON.stringify(desk));
+          localStorage.setItem("teacher-desk-v1", JSON.stringify(desk));
         } catch (e) {
           throw new Error("無法寫入習作台（儲存空間？）");
         }
+      }
+
+      function pushLevelToDesk(id) {
+        var s = state.seats[id];
+        if (!s) throw new Error("無此座號");
+        var desk = loadDeskState();
+        if (!desk.seats[id]) desk.seats[id] = { level: "未標", send: "未發", note: id === "00" ? "試發" : "" };
+        desk.seats[id].level = mapLevelForDesk(s.level);
+        if (!desk.seats[id].send) desk.seats[id].send = "未發";
+        if (desk.classLabel == null || desk.classLabel === "") desk.classLabel = state.classLabel;
+        if (state.seatCount) desk.seatCount = state.seatCount;
+        saveDeskState(desk);
+      }
+
+      function pushAllLevelsToDesk() {
+        var desk = loadDeskState();
+        var n = 0;
+        Object.keys(state.seats).forEach(function (id) {
+          var s = state.seats[id];
+          if (!s) return;
+          var lv = s.level || "未標";
+          if (lv === "未標") return;
+          if (!desk.seats[id]) desk.seats[id] = { level: "未標", send: "未發", note: id === "00" ? "試發" : "" };
+          desk.seats[id].level = mapLevelForDesk(lv);
+          if (!desk.seats[id].send) desk.seats[id].send = "未發";
+          n++;
+        });
+        if (state.classLabel) desk.classLabel = state.classLabel;
+        if (state.seatCount) desk.seatCount = state.seatCount;
+        saveDeskState(desk);
+        return n;
+      }
+
+      function mergeLevelsFromClassState(obj) {
+        if (!obj || typeof obj !== "object" || !obj.seats) {
+          throw new Error("不是班級狀態／習作台匯出檔");
+        }
+        var n = 0;
+        if (obj.classLabel) state.classLabel = obj.classLabel;
+        if (obj.seatCount) state.seatCount = obj.seatCount;
+        state = ensure(state);
+        Object.keys(obj.seats).forEach(function (id) {
+          var src = obj.seats[id];
+          if (!src || !state.seats[id]) return;
+          var lv = src.level || "";
+          if (!lv || lv === "未標") return;
+          if (lv === "待判定") lv = "需補先備";
+          if (LEVELS.indexOf(lv) < 0 && lv !== "未標") return;
+          state.seats[id].level = lv;
+          n++;
+        });
+        return n;
       }
 
       function downloadPracticeHtml(id) {
@@ -1022,6 +1093,9 @@
         }
         if (!opts.skipSave) save(state);
         if (!opts.skipRender) renderGrid();
+        if (!opts.skipPushDesk && s.level && s.level !== "未標") {
+          try { pushLevelToDesk(id); } catch (e) {}
+        }
       }
 
       /* IndexedDB: scans + answers + progress backup */
@@ -1248,9 +1322,13 @@
             setBusy(true, modeLabel, "已完成 " + done + "/" + queue.length + "｜耗時 " + elapsed + " 秒");
           });
           var sec = ((Date.now() - t0) / 1000).toFixed(0);
-          toast("連續批完成：" + done + " 份／" + sec + " 秒");
+          var pushed = 0;
+          try { pushed = pushAllLevelsToDesk(); } catch (e) { pushed = 0; }
+          toast("連續批完成：" + done + " 份／" + sec + " 秒" + (pushed ? "｜已寫入習作台 " + pushed + " 座" : ""));
           document.getElementById("preview").value =
-            "連續批完成 " + done + " 份，耗時 " + sec + " 秒。\n模式：" + modeLabel + "。\n點座號可看個別回覆。";
+            "連續批完成 " + done + " 份，耗時 " + sec + " 秒。\n模式：" + modeLabel + "。\n" +
+            (pushed ? ("已把 " + pushed + " 個座號程度寫入習作台。\n") : "") +
+            "點座號可看個別回覆；換機請匯出「批改進度」＋習作台「班級狀態」。";
         } catch (err) {
           document.getElementById("preview").value =
             "連續自動批在進度 " + done + "/" + queue.length + " 停下：\n" +
@@ -1383,13 +1461,112 @@
 
       document.getElementById("btnExportProgress").addEventListener("click", function () {
         persistHeader();
-        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        var payload = Object.assign({}, state, {
+          _schema: "math-grader-v1",
+          exportedAt: new Date().toISOString(),
+          features: ["0803", "history", "practice-loop", "level"]
+        });
+        Object.keys(payload.seats || {}).forEach(function (id) {
+          var s = payload.seats[id];
+          if (!s) return;
+          ensureHistory(s);
+          if (s.history && s.history.attempts && s.history.attempts.length) {
+            var last = s.history.attempts[s.history.attempts.length - 1];
+            if (last && last.nextPractice) s.latestPractice = last.nextPractice;
+          }
+        });
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = "習作批改進度.json";
         a.click();
         URL.revokeObjectURL(a.href);
-        toast("已匯出進度（可在另一網址匯入）");
+        toast("已匯出進度（含 0803 歷程日誌）");
+      });
+
+      function buildSyncPack() {
+        persistHeader();
+        try { pushAllLevelsToDesk(); } catch (e) {}
+        var desk = loadDeskState();
+        var grader = Object.assign({}, state, {
+          _schema: "math-grader-v1",
+          features: ["0803", "history", "practice-loop", "level"]
+        });
+        Object.keys(grader.seats || {}).forEach(function (id) {
+          var s = grader.seats[id];
+          if (!s) return;
+          ensureHistory(s);
+          if (s.history && s.history.attempts && s.history.attempts.length) {
+            var last = s.history.attempts[s.history.attempts.length - 1];
+            if (last && last.nextPractice) s.latestPractice = last.nextPractice;
+          }
+        });
+        return {
+          _schema: "sync-pack-v1",
+          exportedAt: new Date().toISOString(),
+          features: ["0803", "history", "practice-loop", "level", "send", "digital-practice", "log"],
+          grader: grader,
+          desk: Object.assign({}, desk, { _schema: "teacher-desk-v1" })
+        };
+      }
+
+      function importSyncPackObject(pack) {
+        if (!pack || typeof pack !== "object") throw new Error("空檔");
+        if (pack._schema === "sync-pack-v1") {
+          if (pack.grader && pack.grader.seats) {
+            state = ensure(Object.assign(def(), pack.grader));
+            save(state);
+          }
+          if (pack.desk && pack.desk.seats) {
+            try { saveDeskState(Object.assign(loadDeskState(), pack.desk, { seats: pack.desk.seats })); } catch (e) {}
+          }
+          try { pushAllLevelsToDesk(); } catch (e2) {}
+          return "pack";
+        }
+        if (pack._schema === "teacher-desk-v1") {
+          throw new Error("這是班級狀態；請用「從班級狀態匯入程度」或完整同步包");
+        }
+        if (pack.seats) {
+          state = ensure(Object.assign(def(), pack));
+          save(state);
+          try { pushAllLevelsToDesk(); } catch (e3) {}
+          return "grader";
+        }
+        throw new Error("無法辨識的同步檔");
+      }
+
+      document.getElementById("btnExportPack").addEventListener("click", function () {
+        var pack = buildSyncPack();
+        var blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "0803同步包.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("已匯出 0803 同步包（含歷程日誌）");
+      });
+      document.getElementById("btnImportPack").addEventListener("click", function () {
+        document.getElementById("fileSyncPack").click();
+      });
+      document.getElementById("fileSyncPack").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var kind = importSyncPackObject(JSON.parse(reader.result));
+            syncForm();
+            selected = null;
+            document.getElementById("editPanel").hidden = true;
+            renderGrid();
+            fillSeatSelect();
+            toast(kind === "pack" ? "已匯入 0803 同步包（含歷程日誌）" : "已匯入批改進度（含歷程）");
+          } catch (err) {
+            toast(String(err && err.message || err) || "匯入失敗");
+          }
+        };
+        reader.readAsText(f, "utf-8");
       });
       document.getElementById("btnImportProgress").addEventListener("click", function () {
         document.getElementById("fileProgress").click();
@@ -1401,13 +1578,34 @@
         var reader = new FileReader();
         reader.onload = function () {
           try {
-            state = ensure(Object.assign(def(), JSON.parse(reader.result)));
+            var parsed = JSON.parse(reader.result);
+            if (parsed && parsed._schema === "teacher-desk-v1") {
+              toast("這是班級狀態檔。請改按「從班級狀態匯入程度」");
+              return;
+            }
+            var hasStatus = false;
+            var hasSendOnly = false;
+            if (parsed && parsed.seats) {
+              Object.keys(parsed.seats).some(function (k) {
+                var seat = parsed.seats[k];
+                if (!seat) return false;
+                if (seat.status != null) { hasStatus = true; return true; }
+                if (seat.send != null) hasSendOnly = true;
+                return false;
+              });
+            }
+            if (!hasStatus && hasSendOnly && (parsed.sendChannel || parsed.deadline || parsed._schema === "teacher-desk-v1")) {
+              toast("這是班級狀態檔。請改按「從班級狀態匯入程度」");
+              return;
+            }
+            state = ensure(Object.assign(def(), parsed));
             save(state);
             syncForm();
             selected = null;
             document.getElementById("editPanel").hidden = true;
             renderGrid();
             fillSeatSelect();
+            try { pushAllLevelsToDesk(); } catch (e2) {}
             toast("已匯入批改進度");
           } catch (err) {
             toast("匯入失敗");
@@ -1415,6 +1613,42 @@
           }
         };
         reader.readAsText(f);
+      });
+
+      document.getElementById("btnPushAllDesk").addEventListener("click", function () {
+        persistHeader();
+        try {
+          var n = pushAllLevelsToDesk();
+          toast(n ? ("已寫入習作台 " + n + " 個座號程度") : "沒有可寫入的程度");
+        } catch (err) {
+          toast(String(err && err.message || err));
+        }
+      });
+      document.getElementById("btnImportDeskLevels").addEventListener("click", function () {
+        document.getElementById("fileDeskLevels").click();
+      });
+      document.getElementById("fileDeskLevels").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var n = mergeLevelsFromClassState(JSON.parse(reader.result));
+            save(state);
+            syncForm();
+            renderGrid();
+            fillSeatSelect();
+            if (selected) selectSeat(selected);
+            toast(n ? ("已從班級狀態匯入 " + n + " 個程度") : "檔案裡沒有可匯入的程度");
+          } catch (err) {
+            toast(String(err && err.message || err) || "匯入失敗");
+          }
+        };
+        reader.readAsText(f, "utf-8");
+      });
+      document.getElementById("btnOpenDeskSync").addEventListener("click", function () {
+        window.open("../teacher-desk/", "_blank", "noopener,noreferrer");
       });
 
       document.getElementById("btnCopyOne").addEventListener("click", function () {
