@@ -2737,17 +2737,37 @@ function Load-Selected {
   $script:current = $f
   $id = Get-StudentId $f.Name
   $n = Load-Note (Get-NotePath $script:WorkDir $id)
-  if ($n.overall -and $cmbOverall.Items.Contains($n.overall)) {
-    $cmbOverall.SelectedItem = $n.overall
-  } else { $cmbOverall.SelectedIndex = 0 }
-  if ($n.level -and $cmbLevel.Items.Contains($n.level)) {
-    $cmbLevel.SelectedItem = $n.level
-  } else { $cmbLevel.SelectedIndex = 0 }
-  $txtItems.Text = $(if ($n.itemsText) { $n.itemsText } else { "1 ✓`r`n2 ✗`r`n3 ?" })
-  $txtSummary.Text = [string]$n.summary
-  $txtDiagnosis.Text = $(if ($n.diagnosis) { [string]$n.diagnosis } else { "弱點：`r`n是否跟上：" })
-  $txtAdvice.Text = [string]$n.advice
-  $txtPractice.Text = $(if ($n.practice) { [string]$n.practice } else { '（題目＋解答；可按「依程度帶入練習架構」）' })
+  $script:SuppressPracticeAutoFill = $true
+  try {
+    if ($n.overall -and $cmbOverall.Items.Contains($n.overall)) {
+      $cmbOverall.SelectedItem = $n.overall
+    } else { $cmbOverall.SelectedIndex = 0 }
+    if ($n.level -and $cmbLevel.Items.Contains($n.level)) {
+      $cmbLevel.SelectedItem = $n.level
+    } else { $cmbLevel.SelectedIndex = 0 }
+    $txtItems.Text = $(if ($n.itemsText) { $n.itemsText } else { "1 ✓`r`n2 ✗`r`n3 ?" })
+    $txtSummary.Text = [string]$n.summary
+    $txtDiagnosis.Text = $(if ($n.diagnosis) { [string]$n.diagnosis } else { "弱點：`r`n是否跟上：" })
+    $txtAdvice.Text = [string]$n.advice
+    $txtPractice.Text = $(if ($n.practice) { [string]$n.practice } else { '（題目＋解答；可按「依程度帶入練習架構」）' })
+  } finally {
+    $script:SuppressPracticeAutoFill = $false
+  }
+
+  # 若建議／練習空白，但已有 Gemini回覆.md，自動重填各欄
+  $needAdvice = [string]::IsNullOrWhiteSpace($txtAdvice.Text) -or $txtAdvice.Text -match '^\s*（|給學生'
+  $needPractice = [string]::IsNullOrWhiteSpace($txtPractice.Text) -or $txtPractice.Text -match '^\s*（|依程度帶入|先寫全部練習'
+  $replyPath = Join-Path (Join-Path $script:WorkDir '輸出') ($id + '-Gemini回覆.md')
+  if (($needAdvice -or $needPractice) -and (Test-Path -LiteralPath $replyPath)) {
+    try {
+      $reply = Get-Content -LiteralPath $replyPath -Encoding UTF8 -Raw
+      if (-not [string]::IsNullOrWhiteSpace($reply)) {
+        Apply-GeminiReplyToForm $reply
+        $status.Text = '目前：座號 ' + $id + '｜' + $f.Name + '｜已從 Gemini回覆重填建議／練習'
+        return
+      }
+    } catch {}
+  }
   $status.Text = '目前：座號 ' + $id + '｜' + $f.Name
 }
 
