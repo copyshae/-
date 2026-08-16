@@ -22,9 +22,9 @@ if (Test-Path -LiteralPath $graderInstall) {
 }
 
 Write-Host ""
-Write-Host "Install done. Double-click on Desktop:"
-Write-Host "  teacher-desk VBS / grader VBS"
-Write-Host "Work folders:"
-Write-Host "  Desktop\TeacherDesk data / Desktop\MathGrading"
+Write-Host "安裝完成。請雙擊桌面："
+Write-Host "  習作台.vbs ／ 習作批改.vbs"
+Write-Host "資料夾："
+Write-Host "  桌面\習作台資料 ／ 桌面\MathGrading"
 Write-Host ""
-Write-Host "Grader: set Gemini key, then Gemini auto grade"
+Write-Host "習作批改：先設定 Gemini 金鑰，再自動批"
