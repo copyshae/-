@@ -153,7 +153,7 @@
       <p class="tips">快速批：精簡輸出＋較快模型＋一次批 2 份。完整批：含診斷與練習建議。</p>
       <div class="row">
         <label for="geminiKey">Gemini金鑰</label>
-        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（AIza… 或 AQ.…）" />
       </div>
       <div class="actions" style="margin-top:0.35rem">
         <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
@@ -479,11 +479,23 @@
         } catch (e) {}
       }
 
+      function normalizeApiKey(raw) {
+        var k = String(raw || "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        k = k.split(/\r|\n/)[0].trim();
+        var m = k.match(/^(?:Bearer\s+|GEMINI[_ ]?API[_ ]?KEY\s*[:=]\s*|GOOGLE[_ ]?API[_ ]?KEY\s*[:=]\s*|API[_ ]?KEY\s*[:=]\s*)(.+)$/i);
+        if (m) k = m[1].trim();
+        return k.replace(/^["'`「]+|["'`」]+$/g, "").trim();
+      }
+      function looksLikeGeminiKey(raw) {
+        var k = normalizeApiKey(raw);
+        if (!k || k.length < 20) return false;
+        return /^(AIza[0-9A-Za-z_\-]{10,}|AQ\.[0-9A-Za-z_\.\-]{10,})$/.test(k);
+      }
       function getApiKey() {
-        try { return (localStorage.getItem(KEY_API) || "").trim(); } catch (e) { return ""; }
+        try { return normalizeApiKey(localStorage.getItem(KEY_API) || ""); } catch (e) { return ""; }
       }
       function setApiKey(k) {
-        k = (k || "").trim();
+        k = normalizeApiKey(k);
         if (k) localStorage.setItem(KEY_API, k);
         else localStorage.removeItem(KEY_API);
         refreshKeyStatus();
@@ -1069,17 +1081,9 @@
         var out = [];
         var pageToken = "";
         for (var page = 0; page < 4; page++) {
-          var uri = "https://generativelanguage.googleapis.com/v1beta/models?key=" +
-            encodeURIComponent(apiKey) + "&pageSize=100";
-          if (pageToken) uri += "&pageToken=" + encodeURIComponent(pageToken);
-          var res = await fetch(uri);
-          var raw = await res.text();
-          var data = null;
-          try { data = JSON.parse(raw); } catch (e) {}
-          if (!res.ok) {
-            var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
-            throw new Error(msg);
-          }
+          var pq = "models?pageSize=100";
+          if (pageToken) pq += "&pageToken=" + encodeURIComponent(pageToken);
+          var data = await geminiFetchJson(apiKey, pq, null);
           ((data && data.models) || []).forEach(function (m) {
             var n = String(m.name || "").replace(/^models\//, "");
             if (!n || /gemini-2\.0|gemini-1\.5|gemini-1\.0|image|tts|live|embedding|aqa|computer-use|robotics|native-audio/i.test(n)) return;
@@ -1092,6 +1096,44 @@
           if (!pageToken) break;
         }
         return out;
+      }
+
+      async function geminiFetchJson(apiKey, pathAndQuery, bodyObj) {
+        var base = "https://generativelanguage.googleapis.com/v1beta/";
+        var headers = {
+          "x-goog-api-key": apiKey
+        };
+        var init = { method: bodyObj ? "POST" : "GET", headers: headers };
+        if (bodyObj) {
+          headers["Content-Type"] = "application/json";
+          init.body = JSON.stringify(bodyObj);
+        }
+        var res = await fetch(base + pathAndQuery, init);
+        var raw = await res.text();
+        var data = null;
+        try { data = JSON.parse(raw); } catch (e) {}
+        if (!res.ok) {
+          // 退回 ?key=（相容舊鑰）
+          var q = pathAndQuery.indexOf("?") >= 0 ? "&" : "?";
+          var res2 = await fetch(base + pathAndQuery + q + "key=" + encodeURIComponent(apiKey), {
+            method: bodyObj ? "POST" : "GET",
+            headers: bodyObj ? { "Content-Type": "application/json" } : undefined,
+            body: bodyObj ? JSON.stringify(bodyObj) : undefined
+          });
+          var raw2 = await res2.text();
+          var data2 = null;
+          try { data2 = JSON.parse(raw2); } catch (e) {}
+          if (!res2.ok) {
+            var msg = (data && data.error && data.error.message) ||
+              (data2 && data2.error && data2.error.message) ||
+              raw2 || raw || ("HTTP " + res.status);
+            var err = new Error(msg);
+            err.status = res2.status || res.status;
+            throw err;
+          }
+          return data2;
+        }
+        return data;
       }
 
       function mergeModelOrder(preferredList, listed) {
@@ -1121,7 +1163,6 @@
             maxOutputTokens: isFastMode() ? 900 : 4096
           }
         };
-        var body = JSON.stringify(payload);
         var base = models && models.length ? models : (isFastMode() ? MODELS_FAST : MODELS_FULL);
         var listed = [];
         try { listed = await listGeminiModels(apiKey); } catch (e) { listed = []; }
@@ -1132,33 +1173,8 @@
         for (var i = 0; i < list.length; i++) {
           var model = list[i];
           tried.push(model);
-          var uri = "https://generativelanguage.googleapis.com/v1beta/models/" +
-            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
           try {
-            var res = await fetch(uri, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: body
-            });
-            var raw = await res.text();
-            var data = null;
-            try { data = JSON.parse(raw); } catch (e) {}
-            if (!res.ok) {
-              var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
-              if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { saw404 = true; lastErr = new Error(msg); continue; }
-              if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
-                throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
-              }
-              if (/RESOURCE_EXHAUSTED|429|quota|rate/i.test(msg)) {
-                await new Promise(function (r) { setTimeout(r, 1200); });
-                lastErr = new Error(msg);
-                continue;
-              }
-              if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(msg)) {
-                lastErr = new Error(msg); continue;
-              }
-              throw new Error(msg);
-            }
+            var data = await geminiFetchJson(apiKey, "models/" + encodeURIComponent(model) + ":generateContent", payload);
             var text = "";
             var cands = (data && data.candidates) || [];
             cands.forEach(function (c) {
@@ -1171,9 +1187,15 @@
           } catch (err) {
             lastErr = err;
             var m = String(err && err.message || err);
-            if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400|429|RESOURCE_EXHAUSTED/i.test(m) &&
-                !/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) {
-              if (/404|NOT_FOUND|not found/i.test(m)) saw404 = true;
+            if (/404|NOT_FOUND|not found/i.test(m)) { saw404 = true; continue; }
+            if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(m)) {
+              throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建（新鑰常以 AQ. 開頭）。\n" + m);
+            }
+            if (/RESOURCE_EXHAUSTED|429|quota|rate/i.test(m)) {
+              await new Promise(function (r) { setTimeout(r, 1200); });
+              continue;
+            }
+            if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(m)) {
               continue;
             }
             throw err;
@@ -1183,7 +1205,7 @@
           (lastErr && lastErr.message ? lastErr.message + "\n\n" : "") +
           "已嘗試模型：" + tried.join(", ") + "\n" +
           (saw404
-            ? "全部 404：請到 aistudio.google.com/apikey 新建金鑰（限制 Generative Language API），勿用已下線的 2.0／1.5。"
+            ? "全部 404：請到 aistudio.google.com/apikey 新建金鑰（AIza… 或 AQ.…），勿用已下線的 2.0／1.5。"
             : "請確認網路與金鑰。")
         );
       }
@@ -1494,8 +1516,12 @@
       });
 
       document.getElementById("btnSaveKey").addEventListener("click", function () {
-        var k = document.getElementById("geminiKey").value.trim();
+        var k = normalizeApiKey(document.getElementById("geminiKey").value);
         if (!k) { toast("請先貼上 API 金鑰"); return; }
+        if (!looksLikeGeminiKey(k)) {
+          toast("金鑰格式不對：請貼 AIza…（舊）或 AQ.…（2026 新 Auth），勿貼網頁訂閱文字");
+          return;
+        }
         setApiKey(k);
         document.getElementById("geminiKey").value = "";
         toast("金鑰已存這支手機");

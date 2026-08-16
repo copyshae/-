@@ -911,8 +911,65 @@ function Normalize-GeminiApiKey([string]$key) {
   $k = $k -replace '[\u200B-\u200D\uFEFF]', ''
   $k = ($k -split "`r|`n")[0].Trim()
   if ($k -match '^(?i)Bearer\s+(.+)$') { $k = $Matches[1].Trim() }
-  $k = $k.Trim('"', "'", ' ', "`t")
+  if ($k -match '^(?i)(?:GEMINI[_ ]?API[_ ]?KEY|GOOGLE[_ ]?API[_ ]?KEY|API[_ ]?KEY)\s*[:=]\s*(.+)$') {
+    $k = $Matches[1].Trim()
+  }
+  $k = $k.Trim('"', "'", ' ', "`t", '`', '「', '」')
   return $k
+}
+
+function Test-GeminiApiKeyLooksValid([string]$key) {
+  $k = Normalize-GeminiApiKey $key
+  if ([string]::IsNullOrWhiteSpace($k) -or $k.Length -lt 20) { return $false }
+  # 舊版 Standard：AIza…；2026 AI Studio 新 Auth 金鑰：AQ.…
+  if ($k -match '^(?i)AIza[0-9A-Za-z_\-]{10,}') { return $true }
+  if ($k -match '^(?i)AQ\.[0-9A-Za-z_\.\-]{10,}') { return $true }
+  return $false
+}
+
+function Get-GeminiApiKeyHint([string]$key) {
+  $k = Normalize-GeminiApiKey $key
+  if ([string]::IsNullOrWhiteSpace($k)) { return '（空白）' }
+  $prefix = $k.Substring(0, [Math]::Min(4, $k.Length))
+  return ("開頭「{0}…」長度 {1}" -f $prefix, $k.Length)
+}
+
+function Invoke-GeminiRest {
+  param(
+    [ValidateSet('Get','Post')]
+    [string]$Method,
+    [string]$ApiKey,
+    [string]$PathAndQuery,
+    [byte[]]$BodyBytes = $null,
+    [int]$TimeoutSec = 60
+  )
+  $k = Normalize-GeminiApiKey $ApiKey
+  $base = 'https://generativelanguage.googleapis.com/v1beta/'
+  # 優先 x-goog-api-key（官方 Auth／AQ. 金鑰建議）；失敗再退回 ?key=
+  $headers = @{ 'x-goog-api-key' = $k }
+  $uriHeader = $base + $PathAndQuery
+  try {
+    if ($Method -eq 'Get') {
+      return Invoke-RestMethod -Method Get -Uri $uriHeader -Headers $headers -TimeoutSec $TimeoutSec
+    }
+    return Invoke-RestMethod -Method Post -Uri $uriHeader -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $BodyBytes -TimeoutSec $TimeoutSec
+  } catch {
+    $first = $_
+    $uriQuery = $base + $PathAndQuery
+    if ($uriQuery -match '\?') {
+      $uriQuery += '&key=' + [uri]::EscapeDataString($k)
+    } else {
+      $uriQuery += '?key=' + [uri]::EscapeDataString($k)
+    }
+    try {
+      if ($Method -eq 'Get') {
+        return Invoke-RestMethod -Method Get -Uri $uriQuery -TimeoutSec $TimeoutSec
+      }
+      return Invoke-RestMethod -Method Post -Uri $uriQuery -ContentType 'application/json; charset=utf-8' -Body $BodyBytes -TimeoutSec $TimeoutSec
+    } catch {
+      throw $first
+    }
+  }
 }
 
 function Get-GeminiApiKey([string]$root) {
@@ -990,9 +1047,9 @@ function Get-GeminiListedModels([string]$ApiKey) {
   $page = 0
   while ($page -lt 6) {
     $page++
-    $uri = "https://generativelanguage.googleapis.com/v1beta/models?key=$k&pageSize=100"
-    if ($pageToken) { $uri += "&pageToken=$([uri]::EscapeDataString($pageToken))" }
-    $resp = Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 45
+    $pq = 'models?pageSize=100'
+    if ($pageToken) { $pq += '&pageToken=' + [uri]::EscapeDataString($pageToken) }
+    $resp = Invoke-GeminiRest -Method Get -ApiKey $k -PathAndQuery $pq -TimeoutSec 45
     foreach ($m in @($resp.models)) {
       $n = ([string]$m.name) -replace '^models/', ''
       if (-not (Test-GeminiModelNameUsable $n)) { continue }
@@ -1045,8 +1102,8 @@ function Test-GeminiApiKey([string]$ApiKey) {
   $k = Normalize-GeminiApiKey $ApiKey
   if ([string]::IsNullOrWhiteSpace($k)) { throw '金鑰空白' }
   if ($k.Length -lt 20) { throw '金鑰太短，可能貼不完整。請重新從 aistudio.google.com/apikey 複製整串。' }
-  if ($k -notmatch '^AIza') {
-    throw '這不像 Google AI Studio 的 API 金鑰（通常以 AIza 開頭）。請勿貼 Gemini 網頁／訂閱相關文字。'
+  if (-not (Test-GeminiApiKeyLooksValid $k)) {
+    throw ("這不像 Google AI Studio 的 API 金鑰。`n目前可接受：以 AIza 開頭（舊）或以 AQ. 開頭（2026 新 Auth 金鑰）。`n你貼的是：" + (Get-GeminiApiKeyHint $k) + "`n請勿貼 Gemini 網頁／訂閱相關文字；請到 aistudio.google.com/apikey 按 Create API key 複製整串。")
   }
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   $names = @()
@@ -1085,15 +1142,14 @@ function Test-GeminiApiKey([string]$ApiKey) {
   $probeTried = New-Object System.Collections.ArrayList
   foreach ($m in ($order | Select-Object -First 8)) {
     [void]$probeTried.Add($m)
-    $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$k"
     try {
-      $null = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $probeBytes -TimeoutSec 60
+      $null = Invoke-GeminiRest -Method Post -ApiKey $k -PathAndQuery ("models/${m}:generateContent") -BodyBytes $probeBytes -TimeoutSec 60
       $preferred = $m
       break
     } catch {
       $em = Get-RestErrorDetail $_
       if ($em -match '401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key') {
-        throw ("金鑰無效或權限不足（無法 generateContent）。請到 aistudio.google.com/apikey 新建，並限制 Generative Language API。`n原始：$em")
+        throw ("金鑰無效或權限不足（無法 generateContent）。請到 aistudio.google.com/apikey 新建（新鑰常以 AQ. 開頭），並限制 Generative Language API。`n原始：$em")
       }
       continue
     }
@@ -1196,13 +1252,12 @@ function Invoke-GeminiGenerateContent {
   $saw404 = $false
   foreach ($m in $models) {
     [void]$tried.Add($m)
-    $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$ApiKey"
     $attempt = 0
     $maxAttempt = 3
     while ($attempt -lt $maxAttempt) {
       $attempt++
       try {
-        $resp = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec 180
+        $resp = Invoke-GeminiRest -Method Post -ApiKey $ApiKey -PathAndQuery ("models/${m}:generateContent") -BodyBytes $bytes -TimeoutSec 180
         $text = ''
         try {
           foreach ($c in $resp.candidates) {
@@ -1223,7 +1278,7 @@ function Invoke-GeminiGenerateContent {
           break
         }
         if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰|UNAUTHENTICATED') {
-          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建（建議限制 Generative Language API）。`n原始：" + $msg)
+          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建（新鑰常以 AQ. 開頭；建議限制 Generative Language API）。`n原始：" + $msg)
         }
         # 503／429／忙碌：同模型重試，再換下一個模型
         if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時') {
@@ -1291,7 +1346,7 @@ function Show-GeminiKeyDialog {
   $lbl = New-Object System.Windows.Forms.Label
   $lbl.Location = New-Object System.Drawing.Point(12, 12)
   $lbl.Size = New-Object System.Drawing.Size(520, 88)
-  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n換過金鑰後若批失敗：先按「測試金鑰」確認。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
+  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上：舊鑰 AIza…，新 Auth 金鑰 AQ.…（2026 起 AI Studio 預設）。`n存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。換過金鑰先按「測試金鑰」。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
   $dlg.Controls.Add($lbl)
   $tb = New-Object System.Windows.Forms.TextBox
   $tb.Location = New-Object System.Drawing.Point(12, 108)

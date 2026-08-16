@@ -15,6 +15,7 @@ globs:
 - 按鈕：**Gemini自動批**（單份）、**連續自動批**（未批依序全自動並存檔）。
 - `gemini-2.0-flash`／`1.5` 已下線，禁止再當預設；若 settings 仍寫舊名會自動改寫。
 - 「測試金鑰」必須實際試 `generateContent`（不只 ListModels），並把可用模型寫回 `settings.geminiModel`。
+- 金鑰格式：舊 **`AIza…`** 與 2026 AI Studio 新 Auth **`AQ.…`** 都接受；呼叫優先用 `x-goog-api-key` 標頭。
 - 全部 404：多半是金鑰無權或過舊模型清單 → 到 aistudio.google.com/apikey 新建（建議限制 Generative Language API）。
 - 「網頁批閱」只開瀏覽器，**不是自動**；介面文案須標明「要手動貼」。
 - API key 存在本機 `MathGrading\gemini-api-key.txt`，禁止提交 Git。
