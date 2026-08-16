@@ -27,7 +27,7 @@ Add-Type -AssemblyName System.Drawing
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:PyMakePdf = Join-Path $script:ScriptDir 'math_grade_make_note_pdf.py'
 # 視窗標題會顯示；用來確認本機是否已裝到含 AQ. 金鑰支援的版本
-$script:AppBuild = '20260817-aq21'
+$script:AppBuild = '20260817-aq22'
 # also check beside installed copy
 if (-not (Test-Path -LiteralPath $script:PyMakePdf)) {
   $alt = Join-Path (Split-Path -Parent $script:ScriptDir) 'scripts\math_grade_make_note_pdf.py'
@@ -264,14 +264,13 @@ function Convert-ToTextbookMath([string]$text) {
     # 半形括號 → 全形（略過座標風格過多時仍轉常見括號）
     $t = $t -replace '\(', '（'
     $t = $t -replace '\)', '）'
-    # (1)(2) → ①②（常見選項／步驟）
+    # (1)(2) → ①②（僅全形括號選項；勿動「1) 題號註記」這類章節標題，否則 Gemini 分段會失效）
     $circ = @{
       '1' = '①'; '2' = '②'; '3' = '③'; '4' = '④'; '5' = '⑤'
       '6' = '⑥'; '7' = '⑦'; '8' = '⑧'; '9' = '⑨'; '10' = '⑩'
     }
     foreach ($k in @('10','9','8','7','6','5','4','3','2','1')) {
       $t = [regex]::Replace($t, '\(\s*' + $k + '\s*\)', [string]$circ[$k])
-      $t = [regex]::Replace($t, '(?<=^|[\s　])' + $k + '\)\s*', ([string]$circ[$k] + ' '))
     }
     $out.Add($t)
   }
@@ -1348,35 +1347,106 @@ function Invoke-GeminiGenerateContent {
   throw $hint
 }
 
+function Get-GeminiReplySection([string]$text, [int]$num) {
+  if ([string]::IsNullOrWhiteSpace($text) -or $num -lt 0) { return '' }
+  $circ = @('①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩')
+  $heads = @([string]$num + '\)')
+  if ($num -ge 1 -and $num -le 10) { $heads += [regex]::Escape($circ[$num - 1]) }
+  $head = '(?:' + ($heads -join '|') + ')'
+  $nextParts = New-Object System.Collections.ArrayList
+  for ($i = $num + 1; $i -le 10; $i++) {
+    [void]$nextParts.Add([string]$i + '\)')
+    if ($i -ge 1 -and $i -le 10) { [void]$nextParts.Add([regex]::Escape($circ[$i - 1])) }
+  }
+  # also stop at 0) / 0b) handwriting sections when scanning later nums — not needed for 1-6
+  $next = if ($nextParts.Count -gt 0) { '(?:' + ($nextParts -join '|') + ')' } else { '(?!)' }
+  $pat = '(?ms)(?:^|\n)\s*' + $head + '\s*(.*?)(?=(?:^|\n)\s*' + $next + '|\z)'
+  if ($text -match $pat) { return $Matches[1].Trim() }
+  return ''
+}
+
+function Get-ItemMarksFromText([string]$text) {
+  $lines = New-Object System.Collections.ArrayList
+  foreach ($ln in (($text -split "`r?`n"))) {
+    $t = $ln.Trim()
+    if ($t -match '^\d+\s*[✓✗√×xX?？]') { [void]$lines.Add($t) }
+  }
+  if ($lines.Count -gt 0) { return ($lines -join "`r`n") }
+  return ''
+}
+
+function Map-OverallFromGemini([string]$text) {
+  if ($text -match '總評[：:\s]*(全對|大致正確|多對|部分錯誤|混雜|多錯|需補救|看不懂為主|存疑多)') {
+    switch -Regex ($Matches[1]) {
+      '全對|大致正確|多對' { return '大致正確' }
+      '部分錯誤|混雜' { return '部分錯誤' }
+      '多錯|需補救' { return '需補救' }
+      '看不懂|存疑' { return '存疑多' }
+    }
+  }
+  if ($text -match '完全正確|全對|100\s*分') { return '大致正確' }
+  if ($text -match '(?m)^\d+\s*[✗×xX]') { return '部分錯誤' }
+  if ($text -match '(?m)^\d+\s*[✓√]' -and $text -notmatch '(?m)^\d+\s*[✗×xX?？]') { return '大致正確' }
+  return ''
+}
+
 function Apply-GeminiReplyToForm([string]$text) {
   $text = Convert-ToTextbookMath (Convert-ToWinFormsText $text)
-  $txtDiagnosis.Text = $text
-  $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾｜已轉國中課本直式）'
-  if ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
-    $txtItems.Text = $Matches[0].Trim()
-  } elseif ($text -match '(?m)(^\d+\s*[✓✗?xX].*)$') {
-    # keep default if no clear list
-  }
-  if ($text -match '程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)') {
-    $lv = $Matches[1]
-    $idx = $cmbLevel.Items.IndexOf($lv)
-    if ($idx -ge 0) { $cmbLevel.SelectedIndex = $idx }
-  }
-  if ($text -match '總評[：:\s]*(全對|多對|混雜|多錯|看不懂為主)') {
-    $ov = $Matches[1]
-    $idx = $cmbOverall.Items.IndexOf($ov)
-    if ($idx -ge 0) { $cmbOverall.SelectedIndex = $idx }
-  } elseif ($text -match '完全正確|全對|100\s*分') {
-    $idx = $cmbOverall.Items.IndexOf('全對')
-    if ($idx -ge 0) { $cmbOverall.SelectedIndex = $idx }
-    $idx2 = $cmbLevel.Items.IndexOf('跟上')
-    if ($idx2 -ge 0) { $cmbLevel.SelectedIndex = $idx2 }
-  }
-  if ($text -match '(?s)6\)[\s\S]*') {
-    $txtPractice.Text = $Matches[0].Trim()
-  }
-  if ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
-    $txtAdvice.Text = $Matches[1].Trim()
+  $script:SuppressPracticeAutoFill = $true
+  try {
+    $sec1 = Get-GeminiReplySection $text 1
+    $sec2 = Get-GeminiReplySection $text 2
+    $sec3 = Get-GeminiReplySection $text 3
+    $sec4 = Get-GeminiReplySection $text 4
+    $sec5 = Get-GeminiReplySection $text 5
+    $sec6 = Get-GeminiReplySection $text 6
+
+    $marks = Get-ItemMarksFromText $sec1
+    if (-not $marks) { $marks = Get-ItemMarksFromText $text }
+    if ($marks) { $txtItems.Text = $marks }
+
+    if ($sec2) {
+      $txtSummary.Text = $sec2
+    } else {
+      $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾｜已轉國中課本直式）'
+    }
+
+    if ($sec3) {
+      $txtDiagnosis.Text = $sec3
+    } elseif ($sec1 -or $sec2) {
+      $txtDiagnosis.Text = (($sec1, $sec2, $sec4) | Where-Object { $_ } | ForEach-Object { $_ }) -join "`r`n`r`n"
+    } else {
+      # 分段失敗時仍顯示全文，避免「空白」
+      $txtDiagnosis.Text = $text
+    }
+
+    $lvBlob = ($sec4 + "`n" + $text)
+    if ($lvBlob -match '程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)') {
+      $lv = $Matches[1]
+      $idx = $cmbLevel.Items.IndexOf($lv)
+      if ($idx -ge 0) { $cmbLevel.SelectedIndex = $idx }
+    } elseif ($text -match '完全正確|全對|100\s*分') {
+      $idx2 = $cmbLevel.Items.IndexOf('跟上')
+      if ($idx2 -ge 0) { $cmbLevel.SelectedIndex = $idx2 }
+    }
+
+    $ov = Map-OverallFromGemini $text
+    if ($ov) {
+      $idx = $cmbOverall.Items.IndexOf($ov)
+      if ($idx -ge 0) { $cmbOverall.SelectedIndex = $idx }
+    }
+
+    if ($sec5) { $txtAdvice.Text = $sec5 }
+    if ($sec6) {
+      $txtPractice.Text = $sec6
+    } elseif ([string]::IsNullOrWhiteSpace($txtPractice.Text) -or $txtPractice.Text -match '^\s*（') {
+      $lvNow = [string]$cmbLevel.SelectedItem
+      if ($lvNow -and $lvNow -ne '待判定') {
+        $txtPractice.Text = Get-PracticeTemplate $lvNow
+      }
+    }
+  } finally {
+    $script:SuppressPracticeAutoFill = $false
   }
 }
 
@@ -1414,7 +1484,7 @@ function Show-GeminiKeyDialog {
         )
       } catch {
         [void][System.Windows.Forms.MessageBox]::Show(
-          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq21 起，請先跑更新腳本。"),
+          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq22 起，請先跑更新腳本。"),
           '測試失敗'
         )
       }
@@ -2286,7 +2356,7 @@ $fontBig = New-Object System.Drawing.Font('Microsoft JhengHei UI', 15, [System.D
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = ("數學習作批改（Gemini 自動批｜對照答案或直接 AI｜一人一檔｜$($script:AppBuild)）")
-$form.Size = New-Object System.Drawing.Size(1060, 780)
+$form.Size = New-Object System.Drawing.Size(1100, 900)
 $form.StartPosition = 'CenterScreen'
 $form.Font = $font
 $form.BackColor = [System.Drawing.Color]::FromArgb(245, 248, 244)
@@ -2416,13 +2486,13 @@ $lblPath.Size = New-Object System.Drawing.Size(960, 22)
 
 $list = New-Object System.Windows.Forms.ListBox
 $list.Location = New-Object System.Drawing.Point(16, 164)
-$list.Size = New-Object System.Drawing.Size(300, 340)
+$list.Size = New-Object System.Drawing.Size(300, 400)
 $list.Font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 13)
 
 $grp = New-Object System.Windows.Forms.GroupBox
 $grp.Text = '② 目前學生註記'
 $grp.Location = New-Object System.Drawing.Point(336, 164)
-$grp.Size = New-Object System.Drawing.Size(630, 340)
+$grp.Size = New-Object System.Drawing.Size(720, 400)
 
 function Add-L([int]$y, [string]$t) {
   $l = New-Object System.Windows.Forms.Label
@@ -2463,6 +2533,7 @@ $btnFillPractice.Add_Click({
   })
 $grp.Controls.Add($btnFillPractice)
 $cmbLevel.Add_SelectedIndexChanged({
+    if ($script:SuppressPracticeAutoFill) { return }
     # 換程度時自動帶入對應練習架構（跟上＝再提升；落後＝補救）
     $lv = [string]$cmbLevel.SelectedItem
     if ($lv -and $lv -ne '待判定') {
@@ -2475,47 +2546,47 @@ $txtItems = New-Object System.Windows.Forms.TextBox
 $txtItems.Multiline = $true
 $txtItems.ScrollBars = 'Vertical'
 $txtItems.Location = New-Object System.Drawing.Point(120, 58)
-$txtItems.Size = New-Object System.Drawing.Size(490, 48)
+$txtItems.Size = New-Object System.Drawing.Size(580, 52)
 $txtItems.Text = "1 ✓`r`n2 ✗`r`n3 ?"
 $grp.Controls.Add($txtItems)
 
-Add-L 112 '對錯摘要'
+Add-L 116 '對錯摘要'
 $txtSummary = New-Object System.Windows.Forms.TextBox
 $txtSummary.Multiline = $true
 $txtSummary.ScrollBars = 'Vertical'
-$txtSummary.Location = New-Object System.Drawing.Point(120, 112)
-$txtSummary.Size = New-Object System.Drawing.Size(490, 36)
+$txtSummary.Location = New-Object System.Drawing.Point(120, 116)
+$txtSummary.Size = New-Object System.Drawing.Size(580, 44)
 $grp.Controls.Add($txtSummary)
 
-Add-L 154 '診斷結果'
+Add-L 166 '診斷結果'
 $txtDiagnosis = New-Object System.Windows.Forms.TextBox
 $txtDiagnosis.Multiline = $true
 $txtDiagnosis.ScrollBars = 'Vertical'
-$txtDiagnosis.Location = New-Object System.Drawing.Point(120, 154)
-$txtDiagnosis.Size = New-Object System.Drawing.Size(490, 48)
-$txtDiagnosis.Text = '弱點：`r`n是否跟上：'
+$txtDiagnosis.Location = New-Object System.Drawing.Point(120, 166)
+$txtDiagnosis.Size = New-Object System.Drawing.Size(580, 72)
+$txtDiagnosis.Text = "弱點：`r`n是否跟上："
 $grp.Controls.Add($txtDiagnosis)
 
-Add-L 208 '個別建議'
+Add-L 244 '個別建議'
 $txtAdvice = New-Object System.Windows.Forms.TextBox
 $txtAdvice.Multiline = $true
 $txtAdvice.ScrollBars = 'Vertical'
-$txtAdvice.Location = New-Object System.Drawing.Point(120, 208)
-$txtAdvice.Size = New-Object System.Drawing.Size(490, 36)
+$txtAdvice.Location = New-Object System.Drawing.Point(120, 244)
+$txtAdvice.Size = New-Object System.Drawing.Size(580, 44)
 $grp.Controls.Add($txtAdvice)
 
-Add-L 250 '自學練習'
+Add-L 294 '自學練習'
 $txtPractice = New-Object System.Windows.Forms.TextBox
 $txtPractice.Multiline = $true
 $txtPractice.ScrollBars = 'Vertical'
-$txtPractice.Location = New-Object System.Drawing.Point(120, 250)
-$txtPractice.Size = New-Object System.Drawing.Size(490, 70)
+$txtPractice.Location = New-Object System.Drawing.Point(120, 294)
+$txtPractice.Size = New-Object System.Drawing.Size(580, 90)
 $txtPractice.Text = '（先寫全部練習題；解答另段「解答」，做完再看）'
 $grp.Controls.Add($txtPractice)
 
 $status = New-Object System.Windows.Forms.Label
-$status.Location = New-Object System.Drawing.Point(16, 648)
-$status.Size = New-Object System.Drawing.Size(950, 40)
+$status.Location = New-Object System.Drawing.Point(16, 760)
+$status.Size = New-Object System.Drawing.Size(1040, 40)
 $status.Text = '可載入正確答案（對照批）或直接按 Gemini 自動批（預設）'
 
 $script:files = @()
@@ -2898,7 +2969,7 @@ function Select-NextUngraded {
   return $false
 }
 
-$y1 = 520
+$y1 = 580
 $btnWork = New-Object System.Windows.Forms.Button
 $btnWork.Text = '選工作資料夾'
 $btnWork.Location = New-Object System.Drawing.Point(16, $y1)
@@ -3027,7 +3098,7 @@ $btnRefresh.Location = New-Object System.Drawing.Point(856, $y1)
 $btnRefresh.Size = New-Object System.Drawing.Size(90, 36)
 $btnRefresh.Add_Click({ Refresh-List; Refresh-AnswerLabel })
 
-$y2 = 566
+$y2 = 626
 $btnCsv = New-Object System.Windows.Forms.Button
 $btnCsv.Text = '全班學習總表'
 $btnCsv.Location = New-Object System.Drawing.Point(16, $y2)
@@ -3174,7 +3245,7 @@ $btnOpenHist.Add_Click({
     Start-Process explorer.exe $d
   })
 
-$y3 = 632
+$y3 = 692
 $btnDigital = New-Object System.Windows.Forms.Button
 $btnDigital.Text = '數位練習包（手機）'
 $btnDigital.Location = New-Object System.Drawing.Point(16, $y3)
@@ -3255,7 +3326,7 @@ $btnOpenDigital.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '列印專用')
   })
 
-$y4 = 672
+$y4 = 738
 $btnTools = New-Object System.Windows.Forms.Button
 $btnTools.Text = '工具選擇（LINE群／個別…）'
 $btnTools.Location = New-Object System.Drawing.Point(16, $y4)
@@ -3325,9 +3396,9 @@ $btnTablet.ForeColor = [System.Drawing.Color]::White
 $btnTablet.FlatStyle = 'Flat'
 $btnTablet.Add_Click({ Show-TabletImportAndGrade })
 
-$form.Size = New-Object System.Drawing.Size(1000, 860)
-$status.Location = New-Object System.Drawing.Point(16, 720)
-$status.Size = New-Object System.Drawing.Size(950, 40)
+$form.Size = New-Object System.Drawing.Size(1100, 920)
+$status.Location = New-Object System.Drawing.Point(16, 790)
+$status.Size = New-Object System.Drawing.Size(1040, 40)
 
 $form.Controls.AddRange(@(
     $lbl, $grpStart, $lblPath, $list, $grp, $status,
