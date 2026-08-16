@@ -330,7 +330,30 @@
         } catch (e) {}
         return ensure(def());
       }
-      function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+      function countGraded(s) {
+        var n = 0;
+        if (!s || !s.seats) return 0;
+        Object.keys(s.seats).forEach(function (id) {
+          var st = s.seats[id] && s.seats[id].status;
+          if (st === "已批" || st === "待認知" || st === "待重謄") n++;
+        });
+        return n;
+      }
+      function save(s) {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(s));
+        } catch (e) {
+          try { toast("儲存空間不足，請先匯出進度"); } catch (e2) {}
+        }
+        // 雙重備份到 IndexedDB，降低關掉／清快取後資料消失
+        try {
+          storePut(PROGRESS_STORE, {
+            id: "state",
+            updatedAt: Date.now(),
+            data: s
+          }).catch(function () {});
+        } catch (e) {}
+      }
       var state = load();
       if (location.search.indexOf("reset=1") >= 0) {
         try { localStorage.removeItem(KEY); } catch (e) {}
@@ -752,17 +775,19 @@
         if (!opts.skipRender) renderGrid();
       }
 
-      /* IndexedDB: scans + answers */
+      /* IndexedDB: scans + answers + progress backup */
       var DB_NAME = "math-grader-scans";
       var DB_STORE = "inbox";
       var ANS_STORE = "answers";
+      var PROGRESS_STORE = "progress";
       function openScanDb() {
         return new Promise(function (resolve, reject) {
-          var req = indexedDB.open(DB_NAME, 2);
+          var req = indexedDB.open(DB_NAME, 3);
           req.onupgradeneeded = function () {
             var db = req.result;
             if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: "id" });
             if (!db.objectStoreNames.contains(ANS_STORE)) db.createObjectStore(ANS_STORE, { keyPath: "id" });
+            if (!db.objectStoreNames.contains(PROGRESS_STORE)) db.createObjectStore(PROGRESS_STORE, { keyPath: "id" });
           };
           req.onsuccess = function () { resolve(req.result); };
           req.onerror = function () { reject(req.error); };
