@@ -576,37 +576,48 @@ function Invoke-GeminiGenerateContent {
   foreach ($m in $models) {
     [void]$tried.Add($m)
     $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$ApiKey"
-    try {
-      $resp = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec 180
-      $text = ''
+    $attempt = 0
+    $maxAttempt = 3
+    while ($attempt -lt $maxAttempt) {
+      $attempt++
       try {
-        foreach ($c in $resp.candidates) {
-          foreach ($p in $c.content.parts) {
-            if ($p.text) { $text += [string]$p.text }
+        $resp = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec 180
+        $text = ''
+        try {
+          foreach ($c in $resp.candidates) {
+            foreach ($p in $c.content.parts) {
+              if ($p.text) { $text += [string]$p.text }
+            }
           }
+        } catch {}
+        if ([string]::IsNullOrWhiteSpace($text)) {
+          throw ("Gemini 沒有回傳文字（model=$m）。原始：" + ($resp | ConvertTo-Json -Depth 6 -Compress))
         }
-      } catch {}
-      if ([string]::IsNullOrWhiteSpace($text)) {
-        throw ("Gemini 沒有回傳文字（model=$m）。原始：" + ($resp | ConvertTo-Json -Depth 6 -Compress))
+        return [pscustomobject]@{ Text = $text; Model = $m }
+      } catch {
+        $lastErr = $_
+        $msg = [string]$_.Exception.Message
+        try {
+          if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message }
+        } catch {}
+        if ($msg -match '404|not found|NOT_FOUND|找不到|is not found|not supported|was not found') { break }
+        if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
+          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
+        }
+        # 503／429／忙碌：同模型重試，再換下一個模型
+        if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時') {
+          if ($attempt -lt $maxAttempt) {
+            Start-Sleep -Seconds (2 * $attempt)
+            continue
+          }
+          break
+        }
+        if ($msg -match 'INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400') { break }
+        throw
       }
-      return [pscustomobject]@{ Text = $text; Model = $m }
-    } catch {
-      $lastErr = $_
-      $msg = [string]$_.Exception.Message
-      # 也抓取內層 WebException／中文「找不到」
-      try {
-        if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message }
-      } catch {}
-      if ($msg -match '404|not found|NOT_FOUND|找不到|is not found|not supported|was not found') { continue }
-      if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
-        throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
-      }
-      # 其他錯誤也試下一個模型（例如該模型不支援圖檔）
-      if ($msg -match 'INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400') { continue }
-      throw
     }
   }
-  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。`n請先更新習作批改（pull-export）後重試。"
+  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
   if ($lastErr) { throw (($lastErr.Exception.Message) + "`n`n" + $hint) }
   throw $hint
 }
@@ -2005,7 +2016,7 @@ function Start-GradeCurrent {
         $script:AutoBatchDone = 0
         $status.Text = 'Gemini 自動批閱失敗'
         [void][System.Windows.Forms.MessageBox]::Show(
-          ("自動批閱失敗：`n" + $_.Exception.Message + "`n`n請確認：Gemini 金鑰有效、網路正常（答案檔可選）。"),
+          ("自動批閱失敗：`n" + $_.Exception.Message + "`n`n請確認：Gemini 金鑰有效、網路正常。`n若是 503，等 1～2 分鐘再按一次「Gemini自動批」。"),
           '錯誤'
         )
       } finally {
