@@ -1,0 +1,13 @@
+---
+description: 習作台改動經由此倉庫匯出到 hello-world
+alwaysApply: false
+---
+
+# 習作台／習作批改匯出
+
+- 正式程式在 `copyshae/hello-world` 的 `directory/apps/teacher-desk`、`directory/apps/math-grader` 與對應 scripts。
+- 本倉庫（`copyshae/-`）以 `_export/hello-world/` 暫存待套用變更。
+- 套用：`_export/hello-world/apply-to-hello-world.ps1` 或桌面 `pull-export-from-dash-repo.ps1`。
+- 手機習作批改需 **Gemini API 金鑰** 才能自動批；「貼上批」是手動，會卡在批改中。
+- **介面、提示、對話框、對使用者回覆必須繁體中文**（zh-Hant）；管道用「Google 教室／通訊軟體群組」，掃描來源寫「掃描王」。
+- 只用座號、不存姓名。

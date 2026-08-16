@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b4332" />
+  <title>習作工具</title>
+  <style>
+    :root { --accent: #1b4332; --muted: #4a5c52; --paper: #e8efe6; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; font-family: "PingFang TC", "Noto Sans TC", sans-serif;
+      color: #1a1f1c; line-height: 1.55;
+      background: linear-gradient(160deg, #f4faf6 0%, var(--paper) 55%, #d8e8dc 100%);
+      padding: 2rem 1.2rem 3rem;
+    }
+    .wrap { max-width: 22rem; margin: 0 auto; }
+    h1 { font-size: 2rem; font-weight: 700; color: var(--accent); }
+    p { margin-top: 0.6rem; color: var(--muted); font-size: 1rem; }
+    a.btn {
+      display: block; margin-top: 1.4rem; text-align: center; text-decoration: none;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 1.15rem;
+      padding: 1rem 1.1rem;
+    }
+    a.btn.secondary {
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      margin-top: 0.7rem; font-size: 1rem; font-weight: 600;
+    }
+    .note { margin-top: 1.4rem; font-size: 0.9rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>習作工具</h1>
+    <p>請按下面按鈕進入。不用理會英文中轉頁。</p>
+    <a class="btn" href="./math-grader/">打開習作批改</a>
+    <a class="btn secondary" href="./teacher-desk/">打開習作台</a>
+    <p class="note">進批改後：貼上 Gemini 金鑰 → 匯入試卷 → 按「一鍵連續批」。</p>
+  </div>
+</body>
+</html>
