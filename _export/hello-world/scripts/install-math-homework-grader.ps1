@@ -36,7 +36,16 @@ sh.Run cmd, 0, False
 Set-Content -LiteralPath (Join-Path $appDir 'launch.vbs') -Value $vbs -Encoding ASCII
 Set-Content -LiteralPath (Join-Path $desk '習作批改.vbs') -Value $vbs -Encoding ASCII
 
+$fixSrc = Join-Path $here 'fix-grader-gemini-404.ps1'
+if (Test-Path -LiteralPath $fixSrc) {
+  Copy-Item -LiteralPath $fixSrc -Destination (Join-Path $desk 'fix-grader-gemini-404.ps1') -Force
+}
+$cmdSrc = Join-Path $here '更新習作批改.cmd'
+if (Test-Path -LiteralPath $cmdSrc) {
+  Copy-Item -LiteralPath $cmdSrc -Destination (Join-Path $desk '更新習作批改.cmd') -Force
+}
+
 Write-Host "已安裝程式資料夾：$appDir"
 Write-Host "已建立工作資料夾：$work（請把每位學生一檔放進「輸入」）"
-Write-Host "桌面捷徑：習作批改.vbs"
+Write-Host "桌面捷徑：習作批改.vbs／更新習作批改.cmd"
 Write-Host "產出 PDF 需安裝 Python，並執行：pip install pypdf reportlab"

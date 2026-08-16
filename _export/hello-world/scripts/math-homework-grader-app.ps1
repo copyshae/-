@@ -26,6 +26,8 @@ Add-Type -AssemblyName System.Drawing
 
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:PyMakePdf = Join-Path $script:ScriptDir 'math_grade_make_note_pdf.py'
+# 視窗標題會顯示；用來確認本機是否已裝到含 AQ. 金鑰支援的版本
+$script:AppBuild = '20260817-aq20'
 # also check beside installed copy
 if (-not (Test-Path -LiteralPath $script:PyMakePdf)) {
   $alt = Join-Path (Split-Path -Parent $script:ScriptDir) 'scripts\math_grade_make_note_pdf.py'
@@ -944,32 +946,74 @@ function Invoke-GeminiRest {
     [int]$TimeoutSec = 60
   )
   $k = Normalize-GeminiApiKey $ApiKey
+  if ([string]::IsNullOrWhiteSpace($k)) { throw '金鑰空白' }
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   $base = 'https://generativelanguage.googleapis.com/v1beta/'
-  # 優先 x-goog-api-key（官方 Auth／AQ. 金鑰建議）；失敗再退回 ?key=
-  $headers = @{ 'x-goog-api-key' = $k }
-  $uriHeader = $base + $PathAndQuery
-  try {
-    if ($Method -eq 'Get') {
-      return Invoke-RestMethod -Method Get -Uri $uriHeader -Headers $headers -TimeoutSec $TimeoutSec
+  # 兩種認證都試：標頭（官方建議）→ 查詢字串（舊相容）
+  $modes = @(
+    @{ Name = 'header'; Uri = ($base + $PathAndQuery); UseHeader = $true },
+    @{
+      Name = 'query'
+      Uri = $(
+        if ($PathAndQuery -match '\?') { $base + $PathAndQuery + '&key=' + [uri]::EscapeDataString($k) }
+        else { $base + $PathAndQuery + '?key=' + [uri]::EscapeDataString($k) }
+      )
+      UseHeader = $false
     }
-    return Invoke-RestMethod -Method Post -Uri $uriHeader -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $BodyBytes -TimeoutSec $TimeoutSec
-  } catch {
-    $first = $_
-    $uriQuery = $base + $PathAndQuery
-    if ($uriQuery -match '\?') {
-      $uriQuery += '&key=' + [uri]::EscapeDataString($k)
-    } else {
-      $uriQuery += '?key=' + [uri]::EscapeDataString($k)
-    }
+  )
+  $lastDetail = ''
+  foreach ($mode in $modes) {
+    $req = $null
+    $resp = $null
+    $reader = $null
     try {
-      if ($Method -eq 'Get') {
-        return Invoke-RestMethod -Method Get -Uri $uriQuery -TimeoutSec $TimeoutSec
+      $req = [System.Net.HttpWebRequest]::Create($mode.Uri)
+      $req.Method = $Method.ToUpperInvariant()
+      $req.Timeout = [Math]::Max(5000, $TimeoutSec * 1000)
+      $req.ReadWriteTimeout = [Math]::Max(5000, $TimeoutSec * 1000)
+      $req.AutomaticDecompression = [System.Net.DecompressionMethods]::GZip -bor [System.Net.DecompressionMethods]::Deflate
+      $req.Accept = 'application/json'
+      $req.UserAgent = "MathHomeworkGrader/$($script:AppBuild)"
+      if ($mode.UseHeader) {
+        $req.Headers.Add('x-goog-api-key', $k)
       }
-      return Invoke-RestMethod -Method Post -Uri $uriQuery -ContentType 'application/json; charset=utf-8' -Body $BodyBytes -TimeoutSec $TimeoutSec
+      if ($Method -eq 'Post') {
+        if ($null -eq $BodyBytes) { $BodyBytes = [byte[]]@() }
+        $req.ContentType = 'application/json; charset=utf-8'
+        $req.ContentLength = $BodyBytes.Length
+        $rs = $req.GetRequestStream()
+        try { $rs.Write($BodyBytes, 0, $BodyBytes.Length) } finally { $rs.Close() }
+      }
+      $resp = $req.GetResponse()
+      $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+      $text = $reader.ReadToEnd()
+      if ([string]::IsNullOrWhiteSpace($text)) { return $null }
+      return ($text | ConvertFrom-Json)
     } catch {
-      throw $first
+      $detail = [string]$_.Exception.Message
+      try {
+        $ex = $_.Exception
+        $webEx = $ex
+        if ($ex -isnot [System.Net.WebException] -and $ex.InnerException) { $webEx = $ex.InnerException }
+        if ($webEx -is [System.Net.WebException] -and $webEx.Response) {
+          $errResp = $webEx.Response
+          $errReader = New-Object System.IO.StreamReader($errResp.GetResponseStream())
+          $errBody = $errReader.ReadToEnd()
+          $errReader.Close()
+          try { $errResp.Close() } catch {}
+          if (-not [string]::IsNullOrWhiteSpace($errBody)) {
+            $detail += "`n" + $errBody.Substring(0, [Math]::Min(800, $errBody.Length))
+          }
+        }
+      } catch {}
+      $lastDetail = ("[$($mode.Name)] " + $detail)
+      continue
+    } finally {
+      try { if ($reader) { $reader.Close() } } catch {}
+      try { if ($resp) { $resp.Close() } } catch {}
     }
   }
+  throw $lastDetail
 }
 
 function Get-GeminiApiKey([string]$root) {
@@ -1337,42 +1381,57 @@ function Apply-GeminiReplyToForm([string]$text) {
 }
 
 function Show-GeminiKeyDialog {
-  $has = -not [string]::IsNullOrWhiteSpace((Get-GeminiApiKey $script:WorkDir))
+  $saved = Get-GeminiApiKey $script:WorkDir
+  $has = -not [string]::IsNullOrWhiteSpace($saved)
   $dlg = New-Object System.Windows.Forms.Form
-  $dlg.Text = '設定 Gemini API 金鑰'
-  $dlg.Size = New-Object System.Drawing.Size(560, 300)
+  $dlg.Text = ("設定 Gemini API 金鑰｜$($script:AppBuild)")
+  $dlg.Size = New-Object System.Drawing.Size(580, 340)
   $dlg.StartPosition = 'CenterParent'
   $dlg.Font = $font
   $lbl = New-Object System.Windows.Forms.Label
   $lbl.Location = New-Object System.Drawing.Point(12, 12)
-  $lbl.Size = New-Object System.Drawing.Size(520, 88)
-  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上：舊鑰 AIza…，新 Auth 金鑰 AQ.…（2026 起 AI Studio 預設）。`n存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。換過金鑰先按「測試金鑰」。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
+  $lbl.Size = New-Object System.Drawing.Size(540, 100)
+  $savedHint = if ($has) { Get-GeminiApiKeyHint $saved } else { '尚未設定' }
+  $lbl.Text = "請到 https://aistudio.google.com/apikey → Create API key → Copy key。`n可接受：AIza…（舊）或 AQ.…（2026 新 Auth）。≠ Gemini 網頁訂閱。`n存於本機 MathGrading\gemini-api-key.txt。標題有 $($script:AppBuild) 才是新版。`n目前已存：$savedHint"
   $dlg.Controls.Add($lbl)
   $tb = New-Object System.Windows.Forms.TextBox
-  $tb.Location = New-Object System.Drawing.Point(12, 108)
-  $tb.Width = 520
+  $tb.Location = New-Object System.Drawing.Point(12, 118)
+  $tb.Width = 540
   $tb.UseSystemPasswordChar = $true
-  if ($has) { $tb.Text = Get-GeminiApiKey $script:WorkDir }
+  # 不自動填入舊鑰，避免一直測到錯誤的舊內容；請重新貼上
+  $tb.Text = ''
   $dlg.Controls.Add($tb)
   $btnTest = New-Object System.Windows.Forms.Button
   $btnTest.Text = '測試金鑰'
-  $btnTest.Location = New-Object System.Drawing.Point(12, 150)
+  $btnTest.Location = New-Object System.Drawing.Point(12, 160)
   $btnTest.Size = New-Object System.Drawing.Size(110, 32)
   $btnTest.Add_Click({
       try {
         $r = Test-GeminiApiKey $tb.Text
         [void][System.Windows.Forms.MessageBox]::Show(
-          ("金鑰可用，且已實際試過 generateContent。`n建議模型：" + $r.PreferredModel + "`n可列出模型約 " + $r.ModelCount + " 個。`n例：" + $r.Sample),
+          ("金鑰可用，且已實際試過 generateContent。`n建議模型：" + $r.PreferredModel + "`n可列出模型約 " + $r.ModelCount + " 個。`n例：" + $r.Sample + "`n建置：$($script:AppBuild)"),
           '測試成功'
         )
       } catch {
-        [void][System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, '測試失敗')
+        [void][System.Windows.Forms.MessageBox]::Show(
+          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq20 起，請先跑更新腳本。"),
+          '測試失敗'
+        )
       }
     })
   $dlg.Controls.Add($btnTest)
+  $btnPasteSaved = New-Object System.Windows.Forms.Button
+  $btnPasteSaved.Text = '載入已存'
+  $btnPasteSaved.Location = New-Object System.Drawing.Point(130, 160)
+  $btnPasteSaved.Size = New-Object System.Drawing.Size(100, 32)
+  $btnPasteSaved.Add_Click({
+      if ($has) { $tb.Text = $saved; $tb.UseSystemPasswordChar = $true }
+      else { [void][System.Windows.Forms.MessageBox]::Show('尚未有已存金鑰', '提示') }
+    })
+  $dlg.Controls.Add($btnPasteSaved)
   $btnOk = New-Object System.Windows.Forms.Button
   $btnOk.Text = '儲存'
-  $btnOk.Location = New-Object System.Drawing.Point(320, 150)
+  $btnOk.Location = New-Object System.Drawing.Point(340, 160)
   $btnOk.Size = New-Object System.Drawing.Size(100, 32)
   $btnOk.DialogResult = 'None'
   $btnOk.Add_Click({
@@ -1404,16 +1463,21 @@ function Show-GeminiKeyDialog {
   $dlg.Controls.Add($btnOk)
   $btnOpen = New-Object System.Windows.Forms.Button
   $btnOpen.Text = '開啟申請頁'
-  $btnOpen.Location = New-Object System.Drawing.Point(140, 150)
-  $btnOpen.Size = New-Object System.Drawing.Size(120, 32)
+  $btnOpen.Location = New-Object System.Drawing.Point(240, 160)
+  $btnOpen.Size = New-Object System.Drawing.Size(90, 32)
   $btnOpen.Add_Click({ Start-Process 'https://aistudio.google.com/apikey' })
   $dlg.Controls.Add($btnOpen)
   $btnCancel = New-Object System.Windows.Forms.Button
   $btnCancel.Text = '關閉'
-  $btnCancel.Location = New-Object System.Drawing.Point(440, 150)
+  $btnCancel.Location = New-Object System.Drawing.Point(450, 160)
   $btnCancel.Size = New-Object System.Drawing.Size(90, 32)
   $btnCancel.DialogResult = 'Cancel'
   $dlg.Controls.Add($btnCancel)
+  $hint2 = New-Object System.Windows.Forms.Label
+  $hint2.Location = New-Object System.Drawing.Point(12, 210)
+  $hint2.Size = New-Object System.Drawing.Size(540, 70)
+  $hint2.Text = "步驟：Copy key → 貼上上方欄位 → 測試金鑰 → 儲存。`n若仍失敗：刪除舊鑰再建一把 AQ. 新鑰；並確認視窗標題含 $($script:AppBuild)。"
+  $dlg.Controls.Add($hint2)
   $dlg.CancelButton = $btnCancel
   return ($dlg.ShowDialog() -eq 'OK')
 }
@@ -2221,7 +2285,7 @@ $font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 12)
 $fontBig = New-Object System.Drawing.Font('Microsoft JhengHei UI', 15, [System.Drawing.FontStyle]::Bold)
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = '數學習作批改（Gemini 自動批｜對照答案或直接 AI｜一人一檔）'
+$form.Text = ("數學習作批改（Gemini 自動批｜對照答案或直接 AI｜一人一檔｜$($script:AppBuild)）")
 $form.Size = New-Object System.Drawing.Size(1060, 780)
 $form.StartPosition = 'CenterScreen'
 $form.Font = $font
