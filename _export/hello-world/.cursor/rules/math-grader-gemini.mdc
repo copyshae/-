@@ -1,0 +1,21 @@
+---
+description: 習作批改用 Gemini API 自動批（對照答案或直接 AI）
+globs:
+  - scripts/math-homework-grader*
+  - scripts/install-math-homework-grader.ps1
+  - scripts/README-math-homework-grader.md
+  - directory/apps/math-grader/**
+---
+
+# 習作批改 × Gemini（對照答案 或 直接 AI）
+
+- **預設 Gemini API 自動批**（`mode = gemini_auto`），模型 **`gemini-2.5-flash`**。
+- **有正確答案 → 對照批**；**無正確答案 → 直接 AI 批**；兩者都自動（API），不擋流程。
+- 答案附件有就全部送出；沒有就只送學生卷。
+- 按鈕：**Gemini自動批**（單份）、**連續自動批**（未批依序全自動並存檔）。
+- `gemini-2.0-flash` 已於 2026-06-01 下線，禁止再當預設。
+- 「網頁批閱／貼上批」只開瀏覽器，**不是自動**；介面文案須標明「要手動貼」。
+- **手機版也支援 API 自動批**（金鑰存 localStorage；試卷在 IndexedDB）。只複製提示會卡在「批改中」。
+- API key：電腦存 `MathGrading\gemini-api-key.txt`；手機存本機瀏覽器。禁止提交 Git。
+- 金鑰申請：https://aistudio.google.com/apikey（與網頁 Pro 訂閱分開）。
+- 介面、說明、commit 一律繁體中文；只用座號、不存姓名。
