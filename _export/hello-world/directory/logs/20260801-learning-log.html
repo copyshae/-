@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>20260801 LINE 轉發雛形與看診備忘歸檔</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --paper: #e8efe6;
+      --accent: #2d6a4f;
+      --muted: #4a5c52;
+      --line: rgba(45, 106, 79, 0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      line-height: 1.7;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(149, 213, 178, 0.35), transparent 55%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 50%, #d8e8dc 100%);
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; padding: 2rem 1.35rem 4rem; }
+    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; font-size: 0.95rem; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .nav a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+    article {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      padding: 1.75rem 1.5rem 2.5rem;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.45rem, 4.5vw, 2rem);
+      font-weight: 400;
+      color: var(--accent);
+      line-height: 1.35;
+      margin-bottom: 0.75rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 1.5rem; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: var(--accent);
+      margin: 1.75rem 0 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--line);
+    }
+    h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0.5rem; }
+    ul, ol { margin: 0.5rem 0 0.85rem 1.35rem; }
+    li { margin: 0.3rem 0; }
+    code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
+    table { width: 100%; border-collapse: collapse; margin: 0.75rem 0 1rem; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--line); padding: 0.45rem 0.55rem; text-align: left; vertical-align: top; }
+    th { background: rgba(45,106,79,0.1); color: var(--accent); font-weight: 600; }
+    a.inline { color: var(--accent); word-break: break-all; }
+    .callout {
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(45,106,79,0.08);
+      font-size: 0.95rem;
+    }
+    .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../index.html">← 首頁</a>
+      <a href="../index.html">← 學習日誌</a>
+      <a href="./index.html">← 日誌列表</a>
+    </nav>
+    <article>
+      <h1>20260801 LINE 轉發雛形與看診備忘歸檔</h1>
+      <p class="lead">近日主線：釐清 LINE 群發／中繼轉發只能走官方帳號 Bot；另把手機對話重點整理成可開、可複製的個人備忘（細節不進公開學習日誌）；並用快捷詞 <code>tui-ri-zhi</code> 收工推日誌。</p>
+
+      <h2>一｜LINE 群組廣播轉發雛形</h2>
+      <ul>
+        <li>結論：沒有「個人帳號中繼群自動轉多群」；也不能代為操作手機 LINE 個人帳號。</li>
+        <li>合法做法：LINE 官方帳號 + Messaging API webhook，把來源群訊息轉到勾選的目標群。</li>
+        <li>產出目錄：<code>line-group-forwarder/</code>（webhook、管理後台、README）。</li>
+        <li>倉庫：<code>copyshae/-</code> 分支 <code>cursor/line-group-forwarder-7fb6</code>。</li>
+        <li>Draft PR：<a class="inline" href="https://github.com/copyshae/-/pull/3">#3 Add LINE group broadcast forwarder</a>（尚未合併）。</li>
+      </ul>
+
+      <h2>二｜LINE 對話摘要 → 個人看診備忘</h2>
+      <ul>
+        <li>依使用者貼上的 LINE 匯出文字，先做對話重點，再整理成個人眼科看診注意事項與時程備忘。</li>
+        <li>產出：<code>工作日誌.md</code>（首頁互連）、<code>眼科看診紀錄-正本.md</code>。</li>
+        <li>分支：<code>cursor/ophthalmology-visit-notes-b6ec</code>；Draft PR <a class="inline" href="https://github.com/copyshae/-/pull/4">#4</a>。</li>
+        <li>手機可開 GitHub 檔案頁長按複製；無法直接寫入手機「備忘錄」App。</li>
+      </ul>
+      <div class="callout">
+        公開學習日誌只記「有歸檔、在哪個 PR」；看診細節與健康資訊留在該 draft 分支／本機，合併前請自行確認分享範圍。
+      </div>
+
+      <h2>三｜快捷詞與收工推日誌</h2>
+      <table>
+        <thead>
+          <tr><th>短語</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>tui-ri-zhi</code>／<code>推日誌</code></td>
+            <td>把近日工作大要寫進 hello-world 學習日誌並 push</td>
+          </tr>
+          <tr>
+            <td><code>裝快捷詞</code></td>
+            <td>同步 <code>install-push-log-shortcut.ps1</code> 到本機全域 Cursor skill／rule</td>
+          </tr>
+          <tr>
+            <td><code>連日誌</code>／<code>開首頁</code></td>
+            <td>開啟線上日誌列表／學習日誌首頁</td>
+          </tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>Cloud 環境已驗證：工作區若是 <code>copyshae/-</code>，仍應 clone／操作 <code>copyshae/hello-world</code> 再推日誌。</li>
+        <li>Windows 本機仍以 PowerShell 安裝腳本為準；Linux／Cloud 可用等效複製到 <code>~/.cursor/skills</code>、<code>~/.cursor/rules</code>。</li>
+      </ul>
+
+      <h2>四｜相關連結</h2>
+      <ul>
+        <li>LINE 轉發 PR：<a class="inline" href="https://github.com/copyshae/-/pull/3">https://github.com/copyshae/-/pull/3</a></li>
+        <li>看診備忘 PR：<a class="inline" href="https://github.com/copyshae/-/pull/4">https://github.com/copyshae/-/pull/4</a></li>
+        <li>Agent（看診整理）：<a class="inline" href="https://cursor.com/agents/bc-019fbe4c-1b7a-7790-ae52-5221f0a8b6ec">bc-019fbe4c…</a></li>
+        <li>Agent（LINE 轉發）：<a class="inline" href="https://cursor.com/agents/bc-019fb8a6-da46-7c8e-a03b-e8162a327fb6">bc-019fb8a6…</a></li>
+      </ul>
+
+      <p class="note">
+        線上：
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/logs/20260801-learning-log.html">https://copyshae.github.io/hello-world/directory/logs/20260801-learning-log.html</a>
+      </p>
+    </article>
+  </div>
+</body>
+</html>

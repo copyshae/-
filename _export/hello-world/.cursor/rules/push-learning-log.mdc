@@ -1,0 +1,27 @@
+---
+description: 學習日誌捷徑：推日誌／連日誌／日誌首頁（全域，不限專案；流程一律繁體中文）
+alwaysApply: true
+---
+
+# 學習日誌捷徑（hello-world）
+
+使用者說下列短語時，依 skill `push-learning-log` 執行。**不限目前開啟哪個專案。**
+
+**流程、回覆、說明、commit 訊息一律使用繁體中文。**
+
+## 開啟網頁
+
+- **連日誌**／**連上學習日誌**／**開日誌** → 開啟  
+  https://copyshae.github.io/hello-world/directory/logs/
+- **連日誌首頁**／**日誌首頁**／**學習日誌首頁**／**開首頁** → 開啟  
+  https://copyshae.github.io/hello-world/directory/
+
+## 安裝／更新快捷詞
+
+- **裝快捷詞** → 執行 hello-world 的安裝腳本，更新本機全域 Cursor 規則與 skill
+
+## 推送工作大要
+
+- **推日誌**／**上日誌**／**收工推日誌**／**tui-ri-zhi**
+- **工作大要推 hello-world**／**推到 github hello world**
+- 可加日期（如 `推日誌 0727`／`改成 0727`）

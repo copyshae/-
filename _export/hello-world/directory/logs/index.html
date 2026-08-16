@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>202607–202608｜學習日誌</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --paper: #e8efe6;
+      --accent: #2d6a4f;
+      --muted: #4a5c52;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(149, 213, 178, 0.45), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 90% 80%, rgba(45, 106, 79, 0.18), transparent 50%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 45%, #d8e8dc 100%);
+    }
+
+    .wrap {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      animation: rise 0.8s ease-out both;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .nav a:hover {
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+    }
+
+    .lead {
+      margin-top: 0.75rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    .search-box {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .search-box label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: 1px solid rgba(45, 106, 79, 0.28);
+      background: rgba(255, 255, 255, 0.75);
+      color: var(--ink);
+      font: inherit;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .search-box input::placeholder {
+      color: #7a8d82;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+    }
+
+    .search-meta {
+      font-size: 0.88rem;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+
+    .dir-list {
+      list-style: none;
+      margin-top: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .dir-list li[hidden] {
+      display: none;
+    }
+
+    .empty-hint {
+      display: none;
+      margin-top: 1.5rem;
+      padding: 1rem 1.15rem;
+      border: 1px dashed rgba(45, 106, 79, 0.35);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.45);
+      font-size: 0.95rem;
+    }
+
+    .empty-hint.show {
+      display: block;
+    }
+
+    .dir-list a {
+      display: block;
+      padding: 1.15rem 1.35rem;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(45, 106, 79, 0.22);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.15rem;
+      letter-spacing: 0.03em;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .dir-list a:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: var(--accent);
+      transform: translateX(4px);
+    }
+
+    .dir-list a span {
+      display: block;
+      margin-top: 0.35rem;
+      font-weight: 400;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(1rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../">← 回到首頁</a>
+      <a href="../">← 學習日誌</a>
+    </nav>
+    <h1>202607–202608</h1>
+    <p class="lead">選擇下方學習日誌，分享當日所學的成果和學習參考的影片連結（由新到舊排列）</p>
+    <div class="search-box">
+      <label for="log-search">搜尋日誌</label>
+      <input
+        id="log-search"
+        type="search"
+        placeholder="輸入日期、關鍵字，例如：PIN、Bitwarden、跑馬燈"
+        autocomplete="off"
+        enterkeyhint="search"
+      />
+      <p class="search-meta" id="search-meta" aria-live="polite"></p>
+    </div>
+    <p class="empty-hint" id="empty-hint">沒有符合的日誌，換個關鍵字試試。</p>
+    <ul class="dir-list" id="log-list">
+      <li>
+        <a href="20260801-learning-log.html">
+          20260801 LINE 轉發雛形與看診備忘歸檔
+          <span>官方帳號 Bot 轉群｜PR #3｜看診備忘 PR #4｜tui-ri-zhi 推日誌｜線上 https://copyshae.github.io/hello-world/directory/logs/20260801-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260728-learning-log.html">
+          20260728 學習日誌快捷詞全域化
+          <span>推日誌／連日誌／開首頁／裝快捷詞｜全專案｜跨電腦安裝｜線上 https://copyshae.github.io/hello-world/directory/logs/20260728-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260727-learning-log.html">
+          20260727 本機清整恢復效能
+          <span>回收桶／快取｜C 槽＋6GB｜桌面歸檔｜線上 https://copyshae.github.io/hello-world/directory/logs/20260727-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260726-learning-log.html">
+          20260726 多檔合併請假證明 PDF
+          <span>公文＋批核＋計畫｜LibreOffice＋pypdf｜線上 https://copyshae.github.io/hello-world/directory/logs/20260726-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260725-learning-log.html">
+          20260725 Visio 一步檢查點與對色指令
+          <span>檢查點 save/back/forward｜戶外白縫｜跟選取／色樣同色｜線上 https://copyshae.github.io/hello-world/directory/logs/20260725-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260724-learning-log.html">
+          20260724 Visio 掃地圖精確改色與一步檢查點
+          <span>年級底色｜門口110｜一步檢查點｜參考圖示修圖｜線上 https://copyshae.github.io/hello-world/directory/logs/20260724-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260723-learning-log.html">
+          20260723 導師名單・廁所次數・Visio 掃區大小
+          <span>PDF→Excel｜全年累計｜廁所次數｜Visio 面積排序｜線上 https://copyshae.github.io/hello-world/directory/logs/20260723-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260722-learning-log.html">
+          20260722 Visio 掃地／教室圖改 115 學年與班級輪替
+          <span>檔名＋圖上 113→115｜班級輪替｜提示詞 prompts/visio-edit-prompt.md｜線上 https://copyshae.github.io/hello-world/directory/logs/20260722-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260721-chrome-quick-login.html">
+          20260721 Chrome 常用網址啟動器（PIN／分群／自動登入）
+          <span>PIN／分群／自動填密／排序｜換機 zip＋工作電腦提示詞｜202607 搜尋框｜線上 https://copyshae.github.io/hello-world/directory/logs/20260721-chrome-quick-login.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260720-archive-index.html">
+          20260720 知識庫收錄索引（日期｜索引）
+          <span>61 篇活動＋弟子規｜線上 https://copyshae.github.io/hello-world/directory/logs/20260720-archive-index.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260719-backup-bitwarden-learning-log.html">
+          20260719 遠端保全與 Bitwarden 密碼管理
+          <span>災難復原通則｜首次 Git 備份｜2FA｜線上 https://copyshae.github.io/hello-world/directory/logs/20260719-backup-bitwarden-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260718-learning-log.html">
+          20260718 知識庫歸檔與雙跑馬燈設計
+          <span>今日實作＋今日行程｜Google 日曆同步｜密碼保護｜線上 https://copyshae.github.io/hello-world/directory/logs/20260718-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260717-learning-log.html">
+          20260717 Cursor 雙機協作與本機檔案系統歸檔
+          <span>隱私本機／共用上雲｜掃描改名｜桌面下載文件圖片歸檔｜線上 https://copyshae.github.io/hello-world/directory/logs/20260717-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260716-learning-log.html">
+          20260716 合併收益（損益＋利息）優質十檔與建議占比
+          <span>每檔後方附占比＋加碼策略｜線上 https://copyshae.github.io/hello-world/directory/logs/20260716-learning-log.html</span>
+        </a>
+      </li>
+      <li>
+        <a href="20260715-hands-on-execute.html">
+          20260715 依昨日教學開始實作：環境檢測與 MCP 就緒
+        </a>
+      </li>
+      <li>
+        <a href="20260714-cursor-hands-on.html">
+          20260714 讀取影音檔成可手把手步驟再執行
+        </a>
+      </li>
+      <li>
+        <a href="chinese-trad-mcp-server-chat.html">
+          20260713 Chinese（繁體）和 Excel 檔拉進對話框，生出分析圖在電腦目錄中
+        </a>
+      </li>
+      <li>
+        <a href="article-to-script-ai-video.html">
+          20260712 文章轉腳本，生成AI美女教學視頻
+        </a>
+      </li>
+      <li>
+        <a href="ai-learning-log.html">
+          20260711 Turbo C++ 的課程大綱產出
+        </a>
+      </li>
+    </ul>
+  </div>
+  <script>
+    (function () {
+      var input = document.getElementById("log-search");
+      var list = document.getElementById("log-list");
+      var meta = document.getElementById("search-meta");
+      var empty = document.getElementById("empty-hint");
+      if (!list) return;
+
+      function dateKey(li) {
+        var text = (li.textContent || "").replace(/\s+/g, " ");
+        var m = text.match(/20\d{6}/);
+        var href = "";
+        var a = li.querySelector("a");
+        if (a) href = a.getAttribute("href") || "";
+        // 同日多篇：日期為主，檔名為輔（新到舊、同日依檔名）
+        return (m ? m[0] : "00000000") + "|" + href;
+      }
+
+      var items = Array.prototype.slice.call(list.querySelectorAll("li"));
+      items.sort(function (a, b) {
+        var ka = dateKey(a);
+        var kb = dateKey(b);
+        if (ka < kb) return 1;
+        if (ka > kb) return -1;
+        return 0;
+      });
+      items.forEach(function (li) { list.appendChild(li); });
+
+      var total = items.length;
+      if (!input || !meta || !empty) return;
+
+      function applyFilter() {
+        var q = (input.value || "").trim().toLowerCase();
+        var shown = 0;
+        items.forEach(function (li) {
+          var text = (li.textContent || "").toLowerCase();
+          var match = !q || text.indexOf(q) !== -1;
+          li.hidden = !match;
+          if (match) shown += 1;
+        });
+        if (!q) {
+          meta.textContent = "共 " + total + " 篇｜由新到舊";
+        } else {
+          meta.textContent = "找到 " + shown + "／" + total + " 篇";
+        }
+        empty.classList.toggle("show", shown === 0);
+      }
+
+      input.addEventListener("input", applyFilter);
+      applyFilter();
+    })();
+  </script>
+</body>
+</html>
