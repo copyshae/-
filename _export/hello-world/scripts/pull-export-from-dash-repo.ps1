@@ -83,11 +83,11 @@ $settingsPath = Join-Path $mg "settings.json"
 if (Test-Path -LiteralPath $settingsPath) {
   try {
     $raw = [System.IO.File]::ReadAllText($settingsPath)
-    if ($raw -match "gemini-2\.0|gemini-1\.5") {
-      $raw2 = $raw.Replace("gemini-2.0-flash", "gemini-2.5-flash").Replace("gemini-1.5-flash", "gemini-2.5-flash")
+    if ($raw -match "gemini-2\.0|gemini-1\.5|gemini-1\.0") {
+      $raw2 = $raw.Replace("gemini-2.0-flash", "gemini-3.5-flash").Replace("gemini-1.5-flash", "gemini-3.5-flash").Replace("gemini-1.0-pro", "gemini-3.5-flash")
       $utf8Bom = New-Object System.Text.UTF8Encoding $true
       [System.IO.File]::WriteAllText($settingsPath, $raw2, $utf8Bom)
-      Write-Host "  settings.json -> gemini-2.5-flash"
+      Write-Host "  settings.json -> gemini-3.5-flash"
     } else {
       Write-Host "  settings.json OK"
     }

@@ -335,8 +335,28 @@
       var filter = "all";
       var grading = false;
       var wakeLock = null;
-      var MODELS_FAST = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
-      var MODELS_FULL = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-pro"];
+      var MODELS_FAST = [
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-flash-latest",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash"
+      ];
+      var MODELS_FULL = [
+        "gemini-3.5-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3-flash-preview",
+        "gemini-flash-latest",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-pro",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite"
+      ];
       var STATUSES = ["未批", "批改中", "已批", "待認知", "待重謄"];
       var LEVELS = ["未標", "跟上", "略落後", "明顯落後", "需補先備", "待判定"];
 
@@ -1045,6 +1065,52 @@
         return rec._part;
       }
 
+      async function listGeminiModels(apiKey) {
+        var out = [];
+        var pageToken = "";
+        for (var page = 0; page < 4; page++) {
+          var uri = "https://generativelanguage.googleapis.com/v1beta/models?key=" +
+            encodeURIComponent(apiKey) + "&pageSize=100";
+          if (pageToken) uri += "&pageToken=" + encodeURIComponent(pageToken);
+          var res = await fetch(uri);
+          var raw = await res.text();
+          var data = null;
+          try { data = JSON.parse(raw); } catch (e) {}
+          if (!res.ok) {
+            var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+            throw new Error(msg);
+          }
+          ((data && data.models) || []).forEach(function (m) {
+            var n = String(m.name || "").replace(/^models\//, "");
+            if (!n || /gemini-2\.0|gemini-1\.5|gemini-1\.0|image|tts|live|embedding|aqa|computer-use|robotics|native-audio/i.test(n)) return;
+            if (!/gemini/i.test(n)) return;
+            var methods = m.supportedGenerationMethods || [];
+            if (methods.length && methods.indexOf("generateContent") < 0) return;
+            if (out.indexOf(n) < 0) out.push(n);
+          });
+          pageToken = (data && data.nextPageToken) || "";
+          if (!pageToken) break;
+        }
+        return out;
+      }
+
+      function mergeModelOrder(preferredList, listed) {
+        var ordered = [];
+        function add(n) {
+          if (!n || ordered.indexOf(n) >= 0) return;
+          if (/gemini-2\.0|gemini-1\.5|gemini-1\.0/i.test(n)) return;
+          ordered.push(n);
+        }
+        (preferredList || []).forEach(function (n) {
+          if (!listed || !listed.length || listed.indexOf(n) >= 0) add(n);
+        });
+        (listed || []).filter(function (n) { return /flash/i.test(n) && !/lite/i.test(n); }).forEach(add);
+        (listed || []).filter(function (n) { return /lite/i.test(n); }).forEach(add);
+        (listed || []).forEach(add);
+        if (!ordered.length) (preferredList || []).forEach(add);
+        return ordered;
+      }
+
       async function callGemini(apiKey, prompt, fileRecs, models) {
         var parts = [{ text: prompt }];
         (fileRecs || []).forEach(function (rec) { parts.push(recToPart(rec)); });
@@ -1056,9 +1122,13 @@
           }
         };
         var body = JSON.stringify(payload);
-        var list = models && models.length ? models : (isFastMode() ? MODELS_FAST : MODELS_FULL);
+        var base = models && models.length ? models : (isFastMode() ? MODELS_FAST : MODELS_FULL);
+        var listed = [];
+        try { listed = await listGeminiModels(apiKey); } catch (e) { listed = []; }
+        var list = mergeModelOrder(base, listed);
         var lastErr = null;
         var tried = [];
+        var saw404 = false;
         for (var i = 0; i < list.length; i++) {
           var model = list[i];
           tried.push(model);
@@ -1075,7 +1145,7 @@
             try { data = JSON.parse(raw); } catch (e) {}
             if (!res.ok) {
               var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
-              if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { lastErr = new Error(msg); continue; }
+              if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { saw404 = true; lastErr = new Error(msg); continue; }
               if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
                 throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
               }
@@ -1103,6 +1173,7 @@
             var m = String(err && err.message || err);
             if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400|429|RESOURCE_EXHAUSTED/i.test(m) &&
                 !/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) {
+              if (/404|NOT_FOUND|not found/i.test(m)) saw404 = true;
               continue;
             }
             throw err;
@@ -1110,7 +1181,10 @@
         }
         throw new Error(
           (lastErr && lastErr.message ? lastErr.message + "\n\n" : "") +
-          "已嘗試模型：" + tried.join(", ") + "\n請確認網路與金鑰。"
+          "已嘗試模型：" + tried.join(", ") + "\n" +
+          (saw404
+            ? "全部 404：請到 aistudio.google.com/apikey 新建金鑰（限制 Generative Language API），勿用已下線的 2.0／1.5。"
+            : "請確認網路與金鑰。")
         );
       }
 

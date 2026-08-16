@@ -932,6 +932,115 @@ function Save-GeminiApiKey([string]$root, [string]$key) {
   [IO.File]::WriteAllText($p, ($k + "`r`n"), $utf8)
 }
 
+function Get-RestErrorDetail {
+  param($ErrorRecord)
+  $msg = ''
+  try { $msg = [string]$ErrorRecord.Exception.Message } catch {}
+  try {
+    if ($ErrorRecord.Exception.InnerException) {
+      $msg += ' | ' + [string]$ErrorRecord.Exception.InnerException.Message
+    }
+  } catch {}
+  try {
+    $resp = $ErrorRecord.Exception.Response
+    if ($null -ne $resp) {
+      $stream = $resp.GetResponseStream()
+      if ($null -ne $stream) {
+        $reader = New-Object System.IO.StreamReader($stream)
+        $body = $reader.ReadToEnd()
+        $reader.Close()
+        if (-not [string]::IsNullOrWhiteSpace($body)) {
+          $msg += "`n" + $body.Substring(0, [Math]::Min(800, $body.Length))
+        }
+      }
+    }
+  } catch {}
+  return $msg
+}
+
+function Get-GeminiHardcodedFallbacks {
+  # 優先序：現行 3.x → 別名 → 仍可用的 2.5（2.0／1.5 已下線勿列）
+  @(
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-3-flash-preview',
+    'gemini-flash-latest',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-pro'
+  )
+}
+
+function Test-GeminiModelNameUsable([string]$name) {
+  if ([string]::IsNullOrWhiteSpace($name)) { return $false }
+  $n = $name.Trim() -replace '^models/', ''
+  if ($n -match 'gemini-2\.0|gemini-1\.5|gemini-1\.0|gemini-pro$|gemini-pro-vision') { return $false }
+  if ($n -match 'image|tts|live|embedding|aqa|computer-use|robotics|native-audio') { return $false }
+  if ($n -notmatch 'gemini') { return $false }
+  return $true
+}
+
+function Get-GeminiListedModels([string]$ApiKey) {
+  $k = Normalize-GeminiApiKey $ApiKey
+  $names = New-Object System.Collections.ArrayList
+  $pageToken = ''
+  $page = 0
+  while ($page -lt 6) {
+    $page++
+    $uri = "https://generativelanguage.googleapis.com/v1beta/models?key=$k&pageSize=100"
+    if ($pageToken) { $uri += "&pageToken=$([uri]::EscapeDataString($pageToken))" }
+    $resp = Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 45
+    foreach ($m in @($resp.models)) {
+      $n = ([string]$m.name) -replace '^models/', ''
+      if (-not (Test-GeminiModelNameUsable $n)) { continue }
+      $methods = @()
+      try { $methods = @($m.supportedGenerationMethods) } catch {}
+      if ($methods.Count -gt 0 -and ($methods -notcontains 'generateContent')) { continue }
+      if ($names -notcontains $n) { [void]$names.Add($n) }
+    }
+    $pageToken = ''
+    try { $pageToken = [string]$resp.nextPageToken } catch {}
+    if ([string]::IsNullOrWhiteSpace($pageToken)) { break }
+  }
+  return @($names.ToArray())
+}
+
+function Get-GeminiPreferredModelOrder {
+  param(
+    [string]$ApiKey,
+    [string]$Preferred = ''
+  )
+  $hard = @(Get-GeminiHardcodedFallbacks)
+  $listed = @()
+  if (-not [string]::IsNullOrWhiteSpace($ApiKey)) {
+    try { $listed = @(Get-GeminiListedModels $ApiKey) } catch { $listed = @() }
+  }
+  $ordered = New-Object System.Collections.ArrayList
+  $add = {
+    param([string]$n)
+    if ([string]::IsNullOrWhiteSpace($n)) { return }
+    if (-not (Test-GeminiModelNameUsable $n)) { return }
+    if ($ordered -contains $n) { return }
+    [void]$ordered.Add($n)
+  }
+  & $add $Preferred
+  foreach ($h in $hard) {
+    if ($listed.Count -eq 0 -or ($listed -contains $h)) { & $add $h }
+  }
+  # ListModels 有、但硬編清單沒有的：先 flash／lite，其餘殿後
+  $flashFirst = @($listed | Where-Object { $_ -match 'flash' -and $_ -notmatch 'lite' })
+  $liteNext = @($listed | Where-Object { $_ -match 'lite' })
+  $rest = @($listed | Where-Object { $_ -notin $flashFirst -and $_ -notin $liteNext })
+  foreach ($n in ($flashFirst + $liteNext + $rest)) { & $add $n }
+  if ($ordered.Count -eq 0) {
+    foreach ($h in $hard) { & $add $h }
+  }
+  return @($ordered.ToArray())
+}
+
 function Test-GeminiApiKey([string]$ApiKey) {
   $k = Normalize-GeminiApiKey $ApiKey
   if ([string]::IsNullOrWhiteSpace($k)) { throw '金鑰空白' }
@@ -940,33 +1049,64 @@ function Test-GeminiApiKey([string]$ApiKey) {
     throw '這不像 Google AI Studio 的 API 金鑰（通常以 AIza 開頭）。請勿貼 Gemini 網頁／訂閱相關文字。'
   }
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-  $uri = "https://generativelanguage.googleapis.com/v1beta/models?key=$k&pageSize=5"
+  $names = @()
   try {
-    $resp = Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 30
+    $names = @(Get-GeminiListedModels $k)
   } catch {
-    $msg = [string]$_.Exception.Message
-    try { if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message } } catch {}
+    $msg = Get-RestErrorDetail $_
     if ($msg -match '401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key|金鑰') {
-      throw ("金鑰無效或未開通。請到 aistudio.google.com/apikey 新建一把，整串複製後再貼。`n原始：$msg")
+      throw ("金鑰無效或未開通。請到 aistudio.google.com/apikey 新建一把（建議在 AI Studio 產生、並限制 Generative Language API）。`n原始：$msg")
     }
     if ($msg -match '503|429|Unavailable|無法使用') {
       throw ("Google 暫時忙碌（503／429）。金鑰格式可接受，請等 1～2 分鐘再測。`n原始：$msg")
     }
     throw ("測試金鑰失敗：$msg")
   }
-  $names = @()
-  try {
-    foreach ($m in $resp.models) {
-      if ($m.name) { $names += ([string]$m.name -replace '^models/', '') }
-    }
-  } catch {}
   if ($names.Count -eq 0) {
-    throw '金鑰能連上，但列不出模型。請確認此 Google 帳號已開通 Gemini API。'
+    throw '金鑰能連上，但列不出可用 generateContent 模型。請到 aistudio.google.com/apikey 新建金鑰，並確認帳號已開通 Gemini API。'
   }
+
+  $preferred = ''
+  $order = @(Get-GeminiPreferredModelOrder -ApiKey $k)
+  $probePrompt = '回覆一個字：好'
+  $ser = $null
+  try {
+    Add-Type -AssemblyName System.Web.Extensions -ErrorAction SilentlyContinue
+    $ser = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+  } catch {}
+  $probeJson = '{"contents":[{"role":"user","parts":[{"text":"回覆一個字：好"}]}],"generationConfig":{"temperature":0,"maxOutputTokens":8}}'
+  if ($ser) {
+    $probeJson = $ser.Serialize(@{
+      contents = @(@{ role = 'user'; parts = @(@{ text = $probePrompt }) })
+      generationConfig = @{ temperature = 0; maxOutputTokens = 8 }
+    })
+  }
+  $probeBytes = [Text.Encoding]::UTF8.GetBytes($probeJson)
+  $probeTried = New-Object System.Collections.ArrayList
+  foreach ($m in ($order | Select-Object -First 8)) {
+    [void]$probeTried.Add($m)
+    $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$k"
+    try {
+      $null = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $probeBytes -TimeoutSec 60
+      $preferred = $m
+      break
+    } catch {
+      $em = Get-RestErrorDetail $_
+      if ($em -match '401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key') {
+        throw ("金鑰無效或權限不足（無法 generateContent）。請到 aistudio.google.com/apikey 新建，並限制 Generative Language API。`n原始：$em")
+      }
+      continue
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($preferred)) {
+    throw ("金鑰可列出模型，但實際呼叫 generateContent 全失敗（常為 404／金鑰限制）。`n已試：$([string]::Join(', ', $probeTried.ToArray()))`n請到 aistudio.google.com/apikey 新建金鑰後再測。`n帳號可列模型例：" + (($names | Select-Object -First 5) -join ', '))
+  }
+
   return [pscustomobject]@{
     Ok = $true
     ModelCount = $names.Count
-    Sample = ($names | Select-Object -First 3) -join ', '
+    Sample = ($names | Select-Object -First 5) -join ', '
+    PreferredModel = $preferred
   }
 }
 
@@ -1015,10 +1155,11 @@ function Invoke-GeminiGenerateContent {
     [string]$Prompt,
     [string[]]$FilePaths
   )
+  $ApiKey = Normalize-GeminiApiKey $ApiKey
   if ([string]::IsNullOrWhiteSpace($ApiKey)) { throw '尚未設定 Gemini API 金鑰' }
-  # 預設務必用仍上線的模型（2.0-flash 已於 2026-06-01 下線 → 404）
-  if ([string]::IsNullOrWhiteSpace($Model) -or $Model -match 'gemini-2\.0|gemini-1\.5') {
-    $Model = 'gemini-2.5-flash'
+  # 2.0／1.5 已下線；空白或舊名改由動態清單決定
+  if ([string]::IsNullOrWhiteSpace($Model) -or $Model -match 'gemini-2\.0|gemini-1\.5|gemini-1\.0') {
+    $Model = ''
   }
 
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -1048,16 +1189,11 @@ function Invoke-GeminiGenerateContent {
   $json = $ser.Serialize($payload)
   $bytes = [Text.Encoding]::UTF8.GetBytes($json)
 
-  # 依序嘗試；跳過已下線／404 的模型
-  $models = @(
-    $Model,
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-flash-latest',
-    'gemini-2.5-pro'
-  ) | Where-Object { $_ -and $_ -notmatch 'gemini-2\.0' } | Select-Object -Unique
+  # 先 ListModels，再依現行 3.x／2.5 優先序嘗試；跳過已下線／404
+  $models = @(Get-GeminiPreferredModelOrder -ApiKey $ApiKey -Preferred $Model)
   $tried = New-Object System.Collections.ArrayList
-  $lastErr = $null
+  $lastDetail = ''
+  $saw404 = $false
   foreach ($m in $models) {
     [void]$tried.Add($m)
     $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$ApiKey"
@@ -1080,14 +1216,14 @@ function Invoke-GeminiGenerateContent {
         }
         return [pscustomobject]@{ Text = $text; Model = $m }
       } catch {
-        $lastErr = $_
-        $msg = [string]$_.Exception.Message
-        try {
-          if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message }
-        } catch {}
-        if ($msg -match '404|not found|NOT_FOUND|找不到|is not found|not supported|was not found') { break }
-        if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
-          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
+        $msg = Get-RestErrorDetail $_
+        $lastDetail = $msg
+        if ($msg -match '404|not found|NOT_FOUND|找不到|is not found|not supported|was not found') {
+          $saw404 = $true
+          break
+        }
+        if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰|UNAUTHENTICATED') {
+          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建（建議限制 Generative Language API）。`n原始：" + $msg)
         }
         # 503／429／忙碌：同模型重試，再換下一個模型
         if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時') {
@@ -1102,8 +1238,14 @@ function Invoke-GeminiGenerateContent {
       }
     }
   }
-  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
-  if ($lastErr) { throw (($lastErr.Exception.Message) + "`n`n" + $hint) }
+  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))"
+  if ($saw404) {
+    $hint += "`n全部 404：模型名過舊或此金鑰無權呼叫。請按「Gemini金鑰」→「測試金鑰」（會實際試 generateContent），或到 aistudio.google.com/apikey 新建金鑰。"
+    $hint += "`n勿再用 gemini-2.0-flash（已下線）。現行可用例：gemini-3.5-flash、gemini-2.5-flash、gemini-flash-latest。"
+  } else {
+    $hint += "`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。"
+  }
+  if ($lastDetail) { throw ($lastDetail + "`n`n" + $hint) }
   throw $hint
 }
 
@@ -1165,7 +1307,7 @@ function Show-GeminiKeyDialog {
       try {
         $r = Test-GeminiApiKey $tb.Text
         [void][System.Windows.Forms.MessageBox]::Show(
-          ("金鑰可用。`n可列出模型約 " + $r.ModelCount + " 個。`n例：" + $r.Sample),
+          ("金鑰可用，且已實際試過 generateContent。`n建議模型：" + $r.PreferredModel + "`n可列出模型約 " + $r.ModelCount + " 個。`n例：" + $r.Sample),
           '測試成功'
         )
       } catch {
@@ -1184,8 +1326,10 @@ function Show-GeminiKeyDialog {
         [void][System.Windows.Forms.MessageBox]::Show('金鑰空白，未儲存', '提示')
         return
       }
+      $picked = 'gemini-3.5-flash'
       try {
-        $null = Test-GeminiApiKey $k
+        $tr = Test-GeminiApiKey $k
+        if ($tr.PreferredModel) { $picked = [string]$tr.PreferredModel }
       } catch {
         $ask = [System.Windows.Forms.MessageBox]::Show(
           ("測試未通過：`n" + $_.Exception.Message + "`n`n仍要強制儲存嗎？（通常不建議）"),
@@ -1196,9 +1340,9 @@ function Show-GeminiKeyDialog {
         if ($ask -ne [System.Windows.Forms.DialogResult]::Yes) { return }
       }
       Save-GeminiApiKey $script:WorkDir $k
-      $script:settings | Add-Member -NotePropertyName geminiModel -NotePropertyValue 'gemini-2.5-flash' -Force
+      $script:settings | Add-Member -NotePropertyName geminiModel -NotePropertyValue $picked -Force
       Save-Settings $script:WorkDir $script:settings
-      [void][System.Windows.Forms.MessageBox]::Show('已儲存 Gemini API 金鑰。可再按「Gemini自動批」。', '完成')
+      [void][System.Windows.Forms.MessageBox]::Show(("已儲存 Gemini API 金鑰。`n預設模型：$picked`n可再按「Gemini自動批」。"), '完成')
       $dlg.DialogResult = 'OK'
       $dlg.Close()
     })
@@ -1227,7 +1371,7 @@ function Load-Settings([string]$root) {
     preferredSend = '未指定（日後再選）'
     preferredReturn = '未指定（日後再選）'
     tabletImportDir = ''
-    geminiModel = 'gemini-2.5-flash'
+    geminiModel = 'gemini-3.5-flash'
     tools = [pscustomobject]@{
       line_group = $true
       line_dm    = $true
@@ -1248,7 +1392,7 @@ function Load-Settings([string]$root) {
       if ($null -eq $s.PSObject.Properties['tabletImportDir']) {
         $s | Add-Member -NotePropertyName tabletImportDir -NotePropertyValue '' -Force
       }
-      if ($null -eq $s.PSObject.Properties['geminiModel'] -or [string]::IsNullOrWhiteSpace([string]$s.geminiModel) -or [string]$s.geminiModel -match 'gemini-2\.0') {
+      if ($null -eq $s.PSObject.Properties['geminiModel'] -or [string]::IsNullOrWhiteSpace([string]$s.geminiModel) -or [string]$s.geminiModel -match 'gemini-2\.0|gemini-1\.5|gemini-1\.0') {
         $s | Add-Member -NotePropertyName geminiModel -NotePropertyValue $defaults.geminiModel -Force
       }
       if ($null -eq $s.PSObject.Properties['mode'] -or [string]::IsNullOrWhiteSpace([string]$s.mode)) {
@@ -2487,11 +2631,11 @@ function Start-GradeCurrent {
       $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
       [System.Windows.Forms.Application]::DoEvents()
       try {
-        $model = 'gemini-2.5-flash'
+        $model = 'gemini-3.5-flash'
         try {
           if ($script:settings.geminiModel) {
             $cand = [string]$script:settings.geminiModel
-            if ($cand -and $cand -notmatch 'gemini-2\.0|gemini-1\.5') { $model = $cand }
+            if ($cand -and $cand -notmatch 'gemini-2\.0|gemini-1\.5|gemini-1\.0') { $model = $cand }
           }
         } catch {}
         $result = Invoke-GeminiGenerateContent -ApiKey $key -Model $model -Prompt $p -FilePaths @($files.ToArray())

@@ -26,7 +26,7 @@
 4. 按鈕：
    - **Gemini自動批** → 批目前這份（有答案對照／無答案直接 AI）  
    - **連續自動批** → 未批學生依序全自動並存檔  
-5. 模型預設 **gemini-2.5-flash**
+5. 模型偏好 **gemini-3.5-flash**（會 ListModels 自動備援 3.x／2.5／flash-latest；「測試金鑰」會實際試 generateContent）
 
 > 舊版 `gemini-2.0-flash` 已於 2026-06-01 下線。「網頁批閱」不是自動。
 

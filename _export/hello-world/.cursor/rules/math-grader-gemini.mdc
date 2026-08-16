@@ -9,11 +9,13 @@ globs:
 
 # 習作批改 × Gemini（對照答案 或 直接 AI）
 
-- **預設 Gemini API 自動批**（`mode = gemini_auto`），模型 **`gemini-2.5-flash`**。
+- **預設 Gemini API 自動批**（`mode = gemini_auto`），預設模型偏好 **`gemini-3.5-flash`**；實際呼叫前會 **ListModels** 並依帳號可用清單自動換備援（含 3.7／3.6／2.5／`gemini-flash-latest`）。
 - **有正確答案 → 對照批**；**無正確答案 → 直接 AI 批**；兩者都自動（API），不擋流程。
 - 答案附件有就全部送出；沒有就只送學生卷。
 - 按鈕：**Gemini自動批**（單份）、**連續自動批**（未批依序全自動並存檔）。
-- `gemini-2.0-flash` 已於 2026-06-01 下線，禁止再當預設。
+- `gemini-2.0-flash`／`1.5` 已下線，禁止再當預設；若 settings 仍寫舊名會自動改寫。
+- 「測試金鑰」必須實際試 `generateContent`（不只 ListModels），並把可用模型寫回 `settings.geminiModel`。
+- 全部 404：多半是金鑰無權或過舊模型清單 → 到 aistudio.google.com/apikey 新建（建議限制 Generative Language API）。
 - 「網頁批閱」只開瀏覽器，**不是自動**；介面文案須標明「要手動貼」。
 - API key 存在本機 `MathGrading\gemini-api-key.txt`，禁止提交 Git。
 - 金鑰申請：https://aistudio.google.com/apikey（與網頁 Pro 訂閱分開）。
