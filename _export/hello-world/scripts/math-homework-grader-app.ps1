@@ -27,7 +27,7 @@ Add-Type -AssemblyName System.Drawing
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:PyMakePdf = Join-Path $script:ScriptDir 'math_grade_make_note_pdf.py'
 # 視窗標題會顯示；用來確認本機是否已裝到含 AQ. 金鑰支援的版本
-$script:AppBuild = '20260817-aq23'
+$script:AppBuild = '20260817-aq24'
 # also check beside installed copy
 if (-not (Test-Path -LiteralPath $script:PyMakePdf)) {
   $alt = Join-Path (Split-Path -Parent $script:ScriptDir) 'scripts\math_grade_make_note_pdf.py'
@@ -511,7 +511,7 @@ function Save-Note {
     '- 算式格式：國中課本直式（全形＋－＝、分數 a／b、……、①；禁止 LaTeX）'
     ''
     '## 題號註記'
-    $(if ($ItemsText) { $ItemsText } else { '（尚未填題號；格式例：1 ✓｜2 ✗ 計算錯｜3 ? 潦草）' })
+    $(if ($ItemsText) { $ItemsText } else { '（尚未填題號；格式例：1 ✓｜2 ✗ 計算錯｜只寫試卷上有的題）' })
     ''
     '## 對錯摘要'
     $(if ($Summary) { $Summary } else { '（初核摘要）' })
@@ -902,6 +902,71 @@ function Get-AnswerFiles([string]$root) {
   Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
     Where-Object { $_.Extension -match '\.(pdf|png|jpe?g|tif{1,2}|bmp|txt|md)$' } |
     Sort-Object Name
+}
+
+function Get-ExpectedQuestionCount([string]$root) {
+  # 從配分表／文字答案推估實際題數；推不出則 0（不硬加題）
+  $dir = Join-Path $root '標準答案'
+  if (-not (Test-Path -LiteralPath $dir)) { return 0 }
+  $maxQ = 0
+  $files = @(Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Extension -match '\.(txt|md)$' })
+  foreach ($f in $files) {
+    try {
+      $raw = Get-Content -LiteralPath $f.FullName -Encoding UTF8 -Raw
+    } catch { continue }
+    if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+    foreach ($m in [regex]::Matches($raw, '(?m)(?:^|\n)\s*(?:第\s*)?(\d{1,2})\s*[題\.、:：\)）\.]')) {
+      $n = 0
+      [void][int]::TryParse($m.Groups[1].Value, [ref]$n)
+      if ($n -gt $maxQ -and $n -le 40) { $maxQ = $n }
+    }
+    foreach ($m in [regex]::Matches($raw, '(?m)^\s*(\d{1,2})\s*[\)）]\s*\S')) {
+      $n = 0
+      [void][int]::TryParse($m.Groups[1].Value, [ref]$n)
+      if ($n -gt $maxQ -and $n -le 40) { $maxQ = $n }
+    }
+  }
+  return $maxQ
+}
+
+function Normalize-ItemMarksText {
+  param(
+    [string]$MarksText,
+    [int]$MaxQuestion = 0
+  )
+  if ([string]::IsNullOrWhiteSpace($MarksText)) { return '' }
+  $byNum = @{}
+  foreach ($ln in ($MarksText -split "`r?`n")) {
+    $t = $ln.Trim()
+    if ($t -match '^(\d{1,2})\s*([✓✗√×xX?？].*)$') {
+      $n = [int]$Matches[1]
+      if ($n -lt 1 -or $n -gt 40) { continue }
+      if ($MaxQuestion -gt 0 -and $n -gt $MaxQuestion) { continue }
+      $mark = $Matches[2].Trim()
+      # 統一 x/X → ✗
+      if ($mark -match '^[xX×]') { $mark = '✗' + $mark.Substring(1) }
+      if ($mark -match '^√') { $mark = '✓' + $mark.Substring(1) }
+      $byNum[$n] = ("{0} {1}" -f $n, $mark.Trim())
+    }
+  }
+  if ($byNum.Count -eq 0) { return '' }
+  $nums = @($byNum.Keys | Sort-Object)
+  # 若未指定上限，只用實際出現的題號（不自動補到 3）
+  $lines = New-Object System.Collections.ArrayList
+  foreach ($n in $nums) { [void]$lines.Add([string]$byNum[$n]) }
+  return ($lines -join "`r`n")
+}
+
+function Get-QuestionNumsFromMarks([string]$marksText) {
+  $nums = New-Object System.Collections.ArrayList
+  foreach ($ln in (($marksText -split "`r?`n"))) {
+    if ($ln -match '^\s*(\d{1,2})\s*[✓✗√×xX?？]') {
+      $n = [int]$Matches[1]
+      if ($nums -notcontains $n) { [void]$nums.Add($n) }
+    }
+  }
+  return @($nums | Sort-Object)
 }
 
 function Get-SettingsPath([string]$root) {
@@ -1370,13 +1435,19 @@ function Get-GeminiReplySection([string]$text, [int]$num) {
     if ($i -ge 1 -and $i -le 10) { [void]$nextParts.Add([regex]::Escape($circ[$i - 1])) }
   }
   $next = if ($nextParts.Count -gt 0) { '(?:' + ($nextParts -join '|') + ')' } else { '(?!)' }
-  $pat = '(?ms)(?:^|\n)[^\n\d]{0,12}' + $head + '\s*(.*?)(?=(?:^|\n)[^\n\d]{0,12}' + $next + '|\z)'
+  # 必須像章節標題：數字) 後面接標題字，避免誤切「2 ✗」
+  $pat = '(?ms)(?:^|\n)[ \t#*\-　]{0,8}' + $head + '(?![✓✗√×xX?？\d])\s*(.*?)(?=(?:^|\n)[ \t#*\-　]{0,8}' + $next + '(?![✓✗√×xX?？\d])|\z)'
   if ($text -match $pat) {
-    $body = $Matches[1].Trim()
-    # 去掉標題殘留「個別建議」單獨一行時仍保留其後內容
-    return $body
+    return (Strip-SectionTitlePrefix $Matches[1].Trim())
   }
   return ''
+}
+
+function Strip-SectionTitlePrefix([string]$body) {
+  if ([string]::IsNullOrWhiteSpace($body)) { return '' }
+  $b = $body.Trim()
+  $b = [regex]::Replace($b, '^(?:題號註記|對錯摘要|個別診斷結果|診斷結果|診斷|程度分級|程度|個別建議|短建議|依程度自學練習|依程度自學|自學練習)\s*[：:\)）\-—–]*\s*', '')
+  return $b.Trim()
 }
 
 function Get-GeminiKeywordBlock {
@@ -1388,9 +1459,9 @@ function Get-GeminiKeywordBlock {
   if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
   $startPat = '(?:' + (($StartKeys | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')'
   $stopPat = '(?:' + (($StopKeys | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')'
-  $pat = '(?ms)(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2}\s*)?' + $startPat + '\s*[：:\）\)]*\s*\*{0,2}\s*\n?(.*?)(?=(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2}\s*)?(?:' + $stopPat + '|\d+[)）]|[①-⑩])|\z)'
+  $pat = '(?ms)(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2}\s*|【\s*)?' + $startPat + '\s*(?:】)?\s*[：:\）\)]*\s*\*{0,2}\s*\n?(.*?)(?=(?:^|\n)\s*(?:#{1,6}\s*|\*{0,2}\s*|【\s*)?(?:' + $stopPat + ')|\z)'
   if ($Text -match $pat) {
-    $b = $Matches[1].Trim()
+    $b = Strip-SectionTitlePrefix $Matches[1].Trim()
     if ($b.Length -gt 0) { return $b }
   }
   return ''
@@ -1400,10 +1471,32 @@ function Get-ItemMarksFromText([string]$text) {
   $lines = New-Object System.Collections.ArrayList
   foreach ($ln in (($text -split "`r?`n"))) {
     $t = $ln.Trim()
-    if ($t -match '^\d+\s*[✓✗√×xX?？]') { [void]$lines.Add($t) }
+    # 只要「題號＋對錯符號」；不要把「3) 個別診斷」或練習「3. …」當題號註記
+    if ($t -match '^\d{1,2}\s*[✓✗√×xX?？]') { [void]$lines.Add($t) }
   }
   if ($lines.Count -gt 0) { return ($lines -join "`r`n") }
   return ''
+}
+
+function Strip-InventedQuestionMentions([string]$text, [int[]]$allowedNums) {
+  if ([string]::IsNullOrWhiteSpace($text)) { return $text }
+  if ($null -eq $allowedNums -or $allowedNums.Count -eq 0) { return $text }
+  $allow = @{}
+  foreach ($n in $allowedNums) { $allow[[int]$n] = $true }
+  $kept = New-Object System.Collections.ArrayList
+  foreach ($ln in ($text -split "`r?`n")) {
+    $drop = $false
+    foreach ($m in [regex]::Matches($ln, '第\s*(\d{1,2})\s*題')) {
+      $n = [int]$m.Groups[1].Value
+      if (-not $allow.ContainsKey($n)) { $drop = $true; break }
+    }
+    if (-not $drop -and $ln -match '^\s*(\d{1,2})\s*[✓✗√×xX?？]') {
+      $n = [int]$Matches[1]
+      if (-not $allow.ContainsKey($n)) { $drop = $true }
+    }
+    if (-not $drop) { [void]$kept.Add($ln) }
+  }
+  return (($kept -join "`r`n").Trim())
 }
 
 function Map-OverallFromGemini([string]$text) {
@@ -1422,10 +1515,19 @@ function Map-OverallFromGemini([string]$text) {
 }
 
 function Apply-GeminiReplyToForm([string]$text) {
-  # 先正規化換行，再分段；課本直式轉換放到各欄位，避免 5)→5）導致分段失敗
+  # 欄位對照（禁止錯位）：
+  # 題號註記 ← 1)／【題號註記】只取 ✓✗?
+  # 對錯摘要 ← 2)／【對錯摘要】
+  # 診斷結果 ← 3)／【個別診斷】（絕不可塞題號註記）
+  # 程度     ← 4)／程度：
+  # 個別建議 ← 5)／【個別建議】
+  # 自學練習 ← 6)／【自學練習】
   $raw = Convert-ToWinFormsText $text
   $script:SuppressPracticeAutoFill = $true
   try {
+    $maxQ = 0
+    try { $maxQ = [int](Get-ExpectedQuestionCount $script:WorkDir) } catch { $maxQ = 0 }
+
     $sec1 = Get-GeminiReplySection $raw 1
     $sec2 = Get-GeminiReplySection $raw 2
     $sec3 = Get-GeminiReplySection $raw 3
@@ -1433,40 +1535,74 @@ function Apply-GeminiReplyToForm([string]$text) {
     $sec5 = Get-GeminiReplySection $raw 5
     $sec6 = Get-GeminiReplySection $raw 6
 
+    # 以欄位名稱再補一次（比純數字穩，避免 1)～6) 與題號打架）
+    if (-not $sec1) {
+      $sec1 = Get-GeminiKeywordBlock -Text $raw -StartKeys @('題號註記') -StopKeys @(
+        '對錯摘要', '個別診斷', '診斷結果', '程度分級', '個別建議', '依程度自學', '自學練習', '自學指導'
+      )
+    }
+    if (-not $sec2) {
+      $sec2 = Get-GeminiKeywordBlock -Text $raw -StartKeys @('對錯摘要') -StopKeys @(
+        '題號註記', '個別診斷', '診斷結果', '程度分級', '個別建議', '依程度自學', '自學練習'
+      )
+    }
+    if (-not $sec3) {
+      $sec3 = Get-GeminiKeywordBlock -Text $raw -StartKeys @('個別診斷結果', '診斷結果', '個別診斷') -StopKeys @(
+        '題號註記', '對錯摘要', '程度分級', '個別建議', '依程度自學', '自學練習', '自學指導'
+      )
+    }
     if (-not $sec5) {
-      $sec5 = Get-GeminiKeywordBlock -Text $raw -StartKeys @(
-        '個別建議', '給學生的建議', '給家長的建議', '短建議'
-      ) -StopKeys @(
+      $sec5 = Get-GeminiKeywordBlock -Text $raw -StartKeys @('個別建議', '給學生的建議', '短建議') -StopKeys @(
         '依程度自學', '自學練習', '自學指導', '練習題', '解答', '題號註記', '對錯摘要', '個別診斷', '程度分級'
       )
     }
     if (-not $sec6) {
-      $sec6 = Get-GeminiKeywordBlock -Text $raw -StartKeys @(
-        '依程度自學練習', '依程度自學', '自學練習', '自學指導', '練習題'
-      ) -StopKeys @(
+      $sec6 = Get-GeminiKeywordBlock -Text $raw -StartKeys @('依程度自學練習', '依程度自學', '自學練習') -StopKeys @(
         '個別建議', '題號註記', '對錯摘要', '個別診斷', '程度分級', '總評'
       )
     }
 
+    # --- 題號註記：只留實際有批到的題，不預設第 3 題 ---
     $marks = Get-ItemMarksFromText $sec1
-    if (-not $marks) { $marks = Get-ItemMarksFromText $raw }
-    if ($marks) { $txtItems.Text = Convert-ToTextbookMath $marks }
-
-    if ($sec2) {
-      $txtSummary.Text = Convert-ToTextbookMath $sec2
+    if (-not $marks) { $marks = Get-ItemMarksFromText $sec2 }
+    # 禁止用全文掃描（會把別段內容捲進來造成錯位）
+    $marks = Normalize-ItemMarksText -MarksText $marks -MaxQuestion $maxQ
+    $allowed = @(Get-QuestionNumsFromMarks $marks)
+    if ($marks) {
+      $txtItems.Text = Convert-ToTextbookMath $marks
     } else {
-      $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾｜已轉國中課本直式）'
+      $txtItems.Text = '（尚無題號註記｜請依試卷實際題數填，例如：1 ✓）'
     }
 
+    # --- 對錯摘要 ---
+    if ($sec2 -and $sec2 -notmatch '^\s*題號註記') {
+      $sum = Strip-InventedQuestionMentions $sec2 $allowed
+      $txtSummary.Text = Convert-ToTextbookMath $sum
+    } else {
+      if ($allowed.Count -gt 0) {
+        $txtSummary.Text = ('已批題號：' + ($allowed -join '、') + '｜詳見診斷欄／輸出資料夾')
+      } else {
+        $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾）'
+      }
+    }
+
+    # --- 診斷結果：絕不可回填 sec1 題號註記 ---
+    $diag = ''
     if ($sec3) {
-      $txtDiagnosis.Text = Convert-ToTextbookMath $sec3
-    } elseif ($sec1 -or $sec2) {
-      $blob = (($sec1, $sec2, $sec4) | Where-Object { $_ } | ForEach-Object { $_ }) -join "`r`n`r`n"
-      $txtDiagnosis.Text = Convert-ToTextbookMath $blob
+      $diagLines = New-Object System.Collections.ArrayList
+      foreach ($ln in ($sec3 -split "`r?`n")) {
+        if ($ln -notmatch '^\s*\d{1,2}\s*[✓✗√×xX?？]') { [void]$diagLines.Add($ln) }
+      }
+      $diag = Strip-InventedQuestionMentions (($diagLines -join "`r`n").Trim()) $allowed
+      if ($diag -match '題號註記') { $diag = '' }
+    }
+    if ($diag) {
+      $txtDiagnosis.Text = Convert-ToTextbookMath $diag
     } else {
-      $txtDiagnosis.Text = Convert-ToTextbookMath $raw
+      $txtDiagnosis.Text = '（尚無診斷文字｜請看對錯摘要與題號註記）'
     }
 
+    # --- 程度 ---
     $lvBlob = ($sec4 + "`n" + $raw)
     if ($lvBlob -match '程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)') {
       $lv = $Matches[1]
@@ -1477,36 +1613,42 @@ function Apply-GeminiReplyToForm([string]$text) {
       if ($idx2 -ge 0) { $cmbLevel.SelectedIndex = $idx2 }
     }
 
-    $ov = Map-OverallFromGemini $raw
+    $ov = Map-OverallFromGemini (($marks + "`n" + $sec2 + "`n" + $raw))
     if ($ov) {
       $idx = $cmbOverall.Items.IndexOf($ov)
       if ($idx -ge 0) { $cmbOverall.SelectedIndex = $idx }
     }
 
-    if ($sec5) {
-      $adv = $sec5 -replace '^(?:個別建議|短建議)\s*[：:]\s*', ''
-      $txtAdvice.Text = Convert-ToTextbookMath $adv.Trim()
-    } elseif ([string]::IsNullOrWhiteSpace($txtAdvice.Text) -or $txtAdvice.Text -match '^\s*（') {
+    # --- 個別建議 ---
+    if ($sec5 -and $sec5 -notmatch '^\s*\d{1,2}\s*[✓✗]' -and $sec5 -notmatch '題號註記') {
+      $adv = Strip-InventedQuestionMentions $sec5 $allowed
+      $txtAdvice.Text = Convert-ToTextbookMath $adv
+    } elseif ([string]::IsNullOrWhiteSpace($txtAdvice.Text) -or $txtAdvice.Text -match '^\s*（|給學生') {
       $lvNow = [string]$cmbLevel.SelectedItem
       $txtAdvice.Text = switch ($lvNow) {
-        '跟上' { '已掌握本單元，可再挑戰稍難的應用題；維持正確書寫步驟。' }
-        '略落後' { '請針對錯題重練同類題 2～3 題，先求步驟完整再求速度。' }
+        '跟上' { '已掌握本卷題型，可再挑戰稍難的應用題；維持正確書寫步驟。' }
+        '略落後' { '請針對錯題重練同類題，先求步驟完整再求速度。' }
         '明顯落後' { '先補本單元關鍵觀念，每天少量練習並對照解答步驟。' }
-        '需補先備' { '先回到先備觀念（分數／方程式基礎），再做本單元基本題。' }
-        default { '請依診斷弱點重看例題步驟，再做 2 題同類練習。' }
+        '需補先備' { '先回到先備觀念，再做本單元基本題。' }
+        default { '請依診斷弱點重看例題步驟，再做同類練習。' }
       }
     }
 
-    if ($sec6) {
-      $prac = $sec6 -replace '^(?:依程度自學練習|自學練習)\s*[：:]\s*', ''
-      $txtPractice.Text = Convert-ToTextbookMath $prac.Trim()
+    # --- 自學練習（與試卷題號分開；練習題編號是練習用，不是多出試卷第 3 題）---
+    if ($sec6 -and $sec6 -notmatch '題號註記') {
+      $prac = Strip-InventedQuestionMentions $sec6 $allowed
+      # 若誤抓到超短或其實是建議，仍用模板
+      if ($prac.Length -ge 20) {
+        $txtPractice.Text = Convert-ToTextbookMath $prac
+      } else {
+        $lvNow = [string]$cmbLevel.SelectedItem
+        if (-not $lvNow -or $lvNow -eq '待判定') { $lvNow = '略落後' }
+        $txtPractice.Text = Get-PracticeTemplate $lvNow
+      }
     } else {
       $lvNow = [string]$cmbLevel.SelectedItem
-      if ($lvNow -and $lvNow -ne '待判定') {
-        $txtPractice.Text = Get-PracticeTemplate $lvNow
-      } elseif ([string]::IsNullOrWhiteSpace($txtPractice.Text) -or $txtPractice.Text -match '^\s*（') {
-        $txtPractice.Text = Get-PracticeTemplate '略落後'
-      }
+      if (-not $lvNow -or $lvNow -eq '待判定') { $lvNow = '略落後' }
+      $txtPractice.Text = Get-PracticeTemplate $lvNow
     }
   } finally {
     $script:SuppressPracticeAutoFill = $false
@@ -1547,7 +1689,7 @@ function Show-GeminiKeyDialog {
         )
       } catch {
         [void][System.Windows.Forms.MessageBox]::Show(
-          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq23 起，請先跑更新腳本。"),
+          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq24 起，請先跑更新腳本。"),
           '測試失敗'
         )
       }
@@ -2383,7 +2525,9 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
   [void]$sb.AppendLine('4) 程度分級：跟上／略落後／明顯落後／需補先備／待判定')
   [void]$sb.AppendLine('5) 個別建議（短）')
   [void]$sb.AppendLine('6) 依程度自學練習（請一次寫完整，我會存成數位練習給學生）：')
-  [void]$sb.AppendLine('【格式強制】必須依序出現「1)」「2)」「3)」「4)」「5)」「6)」六個標題；5) 與 6) 不可省略、不可改成其他編號。')
+  [void]$sb.AppendLine('【格式強制】必須依序出現「1)」「2)」「3)」「4)」「5)」「6)」六個標題；內容不可互相塞錯欄。')
+  [void]$sb.AppendLine('【題數強制】題號註記只能寫學生卷／正確答案上「實際出現」的題；禁止虛構第 3 題（若只有 1～2 題就只寫到實際題號）。')
+  [void]$sb.AppendLine('【對照】1)=題號註記 2)=對錯摘要 3)=診斷 4)=程度 5)=個別建議 6)=自學練習；練習題編號屬於第 6) 段，不是試卷多出的題。')
   [void]$sb.AppendLine('   a. 自學指導：短步驟／口訣／易錯提醒')
   [void]$sb.AppendLine('   b. 建議影片／學習連結：給 1～2 個；優先 https://www.youtube.com/results?search_query=編碼後關鍵詞 ；有把握才給具體影片 URL；禁止捏造網址')
   [void]$sb.AppendLine('   c. 練習題（先全部列出）')
@@ -2611,7 +2755,7 @@ $txtItems.Multiline = $true
 $txtItems.ScrollBars = 'Vertical'
 $txtItems.Location = New-Object System.Drawing.Point(120, 58)
 $txtItems.Size = New-Object System.Drawing.Size(580, 52)
-$txtItems.Text = "1 ✓`r`n2 ✗`r`n3 ?"
+$txtItems.Text = '（尚無題號註記｜依試卷實際題數填）'
 $grp.Controls.Add($txtItems)
 
 Add-L 116 '對錯摘要'
@@ -2745,7 +2889,7 @@ function Load-Selected {
     if ($n.level -and $cmbLevel.Items.Contains($n.level)) {
       $cmbLevel.SelectedItem = $n.level
     } else { $cmbLevel.SelectedIndex = 0 }
-    $txtItems.Text = $(if ($n.itemsText) { $n.itemsText } else { "1 ✓`r`n2 ✗`r`n3 ?" })
+    $txtItems.Text = $(if ($n.itemsText) { $n.itemsText } else { '（尚無題號註記｜依試卷實際題數填）' })
     $txtSummary.Text = [string]$n.summary
     $txtDiagnosis.Text = $(if ($n.diagnosis) { [string]$n.diagnosis } else { "弱點：`r`n是否跟上：" })
     $txtAdvice.Text = [string]$n.advice
