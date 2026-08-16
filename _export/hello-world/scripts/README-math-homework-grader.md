@@ -30,6 +30,16 @@
 
 > 舊版 `gemini-2.0-flash` 已於 2026-06-01 下線。「網頁批閱」不是自動。
 
+## 手機版也能 API 自動批
+
+頁面：`directory/apps/math-grader/`（PWA）
+
+1. **Gemini金鑰** → 貼 AI Studio API key（存這支手機）
+2. （可選）匯入正確答案
+3. 匯入學生卷 → 對應座號
+4. **Gemini自動批**／**連續自動批**
+5. 卡在「批改中」：用「改回未批」，不要只靠「開啟 Gemini 貼上批」（那是手動）
+
 ## 資料夾（桌面\MathGrading）
 
 ```

@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 # Minimal fix: download grader only into Desktop\MathGradingApp and refresh shortcut.
 $ErrorActionPreference = "Stop"
-$branch = "cursor/teacher-desk-scan-parity-c36c"
+$branch = "cursor/mobile-math-grader-auto-b582"
 $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 $url = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world/scripts/math-homework-grader-app.ps1?t=$ts"
 $desk = [Environment]::GetFolderPath("Desktop")

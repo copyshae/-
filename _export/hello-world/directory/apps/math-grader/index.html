@@ -49,8 +49,9 @@
     }
     input, select { min-height: 2.4rem; }
     input[type="number"] { width: 4.4rem; }
-    input[type="text"], select.grow { flex: 1; min-width: 7rem; }
+    input[type="text"], input[type="password"], select.grow { flex: 1; min-width: 7rem; }
     textarea { width: 100%; min-height: 8rem; font-size: 0.88rem; line-height: 1.45; }
+    textarea#preview { min-height: 11rem; }
     .filters { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
     .chip {
       border: 1px solid var(--line); background: rgba(255,255,255,0.6); padding: 0.35rem 0.55rem;
@@ -78,7 +79,9 @@
       display: block; width: 100%; text-align: center; padding: 0.8rem 1rem; border: none;
       background: var(--accent); color: #fff; font-weight: 600; cursor: pointer;
     }
+    .btn:disabled { opacity: 0.55; cursor: wait; }
     .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .btn.warn { background: transparent; color: #8b3a3a; border: 1px solid #c77; }
     .tips { font-size: 0.88rem; color: var(--muted); }
     .tips li { margin: 0.25rem 0 0.25rem 1.1rem; }
     .toast {
@@ -98,14 +101,30 @@
       border: 1px solid var(--accent); background: transparent; color: var(--accent);
     }
     .scan-item .btn-row button.primary { background: var(--accent); color: #fff; }
+    .key-status { font-size: 0.84rem; color: var(--muted); margin-top: 0.25rem; }
+    .key-status.ok { color: var(--accent); font-weight: 600; }
+    .busy {
+      position: fixed; inset: 0; background: rgba(26, 31, 28, 0.42); z-index: 30;
+      display: none; align-items: center; justify-content: center; padding: 1.2rem;
+    }
+    .busy.show { display: flex; }
+    .busy-card {
+      width: min(22rem, 100%); background: #f7fbf8; border: 1px solid var(--line);
+      padding: 1.1rem 1rem; color: var(--ink);
+    }
+    .busy-card strong {
+      display: block; font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.25rem; font-weight: 400; color: var(--accent); margin-bottom: 0.35rem;
+    }
+    .busy-card p { font-size: 0.9rem; color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="brand">習作批改</div>
-      <p class="lead">手機版：掌握進度、複製提示給 Gemini。電腦「習作批改」可真正自動：有答案對照／無答案直接 AI。</p>
-      <p class="install">Safari 開啟本頁 → 分享 → 往下找「加入主畫面」。含試發座號 00，人數預設到 35。</p>
+      <p class="lead">手機可真正自動批：設 Gemini API 金鑰 → 匯入試卷 → 按「Gemini自動批」。有答案就對照；沒有就直接 AI。</p>
+      <p class="install">Safari 開啟本頁 → 分享 →「加入主畫面」。金鑰存在這支手機（不會上傳 GitHub）。卡在「批改中」可按下方解除。</p>
       <p class="summary" id="summary">—</p>
     </header>
 
@@ -120,6 +139,23 @@
         <input id="seatCount" type="number" min="1" max="60" />
         <button type="button" class="btn secondary" id="btnApply" style="width:auto;padding:0.55rem 0.9rem">套用</button>
       </div>
+      <div class="row">
+        <label for="geminiKey">Gemini金鑰</label>
+        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio API key" />
+      </div>
+      <div class="actions" style="margin-top:0.35rem">
+        <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" class="btn secondary" id="btnOpenKeyPage">開 AI Studio 申請金鑰</button>
+        <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
+      </div>
+      <p class="key-status" id="keyStatus">尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）</p>
+      <div class="row" style="margin-top:0.7rem">
+        <label>正確答案</label>
+        <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
+        <button type="button" class="btn secondary" id="btnClearAnswer" style="width:auto;padding:0.45rem 0.75rem">清除答案</button>
+      </div>
+      <p class="tips" id="answerStatus">尚未匯入正確答案（可選；沒有也能直接 AI 批）</p>
+      <input class="hidden-file" id="fileAnswer" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
     </section>
 
     <section>
@@ -144,7 +180,7 @@
         <div class="row">
           <label for="level">程度</label>
           <select id="level" class="grow">
-            <option>未標</option><option>跟上</option><option>略落後</option><option>明顯落後</option><option>需補先備</option>
+            <option>未標</option><option>跟上</option><option>略落後</option><option>明顯落後</option><option>需補先備</option><option>待判定</option>
           </select>
         </div>
         <div class="row">
@@ -152,18 +188,24 @@
           <input id="note" type="text" maxlength="80" placeholder="勿填姓名" />
         </div>
         <div class="actions">
-          <button type="button" class="btn" id="btnSave">儲存此座號</button>
-          <button type="button" class="btn secondary" id="btnCopyOne">複製「請 AI 批此生」提示</button>
-          <button type="button" class="btn secondary" id="btnCopyHw">複製「手寫加強」提示</button>
-          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 貼上批</button>
+          <button type="button" class="btn" id="btnAutoOne">Gemini自動批（此座號）</button>
+          <button type="button" class="btn" id="btnAutoBatch">連續自動批（有卷未批）</button>
+          <button type="button" class="btn secondary" id="btnSave">儲存此座號</button>
+          <button type="button" class="btn warn" id="btnUnstick">此座號「批改中」改回未批</button>
+          <button type="button" class="btn secondary" id="btnCopyOne">複製「請 AI 批此生」提示（手動）</button>
+          <button type="button" class="btn secondary" id="btnCopyHw">複製「手寫加強」提示（手動）</button>
+          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 貼上批（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyReturn">複製「練習回傳再批」提示</button>
         </div>
+      </div>
+      <div class="actions" style="margin-top:0.7rem">
+        <button type="button" class="btn warn" id="btnUnstickAll">全部「批改中」改回未批</button>
       </div>
     </section>
 
     <section>
-      <h2>提示預覽</h2>
-      <textarea id="preview" readonly></textarea>
+      <h2>提示／批閱結果</h2>
+      <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 Gemini 回覆。"></textarea>
       <div class="actions">
         <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
       </div>
@@ -171,7 +213,7 @@
 
     <section id="scanSection">
       <h2>掃描／試卷匯入（CS）</h2>
-      <p class="tips">CS 匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號。正式 PDF 輸出仍回電腦「習作批改」。</p>
+      <p class="tips">CS 匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號 → 再按「Gemini自動批」。正式 PDF 輸出仍回電腦「習作批改」。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnPickScan">匯入 PDF／圖檔</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
@@ -185,11 +227,12 @@
     </section>
 
     <section>
-      <h2>和電腦怎麼分工</h2>
+      <h2>怎麼用才批得出來</h2>
       <ul class="tips">
-        <li>手機：匯入掃描、標進度、複製 Cursor 提示、到 Cursor／電腦貼上批。</li>
-        <li>電腦「習作批改.vbs」：載入標準答案、輸出註記 PDF、產數位練習。</li>
-        <li>批完要發練習：開手機／電腦「習作台」複製 LINE 群發文。</li>
+        <li>到 aistudio.google.com/apikey 申請金鑰（≠ 網頁 Gemini Pro）。</li>
+        <li>匯入學生卷（可選：正確答案）→ 對應座號 →「Gemini自動批」。</li>
+        <li>只按「開啟 Gemini 貼上批」不會自動完成，會一直停在批改中。</li>
+        <li>電腦版可輸出註記 PDF；手機負責當場自動批與掌握進度。</li>
       </ul>
     </section>
 
@@ -199,13 +242,23 @@
     </p>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <div class="busy" id="busy" aria-live="polite">
+    <div class="busy-card">
+      <strong id="busyTitle">批閱中</strong>
+      <p id="busyMsg">請稍候，不要關頁。</p>
+    </div>
+  </div>
 
   <script>
     (function () {
       var KEY = "math-grader-v1";
+      var KEY_API = "math-grader-gemini-key";
       var selected = null;
       var filter = "all";
+      var grading = false;
+      var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-pro"];
       var STATUSES = ["未批", "批改中", "已批", "待認知", "待重謄"];
+      var LEVELS = ["未標", "跟上", "略落後", "明顯落後", "需補先備", "待判定"];
 
       function def() {
         return { classLabel: "本班數學", seatCount: 35, seats: {} };
@@ -256,7 +309,39 @@
         el.textContent = msg;
         el.classList.add("show");
         clearTimeout(toast._t);
-        toast._t = setTimeout(function () { el.classList.remove("show"); }, 2200);
+        toast._t = setTimeout(function () { el.classList.remove("show"); }, 2600);
+      }
+
+      function setBusy(on, title, msg) {
+        var el = document.getElementById("busy");
+        document.getElementById("busyTitle").textContent = title || "批閱中";
+        document.getElementById("busyMsg").textContent = msg || "請稍候，不要關頁。";
+        el.classList.toggle("show", !!on);
+        grading = !!on;
+        ["btnAutoOne", "btnAutoBatch", "btnSaveKey"].forEach(function (id) {
+          var b = document.getElementById(id);
+          if (b) b.disabled = !!on;
+        });
+      }
+
+      function getApiKey() {
+        try { return (localStorage.getItem(KEY_API) || "").trim(); } catch (e) { return ""; }
+      }
+      function setApiKey(k) {
+        k = (k || "").trim();
+        if (k) localStorage.setItem(KEY_API, k);
+        else localStorage.removeItem(KEY_API);
+        refreshKeyStatus();
+      }
+      function refreshKeyStatus() {
+        var el = document.getElementById("keyStatus");
+        var has = !!getApiKey();
+        el.textContent = has
+          ? "已儲存金鑰（僅此裝置）。可開始 Gemini 自動批。"
+          : "尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）";
+        el.classList.toggle("ok", has);
+        var inp = document.getElementById("geminiKey");
+        if (has && !inp.value) inp.placeholder = "••••••••（已儲存，要換再貼）";
       }
 
       function matchFilter(s) {
@@ -320,8 +405,19 @@
           "5) 個別建議\n" +
           "6) 依程度自學練習（指導＋影片搜尋＋題＋解答）\n\n" +
           "座號：" + id + "\n" +
-          "班級：" + state.classLabel + "\n" +
-          "請一併參考標準答案與學生試卷檔。"
+          "班級：" + state.classLabel + "\n"
+        );
+      }
+
+      function buildAutoPrompt(id, hasAns, hard) {
+        var mode = hasAns
+          ? "【模式】對照正確答案\n【已附檔】學生試卷＋正確答案。\n【必做】先看正確答案，再對學生卷逐題判 ✓／✗／?；等價解法可給 ✓。\n"
+          : "【模式】直接 AI 批閱（未附正確答案檔）\n【已附檔】學生試卷。\n【必做】依題意與數學正確性逐題判 ✓／✗／?；等價解法可給 ✓；看不清標 ?。\n";
+        return (
+          "【任務】你是數學老師助理，用 Google Gemini 自動批閱。\n" +
+          mode +
+          "【禁止】不要要我再貼檔。\n\n" +
+          buildPromptOne(id, !!hard)
         );
       }
 
@@ -336,6 +432,20 @@
         );
       }
 
+      function selectSeat(id) {
+        selected = id;
+        var s = state.seats[id];
+        if (!s) return;
+        document.getElementById("editPanel").hidden = false;
+        document.getElementById("editTitle").textContent = id === "00" ? "座號 00（試發）" : ("座號 " + id);
+        document.getElementById("gradeStatus").value = s.status;
+        document.getElementById("level").value = LEVELS.indexOf(s.level) >= 0 ? s.level : "未標";
+        document.getElementById("note").value = s.note || "";
+        if (s.lastReply) document.getElementById("preview").value = s.lastReply;
+        else document.getElementById("preview").value = buildPromptOne(id);
+        renderGrid();
+      }
+
       function renderGrid() {
         var grid = document.getElementById("grid");
         grid.innerHTML = "";
@@ -346,16 +456,7 @@
           var show = matchFilter(s);
           b.className = "seat st-" + s.status + (selected === id ? " active" : "") + (show ? "" : " dim") + (id === "00" ? " trial" : "");
           b.innerHTML = '<span class="sid">' + (id === "00" ? "00試發" : id) + '</span><span class="st">' + s.status + "</span>";
-          b.addEventListener("click", function () {
-            selected = id;
-            document.getElementById("editPanel").hidden = false;
-            document.getElementById("editTitle").textContent = id === "00" ? "座號 00（試發）" : ("座號 " + id);
-            document.getElementById("gradeStatus").value = s.status;
-            document.getElementById("level").value = s.level || "未標";
-            document.getElementById("note").value = s.note || "";
-            document.getElementById("preview").value = buildPromptOne(id);
-            renderGrid();
-          });
+          b.addEventListener("click", function () { selectSeat(id); });
           grid.appendChild(b);
         });
         summary();
@@ -383,6 +484,317 @@
         }
       }
 
+      function abToBase64(buf) {
+        var bytes = new Uint8Array(buf instanceof ArrayBuffer ? buf : buf.buffer || buf);
+        var chunk = 0x8000;
+        var binary = "";
+        for (var i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      }
+
+      function normalizeMime(name, type) {
+        var t = (type || "").toLowerCase();
+        if (t && t !== "application/octet-stream") return t;
+        var m = /\.([a-z0-9]+)$/i.exec(name || "");
+        var ext = m ? m[1].toLowerCase() : "";
+        if (ext === "png") return "image/png";
+        if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+        if (ext === "gif") return "image/gif";
+        if (ext === "webp") return "image/webp";
+        if (ext === "heic") return "image/heic";
+        if (ext === "heif") return "image/heif";
+        if (ext === "pdf") return "application/pdf";
+        return "application/octet-stream";
+      }
+
+      function recToPart(rec) {
+        var buf = rec.buffer;
+        var ab = buf instanceof ArrayBuffer ? buf : (buf && buf.buffer ? buf.buffer : null);
+        if (!ab) throw new Error("掃描檔內容損毀，請重新匯入");
+        if (ab.byteLength > 18 * 1024 * 1024) throw new Error("檔案太大（" + (rec.name || "") + "），請先壓縮或改拍清晰照片");
+        return {
+          inline_data: {
+            mime_type: normalizeMime(rec.name, rec.type),
+            data: abToBase64(ab)
+          }
+        };
+      }
+
+      async function callGemini(apiKey, prompt, fileRecs) {
+        var parts = [{ text: prompt }];
+        (fileRecs || []).forEach(function (rec) { parts.push(recToPart(rec)); });
+        var payload = {
+          contents: [{ role: "user", parts: parts }],
+          generationConfig: { temperature: 0.2 }
+        };
+        var lastErr = null;
+        var tried = [];
+        for (var i = 0; i < MODELS.length; i++) {
+          var model = MODELS[i];
+          tried.push(model);
+          var uri = "https://generativelanguage.googleapis.com/v1beta/models/" +
+            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          try {
+            var res = await fetch(uri, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+            var raw = await res.text();
+            var data = null;
+            try { data = JSON.parse(raw); } catch (e) {}
+            if (!res.ok) {
+              var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+              if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { lastErr = new Error(msg); continue; }
+              if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
+                throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
+              }
+              if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(msg)) {
+                lastErr = new Error(msg); continue;
+              }
+              throw new Error(msg);
+            }
+            var text = "";
+            var cands = (data && data.candidates) || [];
+            cands.forEach(function (c) {
+              (((c.content || {}).parts) || []).forEach(function (p) {
+                if (p.text) text += p.text;
+              });
+            });
+            if (!text.trim()) throw new Error("Gemini 沒有回傳文字（model=" + model + "）");
+            return { text: text, model: model };
+          } catch (err) {
+            lastErr = err;
+            var m = String(err && err.message || err);
+            if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(m) &&
+                !/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) {
+              continue;
+            }
+            throw err;
+          }
+        }
+        throw new Error(
+          (lastErr && lastErr.message ? lastErr.message + "\n\n" : "") +
+          "已嘗試模型：" + tried.join(", ") + "\n請確認網路與金鑰；預設應用 gemini-2.5-flash。"
+        );
+      }
+
+      function applyReplyToSeat(id, text, model) {
+        var s = state.seats[id];
+        if (!s) return;
+        var lv = null;
+        var m = text.match(/程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)/);
+        if (m) lv = m[1];
+        if (!lv && /完全正確|全對|100\s*分/.test(text)) lv = "跟上";
+        if (lv && LEVELS.indexOf(lv) >= 0) s.level = lv;
+        if (/\?{2,}|待判定|看不清/.test(text) && /程度[：:\s]*待判定/.test(text)) {
+          s.status = "待認知";
+        } else {
+          s.status = "已批";
+        }
+        s.note = ("Gemini " + (model || "")).trim().slice(0, 40);
+        s.lastReply = text;
+        s.lastModel = model || "";
+        s.lastGradedAt = Date.now();
+        document.getElementById("gradeStatus").value = s.status;
+        document.getElementById("level").value = s.level || "未標";
+        document.getElementById("note").value = s.note || "";
+        document.getElementById("preview").value = text;
+        save(state);
+        renderGrid();
+      }
+
+      /* IndexedDB: scans + answers */
+      var DB_NAME = "math-grader-scans";
+      var DB_STORE = "inbox";
+      var ANS_STORE = "answers";
+      function openScanDb() {
+        return new Promise(function (resolve, reject) {
+          var req = indexedDB.open(DB_NAME, 2);
+          req.onupgradeneeded = function () {
+            var db = req.result;
+            if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: "id" });
+            if (!db.objectStoreNames.contains(ANS_STORE)) db.createObjectStore(ANS_STORE, { keyPath: "id" });
+          };
+          req.onsuccess = function () { resolve(req.result); };
+          req.onerror = function () { reject(req.error); };
+        });
+      }
+      function storeAll(storeName) {
+        return openScanDb().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(storeName, "readonly");
+            var req = tx.objectStore(storeName).getAll();
+            req.onsuccess = function () {
+              var rows = req.result || [];
+              rows.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+              resolve(rows);
+            };
+            req.onerror = function () { reject(req.error); };
+          });
+        });
+      }
+      function storePut(storeName, rec) {
+        return openScanDb().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(storeName, "readwrite");
+            tx.objectStore(storeName).put(rec);
+            tx.oncomplete = function () { resolve(); };
+            tx.onerror = function () { reject(tx.error); };
+          });
+        });
+      }
+      function storeClear(storeName) {
+        return openScanDb().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(storeName, "readwrite");
+            tx.objectStore(storeName).clear();
+            tx.oncomplete = function () { resolve(); };
+            tx.onerror = function () { reject(tx.error); };
+          });
+        });
+      }
+      function scanAll() { return storeAll(DB_STORE); }
+      function scanPut(rec) { return storePut(DB_STORE, rec); }
+      function scanDel(id) {
+        return openScanDb().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(DB_STORE, "readwrite");
+            tx.objectStore(DB_STORE).delete(id);
+            tx.oncomplete = function () { resolve(); };
+            tx.onerror = function () { reject(tx.error); };
+          });
+        });
+      }
+      function answerAll() { return storeAll(ANS_STORE); }
+      function refreshAnswerStatus() {
+        return answerAll().then(function (rows) {
+          var el = document.getElementById("answerStatus");
+          el.textContent = rows.length
+            ? ("已匯入正確答案 " + rows.length + " 個（自動批會一併送出）")
+            : "尚未匯入正確答案（可選；沒有也能直接 AI 批）";
+        }).catch(function () {});
+      }
+
+      function bufferToBlob(rec) {
+        var buf = rec.buffer;
+        if (buf instanceof ArrayBuffer) return new Blob([buf], { type: rec.type || "application/octet-stream" });
+        if (buf && buf.buffer) return new Blob([buf.buffer], { type: rec.type || "application/octet-stream" });
+        return new Blob([buf], { type: rec.type || "application/octet-stream" });
+      }
+      function extOf(name, type) {
+        var m = /\.([a-z0-9]+)$/i.exec(name || "");
+        if (m) return m[1].toLowerCase();
+        if (type && type.indexOf("pdf") >= 0) return "pdf";
+        return "jpg";
+      }
+      function outName(seatId, name, type) {
+        return (seatId || "00") + "-試卷." + extOf(name, type);
+      }
+
+      function latestScanForSeat(rows, seatId) {
+        for (var i = 0; i < rows.length; i++) {
+          if ((rows[i].seatId || "") === seatId) return rows[i];
+        }
+        return null;
+      }
+
+      async function gradeSeat(id, opts) {
+        opts = opts || {};
+        var key = getApiKey();
+        if (!key) throw new Error("尚未設定 Gemini API 金鑰");
+        var scans = await scanAll();
+        var scan = latestScanForSeat(scans, id);
+        if (!scan) throw new Error("座號 " + id + " 還沒有匯入試卷。請先「匯入 PDF／圖檔」並對應座號。");
+        var answers = await answerAll();
+        var hard = !!opts.hard;
+        var prompt = buildAutoPrompt(id, answers.length > 0, hard);
+        state.seats[id].status = "批改中";
+        save(state);
+        renderGrid();
+        document.getElementById("preview").value = "正在呼叫 Gemini…\n座號 " + id + "\n檔案：" + (scan.name || "");
+        var files = [scan].concat(answers);
+        var result = await callGemini(key, prompt, files);
+        applyReplyToSeat(id, result.text, result.model);
+        return result;
+      }
+
+      async function gradeOneFlow() {
+        if (grading) return;
+        if (!selected) { toast("請先點座號"); return; }
+        if (!getApiKey()) {
+          toast("請先儲存 Gemini 金鑰");
+          document.getElementById("geminiKey").focus();
+          return;
+        }
+        persistHeader();
+        setBusy(true, "批閱中", "座號 " + selected + "：上傳試卷並請 Gemini 批改…");
+        try {
+          var r = await gradeSeat(selected);
+          toast("座號 " + selected + " 已批完（" + r.model + "）");
+          selectSeat(selected);
+        } catch (err) {
+          document.getElementById("preview").value = "自動批失敗：\n" + (err && err.message ? err.message : String(err));
+          toast("自動批失敗，見上方說明");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function gradeBatchFlow() {
+        if (grading) return;
+        if (!getApiKey()) {
+          toast("請先儲存 Gemini 金鑰");
+          document.getElementById("geminiKey").focus();
+          return;
+        }
+        persistHeader();
+        var scans = await scanAll();
+        var queue = Object.keys(state.seats).sort().filter(function (id) {
+          var st = state.seats[id].status;
+          if (st !== "未批" && st !== "批改中") return false;
+          return !!latestScanForSeat(scans, id);
+        });
+        if (!queue.length) {
+          toast("沒有「有卷且未批／批改中」的座號");
+          return;
+        }
+        if (!window.confirm("將連續自動批 " + queue.length + " 份（有卷且未批／批改中）。中途失敗會停下。開始？")) return;
+        setBusy(true, "連續自動批", "共 " + queue.length + " 份，請保持畫面開啟。");
+        var done = 0;
+        try {
+          for (var i = 0; i < queue.length; i++) {
+            var id = queue[i];
+            setBusy(true, "連續自動批", "進度 " + (i + 1) + "/" + queue.length + "｜座號 " + id);
+            await gradeSeat(id);
+            done++;
+          }
+          toast("連續自動批完成：" + done + " 份");
+        } catch (err) {
+          document.getElementById("preview").value =
+            "連續自動批在座號 " + (queue[done] || "?") + " 停下：\n" +
+            (err && err.message ? err.message : String(err)) +
+            "\n\n已完成 " + done + " 份。修好後再按一次即可繼續。";
+          toast("連續自動批中斷（已完成 " + done + "）");
+        } finally {
+          setBusy(false);
+          if (selected) selectSeat(selected);
+          else renderGrid();
+        }
+      }
+
+      function unstickSeat(id) {
+        if (!state.seats[id]) return;
+        if (state.seats[id].status === "批改中") {
+          state.seats[id].status = "未批";
+          save(state);
+          if (selected === id) document.getElementById("gradeStatus").value = "未批";
+          renderGrid();
+        }
+      }
+
       document.getElementById("filters").addEventListener("click", function (e) {
         var t = e.target;
         if (!t.classList.contains("chip")) return;
@@ -400,6 +812,60 @@
         toast("已套用（含 00～" + String(state.seatCount).padStart(2, "0") + "）");
       });
 
+      document.getElementById("btnSaveKey").addEventListener("click", function () {
+        var k = document.getElementById("geminiKey").value.trim();
+        if (!k) { toast("請先貼上 API key"); return; }
+        setApiKey(k);
+        document.getElementById("geminiKey").value = "";
+        toast("金鑰已存這支手機");
+      });
+      document.getElementById("btnClearKey").addEventListener("click", function () {
+        setApiKey("");
+        document.getElementById("geminiKey").value = "";
+        toast("已清除金鑰");
+      });
+      document.getElementById("btnOpenKeyPage").addEventListener("click", function () {
+        window.open("https://aistudio.google.com/apikey", "_blank", "noopener,noreferrer");
+      });
+
+      document.getElementById("btnPickAnswer").addEventListener("click", function () {
+        document.getElementById("fileAnswer").click();
+      });
+      document.getElementById("fileAnswer").addEventListener("change", function (e) {
+        var files = Array.prototype.slice.call(e.target.files || []);
+        e.target.value = "";
+        if (!files.length) return;
+        var now = Date.now();
+        var chain = Promise.resolve();
+        files.forEach(function (f, i) {
+          chain = chain.then(function () {
+            return f.arrayBuffer().then(function (buf) {
+              return storePut(ANS_STORE, {
+                id: "ans-" + now + "-" + i,
+                name: f.name || ("answer-" + (i + 1)),
+                type: f.type || "application/octet-stream",
+                size: buf.byteLength,
+                buffer: buf,
+                createdAt: now + i
+              });
+            });
+          });
+        });
+        chain.then(function () {
+          toast("已匯入答案 " + files.length + " 個");
+          return refreshAnswerStatus();
+        }).catch(function (err) {
+          toast("答案匯入失敗");
+          document.getElementById("preview").value = String(err && err.message || err);
+        });
+      });
+      document.getElementById("btnClearAnswer").addEventListener("click", function () {
+        storeClear(ANS_STORE).then(function () {
+          toast("已清除正確答案");
+          refreshAnswerStatus();
+        });
+      });
+
       document.getElementById("btnSave").addEventListener("click", function () {
         if (!selected) return;
         persistHeader();
@@ -411,13 +877,34 @@
         toast("已儲存座號 " + selected);
       });
 
+      document.getElementById("btnAutoOne").addEventListener("click", gradeOneFlow);
+      document.getElementById("btnAutoBatch").addEventListener("click", gradeBatchFlow);
+      document.getElementById("btnUnstick").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        unstickSeat(selected);
+        toast("座號 " + selected + " 已改回未批");
+      });
+      document.getElementById("btnUnstickAll").addEventListener("click", function () {
+        var n = 0;
+        Object.keys(state.seats).forEach(function (id) {
+          if (state.seats[id].status === "批改中") {
+            state.seats[id].status = "未批";
+            n++;
+          }
+        });
+        save(state);
+        if (selected) document.getElementById("gradeStatus").value = state.seats[selected].status;
+        renderGrid();
+        toast(n ? ("已把 " + n + " 個「批改中」改回未批") : "目前沒有批改中");
+      });
+
       document.getElementById("btnCopyOne").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
         state.seats[selected].status = "批改中";
         save(state);
         renderGrid();
-        copyText(buildPromptOne(selected, false), "已複製批閱提示 → 可貼到 Gemini 或 Cursor");
+        copyText(buildPromptOne(selected, false), "已複製（手動貼）。真正自動請用「Gemini自動批」");
       });
 
       document.getElementById("btnCopyHw").addEventListener("click", function () {
@@ -426,7 +913,7 @@
         state.seats[selected].status = "批改中";
         save(state);
         renderGrid();
-        copyText(buildPromptOne(selected, true), "已複製手寫加強提示 → 可貼到 Gemini 或 Cursor");
+        copyText(buildPromptOne(selected, true), "已複製手寫加強提示（手動）");
       });
 
       document.getElementById("btnOpenGemini").addEventListener("click", function () {
@@ -435,13 +922,12 @@
         state.seats[selected].status = "批改中";
         save(state);
         renderGrid();
-        var hard = true;
         copyText(
           "【任務】用 Google Gemini 批閱。\n" +
           "【模式】有正確答案就對照；沒有就直接 AI 批。\n" +
           "【請上傳】學生試卷（＋正確答案若有）。\n" +
-          "【必做】逐題判 ✓／✗／?；等價解法可給 ✓。\n\n" + buildPromptOne(selected, hard),
-          "已複製 → 開 Gemini，上傳學生卷（答案可選）"
+          "【必做】逐題判 ✓／✗／?；等價解法可給 ✓。\n\n" + buildPromptOne(selected, true),
+          "已複製 → 開 Gemini 手動貼。想免手動請用「Gemini自動批」"
         );
         window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
       });
@@ -455,70 +941,6 @@
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
         copyText(document.getElementById("preview").value || "", "已複製");
       });
-
-      /* scans */
-      var DB_NAME = "math-grader-scans";
-      var DB_STORE = "inbox";
-      function openScanDb() {
-        return new Promise(function (resolve, reject) {
-          var req = indexedDB.open(DB_NAME, 1);
-          req.onupgradeneeded = function () {
-            var db = req.result;
-            if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: "id" });
-          };
-          req.onsuccess = function () { resolve(req.result); };
-          req.onerror = function () { reject(req.error); };
-        });
-      }
-      function scanAll() {
-        return openScanDb().then(function (db) {
-          return new Promise(function (resolve, reject) {
-            var tx = db.transaction(DB_STORE, "readonly");
-            var req = tx.objectStore(DB_STORE).getAll();
-            req.onsuccess = function () {
-              var rows = req.result || [];
-              rows.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-              resolve(rows);
-            };
-            req.onerror = function () { reject(req.error); };
-          });
-        });
-      }
-      function scanPut(rec) {
-        return openScanDb().then(function (db) {
-          return new Promise(function (resolve, reject) {
-            var tx = db.transaction(DB_STORE, "readwrite");
-            tx.objectStore(DB_STORE).put(rec);
-            tx.oncomplete = function () { resolve(); };
-            tx.onerror = function () { reject(tx.error); };
-          });
-        });
-      }
-      function scanDel(id) {
-        return openScanDb().then(function (db) {
-          return new Promise(function (resolve, reject) {
-            var tx = db.transaction(DB_STORE, "readwrite");
-            tx.objectStore(DB_STORE).delete(id);
-            tx.oncomplete = function () { resolve(); };
-            tx.onerror = function () { reject(tx.error); };
-          });
-        });
-      }
-      function bufferToBlob(rec) {
-        var buf = rec.buffer;
-        if (buf instanceof ArrayBuffer) return new Blob([buf], { type: rec.type || "application/octet-stream" });
-        if (buf && buf.buffer) return new Blob([buf.buffer], { type: rec.type || "application/octet-stream" });
-        return new Blob([buf], { type: rec.type || "application/octet-stream" });
-      }
-      function extOf(name, type) {
-        var m = /\.([a-z0-9]+)$/i.exec(name || "");
-        if (m) return m[1].toLowerCase();
-        if (type && type.indexOf("pdf") >= 0) return "pdf";
-        return "jpg";
-      }
-      function outName(seatId, name, type) {
-        return (seatId || "00") + "-試卷." + extOf(name, type);
-      }
 
       function renderScans() {
         return scanAll().then(function (rows) {
@@ -535,7 +957,8 @@
               '<div class="tips">原檔：' + (rec.name || "") + "</div>" +
               '<div class="row"><label>座號</label><select class="grow seat-pick"></select></div>' +
               '<div class="btn-row">' +
-              '<button type="button" class="primary act-save">對應並標批改中</button>' +
+              '<button type="button" class="primary act-save">對應座號</button>' +
+              '<button type="button" class="primary act-grade">對應並自動批</button>' +
               '<button type="button" class="act-dl">下載</button>' +
               '<button type="button" class="act-del">刪</button></div>';
             var seatPick = li.querySelector(".seat-pick");
@@ -548,19 +971,22 @@
             seatPick.addEventListener("change", function () {
               li.querySelector("strong").textContent = outName(seatPick.value, rec.name, rec.type);
             });
-            li.querySelector(".act-save").addEventListener("click", function () {
+            function assignSeat() {
               rec.seatId = seatPick.value;
-              if (state.seats[rec.seatId]) {
-                state.seats[rec.seatId].status = "批改中";
-                save(state);
-                renderGrid();
-              }
-              scanPut(rec).then(function () {
+              return scanPut(rec).then(function () {
                 selected = rec.seatId;
-                document.getElementById("preview").value = buildPromptOne(rec.seatId);
-                toast("已對應 " + rec.seatId + "，可複製 Cursor 提示");
-                renderScans();
+                if (state.seats[rec.seatId] && state.seats[rec.seatId].status === "未批") {
+                  /* keep 未批 until auto-grade starts */
+                }
+                selectSeat(rec.seatId);
+                return renderScans();
               });
+            }
+            li.querySelector(".act-save").addEventListener("click", function () {
+              assignSeat().then(function () { toast("已對應 " + rec.seatId + "，可按 Gemini自動批"); });
+            });
+            li.querySelector(".act-grade").addEventListener("click", function () {
+              assignSeat().then(function () { return gradeOneFlow(); });
             });
             li.querySelector(".act-dl").addEventListener("click", function () {
               var a = document.createElement("a");
@@ -613,15 +1039,18 @@
 
       syncForm();
       fillSeatSelect();
+      refreshKeyStatus();
+      refreshAnswerStatus();
       renderGrid();
       renderScans();
       if (location.search.indexOf("inbox=1") >= 0) {
-        toast("已收到分享檔，請對應座號");
+        toast("已收到分享檔，請對應座號後自動批");
         document.getElementById("scanSection").scrollIntoView({ behavior: "smooth" });
         history.replaceState({}, "", "./index.html");
       }
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").then(function () {
+        navigator.serviceWorker.register("./sw.js").then(function (reg) {
+          try { reg.update(); } catch (e) {}
           setTimeout(renderScans, 400);
         }).catch(function () {});
       }

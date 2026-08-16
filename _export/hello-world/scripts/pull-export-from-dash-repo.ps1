@@ -2,7 +2,7 @@
 # Pull latest export from copyshae/- branch into Desktop\hello-world and reinstall.
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
-$branch = "cursor/teacher-desk-scan-parity-c36c"
+$branch = "cursor/mobile-math-grader-auto-b582"
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
