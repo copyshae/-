@@ -226,6 +226,52 @@
       </div>
     </section>
 
+    <section id="afterGrade">
+      <h2>批完後續（依學習日誌 0803）</h2>
+      <p class="tips">批閱後應接：自產練習 → 發放 → 練習回傳循環 → 歷程。手機可先完成文案／歷程；正式 PDF／數位練習包仍可用電腦「習作批改」。</p>
+      <div class="actions">
+        <button type="button" class="btn" id="btnFillPractice">依程度給練習模板</button>
+        <button type="button" class="btn secondary" id="btnPracticeGuide">自產練習說明</button>
+        <button type="button" class="btn secondary" id="btnCopyLineMsg">複製此生發放訊息</button>
+        <button type="button" class="btn secondary" id="btnPushDesk">寫入習作台程度</button>
+        <button type="button" class="btn secondary" id="btnOpenDesk">開啟習作台發放</button>
+      </div>
+      <div class="panel" id="loopPanel" style="margin-top:0.7rem">
+        <h2 style="font-size:1.1rem;margin-bottom:0.45rem">練習回傳循環</h2>
+        <p class="tips" id="loopPace">選座號後依程度顯示節奏提示。</p>
+        <div class="row">
+          <label for="loopRound">次數 R</label>
+          <input id="loopRound" type="number" min="1" max="99" value="1" />
+          <label for="loopScore">分數</label>
+          <input id="loopScore" type="number" min="0" step="0.5" value="0" style="width:4.2rem" />
+          <span class="tips">／</span>
+          <input id="loopMax" type="number" min="1" step="0.5" value="100" style="width:4.2rem" />
+          <label for="loopTarget">目標%</label>
+          <input id="loopTarget" type="number" min="1" max="100" value="80" style="width:3.6rem" />
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="loopMet" /> 階段成功</label>
+        </div>
+        <div class="row">
+          <label for="loopGoal">學習目標</label>
+          <input id="loopGoal" type="text" class="grow" maxlength="120" style="flex:1;min-width:10rem" />
+        </div>
+        <label for="loopProblems" class="tips">問題點</label>
+        <textarea id="loopProblems" style="min-height:4rem;margin-top:0.25rem" placeholder="本輪問題點"></textarea>
+        <label for="loopFeedback" class="tips">回饋說明</label>
+        <textarea id="loopFeedback" style="min-height:4rem;margin-top:0.25rem" placeholder="先寫做對的 → 再寫下一步一小步"></textarea>
+        <label for="loopNext" class="tips">下一輪練習（指導＋題＋解答＋影片搜尋）</label>
+        <textarea id="loopNext" style="min-height:8rem;margin-top:0.25rem" placeholder="可貼 Gemini 產出的下一輪練習"></textarea>
+        <div class="actions">
+          <button type="button" class="btn" id="btnSaveLoop">儲存本輪＋下一輪練習</button>
+          <button type="button" class="btn secondary" id="btnCopyReturn2">複製「練習回傳再批」提示</button>
+          <button type="button" class="btn secondary" id="btnShowHist">開歷程</button>
+          <button type="button" class="btn secondary" id="btnDlPractice">下載本輪練習（HTML）</button>
+        </div>
+        <p class="tips" id="histSummary">尚無歷程。</p>
+      </div>
+    </section>
+
     <section id="scanSection">
       <h2>掃描／試卷匯入（掃描王）</h2>
       <p class="tips">掃描王匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號 → 再按「Gemini自動批」。正式 PDF 輸出仍回電腦「習作批改」。</p>
@@ -247,6 +293,7 @@
         <li>預設「快速批」；要詳細診斷再改「完整批」。</li>
         <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
         <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
+        <li>批完後用下方「批完後續」：練習模板／發放訊息／寫入習作台／練習回傳循環。</li>
         <li>只按「開啟 Gemini 貼上批」不會自動完成，又慢又會卡在批改中。</li>
       </ul>
     </section>
@@ -520,6 +567,207 @@
         );
       }
 
+      function isBehindLevel(lv) {
+        return lv === "明顯落後" || lv === "需補先備";
+      }
+
+      function getPracticeTemplate(level) {
+        if (level === "跟上") {
+          return (
+            "### 程度：跟上｜目標：再提升（少重複、多挑戰）\n" +
+            "說明：已掌握本單元。A 少練；重心 B、C。禁止整份只改數字。不使用均一；練習／指導／影片由此產生。\n\n" +
+            "#### 自學指導（先看再做）\n- 重點觀念：________\n- 解題步驟口訣：________\n- 易錯提醒：________\n\n" +
+            "#### 建議影片／學習連結（1～2 個）\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n- 備用關鍵詞：________\n\n" +
+            "#### 練習題（先做完再看解答）\n【A 鞏固｜少而精】\n1. …\n【B 靈活】\n2. …\n3. …\n【C 再提升｜必做】\n4. …\n5. …\n6. …\n【D 超前伸展｜選做】\n7. …\n\n---\n#### 解答（全部題目完成後再看）\n1. …\n2. …\n3. …\n4. …\n5. …\n6. …\n7. …\n提升小提示：挑戰題做完寫「我多學到什麼」。"
+          );
+        }
+        if (level === "略落後") {
+          return (
+            "### 程度：略落後｜目標：跟上本單元\n先復習：________（本單元核心觀念）\n不使用均一；練習／指導／影片由此產生。\n\n" +
+            "#### 自學指導（先看再做）\n- 先搞懂：________\n- 步驟：1) … 2) … 3) …\n- 做完自問：________\n\n" +
+            "#### 建議影片／學習連結\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n\n" +
+            "#### 練習題（先做完再看解答）\n【A 關鍵基本】\n1. …\n2. …\n3. …\n【B 對應錯題類型】\n4. …\n5. …\n\n---\n#### 解答（全部題目完成後再看）\n1. …\n2. …\n3. …\n4. …\n5. …"
+          );
+        }
+        if (level === "明顯落後") {
+          return (
+            "### 程度：明顯落後｜目標：多次補齊、每次有成就（漸次跟上）\n原則：每次只補 1 個小洞、題數 ≤ 3；做對就停，隔日再補。\n本次只補：________\n不使用均一；練習／指導／影片由此自動產生。\n\n" +
+            "#### 自學指導（短、好懂）\n- 今天只要會：________\n- 跟著做：第一步… → 第二步… → 第三步…\n- 做對的樣子：（簡短示範）\n\n" +
+            "#### 建議影片／學習連結（對準本次這 1 點）\n- 搜尋關鍵詞：________（年級＋單元＋教學）\n- 連結：https://www.youtube.com/results?search_query=________\n- 看片重點：________（不必整部）\n\n" +
+            "#### 練習題（≤3 題）\n【A 本次小洞｜求做對有成就】\n1. …\n2. …\n【B 極簡銜接｜選做】\n3. …\n\n---\n#### 解答（逐步寫）\n1. …\n2. …\n3. …\n說明：本次成功＝有成就；其餘下次再補。"
+          );
+        }
+        if (level === "需補先備") {
+          return (
+            "### 程度：需補先備｜目標：分次回到起點（多次補齊）\n本次只補：________（1 個觀念）\n尚未補、下次再補：________\n不使用均一；練習／指導／影片由此產生。\n\n" +
+            "#### 自學指導\n- 先回到：________\n- 超短步驟：________\n- 不會就先看影片再做 1～2 題\n\n" +
+            "#### 建議影片／學習連結（先備觀念）\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n\n" +
+            "#### 練習題（≤3 題）\n1. …\n2. …\n3. （選做）\n\n---\n#### 解答\n1. …\n2. …\n3. …\n建議：與導師協調；家長說明「多次小補」。"
+          );
+        }
+        return (
+          "### 程度：待判定\n#### 自學指導\n- …\n#### 建議影片／學習連結\n- 搜尋關鍵詞：…\n- 連結：https://www.youtube.com/results?search_query=…\n#### 練習題（先做完再看解答）\n1. …\n---\n#### 解答（全部題目完成後再看）\n1. …"
+        );
+      }
+
+      function practiceGuideText() {
+        return (
+          "自產練習與影片（不用均一）\n====================\n\n" +
+          "做法：\n" +
+          "1. 批完後按「依程度給練習模板」，或從 Gemini 回覆擷取自學練習段。\n" +
+          "2. 把練習貼到「下一輪練習」→「儲存本輪＋下一輪練習」寫入歷程，並可下載 HTML。\n" +
+          "3. 「複製此生發放訊息」→ 貼到通訊軟體班級群組／個別傳；再「寫入習作台程度」後到習作台標未發／已發。\n" +
+          "4. 學生回傳圖／PDF → 匯入並對應座號 →「練習回傳再批」→ 再進循環。\n\n" +
+          "影片規則：\n" +
+          "- 優先 YouTube 搜尋結果頁：https://www.youtube.com/results?search_query=年級+單元+教學\n" +
+          "- 有把握才貼具體影片網址；不要捏造連結\n\n" +
+          "發放：班級群組公告＋個別傳練習；沒裝置才列印包。\n均一：可完全不用。\n正式 PDF／整班數位練習包：請用電腦「習作批改」。"
+        );
+      }
+
+      function ensureHistory(seat) {
+        if (!seat.history) seat.history = { attempts: [] };
+        if (!Array.isArray(seat.history.attempts)) seat.history.attempts = [];
+        return seat.history;
+      }
+
+      function extractFromReply(text, kind) {
+        var t = String(text || "");
+        if (!t) return "";
+        if (kind === "problems") {
+          var m1 = t.match(/問題點[：:\s]*([\s\S]*?)(?=\n\s*(?:簡短回饋|回饋|下一輪|個別建議|程度|$))/);
+          if (m1) return m1[1].trim().slice(0, 800);
+          var m2 = t.match(/錯因[：:\s]*([^\n]+)/);
+          if (m2) return m2[1].trim();
+          return "";
+        }
+        if (kind === "feedback") {
+          var f1 = t.match(/(?:簡短回饋|回饋|個別建議)[：:\s]*([\s\S]*?)(?=\n\s*(?:下一輪|自學練習|依程度|$))/);
+          return f1 ? f1[1].trim().slice(0, 1200) : "";
+        }
+        if (kind === "next") {
+          var n1 = t.match(/(?:下一輪練習|自學練習|依程度自學練習)[：:\s]*([\s\S]*)$/);
+          if (n1) return n1[1].trim().slice(0, 4000);
+          var n2 = t.match(/6\)\s*([\s\S]*)$/);
+          return n2 ? n2[1].trim().slice(0, 4000) : "";
+        }
+        if (kind === "score") {
+          var s1 = t.match(/(?:分數|得分|計分)[：:\s]*(\d+(?:\.\d+)?)\s*[／/]\s*(\d+(?:\.\d+)?)/);
+          if (s1) return { score: s1[1], max: s1[2] };
+          var s2 = t.match(/(\d+(?:\.\d+)?)\s*分/);
+          if (s2) return { score: s2[1], max: "100" };
+        }
+        return "";
+      }
+
+      function refreshLoopPanel(id) {
+        var s = id && state.seats[id] ? state.seats[id] : null;
+        var pace = document.getElementById("loopPace");
+        var histEl = document.getElementById("histSummary");
+        if (!s) {
+          pace.textContent = "選座號後依程度顯示節奏提示。";
+          histEl.textContent = "尚無歷程。";
+          return;
+        }
+        var lv = s.level || "未標";
+        var behind = isBehindLevel(lv);
+        pace.textContent = behind
+          ? ("座號 " + id + "｜" + lv + "：多次補齊（每次 1 點、≤3 題）→ 有成就再下次；勿一次補完。")
+          : ("座號 " + id + "｜" + lv + "：可依問題點調下一輪；略落後也建議分次、少題。");
+        document.getElementById("loopTarget").value = behind ? "65" : "80";
+        document.getElementById("loopGoal").value = behind
+          ? "多次補齊：本次只穩 1 點並有成就；其餘下次再補"
+          : "針對問題點練到穩定掌握";
+        var hist = ensureHistory(s);
+        var nextRound = hist.attempts.length + 1;
+        document.getElementById("loopRound").value = String(nextRound);
+        var reply = s.lastReply || "";
+        var sc = extractFromReply(reply, "score");
+        if (sc && sc.score) {
+          document.getElementById("loopScore").value = sc.score;
+          document.getElementById("loopMax").value = sc.max || "100";
+        } else {
+          document.getElementById("loopScore").value = "0";
+          document.getElementById("loopMax").value = "100";
+        }
+        document.getElementById("loopProblems").value = extractFromReply(reply, "problems") || "";
+        document.getElementById("loopFeedback").value = extractFromReply(reply, "feedback") || (behind ? "（先寫做對了什麼 → 再寫下一步一小步）" : "");
+        var nextText = extractFromReply(reply, "next");
+        document.getElementById("loopNext").value = nextText || getPracticeTemplate(lv);
+        document.getElementById("loopMet").checked = false;
+        if (!hist.attempts.length) {
+          histEl.textContent = "尚無歷程。批完或回傳批完後在此儲存本輪。";
+        } else {
+          histEl.textContent = "歷程 " + hist.attempts.length + " 輪：" + hist.attempts.map(function (a) {
+            return "R" + a.round + " " + a.score + "/" + a.maxScore + (a.goalMet ? "✓" : "");
+          }).join("、");
+        }
+      }
+
+      function buildLineMessage(id) {
+        var s = state.seats[id];
+        if (!s) return "";
+        var practice = (document.getElementById("loopNext").value || "").trim() ||
+          extractFromReply(s.lastReply || "", "next") ||
+          getPracticeTemplate(s.level || "未標");
+        return (
+          "【" + (state.classLabel || "本班數學") + "｜座號 " + id + " 練習】\n" +
+          "程度：" + (s.level || "未標") + "\n" +
+          "請先看指導與影片搜尋，再做練習題；全部做完再看解答。\n" +
+          "回傳：個別傳給老師（圖／PDF），檔名建議 " + id + "-R" + (document.getElementById("loopRound").value || "1") + "\n\n" +
+          practice
+        );
+      }
+
+      function pushLevelToDesk(id) {
+        var s = state.seats[id];
+        if (!s) throw new Error("無此座號");
+        var KEY_DESK = "teacher-desk-v1";
+        var desk = null;
+        try {
+          var raw = localStorage.getItem(KEY_DESK);
+          desk = raw ? JSON.parse(raw) : null;
+        } catch (e) { desk = null; }
+        if (!desk || typeof desk !== "object") {
+          desk = {
+            classLabel: state.classLabel || "本班數學",
+            seatCount: state.seatCount || 35,
+            deadline: "今晚 21:00",
+            sendChannel: "line_group",
+            returnChannel: "line_dm",
+            seats: {}
+          };
+        }
+        if (!desk.seats) desk.seats = {};
+        if (!desk.seats[id]) desk.seats[id] = { level: "未標", send: "未發", note: "" };
+        desk.seats[id].level = s.level || "未標";
+        if (!desk.seats[id].send || desk.seats[id].send === "未發") desk.seats[id].send = "未發";
+        if (desk.classLabel == null) desk.classLabel = state.classLabel;
+        try {
+          localStorage.setItem(KEY_DESK, JSON.stringify(desk));
+        } catch (e) {
+          throw new Error("無法寫入習作台（儲存空間？）");
+        }
+      }
+
+      function downloadPracticeHtml(id) {
+        var s = state.seats[id];
+        if (!s) return;
+        var body = (document.getElementById("loopNext").value || "").trim() || getPracticeTemplate(s.level || "未標");
+        var html =
+          "<!DOCTYPE html><html lang=\"zh-Hant\"><head><meta charset=\"UTF-8\"/>" +
+          "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
+          "<title>座號 " + id + " 練習</title>" +
+          "<style>body{font-family:sans-serif;line-height:1.6;padding:1rem;max-width:40rem;margin:auto;white-space:pre-wrap}</style>" +
+          "</head><body><h1>座號 " + id + "｜" + (s.level || "") + "</h1><pre>" +
+          body.replace(/[&<>]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]; }) +
+          "</pre></body></html>";
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+        a.download = id + "-練習題.html";
+        a.click();
+      }
+
       function selectSeat(id) {
         selected = id;
         var s = state.seats[id];
@@ -531,6 +779,7 @@
         document.getElementById("note").value = s.note || "";
         if (s.lastReply) document.getElementById("preview").value = s.lastReply;
         else document.getElementById("preview").value = buildPromptOne(id);
+        refreshLoopPanel(id);
         renderGrid();
       }
 
@@ -770,6 +1019,7 @@
           document.getElementById("level").value = s.level || "未標";
           document.getElementById("note").value = s.note || "";
           document.getElementById("preview").value = text;
+          refreshLoopPanel(id);
         }
         if (!opts.skipSave) save(state);
         if (!opts.skipRender) renderGrid();
@@ -1206,6 +1456,111 @@
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
         copyText(buildPromptReturn(selected), "已複製回傳再批提示");
+      });
+
+      document.getElementById("btnCopyReturn2").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        persistHeader();
+        copyText(buildPromptReturn(selected), "已複製回傳再批提示");
+      });
+
+      document.getElementById("btnFillPractice").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        var lv = document.getElementById("level").value || state.seats[selected].level || "未標";
+        var tpl = getPracticeTemplate(lv);
+        document.getElementById("loopNext").value = tpl;
+        document.getElementById("preview").value = tpl;
+        toast("已帶入「" + lv + "」練習模板");
+      });
+
+      document.getElementById("btnPracticeGuide").addEventListener("click", function () {
+        var g = practiceGuideText();
+        document.getElementById("preview").value = g;
+        copyText(g, "已顯示並複製自產練習說明");
+      });
+
+      document.getElementById("btnCopyLineMsg").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        persistHeader();
+        copyText(buildLineMessage(selected), "已複製座號 " + selected + " 發放訊息");
+      });
+
+      document.getElementById("btnPushDesk").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        persistHeader();
+        try {
+          var s = state.seats[selected];
+          s.level = document.getElementById("level").value || s.level;
+          save(state);
+          pushLevelToDesk(selected);
+          toast("已寫入習作台：座號 " + selected + " → " + (s.level || "未標"));
+        } catch (err) {
+          toast(String(err && err.message || err));
+        }
+      });
+
+      document.getElementById("btnOpenDesk").addEventListener("click", function () {
+        window.open("../teacher-desk/", "_blank", "noopener,noreferrer");
+      });
+
+      document.getElementById("btnSaveLoop").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        persistHeader();
+        var s = state.seats[selected];
+        var hist = ensureHistory(s);
+        var score = parseFloat(document.getElementById("loopScore").value) || 0;
+        var maxScore = parseFloat(document.getElementById("loopMax").value) || 100;
+        var target = parseFloat(document.getElementById("loopTarget").value) || 80;
+        var goalMet = !!document.getElementById("loopMet").checked;
+        if (!goalMet && maxScore > 0 && (100 * score / maxScore) >= target) goalMet = true;
+        var attempt = {
+          round: parseInt(document.getElementById("loopRound").value, 10) || (hist.attempts.length + 1),
+          score: score,
+          maxScore: maxScore,
+          targetScore: target,
+          goal: document.getElementById("loopGoal").value || "",
+          problemPoints: document.getElementById("loopProblems").value || "",
+          feedback: document.getElementById("loopFeedback").value || "",
+          nextPractice: document.getElementById("loopNext").value || "",
+          goalMet: goalMet,
+          at: Date.now()
+        };
+        hist.attempts.push(attempt);
+        s.history = hist;
+        s.level = document.getElementById("level").value || s.level;
+        s.note = ("R" + attempt.round + " " + score + "/" + maxScore).slice(0, 40);
+        save(state);
+        try { pushLevelToDesk(selected); } catch (e) {}
+        refreshLoopPanel(selected);
+        renderGrid();
+        toast(goalMet ? ("已存 R" + attempt.round + "（階段成功）") : ("已存 R" + attempt.round + "／下一輪練習"));
+      });
+
+      document.getElementById("btnShowHist").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        var hist = ensureHistory(state.seats[selected]);
+        if (!hist.attempts.length) {
+          document.getElementById("preview").value = "座號 " + selected + " 尚無練習歷程。";
+          toast("尚無歷程");
+          return;
+        }
+        var lines = ["座號 " + selected + " 練習歷程", ""];
+        hist.attempts.forEach(function (a) {
+          lines.push("—— R" + a.round + "｜" + a.score + "/" + a.maxScore + "（目標 " + a.targetScore + "%）" + (a.goalMet ? "｜階段成功" : ""));
+          if (a.goal) lines.push("目標：" + a.goal);
+          if (a.problemPoints) lines.push("問題點：\n" + a.problemPoints);
+          if (a.feedback) lines.push("回饋：\n" + a.feedback);
+          if (a.nextPractice) lines.push("下一輪：\n" + a.nextPractice);
+          lines.push("");
+        });
+        document.getElementById("preview").value = lines.join("\n");
+        toast("已顯示歷程");
+      });
+
+      document.getElementById("btnDlPractice").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        downloadPracticeHtml(selected);
+        toast("已下載練習 HTML");
       });
 
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
