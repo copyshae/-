@@ -11,4 +11,4 @@ alwaysApply: false
 - 手機習作批改需 **Gemini API 金鑰** 才能自動批；「貼上批」是手動，會卡在批改中。
 - **介面、提示、對話框、對使用者回覆必須繁體中文**（zh-Hant）；管道用「Google 教室／通訊軟體群組」，掃描來源寫「掃描王」。
 - 只用座號、不存姓名。
-- 跨裝置／批改↔習作台：兩份 JSON（`習作批改進度.json`＋`班級狀態.json`）；見 `_export/hello-world/scripts/README-sync.md`。
+- 跨裝置／批改↔習作台：兩份 JSON（`習作批改進度.json`＋`班級狀態.json`）或一份 `0803同步包.json`（含歷程日誌）；見 `_export/hello-world/scripts/README-sync.md`、`FEATURES-FROM-LOGS.md`。
