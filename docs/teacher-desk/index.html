@@ -135,8 +135,8 @@
   <div class="wrap">
     <header class="hero">
       <div class="brand">習作台</div>
-      <p class="lead">與電腦版相同：掌握程度、發送狀態、群發文案；可接收掃描王匯出的 PDF／圖片。</p>
-      <p class="install">手機：掃描王 → 分享 →「儲存到檔案」→ 打開習作台 →「匯入掃描檔」。檔名若含座號（如 <code>05-R01</code>）會自動帶入。已加入主畫面後，部分系統也可「分享到習作台」。</p>
+      <p class="lead">掌握程度、發送狀態、群發文案；可從「習作批改」一鍵同步程度。</p>
+      <p class="install">請用預覽網址開啟（正式 hello-world 可能是舊版）。掃描王 → 分享 → 儲存到檔案 → 匯入掃描檔。</p>
       <p class="summary" id="summary">—</p>
     </header>
 
@@ -248,15 +248,20 @@
     </section>
 
     <section>
-      <h2>與電腦同步</h2>
+      <h2>同步更新</h2>
+      <p class="tips">習作批改與習作台資料分開存放。若已在「習作批改」批完，按下方可把程度同步過來。</p>
       <div class="actions">
+        <button type="button" class="btn" id="btnSyncGrader">從習作批改同步程度</button>
         <button type="button" class="btn secondary" id="btnExport">匯出班級資料</button>
         <button type="button" class="btn secondary" id="btnImport">匯入班級資料（覆蓋）</button>
         <input class="hidden-file" id="fileImport" type="file" accept="application/json,.json" />
       </div>
     </section>
 
-    <p class="nav">習作台預覽版（繁體中文）· 正式站更新後請改用 hello-world 網址</p>
+    <p class="nav">
+      <a href="../math-grader/">習作批改</a> ·
+      請用此預覽網址；正式 hello-world 站可能仍是舊版
+    </p>
   </div>
   <div class="toast" id="toast" role="status"></div>
 
@@ -268,23 +273,32 @@
 
       function def() {
         return {
-          classLabel: "本班數學", seatCount: 30, deadline: "今晚 21:00",
+          classLabel: "本班數學", seatCount: 35, deadline: "今晚 21:00",
           sendChannel: "line_group", returnChannel: "line_dm", seats: {}
         };
       }
 
       function ensure(state) {
-        var n = Math.max(1, Math.min(60, parseInt(state.seatCount, 10) || 30));
+        var n = Math.max(1, Math.min(60, parseInt(state.seatCount, 10) || 35));
         state.seatCount = n;
         if (!state.seats) state.seats = {};
         if (!state.sendChannel) state.sendChannel = "line_group";
         if (!state.returnChannel) state.returnChannel = "line_dm";
+        if (!state.seats["00"]) state.seats["00"] = { level: "未標", send: "未發", note: "試發" };
+        else {
+          if (!state.seats["00"].level) state.seats["00"].level = "未標";
+          if (!state.seats["00"].send) state.seats["00"].send = "未發";
+          if (!state.seats["00"].note) state.seats["00"].note = "試發";
+        }
         for (var i = 1; i <= n; i++) {
           var id = String(i).padStart(2, "0");
           if (!state.seats[id]) state.seats[id] = { level: "未標", send: "未發", note: "" };
           if (state.seats[id].note == null) state.seats[id].note = "";
+          if (!state.seats[id].level) state.seats[id].level = "未標";
+          if (!state.seats[id].send) state.seats[id].send = "未發";
         }
         Object.keys(state.seats).forEach(function (k) {
+          if (k === "00") return;
           var num = parseInt(k, 10);
           if (!num || num < 1 || num > n) delete state.seats[k];
         });
@@ -516,6 +530,55 @@
         a.click();
         URL.revokeObjectURL(a.href);
         toast("已匯出，可傳到電腦習作台匯入");
+      });
+
+      document.getElementById("btnSyncGrader").addEventListener("click", function () {
+        var raw = null;
+        try { raw = localStorage.getItem("math-grader-v1"); } catch (e) {}
+        if (!raw) {
+          toast("找不到習作批改資料。請先用同一個預覽網址打開「習作批改」並批過");
+          return;
+        }
+        var g = null;
+        try { g = JSON.parse(raw); } catch (e) {
+          toast("習作批改資料讀取失敗");
+          return;
+        }
+        if (!g || !g.seats) {
+          toast("習作批改尚無座號資料");
+          return;
+        }
+        persistHeader();
+        var n = 0;
+        Object.keys(g.seats).forEach(function (id) {
+          var src = g.seats[id];
+          if (!src) return;
+          if (!state.seats[id]) {
+            if (id === "00" || (parseInt(id, 10) >= 1 && parseInt(id, 10) <= state.seatCount)) {
+              state.seats[id] = { level: "未標", send: "未發", note: id === "00" ? "試發" : "" };
+            } else return;
+          }
+          var lv = src.level || "";
+          if (lv && lv !== "未標" && lv !== "待判定") {
+            state.seats[id].level = lv;
+            n++;
+          } else if (lv === "待判定") {
+            state.seats[id].level = "需補先備";
+            n++;
+          }
+          if (src.status === "已批" || src.status === "待認知") {
+            if (src.note) state.seats[id].note = String(src.note).slice(0, 40);
+          }
+          if (src.status === "待認知") state.seats[id].level = state.seats[id].level || "需補先備";
+        });
+        if (g.classLabel) state.classLabel = g.classLabel;
+        if (g.seatCount) state.seatCount = g.seatCount;
+        state = ensure(state);
+        save(state);
+        syncForm();
+        renderGrid();
+        fillSeatSelect();
+        toast(n ? ("已同步 " + n + " 個座號程度") : "沒有可同步的程度（請先在習作批改完成自動批）");
       });
 
       document.getElementById("btnImport").addEventListener("click", function () {
