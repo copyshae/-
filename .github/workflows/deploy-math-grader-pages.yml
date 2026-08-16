@@ -1,0 +1,39 @@
+name: 部署習作批改網頁
+
+on:
+  push:
+    branches:
+      - main
+      - cursor/mobile-math-grader-auto-b582
+    paths:
+      - "docs/**"
+      - ".github/workflows/deploy-math-grader-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-math-grader
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出程式
+        uses: actions/checkout@v4
+      - name: 設定 Pages
+        uses: actions/configure-pages@v5
+      - name: 上傳 docs
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - name: 部署
+        id: deployment
+        uses: actions/deploy-pages@v4
