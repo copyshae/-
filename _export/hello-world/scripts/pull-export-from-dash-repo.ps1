@@ -103,6 +103,30 @@ if (-not (Test-Path -LiteralPath $install)) {
 & $install
 
 Write-Host ""
+Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
+Push-Location $root
+try {
+  git add directory/apps/math-grader directory/apps/teacher-desk `
+    scripts/install-desktop-apps.ps1 `
+    scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
+    scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
+  $pending = git status --porcelain
+  if ($pending) {
+    git commit -m "手機習作批改：補批完後續（自產練習／發放／回傳循環）"
+    git push origin HEAD
+    Write-Host "Pushed. Phone URL:"
+    Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
+  } else {
+    Write-Host "No git changes to push."
+  }
+} catch {
+  Write-Host ("Git push skipped: " + $_.Exception.Message)
+  Write-Host "Files are already on disk; you can commit/push hello-world manually."
+} finally {
+  Pop-Location
+}
+
+Write-Host ""
 Write-Host "DONE. Close old grader window, then open desktop shortcut again."
-Write-Host "Title should mention Gemini auto grade."
-Write-Host "Then: Gemini key -> Gemini auto grade"
+Write-Host "Phone: open math-grader URL above, scroll to 批完後續."
+Write-Host "Desktop: Gemini key -> Gemini auto grade"
