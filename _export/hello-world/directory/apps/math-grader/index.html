@@ -126,7 +126,7 @@
   <div class="wrap">
     <header>
       <div class="brand">習作批改</div>
-      <p class="lead">預設「快速批」：壓縮圖、精簡回覆、雙線並行。設金鑰 → 匯入試卷 → 一鍵連續批。</p>
+      <p class="lead">預設「快速批」：壓縮圖、精簡回覆；連續批採單線並自動等待額度。設金鑰 → 匯入試卷 → 一鍵連續批。</p>
       <p class="install">關掉再開會自動恢復進度（同一網址）。請用下方固定網址加入主畫面；換網址會變成空白要重新來。</p>
       <p class="summary" id="summary">—</p>
       <p class="tips" id="originTip" style="margin-top:0.45rem">—</p>
@@ -150,7 +150,7 @@
         <label><input type="radio" name="gradeSpeed" id="speedFast" value="fast" checked /> 快速批（建議）</label>
         <label><input type="radio" name="gradeSpeed" id="speedFull" value="full" /> 完整批（較慢）</label>
       </div>
-      <p class="tips">快速批：精簡輸出＋較快模型＋一次批 2 份。完整批：含診斷與練習建議。</p>
+      <p class="tips">快速批：精簡輸出＋較快模型。完整批：含診斷與練習建議。遇免費額度限制會自動等待後重試。</p>
       <div class="row">
         <label for="geminiKey">Gemini金鑰</label>
         <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
@@ -293,6 +293,7 @@
         <li>預設「快速批」；要詳細診斷再改「完整批」。</li>
         <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
         <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
+        <li>若出現「免費額度／速率限制」：等約 1 分鐘再批（程式會依提示自動等待重試）；不是金鑰錯。用量：<a href="https://ai.dev/rate-limit" target="_blank" rel="noopener">ai.dev/rate-limit</a>。</li>
         <li>批完後用下方「批完後續」：練習模板／發放訊息／寫入習作台／練習回傳循環。</li>
         <li>只按「開啟 Gemini 貼上批」不會自動完成，又慢又會卡在批改中。</li>
       </ul>
@@ -927,6 +928,51 @@
         return rec._part;
       }
 
+      function sleepMs(ms) {
+        return new Promise(function (r) { setTimeout(r, ms); });
+      }
+
+      function parseRetryAfterMs(msg) {
+        var m = String(msg || "").match(/retry in\s+([\d.]+)\s*s/i);
+        if (m) {
+          var sec = parseFloat(m[1]);
+          if (isFinite(sec) && sec > 0) {
+            return Math.min(Math.ceil(sec * 1000) + 800, 90000);
+          }
+        }
+        return null;
+      }
+
+      function isQuotaOrRateMsg(msg) {
+        return /RESOURCE_EXHAUSTED|429|quota|rate.?limit|free[_ ]?tier|exceeded your current quota/i.test(String(msg || ""));
+      }
+
+      function noteQuotaWait(model, waitMs, attempt, maxAttempt) {
+        var sec = Math.max(1, Math.ceil(waitMs / 1000));
+        var line = "免費額度忙碌，約 " + sec + " 秒後重試 " + model +
+          "（第 " + attempt + "/" + maxAttempt + " 次）…";
+        try {
+          var busy = document.getElementById("busy");
+          var bm = document.getElementById("busyMsg");
+          if (busy && busy.classList.contains("show") && bm) bm.textContent = line;
+          var prev = document.getElementById("preview");
+          if (prev) prev.value = line + "\n（這不是金鑰錯誤；短時間請求太多時 Google 會要求等待。）";
+        } catch (e) {}
+      }
+
+      function formatFinalGeminiError(lastErr, tried, sawQuota) {
+        var base = lastErr && lastErr.message ? lastErr.message + "\n\n" : "";
+        var models = "已嘗試模型：" + tried.join(", ");
+        if (sawQuota) {
+          return base + models +
+            "\n\n這是免費額度／速率限制（不是金鑰或網路錯）。" +
+            "\n請等約 1 分鐘再按自動批；連續批勿短時間狂按。" +
+            "\n查看用量：https://ai.dev/rate-limit" +
+            "\n長期可到 AI Studio 提高配額或改付費方案。";
+        }
+        return base + models + "\n請確認網路與金鑰。";
+      }
+
       async function callGemini(apiKey, prompt, fileRecs, models) {
         var parts = [{ text: prompt }];
         (fileRecs || []).forEach(function (rec) { parts.push(recToPart(rec)); });
@@ -941,59 +987,80 @@
         var list = models && models.length ? models : (isFastMode() ? MODELS_FAST : MODELS_FULL);
         var lastErr = null;
         var tried = [];
+        var sawQuota = false;
         for (var i = 0; i < list.length; i++) {
           var model = list[i];
           tried.push(model);
           var uri = "https://generativelanguage.googleapis.com/v1beta/models/" +
             encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
-          try {
-            var res = await fetch(uri, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: body
-            });
-            var raw = await res.text();
-            var data = null;
-            try { data = JSON.parse(raw); } catch (e) {}
-            if (!res.ok) {
-              var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
-              if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { lastErr = new Error(msg); continue; }
-              if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
-                throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
-              }
-              if (/RESOURCE_EXHAUSTED|429|quota|rate/i.test(msg)) {
-                await new Promise(function (r) { setTimeout(r, 1200); });
-                lastErr = new Error(msg);
-                continue;
-              }
-              if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(msg)) {
-                lastErr = new Error(msg); continue;
-              }
-              throw new Error(msg);
-            }
-            var text = "";
-            var cands = (data && data.candidates) || [];
-            cands.forEach(function (c) {
-              (((c.content || {}).parts) || []).forEach(function (p) {
-                if (p.text) text += p.text;
+          var maxAttempt = 3;
+          for (var attempt = 1; attempt <= maxAttempt; attempt++) {
+            try {
+              var res = await fetch(uri, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: body
               });
-            });
-            if (!text.trim()) throw new Error("Gemini 沒有回傳文字（model=" + model + "）");
-            return { text: text, model: model };
-          } catch (err) {
-            lastErr = err;
-            var m = String(err && err.message || err);
-            if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400|429|RESOURCE_EXHAUSTED/i.test(m) &&
-                !/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) {
-              continue;
+              var raw = await res.text();
+              var data = null;
+              try { data = JSON.parse(raw); } catch (e) {}
+              if (!res.ok) {
+                var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+                if (/404|NOT_FOUND|not found|was not found/i.test(msg)) {
+                  lastErr = new Error(msg);
+                  break;
+                }
+                if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
+                  throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
+                }
+                if (isQuotaOrRateMsg(msg)) {
+                  sawQuota = true;
+                  lastErr = new Error(msg);
+                  if (attempt < maxAttempt) {
+                    var wait = parseRetryAfterMs(msg) || (2000 * attempt);
+                    noteQuotaWait(model, wait, attempt, maxAttempt);
+                    await sleepMs(wait);
+                    continue;
+                  }
+                  break;
+                }
+                if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(msg)) {
+                  lastErr = new Error(msg);
+                  break;
+                }
+                throw new Error(msg);
+              }
+              var text = "";
+              var cands = (data && data.candidates) || [];
+              cands.forEach(function (c) {
+                (((c.content || {}).parts) || []).forEach(function (p) {
+                  if (p.text) text += p.text;
+                });
+              });
+              if (!text.trim()) throw new Error("Gemini 沒有回傳文字（model=" + model + "）");
+              return { text: text, model: model };
+            } catch (err) {
+              lastErr = err;
+              var m = String(err && err.message || err);
+              if (/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) throw err;
+              if (isQuotaOrRateMsg(m)) {
+                sawQuota = true;
+                if (attempt < maxAttempt) {
+                  var wait2 = parseRetryAfterMs(m) || (2000 * attempt);
+                  noteQuotaWait(model, wait2, attempt, maxAttempt);
+                  await sleepMs(wait2);
+                  continue;
+                }
+                break;
+              }
+              if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(m)) {
+                break;
+              }
+              throw err;
             }
-            throw err;
           }
         }
-        throw new Error(
-          (lastErr && lastErr.message ? lastErr.message + "\n\n" : "") +
-          "已嘗試模型：" + tried.join(", ") + "\n請確認網路與金鑰。"
-        );
+        throw new Error(formatFinalGeminiError(lastErr, tried, sawQuota));
       }
 
       function applyReplyToSeat(id, text, model, opts) {
@@ -1217,12 +1284,12 @@
           return;
         }
         var fast = isFastMode();
-        var conc = fast ? 2 : 1;
+        // 免費額度 RPM 低：快速批也改單線，避免雙線同時撞 429
+        var conc = 1;
         var modeLabel = fast ? "快速連續批" : "完整連續批";
         if (!window.confirm(
-          "將" + modeLabel + " " + queue.length + " 份" +
-          (conc > 1 ? "（同時 " + conc + " 份）" : "") +
-          "。中途失敗會停下。開始？"
+          "將" + modeLabel + " " + queue.length + " 份（單線，較不易撞免費額度）。" +
+          "中途失敗會停下。開始？"
         )) return;
         setBusy(true, modeLabel, "共 " + queue.length + " 份，請保持畫面開啟。");
         var done = 0;
@@ -1247,6 +1314,7 @@
             renderGrid();
             var elapsed = ((Date.now() - t0) / 1000).toFixed(0);
             setBusy(true, modeLabel, "已完成 " + done + "/" + queue.length + "｜耗時 " + elapsed + " 秒");
+            if (done < queue.length) await sleepMs(700);
           });
           var sec = ((Date.now() - t0) / 1000).toFixed(0);
           toast("連續批完成：" + done + " 份／" + sec + " 秒");

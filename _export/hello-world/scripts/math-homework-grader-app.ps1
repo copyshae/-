@@ -653,10 +653,17 @@ function Invoke-GeminiGenerateContent {
         if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
           throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
         }
-        # 503／429／忙碌：同模型重試，再換下一個模型
-        if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時') {
+        # 503／429／忙碌／額度：同模型重試（依 API 建議秒數），再換下一個模型
+        if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時|exceeded your current quota|free[_ ]?tier') {
           if ($attempt -lt $maxAttempt) {
-            Start-Sleep -Seconds (2 * $attempt)
+            $waitSec = 2 * $attempt
+            if ($msg -match 'retry in\s+([\d.]+)\s*s') {
+              try {
+                $parsed = [double]$Matches[1]
+                if ($parsed -gt 0) { $waitSec = [Math]::Min([Math]::Ceiling($parsed) + 1, 90) }
+              } catch {}
+            }
+            Start-Sleep -Seconds $waitSec
             continue
           }
           break
@@ -666,7 +673,12 @@ function Invoke-GeminiGenerateContent {
       }
     }
   }
-  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
+  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))"
+  if ($lastErr -and ([string]$lastErr.Exception.Message) -match 'RESOURCE_EXHAUSTED|429|quota|rate|exceeded your current quota|free[_ ]?tier') {
+    $hint += "`n`n這是免費額度／速率限制（不是金鑰或網路錯）。請等約 1 分鐘再按「Gemini自動批」。`n查看用量：https://ai.dev/rate-limit`n長期可到 AI Studio 提高配額或改付費方案。"
+  } else {
+    $hint += "`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
+  }
   if ($lastErr) { throw (($lastErr.Exception.Message) + "`n`n" + $hint) }
   throw $hint
 }
