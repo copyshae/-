@@ -61,9 +61,16 @@ $files = @(
   "directory/apps/math-grader/sw.js",
   "directory/apps/math-grader/manifest.json",
   "directory/apps/math-grader/share.html",
+  "directory/apps/math-grader/icon-180.png",
+  "directory/apps/math-grader/icon-192.png",
+  "directory/apps/math-grader/icon-512.png",
   "directory/apps/teacher-desk/index.html",
   "directory/apps/teacher-desk/sw.js",
-  "directory/apps/teacher-desk/manifest.json"
+  "directory/apps/teacher-desk/manifest.json",
+  "directory/apps/teacher-desk/share.html",
+  "directory/apps/teacher-desk/icon-180.png",
+  "directory/apps/teacher-desk/icon-192.png",
+  "directory/apps/teacher-desk/icon-512.png"
 )
 
 foreach ($f in $files) {

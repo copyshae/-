@@ -1,30 +1,35 @@
-# 匯出：習作台＋習作批改（含批完後續）
+# 匯出最終包｜與電腦版同步＋今日合併（2026-08-16）
 
-Cloud Agent **無法推送** `copyshae/hello-world`。倉庫名 `copyshae/-` 的 GitHub Pages 先前已證實無法穩定啟用，請改套用到 **hello-world**（正式網址本來就能開）。
+本包把 **hello-world 電腦完整版** 與今日討論一併合併：
 
-## 本包內容
+| 項目 | 內容 |
+|------|------|
+| 電腦習作批改 | 測試金鑰、503 自動重試、自產練習／回傳循環／數位練習包（完整流程） |
+| 電腦習作台 | 完整版（篩選／管道／匯入匯出）＋處理掃描匯入 |
+| 手機習作批改 | **批完後續**（練習模板／發放訊息／寫入習作台／回傳循環／歷程） |
+| 手機習作台 | 同步程度、掃描王匯入、群發文 |
 
-- `directory/apps/math-grader/` — 手機習作批改（含「批完後續」：自產練習／發放訊息／回傳循環）
-- `directory/apps/teacher-desk/` — 手機習作台（繁中）
-- 桌面安裝腳本、`pull-export-from-dash-repo.ps1`
+> Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
 
-## 套用（推薦｜在桌面\hello-world 的 PowerShell 整段貼上）
+## 一鍵套用（PowerShell 整段貼上）
 
 ```powershell
 cd $env:USERPROFILE\Desktop\hello-world
 $dir = Join-Path $PWD 'scripts'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
-$url = 'https://raw.githubusercontent.com/copyshae/-/_export/hello-world will load from main/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
+$url = 'https://raw.githubusercontent.com/copyshae/-/main/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
 ```
 
-腳本會下載匯出檔並（若有）推上 hello-world。完成後手機開：
+完成後：
 
-**https://copyshae.github.io/hello-world/directory/apps/math-grader/**
+1. **關掉**舊的習作批改／習作台視窗  
+2. 再雙擊桌面 `習作批改.vbs`、`習作台.cmd`  
+3. 手機強制重新整理：  
+   - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
+   - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
 
-往下捲找 **「批完後續」**。若看不到，強制重新整理或清掉該站快取後再開。
+## 規格依據
 
-## 電腦版
-
-桌面「習作批改」本來就有 0803 後續（自產練習、回傳循環、數位練習包）。關掉舊視窗後再雙擊 `習作批改.vbs` 即可。
+https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html
