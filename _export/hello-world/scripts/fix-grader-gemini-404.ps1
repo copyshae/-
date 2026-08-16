@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "cursor/sync-desk-grader-devices-2663" }
-$needBuild = "20260817-aq20"
+$needBuild = "20260817-aq21"
 $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 $url = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world/scripts/math-homework-grader-app.ps1?t=$ts"
 
@@ -39,7 +39,7 @@ $okBuild = $text -match [regex]::Escape($needBuild)
 if (-not $okAq -or -not $okBuild) {
   Write-Host "下載內容檢查失敗："
   Write-Host ("  含 AQ. 支援: " + $okAq)
-  Write-Host ("  含建置 ${needBuild}: " + $okBuild)
+  Write-Host ("  含建置 " + $needBuild + " = " + $okBuild)
   throw "遠端腳本尚未含新版。請稍等 push 完成後再跑，或改用本機 hello-world\scripts\install-math-homework-grader.ps1"
 }
 
@@ -100,8 +100,8 @@ Write-Host ""
 Write-Host "DONE"
 Write-Host "1) 關掉所有舊的「數學習作批改」視窗"
 Write-Host "2) 雙擊桌面「習作批改.vbs」"
-Write-Host "3) 看標題是否含: $needBuild"
+Write-Host ("3) 看標題是否含 " + $needBuild)
 Write-Host "4) Gemini金鑰 → 貼上 AQ. 或 AIza 整串 → 測試金鑰 → 儲存"
 Write-Host "5) 再按 Gemini自動批"
 Write-Host ""
-Write-Host "若標題沒有 $needBuild，代表還在開舊檔。請只開桌面「習作批改.vbs」。"
+Write-Host ("若標題沒有 " + $needBuild + "，代表還在開舊檔。請只開桌面「習作批改.vbs」。")
