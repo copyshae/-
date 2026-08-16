@@ -1627,7 +1627,8 @@ function Apply-GeminiReplyToForm([string]$text) {
     $marks = Normalize-ItemMarksText -MarksText $marks -MaxQuestion $maxQ
     $allowed = @(Get-QuestionNumsFromMarks $marks)
     if ($marks) {
-      $txtItems.Text = Convert-ToTextbookMath $marks
+      # 題號保持阿拉伯數字 1、2…，不要跑課本轉換以免變成①
+      $txtItems.Text = $marks
     } else {
       $txtItems.Text = '（尚無題號註記｜請依試卷實際題數填，例如：1 ✓）'
     }
