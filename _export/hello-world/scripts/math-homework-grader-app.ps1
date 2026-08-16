@@ -27,7 +27,7 @@ Add-Type -AssemblyName System.Drawing
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:PyMakePdf = Join-Path $script:ScriptDir 'math_grade_make_note_pdf.py'
 # 視窗標題會顯示；用來確認本機是否已裝到含 AQ. 金鑰支援的版本
-$script:AppBuild = '20260817-aq24'
+$script:AppBuild = '20260817-aq25'
 # also check beside installed copy
 if (-not (Test-Path -LiteralPath $script:PyMakePdf)) {
   $alt = Join-Path (Split-Path -Parent $script:ScriptDir) 'scripts\math_grade_make_note_pdf.py'
@@ -930,40 +930,109 @@ function Get-ExpectedQuestionCount([string]$root) {
   return $maxQ
 }
 
+function Convert-CircledOrCnQuestionNum([string]$token) {
+  $map = @{
+    '①' = 1; '②' = 2; '③' = 3; '④' = 4; '⑤' = 5
+    '⑥' = 6; '⑦' = 7; '⑧' = 8; '⑨' = 9; '⑩' = 10
+    '⑪' = 11; '⑫' = 12; '⑬' = 13; '⑭' = 14; '⑮' = 15
+    '一' = 1; '二' = 2; '三' = 3; '四' = 4; '五' = 5
+    '六' = 6; '七' = 7; '八' = 8; '九' = 9; '十' = 10
+  }
+  $t = $token.Trim()
+  if ($map.ContainsKey($t)) { return [int]$map[$t] }
+  $n = 0
+  if ([int]::TryParse($t, [ref]$n)) { return $n }
+  return 0
+}
+
+function Get-ItemMarksFromText([string]$text) {
+  $lines = New-Object System.Collections.ArrayList
+  if ([string]::IsNullOrWhiteSpace($text)) { return '' }
+  foreach ($ln in ($text -split "`r?`n")) {
+    $t = $ln.Trim()
+    if ([string]::IsNullOrWhiteSpace($t)) { continue }
+    # 跳過章節標題「1) 題號註記」「3) 個別診斷」
+    if ($t -match '^\d{1,2}\s*[)）]\s*(題號|對錯|診斷|程度|建議|自學|練習)') { continue }
+    if ($t -match '^(題號註記|對錯摘要|個別診斷|診斷結果|程度分級|個別建議|自學練習)') { continue }
+
+    $n = 0
+    $rest = ''
+    # 1 ✓ / 1✗ / 1) ✓ / 1．✓ / 1、✓
+    if ($t -match '^(\d{1,2})\s*[)）\.．、:：]?\s*([✓✗√×xX?？].*)$') {
+      $n = [int]$Matches[1]
+      $rest = $Matches[2].Trim()
+    }
+    # 第1題 ✓ / 題1：✓
+    elseif ($t -match '^第?\s*(\d{1,2})\s*題\s*[)）\.．、:：]?\s*([✓✗√×xX?？].*)$') {
+      $n = [int]$Matches[1]
+      $rest = $Matches[2].Trim()
+    }
+    elseif ($t -match '^題\s*(\d{1,2})\s*[)）\.．、:：]?\s*([✓✗√×xX?？].*)$') {
+      $n = [int]$Matches[1]
+      $rest = $Matches[2].Trim()
+    }
+    # ① ✓ / （1）✓
+    elseif ($t -match '^([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮])\s*[)）\.．、:：]?\s*([✓✗√×xX?？].*)$') {
+      $n = Convert-CircledOrCnQuestionNum $Matches[1]
+      $rest = $Matches[2].Trim()
+    }
+    elseif ($t -match '^[（(]\s*(\d{1,2})\s*[)）]\s*([✓✗√×xX?？].*)$') {
+      $n = [int]$Matches[1]
+      $rest = $Matches[2].Trim()
+    }
+    else { continue }
+
+    if ($n -lt 1 -or $n -gt 40) { continue }
+    if ($rest -match '^[xX×]') { $rest = '✗' + $rest.Substring(1) }
+    elseif ($rest -match '^√') { $rest = '✓' + $rest.Substring(1) }
+    # 符號後只留簡短說明，去掉「10/10」「10／10」配分雜訊（可保留文字說明）
+    $rest = [regex]::Replace($rest, '\s*\d+\s*[／/]\s*\d+\s*', ' ')
+    $rest = $rest.Trim()
+    if ($rest -match '^([✓✗?？])\s*(.*)$') {
+      $sym = $Matches[1]
+      if ($sym -eq '？') { $sym = '?' }
+      $note = $Matches[2].Trim().Trim('｜','|','-','—','–',':','：')
+      if ($note) { [void]$lines.Add(("{0} {1} {2}" -f $n, $sym, $note)) }
+      else { [void]$lines.Add(("{0} {1}" -f $n, $sym)) }
+    } else {
+      [void]$lines.Add(("{0} {1}" -f $n, $rest))
+    }
+  }
+  if ($lines.Count -gt 0) { return ($lines -join "`r`n") }
+  return ''
+}
+
 function Normalize-ItemMarksText {
   param(
     [string]$MarksText,
     [int]$MaxQuestion = 0
   )
   if ([string]::IsNullOrWhiteSpace($MarksText)) { return '' }
+  # 再跑一次抽取，確保題號一定是阿拉伯數字 1、2、3…
+  $extracted = Get-ItemMarksFromText $MarksText
+  if ([string]::IsNullOrWhiteSpace($extracted)) { return '' }
   $byNum = @{}
-  foreach ($ln in ($MarksText -split "`r?`n")) {
-    $t = $ln.Trim()
-    if ($t -match '^(\d{1,2})\s*([✓✗√×xX?？].*)$') {
+  foreach ($ln in ($extracted -split "`r?`n")) {
+    if ($ln -match '^(\d{1,2})\s+(.+)$') {
       $n = [int]$Matches[1]
       if ($n -lt 1 -or $n -gt 40) { continue }
       if ($MaxQuestion -gt 0 -and $n -gt $MaxQuestion) { continue }
-      $mark = $Matches[2].Trim()
-      # 統一 x/X → ✗
-      if ($mark -match '^[xX×]') { $mark = '✗' + $mark.Substring(1) }
-      if ($mark -match '^√') { $mark = '✓' + $mark.Substring(1) }
-      $byNum[$n] = ("{0} {1}" -f $n, $mark.Trim())
+      $byNum[$n] = ("{0} {1}" -f $n, $Matches[2].Trim())
     }
   }
   if ($byNum.Count -eq 0) { return '' }
-  $nums = @($byNum.Keys | Sort-Object)
-  # 若未指定上限，只用實際出現的題號（不自動補到 3）
   $lines = New-Object System.Collections.ArrayList
-  foreach ($n in $nums) { [void]$lines.Add([string]$byNum[$n]) }
+  foreach ($n in ($byNum.Keys | Sort-Object)) { [void]$lines.Add([string]$byNum[$n]) }
   return ($lines -join "`r`n")
 }
 
 function Get-QuestionNumsFromMarks([string]$marksText) {
   $nums = New-Object System.Collections.ArrayList
-  foreach ($ln in (($marksText -split "`r?`n"))) {
-    if ($ln -match '^\s*(\d{1,2})\s*[✓✗√×xX?？]') {
+  if ([string]::IsNullOrWhiteSpace($marksText)) { return @() }
+  foreach ($ln in ($marksText -split "`r?`n")) {
+    if ($ln -match '^\s*(\d{1,2})\s+') {
       $n = [int]$Matches[1]
-      if ($nums -notcontains $n) { [void]$nums.Add($n) }
+      if ($n -ge 1 -and $n -le 40 -and ($nums -notcontains $n)) { [void]$nums.Add($n) }
     }
   }
   return @($nums | Sort-Object)
@@ -1467,17 +1536,6 @@ function Get-GeminiKeywordBlock {
   return ''
 }
 
-function Get-ItemMarksFromText([string]$text) {
-  $lines = New-Object System.Collections.ArrayList
-  foreach ($ln in (($text -split "`r?`n"))) {
-    $t = $ln.Trim()
-    # 只要「題號＋對錯符號」；不要把「3) 個別診斷」或練習「3. …」當題號註記
-    if ($t -match '^\d{1,2}\s*[✓✗√×xX?？]') { [void]$lines.Add($t) }
-  }
-  if ($lines.Count -gt 0) { return ($lines -join "`r`n") }
-  return ''
-}
-
 function Strip-InventedQuestionMentions([string]$text, [int[]]$allowedNums) {
   if ([string]::IsNullOrWhiteSpace($text)) { return $text }
   if ($null -eq $allowedNums -or $allowedNums.Count -eq 0) { return $text }
@@ -1619,13 +1677,25 @@ function Apply-GeminiReplyToForm([string]$text) {
       if ($idx -ge 0) { $cmbOverall.SelectedIndex = $idx }
     }
 
-    # --- 個別建議 ---
-    if ($sec5 -and $sec5 -notmatch '^\s*\d{1,2}\s*[✓✗]' -and $sec5 -notmatch '題號註記') {
-      $adv = Strip-InventedQuestionMentions $sec5 $allowed
-      $txtAdvice.Text = Convert-ToTextbookMath $adv
-    } elseif ([string]::IsNullOrWhiteSpace($txtAdvice.Text) -or $txtAdvice.Text -match '^\s*（|給學生') {
+    # --- 個別建議（一定要有內容；解析失敗也給備援句）---
+    $adv = ''
+    if ($sec5) {
+      $cand = Strip-InventedQuestionMentions $sec5 $allowed
+      if ($cand -and $cand -notmatch '^\s*\d{1,2}\s*[✓✗]' -and $cand -notmatch '題號註記|對錯摘要') {
+        $adv = $cand.Trim()
+      }
+    }
+    if (-not $adv) {
+      # 再從全文找「建議」相關句（單行／短段）
+      if ($raw -match '(?m)^(?:\s*(?:5[)）]|⑤|\*{0,2}|#{1,6})?\s*個別建議[：:\s]*)(.+)$') {
+        $adv = $Matches[1].Trim().Trim('*','#')
+      } elseif ($raw -match '(?ms)個別建議[：:\s]*\n+(\S[^\n]{5,200})') {
+        $adv = $Matches[1].Trim()
+      }
+    }
+    if (-not $adv -or $adv.Length -lt 4) {
       $lvNow = [string]$cmbLevel.SelectedItem
-      $txtAdvice.Text = switch ($lvNow) {
+      $adv = switch ($lvNow) {
         '跟上' { '已掌握本卷題型，可再挑戰稍難的應用題；維持正確書寫步驟。' }
         '略落後' { '請針對錯題重練同類題，先求步驟完整再求速度。' }
         '明顯落後' { '先補本單元關鍵觀念，每天少量練習並對照解答步驟。' }
@@ -1633,12 +1703,12 @@ function Apply-GeminiReplyToForm([string]$text) {
         default { '請依診斷弱點重看例題步驟，再做同類練習。' }
       }
     }
+    $txtAdvice.Text = Convert-ToTextbookMath $adv
 
     # --- 自學練習（與試卷題號分開；練習題編號是練習用，不是多出試卷第 3 題）---
     if ($sec6 -and $sec6 -notmatch '題號註記') {
       $prac = Strip-InventedQuestionMentions $sec6 $allowed
-      # 若誤抓到超短或其實是建議，仍用模板
-      if ($prac.Length -ge 20) {
+      if ($prac -and $prac.Length -ge 20) {
         $txtPractice.Text = Convert-ToTextbookMath $prac
       } else {
         $lvNow = [string]$cmbLevel.SelectedItem
@@ -1689,7 +1759,7 @@ function Show-GeminiKeyDialog {
         )
       } catch {
         [void][System.Windows.Forms.MessageBox]::Show(
-          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq24 起，請先跑更新腳本。"),
+          ([string]$_.Exception.Message + "`n`n建置：$($script:AppBuild)`n若建置不是 20260817-aq25 起，請先跑更新腳本。"),
           '測試失敗'
         )
       }
