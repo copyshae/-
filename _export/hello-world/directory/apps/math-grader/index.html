@@ -141,7 +141,7 @@
       </div>
       <div class="row">
         <label for="geminiKey">Gemini金鑰</label>
-        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio API key" />
+        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
       </div>
       <div class="actions" style="margin-top:0.35rem">
         <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
@@ -212,8 +212,8 @@
     </section>
 
     <section id="scanSection">
-      <h2>掃描／試卷匯入（CS）</h2>
-      <p class="tips">CS 匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號 → 再按「Gemini自動批」。正式 PDF 輸出仍回電腦「習作批改」。</p>
+      <h2>掃描／試卷匯入（掃描王）</h2>
+      <p class="tips">掃描王匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號 → 再按「Gemini自動批」。正式 PDF 輸出仍回電腦「習作批改」。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnPickScan">匯入 PDF／圖檔</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
@@ -814,7 +814,7 @@
 
       document.getElementById("btnSaveKey").addEventListener("click", function () {
         var k = document.getElementById("geminiKey").value.trim();
-        if (!k) { toast("請先貼上 API key"); return; }
+        if (!k) { toast("請先貼上 API 金鑰"); return; }
         setApiKey(k);
         document.getElementById("geminiKey").value = "";
         toast("金鑰已存這支手機");
