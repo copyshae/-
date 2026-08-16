@@ -127,7 +127,7 @@
     <header>
       <div class="brand">習作批改</div>
       <p class="lead">預設「快速批」：壓縮圖、精簡回覆、雙線並行。設金鑰 → 匯入試卷 → 一鍵連續批。</p>
-      <p class="install">重要：主畫面捷徑必須用<strong>同一個網址</strong>加入。換網址（例如 raw.githack 換成 rawcdn、或改開正式站）會變成另一份空白資料，已批會看起來「不見」。</p>
+      <p class="install">關掉再開會自動恢復進度（同一網址）。請用下方固定網址加入主畫面；換網址會變成空白要重新來。</p>
       <p class="summary" id="summary">—</p>
       <p class="tips" id="originTip" style="margin-top:0.45rem">—</p>
       <div class="actions quick-actions">
@@ -269,6 +269,7 @@
       var KEY = "math-grader-v1";
       var KEY_API = "math-grader-gemini-key";
       var KEY_SPEED = "math-grader-speed";
+      var PROGRESS_STORE = "progress";
       var selected = null;
       var filter = "all";
       var grading = false;
@@ -1321,8 +1322,47 @@
       renderScans();
       try {
         document.getElementById("originTip").textContent =
-          "目前網址：" + location.origin + location.pathname + "（主畫面請從此網址重新「加入主畫面」）";
+          "目前網址：" + location.origin + location.pathname + "（請只從此網址加入主畫面；關掉再開會自動恢復）";
       } catch (e) {}
+
+      function restoreProgressBackup() {
+        return openScanDb().then(function (db) {
+          return new Promise(function (resolve) {
+            try {
+              var tx = db.transaction(PROGRESS_STORE, "readonly");
+              var req = tx.objectStore(PROGRESS_STORE).get("state");
+              req.onsuccess = function () { resolve(req.result || null); };
+              req.onerror = function () { resolve(null); };
+            } catch (e) { resolve(null); }
+          });
+        }).catch(function () { return null; }).then(function (row) {
+          if (!row || !row.data) return;
+          var backed = ensure(Object.assign(def(), row.data));
+          var nowN = countGraded(state);
+          var backN = countGraded(backed);
+          // 若目前幾乎空白、備份有較多已批 → 自動還原
+          if (backN > nowN) {
+            state = backed;
+            try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+            syncForm();
+            fillSeatSelect();
+            renderGrid();
+            toast("已自動恢復進度：已批／待處理 " + backN + " 人");
+          } else if (nowN > 0) {
+            // 確保備份也有最新
+            save(state);
+          }
+        });
+      }
+      restoreProgressBackup();
+
+      // 切換／關掉頁面時再存一次，避免只批完一個座號就遺失
+      function flushSave() { try { save(state); } catch (e) {} }
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "hidden") flushSave();
+      });
+      window.addEventListener("pagehide", flushSave);
+      window.addEventListener("beforeunload", flushSave);
       if (location.search.indexOf("inbox=1") >= 0) {
         toast("已收到分享檔，請對應座號後自動批");
         document.getElementById("scanSection").scrollIntoView({ behavior: "smooth" });
