@@ -17,6 +17,7 @@ $pairs = @(
   @{ Src = 'scripts\install-math-homework-grader.ps1'; Dst = 'scripts\install-math-homework-grader.ps1' },
   @{ Src = 'scripts\README-math-homework-grader.md'; Dst = 'scripts\README-math-homework-grader.md' },
   @{ Src = 'scripts\README-sync.md'; Dst = 'scripts\README-sync.md' },
+  @{ Src = 'scripts\FEATURES-FROM-LOGS.md'; Dst = 'scripts\FEATURES-FROM-LOGS.md' },
   @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' }
 )
 

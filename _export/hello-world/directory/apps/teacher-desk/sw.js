@@ -1,5 +1,5 @@
 /* 習作台：快取＋接收分享的掃描檔 */
-const CACHE = "teacher-desk-v6";
+const CACHE = "teacher-desk-v7";
 const ASSETS = [
   "./",
   "./index.html",

@@ -219,9 +219,12 @@
     </section>
 
     <section id="syncSection">
-      <h2>跨裝置／與習作台同步</h2>
-      <p class="tips">兩台電腦＋手機請各帶這兩份 JSON：<code>習作批改進度.json</code>（批改／歷程）＋<code>班級狀態.json</code>（發送／回傳）。程度以批改為準；發送狀態以習作台為準。同一瀏覽器同源可直接寫入習作台；換機請用檔案傳輸。</p>
+      <h2>跨裝置／0803 同步包（含歷程日誌）</h2>
+      <p class="tips">兩台電腦＋手機請傳 <code>0803同步包.json</code>（一份就好）：內含批改進度、練習回傳循環歷程、最新練習、班級發送狀態。也可分傳 <code>習作批改進度.json</code>＋<code>班級狀態.json</code>。正式 PDF／整班數位包仍以電腦為準。</p>
       <div class="actions">
+        <button type="button" class="btn" id="btnExportPack">匯出0803同步包</button>
+        <button type="button" class="btn secondary" id="btnImportPack">匯入0803同步包</button>
+        <input class="hidden-file" id="fileSyncPack" type="file" accept="application/json,.json" />
         <button type="button" class="btn" id="btnPushAllDesk">全部程度寫入習作台</button>
         <button type="button" class="btn secondary" id="btnImportDeskLevels">從班級狀態匯入程度</button>
         <input class="hidden-file" id="fileDeskLevels" type="file" accept="application/json,.json" />
@@ -1460,7 +1463,17 @@
         persistHeader();
         var payload = Object.assign({}, state, {
           _schema: "math-grader-v1",
-          exportedAt: new Date().toISOString()
+          exportedAt: new Date().toISOString(),
+          features: ["0803", "history", "practice-loop", "level"]
+        });
+        Object.keys(payload.seats || {}).forEach(function (id) {
+          var s = payload.seats[id];
+          if (!s) return;
+          ensureHistory(s);
+          if (s.history && s.history.attempts && s.history.attempts.length) {
+            var last = s.history.attempts[s.history.attempts.length - 1];
+            if (last && last.nextPractice) s.latestPractice = last.nextPractice;
+          }
         });
         var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         var a = document.createElement("a");
@@ -1468,7 +1481,92 @@
         a.download = "習作批改進度.json";
         a.click();
         URL.revokeObjectURL(a.href);
-        toast("已匯出進度（可傳到另一台／手機匯入）");
+        toast("已匯出進度（含 0803 歷程日誌）");
+      });
+
+      function buildSyncPack() {
+        persistHeader();
+        try { pushAllLevelsToDesk(); } catch (e) {}
+        var desk = loadDeskState();
+        var grader = Object.assign({}, state, {
+          _schema: "math-grader-v1",
+          features: ["0803", "history", "practice-loop", "level"]
+        });
+        Object.keys(grader.seats || {}).forEach(function (id) {
+          var s = grader.seats[id];
+          if (!s) return;
+          ensureHistory(s);
+          if (s.history && s.history.attempts && s.history.attempts.length) {
+            var last = s.history.attempts[s.history.attempts.length - 1];
+            if (last && last.nextPractice) s.latestPractice = last.nextPractice;
+          }
+        });
+        return {
+          _schema: "sync-pack-v1",
+          exportedAt: new Date().toISOString(),
+          features: ["0803", "history", "practice-loop", "level", "send", "digital-practice", "log"],
+          grader: grader,
+          desk: Object.assign({}, desk, { _schema: "teacher-desk-v1" })
+        };
+      }
+
+      function importSyncPackObject(pack) {
+        if (!pack || typeof pack !== "object") throw new Error("空檔");
+        if (pack._schema === "sync-pack-v1") {
+          if (pack.grader && pack.grader.seats) {
+            state = ensure(Object.assign(def(), pack.grader));
+            save(state);
+          }
+          if (pack.desk && pack.desk.seats) {
+            try { saveDeskState(Object.assign(loadDeskState(), pack.desk, { seats: pack.desk.seats })); } catch (e) {}
+          }
+          try { pushAllLevelsToDesk(); } catch (e2) {}
+          return "pack";
+        }
+        if (pack._schema === "teacher-desk-v1") {
+          throw new Error("這是班級狀態；請用「從班級狀態匯入程度」或完整同步包");
+        }
+        if (pack.seats) {
+          state = ensure(Object.assign(def(), pack));
+          save(state);
+          try { pushAllLevelsToDesk(); } catch (e3) {}
+          return "grader";
+        }
+        throw new Error("無法辨識的同步檔");
+      }
+
+      document.getElementById("btnExportPack").addEventListener("click", function () {
+        var pack = buildSyncPack();
+        var blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "0803同步包.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("已匯出 0803 同步包（含歷程日誌）");
+      });
+      document.getElementById("btnImportPack").addEventListener("click", function () {
+        document.getElementById("fileSyncPack").click();
+      });
+      document.getElementById("fileSyncPack").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var kind = importSyncPackObject(JSON.parse(reader.result));
+            syncForm();
+            selected = null;
+            document.getElementById("editPanel").hidden = true;
+            renderGrid();
+            fillSeatSelect();
+            toast(kind === "pack" ? "已匯入 0803 同步包（含歷程日誌）" : "已匯入批改進度（含歷程）");
+          } catch (err) {
+            toast(String(err && err.message || err) || "匯入失敗");
+          }
+        };
+        reader.readAsText(f, "utf-8");
       });
       document.getElementById("btnImportProgress").addEventListener("click", function () {
         document.getElementById("fileProgress").click();

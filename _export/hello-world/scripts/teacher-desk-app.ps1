@@ -310,22 +310,70 @@ try {
   $btnApply.Location = New-Object System.Drawing.Point(460, 78); $btnApply.Width = 70
   $form.Controls.Add($btnApply)
 
+  $lblSendCh = New-Object System.Windows.Forms.Label
+  $lblSendCh.Text = '發放'
+  $lblSendCh.Location = New-Object System.Drawing.Point(16, 112)
+  $lblSendCh.AutoSize = $true
+  $form.Controls.Add($lblSendCh)
+  $cmbSendCh = New-Object System.Windows.Forms.ComboBox
+  $cmbSendCh.DropDownStyle = 'DropDownList'
+  $cmbSendCh.Location = New-Object System.Drawing.Point(56, 108)
+  $cmbSendCh.Width = 160
+  @('line_group', 'classroom', 'drive', 'lms') | ForEach-Object { [void]$cmbSendCh.Items.Add($_) }
+  $idxSend = $cmbSendCh.Items.IndexOf([string]$script:State.sendChannel)
+  $cmbSendCh.SelectedIndex = $(if ($idxSend -ge 0) { $idxSend } else { 0 })
+  $form.Controls.Add($cmbSendCh)
+
+  $lblRetCh = New-Object System.Windows.Forms.Label
+  $lblRetCh.Text = '回傳'
+  $lblRetCh.Location = New-Object System.Drawing.Point(230, 112)
+  $lblRetCh.AutoSize = $true
+  $form.Controls.Add($lblRetCh)
+  $cmbRetCh = New-Object System.Windows.Forms.ComboBox
+  $cmbRetCh.DropDownStyle = 'DropDownList'
+  $cmbRetCh.Location = New-Object System.Drawing.Point(270, 108)
+  $cmbRetCh.Width = 160
+  @('line_dm', 'classroom', 'drive', 'lms') | ForEach-Object { [void]$cmbRetCh.Items.Add($_) }
+  $idxRet = $cmbRetCh.Items.IndexOf([string]$script:State.returnChannel)
+  $cmbRetCh.SelectedIndex = $(if ($idxRet -ge 0) { $idxRet } else { 0 })
+  $form.Controls.Add($cmbRetCh)
+
+  $lblFilter = New-Object System.Windows.Forms.Label
+  $lblFilter.Text = '篩選'
+  $lblFilter.Location = New-Object System.Drawing.Point(450, 112)
+  $lblFilter.AutoSize = $true
+  $form.Controls.Add($lblFilter)
+  $cmbFilter = New-Object System.Windows.Forms.ComboBox
+  $cmbFilter.DropDownStyle = 'DropDownList'
+  $cmbFilter.Location = New-Object System.Drawing.Point(490, 108)
+  $cmbFilter.Width = 120
+  @('全部', '未發', '待回', '需關注', '需補先備') | ForEach-Object { [void]$cmbFilter.Items.Add($_) }
+  $cmbFilter.SelectedIndex = 0
+  $form.Controls.Add($cmbFilter)
+
   $lblSummary = New-Object System.Windows.Forms.Label
-  $lblSummary.Location = New-Object System.Drawing.Point(540, 84); $lblSummary.AutoSize = $true
+  $lblSummary.Location = New-Object System.Drawing.Point(620, 112); $lblSummary.AutoSize = $true
   $lblSummary.ForeColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
   $form.Controls.Add($lblSummary)
 
+  $lblFlow = New-Object System.Windows.Forms.Label
+  $lblFlow.Text = '今日流程：批改→程度→自產練習→發放→習作台標發送→回傳循環／歷程｜換機傳 0803同步包'
+  $lblFlow.Location = New-Object System.Drawing.Point(16, 140)
+  $lblFlow.Size = New-Object System.Drawing.Size(880, 22)
+  $lblFlow.ForeColor = [System.Drawing.Color]::FromArgb(60, 80, 70)
+  $form.Controls.Add($lblFlow)
+
   $gridHost = New-Object System.Windows.Forms.FlowLayoutPanel
-  $gridHost.Location = New-Object System.Drawing.Point(16, 120)
-  $gridHost.Size = New-Object System.Drawing.Size(520, 360)
+  $gridHost.Location = New-Object System.Drawing.Point(16, 168)
+  $gridHost.Size = New-Object System.Drawing.Size(520, 340)
   $gridHost.AutoScroll = $true
   $gridHost.WrapContents = $true
   $gridHost.Anchor = 'Top,Bottom,Left'
   $form.Controls.Add($gridHost)
 
   $right = New-Object System.Windows.Forms.Panel
-  $right.Location = New-Object System.Drawing.Point(550, 120)
-  $right.Size = New-Object System.Drawing.Size(340, 360)
+  $right.Location = New-Object System.Drawing.Point(550, 168)
+  $right.Size = New-Object System.Drawing.Size(340, 400)
   $right.Anchor = 'Top,Bottom,Right'
   $form.Controls.Add($right)
 
@@ -373,11 +421,17 @@ try {
   $btnCopySend = New-Object System.Windows.Forms.Button
   $btnCopySend.Text = '複製群發文'
   $btnCopySend.Location = New-Object System.Drawing.Point(0, 126)
-  $btnCopySend.Size = New-Object System.Drawing.Size(310, 36)
+  $btnCopySend.Size = New-Object System.Drawing.Size(150, 36)
   $btnCopySend.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
   $btnCopySend.ForeColor = [System.Drawing.Color]::White
   $btnCopySend.FlatStyle = 'Flat'
   $right.Controls.Add($btnCopySend)
+
+  $btnCopyRet = New-Object System.Windows.Forms.Button
+  $btnCopyRet.Text = '複製回傳說明'
+  $btnCopyRet.Location = New-Object System.Drawing.Point(160, 126)
+  $btnCopyRet.Size = New-Object System.Drawing.Size(150, 36)
+  $right.Controls.Add($btnCopyRet)
 
   $btnMarkSent = New-Object System.Windows.Forms.Button
   $btnMarkSent.Text = '未發→已發'
@@ -418,15 +472,30 @@ try {
   $btnImportGrader.Size = New-Object System.Drawing.Size(310, 30)
   $right.Controls.Add($btnImportGrader)
 
+  $btnExportPack = New-Object System.Windows.Forms.Button
+  $btnExportPack.Text = '匯出0803同步包'
+  $btnExportPack.Location = New-Object System.Drawing.Point(0, 328)
+  $btnExportPack.Size = New-Object System.Drawing.Size(150, 30)
+  $btnExportPack.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+  $btnExportPack.ForeColor = [System.Drawing.Color]::White
+  $btnExportPack.FlatStyle = 'Flat'
+  $right.Controls.Add($btnExportPack)
+
+  $btnImportPack = New-Object System.Windows.Forms.Button
+  $btnImportPack.Text = '匯入0803同步包'
+  $btnImportPack.Location = New-Object System.Drawing.Point(160, 328)
+  $btnImportPack.Size = New-Object System.Drawing.Size(150, 30)
+  $right.Controls.Add($btnImportPack)
+
   $btnOpenWork = New-Object System.Windows.Forms.Button
   $btnOpenWork.Text = '開啟工作夾'
-  $btnOpenWork.Location = New-Object System.Drawing.Point(0, 328)
+  $btnOpenWork.Location = New-Object System.Drawing.Point(0, 366)
   $btnOpenWork.Size = New-Object System.Drawing.Size(150, 30)
   $right.Controls.Add($btnOpenWork)
 
   $btnOpenScan = New-Object System.Windows.Forms.Button
   $btnOpenScan.Text = '開掃描匯入夾'
-  $btnOpenScan.Location = New-Object System.Drawing.Point(160, 328)
+  $btnOpenScan.Location = New-Object System.Drawing.Point(160, 366)
   $btnOpenScan.Size = New-Object System.Drawing.Size(150, 30)
   $right.Controls.Add($btnOpenScan)
 
@@ -434,10 +503,38 @@ try {
   $txtPreview.Multiline = $true
   $txtPreview.ScrollBars = 'Vertical'
   $txtPreview.ReadOnly = $true
-  $txtPreview.Location = New-Object System.Drawing.Point(16, 500)
-  $txtPreview.Size = New-Object System.Drawing.Size(874, 120)
+  $txtPreview.Location = New-Object System.Drawing.Point(16, 580)
+  $txtPreview.Size = New-Object System.Drawing.Size(874, 100)
   $txtPreview.Anchor = 'Left,Right,Bottom'
   $form.Controls.Add($txtPreview)
+
+  $form.Size = New-Object System.Drawing.Size(920, 740)
+
+  function Build-ReturnMessage {
+    $mapSend = @{
+      line_group = '通訊軟體班級群組公告'
+      classroom  = 'Google 教室作業'
+      drive      = '雲端「數位練習」連結'
+      lms        = '學校平台／email'
+    }
+    $mapRet = @{
+      line_dm   = '通訊軟體個別傳給老師（圖／PDF）'
+      classroom = 'Google 教室繳交'
+      drive     = '雲端回傳夾'
+      lms       = '學校平台／email'
+    }
+    $s = $mapSend[[string]$script:State.sendChannel]
+    $r = $mapRet[[string]$script:State.returnChannel]
+    if (-not $s) { $s = '老師指定方式' }
+    if (-not $r) { $r = '個別傳給老師' }
+    return @"
+【回傳說明｜$($script:State.classLabel)】
+發放：$s
+回傳：$r
+截止：$($script:State.deadline)
+檔名建議：座號-R次數（例 05-R01.pdf）
+"@
+  }
 
   function Update-SummaryLabel {
     $c = @{ '跟上' = 0; '略落後' = 0; '明顯落後' = 0; '需補先備' = 0; '未發' = 0 }
@@ -449,11 +546,24 @@ try {
     $lblSummary.Text = ("跟上{0} 略落後{1} 明顯{2} 先備{3}｜未發{4}" -f $c['跟上'], $c['略落後'], $c['明顯落後'], $c['需補先備'], $c['未發'])
   }
 
+  function Test-SeatVisible([string]$id, $seat) {
+    $f = [string]$cmbFilter.SelectedItem
+    if (-not $f -or $f -eq '全部') { return $true }
+    if ($f -eq '未發') { return ($seat.send -eq '未發') }
+    if ($f -eq '待回') { return ($seat.send -eq '待回') }
+    if ($f -eq '需補先備') { return ($seat.level -eq '需補先備') }
+    if ($f -eq '需關注') {
+      return ($seat.level -in @('略落後', '明顯落後', '需補先備') -or $seat.send -in @('未發', '待回'))
+    }
+    return $true
+  }
+
   function Refresh-Grid {
     $gridHost.SuspendLayout()
     $gridHost.Controls.Clear()
     foreach ($k in ($script:State.seats.Keys | Sort-Object)) {
       $s = $script:State.seats[$k]
+      if (-not (Test-SeatVisible $k $s)) { continue }
       $b = New-Object System.Windows.Forms.Button
       $b.Size = New-Object System.Drawing.Size(68, 48)
       $b.Margin = New-Object System.Windows.Forms.Padding(3)
@@ -483,6 +593,8 @@ try {
     $script:State.deadline = $txtDeadline.Text.Trim()
     if (-not $script:State.deadline) { $script:State.deadline = '今晚 21:00' }
     $script:State.seatCount = [int]$numSeats.Value
+    $script:State.sendChannel = [string]$cmbSendCh.SelectedItem
+    $script:State.returnChannel = [string]$cmbRetCh.SelectedItem
     $script:State = Ensure-State $script:State
     Save-StateFile $script:State $script:StatePath
   }
@@ -510,6 +622,14 @@ try {
     $txtPreview.Text = $msg
     [void][System.Windows.Forms.MessageBox]::Show('已複製，請貼到班級群組。', '習作台')
   })
+  $btnCopyRet.Add_Click({
+    Persist-Header
+    $msg = Build-ReturnMessage
+    [System.Windows.Forms.Clipboard]::SetText($msg)
+    $txtPreview.Text = $msg
+    [void][System.Windows.Forms.MessageBox]::Show('已複製回傳說明。', '習作台')
+  })
+  $cmbFilter.Add_SelectedIndexChanged({ Refresh-Grid })
   $btnMarkSent.Add_Click({
     Persist-Header
     foreach ($k in @($script:State.seats.Keys)) {
@@ -651,6 +771,85 @@ try {
       Refresh-Grid
       $msg = if ($n -gt 0) { "已從批改進度匯入 $n 個座號程度。" } else { '檔案裡沒有可匯入的程度。' }
       [void][System.Windows.Forms.MessageBox]::Show($msg, '習作台')
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show("匯入失敗：$($_.Exception.Message)", '習作台')
+    }
+  })
+
+  $btnExportPack.Add_Click({
+    Persist-Header
+    $exportDir = Join-Path $WorkDir '匯出給手機'
+    New-Item -ItemType Directory -Force -Path $exportDir | Out-Null
+    $mgOut = Join-Path ([Environment]::GetFolderPath('Desktop')) 'MathGrading\輸出\習作批改進度.json'
+    $grader = $null
+    if (Test-Path -LiteralPath $mgOut) {
+      try { $grader = Get-Content -LiteralPath $mgOut -Raw -Encoding UTF8 | ConvertFrom-Json } catch {}
+    }
+    if (-not $grader) {
+      $seats = [ordered]@{}
+      foreach ($k in ($script:State.seats.Keys | Sort-Object)) {
+        $s = $script:State.seats[$k]
+        $seats[$k] = @{
+          status = '未批'; level = $s.level; note = $s.note; history = @{ attempts = @() }
+        }
+      }
+      $grader = [ordered]@{
+        _schema = 'math-grader-v1'; classLabel = $script:State.classLabel
+        seatCount = $script:State.seatCount; seats = $seats
+        features = @('0803', 'level')
+      }
+    }
+    $deskObj = Get-Content -LiteralPath $script:StatePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pack = [ordered]@{
+      _schema = 'sync-pack-v1'
+      exportedAt = (Get-Date).ToString('o')
+      features = @('0803', 'history', 'practice-loop', 'level', 'send', 'log')
+      grader = $grader
+      desk = $deskObj
+    }
+    $path = Join-Path $exportDir '0803同步包.json'
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    [IO.File]::WriteAllText($path, ($pack | ConvertTo-Json -Depth 10), $utf8Bom)
+    [void][System.Windows.Forms.MessageBox]::Show("已匯出：`r`n$path`r`n（若桌面有批改進度會一併打包歷程）", '0803同步包')
+    Start-Process explorer.exe $exportDir
+  })
+
+  $btnImportPack.Add_Click({
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Filter = '0803同步包 (*.json)|*.json|所有檔案 (*.*)|*.*'
+    $dlg.Title = '匯入 0803 同步包'
+    if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+    try {
+      $pack = Get-Content -LiteralPath $dlg.FileName -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ($pack._schema -eq 'sync-pack-v1' -and $pack.desk) {
+        $tmp = Join-Path ([IO.Path]::GetTempPath()) ('desk-' + [guid]::NewGuid().ToString('n') + '.json')
+        $utf8Bom = New-Object System.Text.UTF8Encoding $true
+        [IO.File]::WriteAllText($tmp, ($pack.desk | ConvertTo-Json -Depth 8), $utf8Bom)
+        $script:State = Load-StateFile $tmp
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+      } elseif ($pack.seats -and -not $pack.grader) {
+        $script:State = Load-StateFile $dlg.FileName
+      } else {
+        throw '請選擇 0803同步包.json'
+      }
+      $script:StatePath = Join-Path $WorkDir '班級狀態.json'
+      Save-StateFile $script:State $script:StatePath
+      $txtClass.Text = $script:State.classLabel
+      $txtDeadline.Text = $script:State.deadline
+      $numSeats.Value = [Math]::Max(1, [Math]::Min(60, [decimal]$script:State.seatCount))
+      $si = $cmbSendCh.Items.IndexOf([string]$script:State.sendChannel)
+      if ($si -ge 0) { $cmbSendCh.SelectedIndex = $si }
+      $ri = $cmbRetCh.Items.IndexOf([string]$script:State.returnChannel)
+      if ($ri -ge 0) { $cmbRetCh.SelectedIndex = $ri }
+      # 若包內有批改進度，另存到 MathGrading 輸出供批改匯入
+      if ($pack.grader) {
+        $mgOutDir = Join-Path ([Environment]::GetFolderPath('Desktop')) 'MathGrading\輸出'
+        New-Item -ItemType Directory -Force -Path $mgOutDir | Out-Null
+        $gp = Join-Path $mgOutDir '習作批改進度.json'
+        [IO.File]::WriteAllText($gp, ($pack.grader | ConvertTo-Json -Depth 10), (New-Object System.Text.UTF8Encoding $true))
+      }
+      Refresh-Grid
+      [void][System.Windows.Forms.MessageBox]::Show('已匯入 0803 同步包（班級狀態已套用；批改進度若有則寫入 MathGrading\輸出）。', '習作台')
     } catch {
       [void][System.Windows.Forms.MessageBox]::Show("匯入失敗：$($_.Exception.Message)", '習作台')
     }

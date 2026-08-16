@@ -249,9 +249,12 @@
     </section>
 
     <section>
-      <h2>同步更新（兩台電腦＋手機＋習作批改）</h2>
-      <p class="tips">權威分工：程度以「習作批改」為準；發送／回傳／期限以「習作台」為準。換機請帶兩份檔：<code>班級狀態.json</code>＋<code>習作批改進度.json</code>。同一瀏覽器可直接「從習作批改同步」；不同裝置用匯出／匯入。</p>
+      <h2>同步更新（兩台電腦＋手機＋習作批改｜含歷程日誌）</h2>
+      <p class="tips">建議傳一份 <code>0803同步包.json</code>（進度＋歷程＋練習＋發送）。也可分傳 <code>班級狀態.json</code>＋<code>習作批改進度.json</code>。程度以批改為準；發送以習作台為準。</p>
       <div class="actions">
+        <button type="button" class="btn" id="btnExportPack">匯出0803同步包</button>
+        <button type="button" class="btn secondary" id="btnImportPack">匯入0803同步包</button>
+        <input class="hidden-file" id="fileSyncPack" type="file" accept="application/json,.json" />
         <button type="button" class="btn" id="btnSyncGrader">從習作批改同步程度</button>
         <button type="button" class="btn secondary" id="btnImportGraderFile">匯入批改進度（只更新程度）</button>
         <input class="hidden-file" id="fileGraderImport" type="file" accept="application/json,.json" />
@@ -537,6 +540,96 @@
         a.click();
         URL.revokeObjectURL(a.href);
         toast("已匯出班級狀態（可傳到另一台／手機／電腦習作台）");
+      });
+
+      document.getElementById("btnExportPack").addEventListener("click", function () {
+        persistHeader();
+        var grader = null;
+        try {
+          var raw = localStorage.getItem("math-grader-v1");
+          grader = raw ? JSON.parse(raw) : null;
+        } catch (e) { grader = null; }
+        if (!grader || !grader.seats) {
+          grader = {
+            _schema: "math-grader-v1",
+            classLabel: state.classLabel,
+            seatCount: state.seatCount,
+            seats: {}
+          };
+          Object.keys(state.seats).forEach(function (id) {
+            grader.seats[id] = {
+              status: "未批",
+              level: state.seats[id].level || "未標",
+              note: state.seats[id].note || "",
+              history: { attempts: [] }
+            };
+          });
+        } else {
+          grader._schema = "math-grader-v1";
+        }
+        var pack = {
+          _schema: "sync-pack-v1",
+          exportedAt: new Date().toISOString(),
+          features: ["0803", "history", "practice-loop", "level", "send", "log"],
+          grader: grader,
+          desk: Object.assign({}, state, { _schema: "teacher-desk-v1" })
+        };
+        var blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "0803同步包.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("已匯出 0803 同步包（含歷程／發送）");
+      });
+      document.getElementById("btnImportPack").addEventListener("click", function () {
+        document.getElementById("fileSyncPack").click();
+      });
+      document.getElementById("fileSyncPack").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var pack = JSON.parse(reader.result);
+            if (pack._schema === "sync-pack-v1") {
+              if (pack.desk && pack.desk.seats) {
+                state = ensure(Object.assign(def(), pack.desk));
+              }
+              if (pack.grader && pack.grader.seats) {
+                try { localStorage.setItem("math-grader-v1", JSON.stringify(pack.grader)); } catch (e2) {}
+                persistHeader();
+                mergeLevelsFromGrader(pack.grader);
+              }
+              save(state);
+              syncForm();
+              renderGrid();
+              fillSeatSelect();
+              toast("已匯入 0803 同步包");
+              return;
+            }
+            if (pack._schema === "math-grader-v1" || (pack.seats && pack.seats["00"] && pack.seats["00"].status != null)) {
+              persistHeader();
+              var n = mergeLevelsFromGrader(pack);
+              save(state);
+              syncForm();
+              renderGrid();
+              fillSeatSelect();
+              toast(n ? ("已從進度匯入 " + n + " 個程度") : "沒有可匯入的程度");
+              return;
+            }
+            state = ensure(Object.assign(def(), pack));
+            save(state);
+            syncForm();
+            renderGrid();
+            fillSeatSelect();
+            toast("已匯入班級資料");
+          } catch (err) {
+            toast(String(err && err.message || err) || "匯入失敗");
+          }
+        };
+        reader.readAsText(f, "utf-8");
       });
 
       function mergeLevelsFromGrader(g) {

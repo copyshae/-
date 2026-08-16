@@ -58,6 +58,7 @@ $files = @(
   "scripts/teacher-desk-app.ps1",
   "scripts/README-teacher-desk.md",
   "scripts/README-sync.md",
+  "scripts/FEATURES-FROM-LOGS.md",
   "directory/apps/math-grader/index.html",
   "directory/apps/math-grader/sw.js",
   "directory/apps/math-grader/manifest.json",
@@ -111,10 +112,10 @@ try {
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
-    scripts/README-teacher-desk.md scripts/README-math-homework-grader.md scripts/README-sync.md 2>$null
+    scripts/README-teacher-desk.md scripts/README-math-homework-grader.md scripts/README-sync.md scripts/FEATURES-FROM-LOGS.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "習作批改／習作台：跨裝置與雙 App 同步（兩份 JSON）"
+    git commit -m "習作批改／習作台：日誌功能全納入與 0803 同步包（含歷程）"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
