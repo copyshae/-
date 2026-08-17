@@ -164,8 +164,9 @@
       <p class="key-status" id="keyStatus">尚未設定金鑰（網頁訂閱≠API；可用 ChatPlayground AI 自動批閱）</p>
       <div class="actions" style="margin-top:0.45rem">
         <button type="button" class="btn" id="btnOpenChatPlaygroundTop">ChatPlayground AI 自動批閱</button>
+        <button type="button" class="btn secondary" id="btnCpUsage">查看 ChatPlayground 用量</button>
       </div>
-      <p class="tips">ChatPlayground 無對外 API，無法像 Gemini 金鑰在背景呼叫；「自動批閱」會一鍵複製提示、下載試卷、開站，你貼回覆即可完成。</p>
+      <p class="tips">ChatPlayground 無對外 API，無法像 Gemini 金鑰在背景呼叫；「自動批閱」會一鍵複製提示、下載試卷、開站，你貼回覆即可完成。AppSumo 終身方案請按「查看用量」：登入後看 Settings 的 Plan／Usage／Credits。</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -2019,6 +2020,10 @@
       });
       document.getElementById("btnOpenChatPlaygroundTop").addEventListener("click", function () {
         cpAutoOneFlow();
+      });
+      document.getElementById("btnCpUsage").addEventListener("click", function () {
+        window.open("https://web.chatplayground.ai/settings", "_blank", "noopener,noreferrer");
+        toast("已開設定頁：找 Plan／Usage／Credits 看本月剩餘");
       });
       document.getElementById("btnCpAutoOne").addEventListener("click", function () {
         cpAutoOneFlow();
