@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>20260807 學習日誌・手機卡住「批改中」改 API 自動批</title>
+  <title>20260807 學習日誌・手機卡住「批改中」改為自動批</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
@@ -75,14 +75,14 @@
       <a href="./index.html">← 日誌列表</a>
     </nav>
     <article>
-      <h1>20260807 手機卡住「批改中」改 API 自動批</h1>
-      <p class="lead">接 0806：手機 00 整天停在批改中。舊版不會呼叫 API；一併做快速批與連續批。</p>
+      <h1>20260807 手機卡住「批改中」改為自動批</h1>
+      <p class="lead">接 0806：手機 00 整天停在批改中。舊版不會自動呼叫 Gemini；一併做快速批與連續批。</p>
 
       <ul>
-        <li>根因：舊手機版<strong>不會呼叫 Gemini API</strong>；「貼上批」只標批改中。</li>
-        <li>設定 AI Studio 金鑰（本機、不進 Git）；Gemini自動批／連續自動批。</li>
+        <li>根因：舊手機版<strong>不會呼叫 Gemini</strong>；「貼上批」只標批改中。</li>
+        <li>設定 AI Studio 金鑰（存在本機，不提交版本庫）；Gemini自動批／連續自動批。</li>
         <li>「批改中→未批」一鍵解除。</li>
-        <li>快速批：<code>gemini-2.5-flash-lite</code>、壓圖最長邊 1600、一鍵連續批、喚醒鎖。</li>
+        <li>快速批：精簡模型、壓圖最長邊 1600、一鍵連續批、螢幕保持喚醒。</li>
       </ul>
 
       <p class="note">
