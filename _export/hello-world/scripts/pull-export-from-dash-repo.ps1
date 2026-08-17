@@ -84,9 +84,6 @@ $files = @(
   "directory/202608/20260811-learning-log.html",
   "directory/202608/20260812-learning-log.html",
   "directory/202608/20260813-learning-log.html",
-  "directory/202608/20260814-learning-log.html",
-  "directory/202608/20260815-learning-log.html",
-  "directory/202608/20260816-learning-log.html",
   "directory/202608/20260817-push-logs.html",
   "directory/202608/index.html"
 )
@@ -142,9 +139,6 @@ try {
     directory/202608/20260811-learning-log.html `
     directory/202608/20260812-learning-log.html `
     directory/202608/20260813-learning-log.html `
-    directory/202608/20260814-learning-log.html `
-    directory/202608/20260815-learning-log.html `
-    directory/202608/20260816-learning-log.html `
     directory/202608/20260817-push-logs.html `
     directory/202608/index.html `
     scripts/install-desktop-apps.ps1 `
@@ -152,7 +146,7 @@ try {
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "新增 20260804–0816 學習日誌：8月3日後一天一主題。"
+    git commit -m "新增 20260804–0813 學習日誌：8月3日後一天一主題。"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
