@@ -1,11 +1,11 @@
-# 匯出最終包｜與電腦版同步＋學習日誌 0815–0817（2026-08-17）
+# 匯出最終包｜學習日誌接 0803 往後編（不依實際工作日）
 
-本包另含近日未上線的學習日誌（獨立主題、一天一篇）：
+未上線工作依獨立主題接在 0803 之後一天一篇：
 
-- `directory/202608/20260815-learning-log.html` 習作台
-- `directory/202608/20260816-learning-log.html` 手機自動批與批完後續
-- `directory/202608/20260817-math-grader.html` 國中課本形式與 ChatPlayground
-- `directory/202608/20260817-push-logs.html` 補推近日未上線獨立主題（本篇「推日誌」）
+- `directory/202608/20260804-learning-log.html` 習作台
+- `directory/202608/20260805-learning-log.html` 手機自動批與批完後續
+- `directory/202608/20260806-learning-log.html` 國中課本形式與 ChatPlayground
+- `directory/202608/20260817-push-logs.html` 補推流程（推日誌收工）
 - `directory/202608/index.html` 8 月列表（含既有 0817 換機安裝篇）
 
 套用後線上列表：https://copyshae.github.io/hello-world/directory/202608/

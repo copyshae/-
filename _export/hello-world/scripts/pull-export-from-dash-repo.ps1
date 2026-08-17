@@ -74,9 +74,9 @@ $files = @(
   "directory/apps/teacher-desk/icon-180.png",
   "directory/apps/teacher-desk/icon-192.png",
   "directory/apps/teacher-desk/icon-512.png",
-  "directory/202608/20260815-learning-log.html",
-  "directory/202608/20260816-learning-log.html",
-  "directory/202608/20260817-math-grader.html",
+  "directory/202608/20260804-learning-log.html",
+  "directory/202608/20260805-learning-log.html",
+  "directory/202608/20260806-learning-log.html",
   "directory/202608/20260817-push-logs.html",
   "directory/202608/index.html"
 )
@@ -122,14 +122,14 @@ Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
 Push-Location $root
 try {
   git add directory/apps/math-grader directory/apps/teacher-desk `
-    directory/202608/20260815-learning-log.html directory/202608/20260816-learning-log.html `
-    directory/202608/20260817-math-grader.html directory/202608/20260817-push-logs.html directory/202608/index.html `
+    directory/202608/20260804-learning-log.html directory/202608/20260805-learning-log.html `
+    directory/202608/20260806-learning-log.html directory/202608/20260817-push-logs.html directory/202608/index.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "新增 20260817 學習日誌：補推近日未上線獨立主題。"
+    git commit -m "新增 20260804–0806 學習日誌：習作台、手機自動批、課本形式（接 0803 往後編）。"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
