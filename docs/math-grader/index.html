@@ -1571,8 +1571,13 @@
           toast("座號 " + selected + " 已批完（" + r.model + "）");
           selectSeat(selected);
         } catch (err) {
-          document.getElementById("preview").value = "自動批失敗：\n" + (err && err.message ? err.message : String(err));
-          toast("自動批失敗，見上方說明");
+          var msg = err && err.message ? err.message : String(err);
+          document.getElementById("preview").value = "自動批失敗：\n" + msg;
+          try {
+            document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch (e) {}
+          var short = msg.replace(/\s+/g, " ").slice(0, 42);
+          toast("自動批失敗：" + short);
         } finally {
           setBusy(false);
         }
@@ -2254,8 +2259,17 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("./sw.js").then(function (reg) {
           try { reg.update(); } catch (e) {}
+          if (reg.waiting) {
+            try { reg.waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) {}
+          }
           setTimeout(renderScans, 400);
         }).catch(function () {});
+        var reloaded = false;
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+          if (reloaded) return;
+          reloaded = true;
+          location.reload();
+        });
       }
     })();
   </script>
