@@ -297,7 +297,8 @@
         <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
         <li>若出現「免費額度／速率限制」：等約 1 分鐘再批（程式會依提示自動等待重試）；不是金鑰錯。用量：<a href="https://ai.dev/rate-limit" target="_blank" rel="noopener">ai.dev/rate-limit</a>。</li>
         <li>批完後用下方「批完後續」：練習模板／發放訊息／寫入習作台／練習回傳循環。</li>
-        <li>只按「開啟 Gemini 貼上批」不會自動完成，又慢又會卡在批改中。</li>
+        <li>只按「開啟 Gemini 貼上批」不會自動完成；請設金鑰後用「Gemini自動批」。</li>
+        <li>若卡在「批改中」：按「全部批改中改回未批」，或重新整理頁面會自動解除。</li>
       </ul>
     </section>
 
@@ -1625,17 +1626,8 @@
         toast("座號 " + selected + " 已改回未批");
       });
       document.getElementById("btnUnstickAll").addEventListener("click", function () {
-        var n = 0;
-        Object.keys(state.seats).forEach(function (id) {
-          if (state.seats[id].status === "批改中") {
-            state.seats[id].status = "未批";
-            n++;
-          }
-        });
-        save(state);
-        if (selected) document.getElementById("gradeStatus").value = state.seats[selected].status;
-        renderGrid();
-        toast(n ? ("已把 " + n + " 個「批改中」改回未批") : "目前沒有批改中");
+        var n = unstickAllStuck(false);
+        if (!n) toast("目前沒有批改中");
       });
 
       document.getElementById("btnExportProgress").addEventListener("click", function () {
@@ -1937,13 +1929,17 @@
       fillSeatSelect();
       refreshKeyStatus();
       refreshAnswerStatus();
+      // 重新開啟頁面時，先前卡住的「批改中」一律改回未批（否則無法再批）
+      var cleared = unstickAllStuck(true);
       renderGrid();
       renderScans();
       try {
         document.getElementById("originTip").textContent =
           "目前網址：" + location.origin + location.pathname + "（請只從此網址加入主畫面；關掉再開會自動恢復）";
       } catch (e) {}
-
+      if (cleared) {
+        toast("已自動解除 " + cleared + " 個卡住的「批改中」→ 請設金鑰後按「Gemini自動批」");
+      }
       function restoreProgressBackup() {
         return openScanDb().then(function (db) {
           return new Promise(function (resolve) {
