@@ -20,6 +20,7 @@ $pairs = @(
   @{ Src = 'directory\202608\20260815-learning-log.html'; Dst = 'directory\202608\20260815-learning-log.html' },
   @{ Src = 'directory\202608\20260816-learning-log.html'; Dst = 'directory\202608\20260816-learning-log.html' },
   @{ Src = 'directory\202608\20260817-math-grader.html'; Dst = 'directory\202608\20260817-math-grader.html' },
+  @{ Src = 'directory\202608\20260817-push-logs.html'; Dst = 'directory\202608\20260817-push-logs.html' },
   @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' }
 )
 
@@ -51,7 +52,7 @@ Push-Location $dest
 try {
   git add directory/apps/teacher-desk directory/apps/math-grader `
     directory/202608/20260815-learning-log.html directory/202608/20260816-learning-log.html `
-    directory/202608/20260817-math-grader.html directory/202608/index.html `
+    directory/202608/20260817-math-grader.html directory/202608/20260817-push-logs.html directory/202608/index.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null

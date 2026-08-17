@@ -5,6 +5,7 @@
 - `directory/202608/20260815-learning-log.html` 習作台
 - `directory/202608/20260816-learning-log.html` 手機自動批與批完後續
 - `directory/202608/20260817-math-grader.html` 國中課本形式與 ChatPlayground
+- `directory/202608/20260817-push-logs.html` 補推近日未上線獨立主題（本篇「推日誌」）
 - `directory/202608/index.html` 8 月列表（含既有 0817 換機安裝篇）
 
 套用後線上列表：https://copyshae.github.io/hello-world/directory/202608/

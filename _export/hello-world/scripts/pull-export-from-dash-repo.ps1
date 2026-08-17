@@ -77,6 +77,7 @@ $files = @(
   "directory/202608/20260815-learning-log.html",
   "directory/202608/20260816-learning-log.html",
   "directory/202608/20260817-math-grader.html",
+  "directory/202608/20260817-push-logs.html",
   "directory/202608/index.html"
 )
 
@@ -122,13 +123,13 @@ Push-Location $root
 try {
   git add directory/apps/math-grader directory/apps/teacher-desk `
     directory/202608/20260815-learning-log.html directory/202608/20260816-learning-log.html `
-    directory/202608/20260817-math-grader.html directory/202608/index.html `
+    directory/202608/20260817-math-grader.html directory/202608/20260817-push-logs.html directory/202608/index.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "新增 20260815–0817 學習日誌：習作台、手機自動批、課本形式與 ChatPlayground。"
+    git commit -m "新增 20260817 學習日誌：補推近日未上線獨立主題。"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
