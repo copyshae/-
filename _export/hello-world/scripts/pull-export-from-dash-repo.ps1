@@ -3,6 +3,9 @@
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
 $branch = "main"
+if ($env:DASH_EXPORT_BRANCH -and $env:DASH_EXPORT_BRANCH.Trim()) {
+  $branch = $env:DASH_EXPORT_BRANCH.Trim()
+}
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -70,7 +73,11 @@ $files = @(
   "directory/apps/teacher-desk/share.html",
   "directory/apps/teacher-desk/icon-180.png",
   "directory/apps/teacher-desk/icon-192.png",
-  "directory/apps/teacher-desk/icon-512.png"
+  "directory/apps/teacher-desk/icon-512.png",
+  "directory/202608/20260815-learning-log.html",
+  "directory/202608/20260816-learning-log.html",
+  "directory/202608/20260817-math-grader.html",
+  "directory/202608/index.html"
 )
 
 foreach ($f in $files) {
@@ -114,12 +121,14 @@ Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
 Push-Location $root
 try {
   git add directory/apps/math-grader directory/apps/teacher-desk `
+    directory/202608/20260815-learning-log.html directory/202608/20260816-learning-log.html `
+    directory/202608/20260817-math-grader.html directory/202608/index.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "手機習作批改：補批完後續（自產練習／發放／回傳循環）"
+    git commit -m "新增 20260815–0817 學習日誌：習作台、手機自動批、課本形式與 ChatPlayground。"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"

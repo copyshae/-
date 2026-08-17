@@ -1,3 +1,28 @@
+# 匯出最終包｜與電腦版同步＋學習日誌 0815–0817（2026-08-17）
+
+本包另含近日未上線的學習日誌（獨立主題、一天一篇）：
+
+- `directory/202608/20260815-learning-log.html` 習作台
+- `directory/202608/20260816-learning-log.html` 手機自動批與批完後續
+- `directory/202608/20260817-math-grader.html` 國中課本形式與 ChatPlayground
+- `directory/202608/index.html` 8 月列表（含既有 0817 換機安裝篇）
+
+套用後線上列表：https://copyshae.github.io/hello-world/directory/202608/
+
+合併前進本機套用（指定本 PR 分支）：
+
+```powershell
+cd $env:USERPROFILE\Desktop\hello-world
+$env:DASH_EXPORT_BRANCH = 'cursor/push-unlogged-days-aafd'
+$dir = Join-Path $PWD 'scripts'
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+$url = "https://raw.githubusercontent.com/copyshae/-/$env:DASH_EXPORT_BRANCH/_export/hello-world/scripts/pull-export-from-dash-repo.ps1"
+Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
+```
+
+---
+
 # 匯出最終包｜與電腦版同步＋今日合併（2026-08-16）
 
 本包把 **hello-world 電腦完整版** 與今日討論一併合併：
