@@ -449,7 +449,7 @@
         document.getElementById("busyMsg").textContent = msg || "請稍候，不要關頁。";
         el.classList.toggle("show", !!on);
         grading = !!on;
-        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnSaveKey"].forEach(function (id) {
+        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnCpAutoOne", "btnCpAutoBatch", "btnSaveKey"].forEach(function (id) {
           var b = document.getElementById(id);
           if (b) b.disabled = !!on;
         });
