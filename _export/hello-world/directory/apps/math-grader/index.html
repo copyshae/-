@@ -1362,14 +1362,26 @@
         if (!opts.silentUi) {
           document.getElementById("preview").value = "正在呼叫 Gemini…\n座號 " + id + "\n檔案：" + (scan.name || "");
         }
-        var files = [scan].concat(answers);
-        var result = await callGemini(key, prompt, files, opts.models);
-        applyReplyToSeat(id, result.text, result.model, {
-          silentUi: !!opts.silentUi,
-          skipSave: !!opts.skipSave,
-          skipRender: !!opts.skipRender
-        });
-        return result;
+        try {
+          var files = [scan].concat(answers);
+          var result = await callGemini(key, prompt, files, opts.models);
+          applyReplyToSeat(id, result.text, result.model, {
+            silentUi: !!opts.silentUi,
+            skipSave: !!opts.skipSave,
+            skipRender: !!opts.skipRender
+          });
+          return result;
+        } catch (err) {
+          if (state.seats[id] && state.seats[id].status === "批改中") {
+            state.seats[id].status = "未批";
+            if (!opts.skipSave) save(state);
+            if (!opts.skipRender) renderGrid();
+            if (!opts.silentUi && selected === id) {
+              document.getElementById("gradeStatus").value = "未批";
+            }
+          }
+          throw err;
+        }
       }
 
       async function mapPool(items, concurrency, worker) {
@@ -1499,6 +1511,25 @@
           if (selected === id) document.getElementById("gradeStatus").value = "未批";
           renderGrid();
         }
+      }
+
+      function unstickAllStuck(silent) {
+        var n = 0;
+        Object.keys(state.seats).forEach(function (id) {
+          if (state.seats[id].status === "批改中") {
+            state.seats[id].status = "未批";
+            n++;
+          }
+        });
+        if (n) {
+          save(state);
+          renderGrid();
+          if (selected && state.seats[selected]) {
+            document.getElementById("gradeStatus").value = state.seats[selected].status;
+          }
+          if (!silent) toast("已把 " + n + " 個「批改中」改回未批");
+        }
+        return n;
       }
 
       document.getElementById("filters").addEventListener("click", function (e) {
@@ -1646,34 +1677,28 @@
       document.getElementById("btnCopyOne").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
-        state.seats[selected].status = "批改中";
-        save(state);
-        renderGrid();
+        // 手動貼不會自動回寫，勿標「批改中」以免卡住
         copyText(buildPromptOne(selected, false), "已複製（手動貼）。真正自動請用「Gemini自動批」");
+        document.getElementById("preview").value = buildPromptOne(selected, false);
       });
 
       document.getElementById("btnCopyHw").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
-        state.seats[selected].status = "批改中";
-        save(state);
-        renderGrid();
         copyText(buildPromptOne(selected, true), "已複製手寫加強提示（手動）");
+        document.getElementById("preview").value = buildPromptOne(selected, true);
       });
 
       document.getElementById("btnOpenGemini").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
-        state.seats[selected].status = "批改中";
-        save(state);
-        renderGrid();
-        copyText(
+        var p =
           "【任務】用 Google Gemini 批閱。\n" +
           "【模式】有正確答案就對照；沒有就直接 AI 批。\n" +
           "【請上傳】學生試卷（＋正確答案若有）。\n" +
-          "【必做】逐題判 ✓／✗／?；等價解法可給 ✓。\n\n" + buildPromptOne(selected, true),
-          "已複製 → 開 Gemini 手動貼。想免手動請用「Gemini自動批」"
-        );
+          "【必做】逐題判 ✓／✗／?；等價解法可給 ✓。\n\n" + buildPromptOne(selected, true);
+        document.getElementById("preview").value = p;
+        copyText(p, "已複製 → 開 Gemini 手動貼。想免手動請用「Gemini自動批」");
         window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
       });
 
