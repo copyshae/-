@@ -46,6 +46,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
    - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
    - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
 
+## 預覽（PR 分支，raw.githack）
+
+- 習作批改：https://raw.githack.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/directory/apps/math-grader/index.html  
+- 習作台：https://raw.githack.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/directory/apps/teacher-desk/index.html  
+
+開發者同步 docs：`bash _export/hello-world/scripts/sync-docs-from-export.sh`
+
 ## 規格依據
 
 https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html

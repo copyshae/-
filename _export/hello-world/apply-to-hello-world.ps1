@@ -50,7 +50,7 @@ try {
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = '手機習作批改／習作台：ChatPlayground AI 預設批閱＋國中課本形式'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'
