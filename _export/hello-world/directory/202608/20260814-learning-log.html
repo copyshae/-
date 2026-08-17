@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>20260813 學習日誌・0803 延伸納入手機、失敗改回未批</title>
+  <title>20260814 學習日誌・另一台 Cursor 電腦安裝兩個視窗</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
@@ -52,7 +52,6 @@
       padding-top: 0.75rem;
       border-top: 1px solid var(--line);
     }
-    h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0.5rem; }
     ul, ol { margin: 0.5rem 0 0.85rem 1.35rem; }
     li { margin: 0.3rem 0; }
     code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
@@ -75,18 +74,34 @@
       <a href="./index.html">← 日誌列表</a>
     </nav>
     <article>
-      <h1>20260813 0803 延伸納入手機、失敗改回未批</h1>
-      <p class="lead">接 0812：把 0803 後續鏈補進手機；自動批失敗要回到未批。</p>
+      <h1>20260814 另一台 Cursor 電腦安裝兩個視窗</h1>
+      <p class="lead">接 0813。換機不必從零做視窗：有 Cursor 就開 hello-world，說「裝習作台和習作批改」，桌面會生成兩個捷徑。</p>
 
+      <h2>一｜另一台怎麼做</h2>
+      <ol>
+        <li>同一 Cursor 帳號登入（帶回使用者規則）。</li>
+        <li>複製 <code>copyshae/hello-world</code> 到桌面（或已有就 <code>git pull origin master</code>）。</li>
+        <li>Cursor 開啟該資料夾，對助理說：<strong>裝習作台和習作批改</strong>。</li>
+        <li>雙擊 <code>習作台.cmd</code>、<code>習作批改.vbs</code>。</li>
+        <li>金鑰用密碼管理器還原到 <code>MathGrading\gemini-api-key.txt</code>，不要進 Git。</li>
+      </ol>
+      <div class="callout">
+        尚未複製時，PowerShell 可貼：<code>irm https://raw.githubusercontent.com/copyshae/hello-world/master/scripts/bootstrap-desktop-apps.ps1 | iex</code>
+      </div>
+
+      <h2>二｜倉庫裡加了什麼</h2>
       <ul>
-        <li>待批／待回清單、回傳進循環、已批練習包、需列印座號、待認知／待重謄。</li>
-        <li>正式 PDF 仍以電腦版為主。</li>
-        <li>自動批失敗改回未批；手動貼不再卡住；重新整理解除「批改中」。</li>
+        <li><code>scripts/bootstrap-desktop-apps.ps1</code>：複製／拉取後呼叫一鍵安裝。</li>
+        <li><code>scripts/install-desktop-apps.ps1</code>：同時裝兩個視窗，並把快捷詞複製到 <code>%USERPROFILE%\.cursor\</code>。</li>
+        <li>skill／規則：<code>install-desktop-apps</code>；說明頁 <code>directory/apps/desktop-install.html</code>。</li>
+        <li><code>.gitignore</code>：排除 <code>.env</code>、金鑰、token。</li>
       </ul>
 
       <p class="note">
         線上：
-        <a class="inline" href="https://copyshae.github.io/hello-world/directory/202608/20260813-learning-log.html">https://copyshae.github.io/hello-world/directory/202608/20260813-learning-log.html</a>
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/202608/20260814-learning-log.html">https://copyshae.github.io/hello-world/directory/202608/20260814-learning-log.html</a>
+        ｜步驟：
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/apps/desktop-install.html">https://copyshae.github.io/hello-world/directory/apps/desktop-install.html</a>
       </p>
     </article>
   </div>
