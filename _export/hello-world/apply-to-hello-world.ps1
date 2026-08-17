@@ -55,7 +55,7 @@ try {
   git push origin HEAD
   Write-Host '完成。'
   Write-Host '請再跑：powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1'
-  Write-Host '習作批改：Gemini金鑰 →「Gemini自動批」或「連續自動批」（答案可選）。'
+  Write-Host '習作批改：ChatPlayground AI 自動批閱（Gemini 金鑰可留空）。'
 } finally {
   Pop-Location
 }

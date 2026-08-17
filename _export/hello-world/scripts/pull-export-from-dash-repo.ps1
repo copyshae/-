@@ -71,7 +71,9 @@ $files = @(
   "directory/apps/teacher-desk/share.html",
   "directory/apps/teacher-desk/icon-180.png",
   "directory/apps/teacher-desk/icon-192.png",
-  "directory/apps/teacher-desk/icon-512.png"
+  "directory/apps/teacher-desk/icon-512.png",
+  "directory/apps/index.html",
+  "scripts/sync-docs-from-export.sh"
 )
 
 foreach ($f in $files) {
@@ -120,10 +122,11 @@ try {
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "手機習作批改：補批完後續（自產練習／發放／回傳循環）"
+    git commit -m "手機習作批改／習作台：ChatPlayground AI 預設批閱＋國中課本形式"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
+    Write-Host "https://copyshae.github.io/hello-world/directory/apps/teacher-desk/"
   } else {
     Write-Host "No git changes to push."
   }
@@ -135,6 +138,6 @@ try {
 }
 
 Write-Host ""
-Write-Host "DONE. Close old grader window, then open desktop shortcut again."
-Write-Host "Phone: open math-grader URL above, scroll to 批完後續."
+Write-Host "DONE. Close old grader/desk window, then open desktop shortcut again."
+Write-Host "Phone: ChatPlayground AI 自動批閱 → 貼回覆套用。Teacher desk: sync level → copy group message."
 Write-Host "Desktop: Gemini key -> Gemini auto grade"
