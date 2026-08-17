@@ -48,10 +48,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 
 ## 預覽（PR 分支，raw.githack）
 
-- 習作批改：https://raw.githack.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/directory/apps/math-grader/index.html  
-- 習作台：https://raw.githack.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/directory/apps/teacher-desk/index.html  
+- 入口：https://raw.githack.com/copyshae/-/6346b90/_export/hello-world/directory/apps/index.html  
+- 習作批改：https://raw.githack.com/copyshae/-/6346b90/_export/hello-world/directory/apps/math-grader/index.html  
+- 習作台：https://raw.githack.com/copyshae/-/6346b90/_export/hello-world/directory/apps/teacher-desk/index.html  
 
-開發者同步 docs：`bash _export/hello-world/scripts/sync-docs-from-export.sh`
+（推送後請把 SHA 換成最新 commit。勿用 jsDelivr 開 HTML。）
 
 ## 規格依據
 

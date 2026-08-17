@@ -10,6 +10,7 @@ if (-not (Test-Path -LiteralPath $dest)) {
 $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
+  @{ Src = 'directory\apps\index.html'; Dst = 'directory\apps\index.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
