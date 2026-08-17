@@ -223,6 +223,7 @@
       <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 Gemini 回覆。"></textarea>
       <div class="actions">
         <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
+        <button type="button" class="btn secondary" id="btnTextbookFormat">整理成課本格式</button>
       </div>
     </section>
 
@@ -231,6 +232,7 @@
       <p class="tips">批閱後應接：自產練習 → 發放 → 練習回傳循環 → 歷程。手機可先完成文案／歷程；正式 PDF／數位練習包仍可用電腦「習作批改」。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnFillPractice">依程度給練習模板</button>
+        <button type="button" class="btn secondary" id="btnTextbookPractice">練習整理成課本格式</button>
         <button type="button" class="btn secondary" id="btnPracticeGuide">自產練習說明</button>
         <button type="button" class="btn secondary" id="btnCopyLineMsg">複製此生發放訊息</button>
         <button type="button" class="btn secondary" id="btnPushDesk">寫入習作台程度</button>
@@ -517,17 +519,61 @@
           );
         return (
           head +
-          "請務必輸出：\n" +
+          "請務必輸出（國中老師批改口吻，短句條列即可）：\n" +
           (hard ? "0) 手寫轉譯稿\n0b) 認知輸入清單\n" : "") +
           "1) 題號註記（✓／✗／?）\n" +
           "2) 對錯摘要（已確認／仍存疑）\n" +
-          "3) 個別診斷\n" +
+          "3) 個別診斷（2～4 句）\n" +
           "4) 程度：跟上／略落後／明顯落後／需補先備／待判定\n" +
-          "5) 個別建議\n" +
-          "6) 依程度自學練習（指導＋影片搜尋＋題＋解答）\n\n" +
+          "5) 個別建議（短）\n" +
+          "6) 依程度自學練習（必須國中課本形式，見下方必守）\n\n" +
+          textbookFormatRules() + "\n" +
           "座號：" + id + "\n" +
           "班級：" + state.classLabel + "\n"
         );
+      }
+
+      function textbookFormatRules() {
+        return (
+          "【練習呈現｜國中課本形式｜必守】\n" +
+          "用「一、二、三、四」與「【標題】」。\n" +
+          "禁止：####、**粗體**、a.b.c.d 英文小標、LaTeX（\\begin{cases}、\\dfrac、$）。\n" +
+          "聯立方程式寫成兩行，前面加 { ；分數寫 31/13。\n" +
+          "短句、一步一行；解答最後一行寫「答：…」。\n" +
+          "結構固定如下：\n" +
+          "【自學練習｜程度】\n" +
+          "一、先看這裡（口訣／注意，各 ≤3 點）\n" +
+          "二、影片（關鍵詞＋ YouTube 搜尋連結一行）\n" +
+          "三、練習（先做完再看解答；題號 1. 2. 3.）\n" +
+          "────────\n" +
+          "四、解答（做完再看；對應題號，結尾答：）\n"
+        );
+      }
+
+      function toTextbookPractice(raw) {
+        var t = String(raw || "").replace(/\r\n/g, "\n");
+        t = t.replace(/^#{1,6}\s*/gm, "");
+        t = t.replace(/\*\*([^*]+)\*\*/g, "$1");
+        t = t.replace(/\*([^*\n]+)\*/g, "$1");
+        t = t.replace(/^[a-d]\.\s+/gmi, "");
+        t = t.replace(/\\dfrac\{([^{}]+)\}\{([^{}]+)\}/g, "$1/$2");
+        t = t.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "$1/$2");
+        t = t.replace(/\$\$([\s\S]*?)\$\$/g, "$1");
+        t = t.replace(/\$([^$\n]+)\$/g, "$1");
+        t = t.replace(/\\begin\{cases\}/gi, "\n");
+        t = t.replace(/\\end\{cases\}/gi, "\n");
+        t = t.replace(/\s*\\\\\s*/g, "\n");
+        t = t.replace(/\\left\.?/g, "");
+        t = t.replace(/\\right\.?/g, "");
+        t = t.replace(/\\,/g, " ");
+        t = t.replace(/\\ /g, " ");
+        t = t.replace(/\\([a-zA-Z]+)/g, "$1");
+        t = t.replace(/^---+$/gm, "────────");
+        t = t.replace(/^\*\s+/gm, "");
+        t = t.replace(/^-\s+/gm, "");
+        t = t.replace(/\n{3,}/g, "\n\n");
+        t = t.replace(/[ \t]+\n/g, "\n");
+        return t.trim();
       }
 
       function buildAutoPrompt(id, hasAns, hard, fast) {
@@ -563,7 +609,9 @@
           "請批閱這位學生「練習回傳」（PDF／圖檔）。\n" +
           "座號：" + id + "\n" +
           "程度：" + lv + "\n" +
-          "請輸出：分數或達成情形、問題點、簡短回饋、下一輪練習（指導＋題＋解答＋影片搜尋連結）。\n" +
+          "請輸出：分數或達成情形、問題點、簡短回饋、下一輪練習。\n" +
+          "下一輪練習必須用國中課本形式：一、先看這裡 → 二、影片 → 三、練習 → 四、解答；\n" +
+          "禁止 ####、**粗體**、LaTeX；聯立用兩行 { ；分數寫 a/b；解答結尾寫「答：」。\n" +
           "明顯落後／需補先備採多次補齊，每次約 1 點、少題。"
         );
       }
@@ -575,50 +623,133 @@
       function getPracticeTemplate(level) {
         if (level === "跟上") {
           return (
-            "### 程度：跟上｜目標：再提升（少重複、多挑戰）\n" +
-            "說明：已掌握本單元。A 少練；重心 B、C。禁止整份只改數字。不使用均一；練習／指導／影片由此產生。\n\n" +
-            "#### 自學指導（先看再做）\n- 重點觀念：________\n- 解題步驟口訣：________\n- 易錯提醒：________\n\n" +
-            "#### 建議影片／學習連結（1～2 個）\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n- 備用關鍵詞：________\n\n" +
-            "#### 練習題（先做完再看解答）\n【A 鞏固｜少而精】\n1. …\n【B 靈活】\n2. …\n3. …\n【C 再提升｜必做】\n4. …\n5. …\n6. …\n【D 超前伸展｜選做】\n7. …\n\n---\n#### 解答（全部題目完成後再看）\n1. …\n2. …\n3. …\n4. …\n5. …\n6. …\n7. …\n提升小提示：挑戰題做完寫「我多學到什麼」。"
+            "【自學練習｜跟上｜再提升】\n\n" +
+            "一、先看這裡\n" +
+            "口訣：\n" +
+            "1. ________\n" +
+            "2. ________\n" +
+            "注意：\n" +
+            "1. ________\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n\n" +
+            "三、練習（先全部做完，再看解答）\n" +
+            "1. （鞏固）……\n" +
+            "2. （靈活）……\n" +
+            "3. （靈活）……\n" +
+            "4. （再提升｜必做）……\n" +
+            "5. （再提升｜必做）……\n" +
+            "6. （再提升｜必做）……\n" +
+            "7. （超前｜選做）……\n\n" +
+            "────────\n" +
+            "四、解答（做完再看）\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……\n" +
+            "4. ……\n答：……\n" +
+            "5. ……\n答：……\n" +
+            "6. ……\n答：……\n" +
+            "7. ……\n答：……\n" +
+            "做完挑戰題後，寫一句「我多學到什麼」。"
           );
         }
         if (level === "略落後") {
           return (
-            "### 程度：略落後｜目標：跟上本單元\n先復習：________（本單元核心觀念）\n不使用均一；練習／指導／影片由此產生。\n\n" +
-            "#### 自學指導（先看再做）\n- 先搞懂：________\n- 步驟：1) … 2) … 3) …\n- 做完自問：________\n\n" +
-            "#### 建議影片／學習連結\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n\n" +
-            "#### 練習題（先做完再看解答）\n【A 關鍵基本】\n1. …\n2. …\n3. …\n【B 對應錯題類型】\n4. …\n5. …\n\n---\n#### 解答（全部題目完成後再看）\n1. …\n2. …\n3. …\n4. …\n5. …"
+            "【自學練習｜略落後｜跟上本單元】\n\n" +
+            "一、先看這裡\n" +
+            "先搞懂：________\n" +
+            "步驟：\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. ……\n" +
+            "做完自問：________\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n\n" +
+            "三、練習（先全部做完，再看解答）\n" +
+            "1. （基本）……\n" +
+            "2. （基本）……\n" +
+            "3. （基本）……\n" +
+            "4. （對應錯題）……\n" +
+            "5. （對應錯題）……\n\n" +
+            "────────\n" +
+            "四、解答（做完再看）\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……\n" +
+            "4. ……\n答：……\n" +
+            "5. ……\n答：……"
           );
         }
         if (level === "明顯落後") {
           return (
-            "### 程度：明顯落後｜目標：多次補齊、每次有成就（漸次跟上）\n原則：每次只補 1 個小洞、題數 ≤ 3；做對就停，隔日再補。\n本次只補：________\n不使用均一；練習／指導／影片由此自動產生。\n\n" +
-            "#### 自學指導（短、好懂）\n- 今天只要會：________\n- 跟著做：第一步… → 第二步… → 第三步…\n- 做對的樣子：（簡短示範）\n\n" +
-            "#### 建議影片／學習連結（對準本次這 1 點）\n- 搜尋關鍵詞：________（年級＋單元＋教學）\n- 連結：https://www.youtube.com/results?search_query=________\n- 看片重點：________（不必整部）\n\n" +
-            "#### 練習題（≤3 題）\n【A 本次小洞｜求做對有成就】\n1. …\n2. …\n【B 極簡銜接｜選做】\n3. …\n\n---\n#### 解答（逐步寫）\n1. …\n2. …\n3. …\n說明：本次成功＝有成就；其餘下次再補。"
+            "【自學練習｜明顯落後｜本次只補一小點】\n\n" +
+            "一、先看這裡\n" +
+            "今天只要會：________\n" +
+            "跟著做：\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. ……\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n" +
+            "看片重點：________\n\n" +
+            "三、練習（≤3 題，先做完再看解答）\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. （選做）……\n\n" +
+            "────────\n" +
+            "四、解答（做完再看）\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……\n" +
+            "本次做對＝有成就；其餘下次再補。"
           );
         }
         if (level === "需補先備") {
           return (
-            "### 程度：需補先備｜目標：分次回到起點（多次補齊）\n本次只補：________（1 個觀念）\n尚未補、下次再補：________\n不使用均一；練習／指導／影片由此產生。\n\n" +
-            "#### 自學指導\n- 先回到：________\n- 超短步驟：________\n- 不會就先看影片再做 1～2 題\n\n" +
-            "#### 建議影片／學習連結（先備觀念）\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n\n" +
-            "#### 練習題（≤3 題）\n1. …\n2. …\n3. （選做）\n\n---\n#### 解答\n1. …\n2. …\n3. …\n建議：與導師協調；家長說明「多次小補」。"
+            "【自學練習｜需補先備｜本次只補一個觀念】\n\n" +
+            "一、先看這裡\n" +
+            "先回到：________\n" +
+            "超短步驟：________\n" +
+            "不會就先看影片，再做 1～2 題。\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n\n" +
+            "三、練習（≤3 題）\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. （選做）……\n\n" +
+            "────────\n" +
+            "四、解答\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……"
           );
         }
         return (
-          "### 程度：待判定\n#### 自學指導\n- …\n#### 建議影片／學習連結\n- 搜尋關鍵詞：…\n- 連結：https://www.youtube.com/results?search_query=…\n#### 練習題（先做完再看解答）\n1. …\n---\n#### 解答（全部題目完成後再看）\n1. …"
+          "【自學練習｜待判定】\n\n" +
+          "一、先看這裡\n……\n\n" +
+          "二、影片\n關鍵詞：……\nhttps://www.youtube.com/results?search_query=……\n\n" +
+          "三、練習\n1. ……\n\n" +
+          "────────\n" +
+          "四、解答\n1. ……\n答：……"
         );
       }
 
       function practiceGuideText() {
         return (
-          "自產練習與影片（不用均一）\n====================\n\n" +
+          "自產練習與影片（國中課本形式｜不用均一）\n====================\n\n" +
           "做法：\n" +
           "1. 批完後按「依程度給練習模板」，或從 Gemini 回覆擷取自學練習段。\n" +
-          "2. 把練習貼到「下一輪練習」→「儲存本輪＋下一輪練習」寫入歷程，並可下載 HTML。\n" +
-          "3. 「複製此生發放訊息」→ 貼到通訊軟體班級群組／個別傳；再「寫入習作台程度」後到習作台標未發／已發。\n" +
-          "4. 學生回傳圖／PDF → 匯入並對應座號 →「練習回傳再批」→ 再進循環。\n\n" +
+          "2. 若回覆太像 Markdown／LaTeX，按「整理成課本格式」。\n" +
+          "3. 把練習貼到「下一輪練習」→「儲存本輪＋下一輪練習」寫入歷程，並可下載 HTML。\n" +
+          "4. 「複製此生發放訊息」→ 貼到通訊軟體班級群組／個別傳；再「寫入習作台程度」後到習作台標未發／已發。\n" +
+          "5. 學生回傳圖／PDF → 匯入並對應座號 →「練習回傳再批」→ 再進循環。\n\n" +
+          "課本形式：\n" +
+          "- 一、先看這裡 → 二、影片 → 三、練習 → 四、解答\n" +
+          "- 聯立用兩行 { ；分數寫 31/13；解答最後寫「答：」\n" +
+          "- 不要 ####、**粗體**、LaTeX\n\n" +
           "影片規則：\n" +
           "- 優先 YouTube 搜尋結果頁：https://www.youtube.com/results?search_query=年級+單元+教學\n" +
           "- 有把握才貼具體影片網址；不要捏造連結\n\n" +
@@ -694,7 +825,7 @@
         document.getElementById("loopProblems").value = extractFromReply(reply, "problems") || "";
         document.getElementById("loopFeedback").value = extractFromReply(reply, "feedback") || (behind ? "（先寫做對了什麼 → 再寫下一步一小步）" : "");
         var nextText = extractFromReply(reply, "next");
-        document.getElementById("loopNext").value = nextText || getPracticeTemplate(lv);
+        document.getElementById("loopNext").value = toTextbookPractice(nextText || getPracticeTemplate(lv));
         document.getElementById("loopMet").checked = false;
         if (!hist.attempts.length) {
           histEl.textContent = "尚無歷程。批完或回傳批完後在此儲存本輪。";
@@ -754,15 +885,24 @@
       function downloadPracticeHtml(id) {
         var s = state.seats[id];
         if (!s) return;
-        var body = (document.getElementById("loopNext").value || "").trim() || getPracticeTemplate(s.level || "未標");
+        var body = toTextbookPractice(
+          (document.getElementById("loopNext").value || "").trim() || getPracticeTemplate(s.level || "未標")
+        );
+        var esc = body.replace(/[&<>]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]; });
         var html =
           "<!DOCTYPE html><html lang=\"zh-Hant\"><head><meta charset=\"UTF-8\"/>" +
           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
           "<title>座號 " + id + " 練習</title>" +
-          "<style>body{font-family:sans-serif;line-height:1.6;padding:1rem;max-width:40rem;margin:auto;white-space:pre-wrap}</style>" +
-          "</head><body><h1>座號 " + id + "｜" + (s.level || "") + "</h1><pre>" +
-          body.replace(/[&<>]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]; }) +
-          "</pre></body></html>";
+          "<style>" +
+          "body{font-family:\"DFKai-SB\",\"標楷體\",\"Noto Serif TC\",serif;line-height:1.75;" +
+          "padding:1.1rem;max-width:40rem;margin:auto;color:#1a1a1a;background:#faf8f4}" +
+          "h1{font-size:1.25rem;border-bottom:2px solid #333;padding-bottom:0.35rem;margin:0 0 0.8rem}" +
+          ".meta{color:#555;font-size:0.92rem;margin-bottom:1rem}" +
+          "pre{white-space:pre-wrap;font-family:inherit;font-size:1.05rem;margin:0}" +
+          "</style></head><body>" +
+          "<h1>座號 " + id + "｜練習</h1>" +
+          "<p class=\"meta\">程度：" + (s.level || "未標") + "　｜　請先做「三、練習」，全部做完再看「四、解答」</p>" +
+          "<pre>" + esc + "</pre></body></html>";
         var a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
         a.download = id + "-練習題.html";
@@ -1078,14 +1218,14 @@
           s.status = "已批";
         }
         s.note = ("Gemini " + (model || "")).trim().slice(0, 40);
-        s.lastReply = String(text || "").slice(0, 6000);
+        s.lastReply = toTextbookPractice(String(text || "")).slice(0, 6000);
         s.lastModel = model || "";
         s.lastGradedAt = Date.now();
         if (!opts.silentUi && selected === id) {
           document.getElementById("gradeStatus").value = s.status;
           document.getElementById("level").value = s.level || "未標";
           document.getElementById("note").value = s.note || "";
-          document.getElementById("preview").value = text;
+          document.getElementById("preview").value = s.lastReply;
           refreshLoopPanel(id);
         }
         if (!opts.skipSave) save(state);
@@ -1633,6 +1773,21 @@
 
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
         copyText(document.getElementById("preview").value || "", "已複製");
+      });
+
+      document.getElementById("btnTextbookFormat").addEventListener("click", function () {
+        var el = document.getElementById("preview");
+        el.value = toTextbookPractice(el.value || "");
+        toast("已整理成課本格式");
+      });
+
+      document.getElementById("btnTextbookPractice").addEventListener("click", function () {
+        var el = document.getElementById("loopNext");
+        el.value = toTextbookPractice(el.value || "");
+        if (document.getElementById("preview").value) {
+          document.getElementById("preview").value = toTextbookPractice(document.getElementById("preview").value);
+        }
+        toast("練習已整理成課本格式");
       });
 
       function renderScans() {
