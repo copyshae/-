@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>20260804 學習日誌・習作台（手機可見、掃描匯入、桌面啟動）</title>
+  <title>20260804 學習日誌・習作台：手機加入主畫面與繁中</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
@@ -75,53 +75,22 @@
       <a href="./index.html">← 日誌列表</a>
     </nav>
     <article>
-      <h1>20260804 習作台（手機可見、掃描匯入、桌面啟動）</h1>
-      <p class="lead">接在 0803 習作批改之後的下一主題：把「習作台」補成可掌握、可發送、可從掃描王匯入的工作台；桌面捷徑打不開與 Gemini 404 一併修好。篇號依主題往後編，不依實際工作日。</p>
+      <h1>20260804 習作台：手機加入主畫面與繁中</h1>
+      <p class="lead">接在 0803 習作批改之後的下一主題：習作台負責掌握程度與發送；手機可加入主畫面，介面全面繁體中文。</p>
 
-      <h2>一｜習作台要做什麼</h2>
+      <h2>一｜與習作批改怎麼分工</h2>
       <ul>
-        <li>與「習作批改」分工：批改／產練習在批改視窗；<strong>掌握程度與發送</strong>用習作台（手機或桌面）。</li>
+        <li>批改／產練習在「習作批改」；<strong>掌握程度與發送</strong>用習作台（手機或桌面）。</li>
         <li>只用座號、不存姓名。試發固定 <code>00</code>（不占人數）。</li>
-        <li>程度／發送狀態可篩選：未發、待回、需關注、先備。</li>
-        <li>管道：Google 教室／通訊軟體群組；掃描來源寫「掃描王」（勿只寫 CS）。</li>
-        <li>手機↔電腦用 <code>class-state.json</code> 匯出／匯入。</li>
+        <li>可篩選：未發、待回、需關注、先備。手機↔電腦用 <code>class-state.json</code> 匯出／匯入。</li>
       </ul>
-
-      <h2>二｜手機：加入主畫面與可見性</h2>
+      <h2>二｜手機</h2>
       <ul>
-        <li>PWA：favicon、manifest、加入主畫面；Share Target 可從掃描王丟檔。</li>
+        <li>PWA：加入主畫面；Share Target 可從掃描王丟檔。</li>
         <li>檔名自動帶座號與回傳次數（例 <code>05-R01</code>）。</li>
-        <li>PDF 提示、縮圖網址用完釋放，避免手機記憶體撐滿。</li>
-        <li>介面全面繁體中文：Classroom→Google 教室；按鈕去掉英文品牌堆疊。</li>
+        <li>介面繁體中文：Classroom→Google 教室；掃描來源寫「掃描王」。</li>
       </ul>
-      <div class="callout">
-        正式頁：<a class="inline" href="https://copyshae.github.io/hello-world/directory/apps/teacher-desk/">https://copyshae.github.io/hello-world/directory/apps/teacher-desk/</a>
-        （Safari 加入主畫面。Cloud Agent 不能直接推 hello-world，套用後才會變新版。）
-      </div>
-
-      <h2>三｜桌面：掃描匯入與捷徑打不開</h2>
-      <ul>
-        <li>「處理掃描匯入」：把既有掃描匯入夾複製到「練習回傳」並標待回。</li>
-        <li>補回班級資料匯出／匯入、已發→待回。</li>
-        <li>現象：桌面 <code>習作台.vbs</code>／<code>習作台.cmd</code> 開不起來（路徑中文編碼、舊 install 字串沒閉合）。</li>
-        <li>作法：ASCII 安裝腳本、Bypass 執行原則、絕對路徑啟動器；改完要關掉舊視窗再開。</li>
-      </ul>
-
-      <h2>四｜桌面習作批改：Gemini 404 與自動批</h2>
-      <ul>
-        <li>根因：<code>gemini-2.0-flash</code> 已於 2026-06-01 下線，呼叫會 404。</li>
-        <li>預設模型改 <code>gemini-2.5-flash</code>；預設模式 <code>gemini_auto</code>。</li>
-        <li>有正確答案→對照批；無正確答案→直接 AI 批（都不擋）。</li>
-        <li>「網頁批閱」是手動貼，不是自動；自動批需要 AI Studio API 金鑰（≠ 網頁 Pro）。</li>
-      </ul>
-
-      <h2>五｜供日後修正</h2>
-      <ul>
-        <li>正式程式在 <code>copyshae/hello-world</code> 的 <code>directory/apps/teacher-desk</code> 與 <code>scripts/teacher-desk-app.ps1</code>。</li>
-        <li>本倉庫 <code>copyshae/-</code> 只放 <code>_export/hello-world/</code> 暫存；本機跑 <code>pull-export-from-dash-repo.ps1</code> 才上線。</li>
-        <li>介面、提示、對話框必須繁體中文；掃描來源寫「掃描王」。</li>
-        <li>不要提交金鑰、<code>.env</code>、學生姓名。</li>
-      </ul>
+      <div class="callout">正式頁：<a class="inline" href="https://copyshae.github.io/hello-world/directory/apps/teacher-desk/">https://copyshae.github.io/hello-world/directory/apps/teacher-desk/</a></div>
 
       <p class="note">
         線上：

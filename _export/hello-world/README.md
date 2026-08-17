@@ -1,12 +1,13 @@
-# 匯出最終包｜學習日誌接 0803 往後編（不依實際工作日）
+# 匯出最終包｜學習日誌：8 月 3 日後一天一主題
 
-未上線工作依獨立主題接在 0803 之後一天一篇：
+未上線工作接在 0803 之後，一天一篇（0804–0816）：
 
-- `directory/202608/20260804-learning-log.html` 習作台
-- `directory/202608/20260805-learning-log.html` 手機自動批與批完後續
-- `directory/202608/20260806-learning-log.html` 國中課本形式與 ChatPlayground
-- `directory/202608/20260817-push-logs.html` 補推流程（推日誌收工）
-- `directory/202608/index.html` 8 月列表（含既有 0817 換機安裝篇）
+- 0804 習作台手機可見　0805 桌面掃描／捷徑　0806 Gemini 404
+- 0807 手機 API 自動批　0808 快速批　0809 批完後續
+- 0810 匯出 hello-world　0811 金鑰／503／額度　0812 進度備份
+- 0813 國中課本形式　0814 ChatPlayground　0815 0803 延伸　0816 失敗回未批
+- `directory/202608/20260817-push-logs.html` 補推說明
+- `directory/202608/index.html` 8 月列表（含既有 0817 換機安裝）
 
 套用後線上列表：https://copyshae.github.io/hello-world/directory/202608/
 

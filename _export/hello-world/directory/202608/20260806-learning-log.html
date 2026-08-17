@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>20260806 學習日誌・習作批改國中課本形式與 ChatPlayground</title>
+  <title>20260806 學習日誌・Gemini 404：改 2.5 自動批</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
@@ -75,58 +75,14 @@
       <a href="./index.html">← 日誌列表</a>
     </nav>
     <article>
-      <h1>20260806 習作批改：國中課本形式與 ChatPlayground</h1>
-      <p class="lead">接在 0805 手機自動批之後：批閱輸出改國中課本直式；金鑰不穩時改走 ChatPlayground AI；並把 0803 延伸功能納入手機版。篇號依主題往後編，不依實際工作日。</p>
+      <h1>20260806 Gemini 404：改 2.5 自動批</h1>
+      <p class="lead">接 0805：桌面習作批改呼叫已下線的 <code>gemini-2.0-flash</code> 會 404；改預設自動批。</p>
 
-      <h2>一｜之後所有輸出皆國中課本形式</h2>
       <ul>
-        <li>現象：自學練習像 Markdown／LaTeX（<code>####</code>、粗體、<code>\dfrac</code>），國中生不好讀。</li>
-        <li>通則：快速批／完整批／回傳再批／註記／練習，一律【題號】【摘要】【診斷】【程度】【建議】【自學練習】。</li>
-        <li>練習本體用「一、先看這裡 → 二、影片 → 三、練習 → 四、解答」；禁止 <code>####</code>／LaTeX／<code>$$</code>。</li>
-        <li>下載練習 HTML 用標楷體風；「整理成課本格式」可清殘留 Markdown。</li>
-        <li>習作台群發／回傳文案同步一～四步驟；從批改同步程度時保留「待判定」。</li>
-      </ul>
-      <div class="callout">
-        課本演算細節（全形＋－＝、中間……、右邊①、分數 a／b）仍以
-        <a class="inline" href="./20260803-learning-log.html">20260803</a>
-        「供日後修正程式」為準。
-      </div>
-
-      <h2>二｜預設改用 ChatPlayground AI 批閱</h2>
-      <ul>
-        <li>帳號為 Lifetime Unlimited。連續批、對應並批、回傳批預設走 ChatPlayground；Gemini 金鑰改選用備援。</li>
-        <li>對方<strong>無對外 API／SDK</strong>，無法像 Gemini 在背景直呼。作法是一鍵：複製國中課本形式提示＋下載試卷（與答案）＋開啟 <code>https://web.chatplayground.ai/</code>。</li>
-        <li>貼回覆 →「套用貼上的回覆→已批」；連續批會自動開下一位。</li>
-        <li>「查看 ChatPlayground 用量」開設定頁看 Plan／Usage／Credits（AppSumo 終身方案）。</li>
-        <li>額度／金鑰失敗提示改導向此備援，不要只說網路與金鑰。</li>
-      </ul>
-
-      <h2>三｜0803 延伸功能納入手機</h2>
-      <ul>
-        <li>測試金鑰（儲存前先測）。</li>
-        <li>待批／待回清單。</li>
-        <li>掃描「回傳進循環」＋回傳自動批。</li>
-        <li>已批練習包（合訂 HTML）。</li>
-        <li>無裝置：需列印座號清單＋可列印練習；習作台可複製需列印座號。</li>
-        <li>待認知清單／認知完成→已批／標待重謄。</li>
-      </ul>
-      <div class="callout">
-        正式 PDF／整班列印包仍以電腦版為主。換機安裝兩個視窗見
-        <a class="inline" href="./20260817-learning-log.html">20260817 另一台 Cursor 電腦安裝兩個視窗</a>。
-      </div>
-
-      <h2>四｜批改中再次卡住</h2>
-      <ul>
-        <li>自動批失敗改回未批；手動複製／開網頁不再標批改中。</li>
-        <li>重新整理自動解除卡住的「批改中」。</li>
-        <li>預覽卡舊版：Service Worker 改網路優先；失敗 toast 直接帶錯誤摘要。</li>
-      </ul>
-
-      <h2>五｜docs 同步與套用</h2>
-      <ul>
-        <li><code>sync-docs-from-export.sh</code>：從 <code>_export</code> 同步到 <code>docs</code>／<code>mg</code>／<code>td</code>。</li>
-        <li>本機套用：桌面 hello-world 跑 <code>pull-export-from-dash-repo.ps1</code>（可設 <code>$env:DASH_EXPORT_BRANCH</code> 從 PR 分支拉）。</li>
-        <li>套用後關掉舊視窗再開；手機強制重新整理。</li>
+        <li>根因：<code>gemini-2.0-flash</code> 已於 2026-06-01 下線。</li>
+        <li>預設模型 <code>gemini-2.5-flash</code>；預設模式 <code>gemini_auto</code>。</li>
+        <li>有正確答案→對照批；無正確答案→直接 AI 批（都不擋）。</li>
+        <li>「網頁批閱」是手動貼，不是自動；自動批需要 AI Studio API 金鑰（≠ 網頁 Pro）。</li>
       </ul>
 
       <p class="note">

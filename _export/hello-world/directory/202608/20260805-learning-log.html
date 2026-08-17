@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>20260805 學習日誌・手機習作批改自動批與批完後續</title>
+  <title>20260805 學習日誌・桌面習作台：掃描匯入與捷徑打不開</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
@@ -75,63 +75,18 @@
       <a href="./index.html">← 日誌列表</a>
     </nav>
     <article>
-      <h1>20260805 手機習作批改自動批與批完後續</h1>
-      <p class="lead">接在 0804 習作台之後：手機版先前只會複製提示、不會真的批；改接 Gemini API、對齊 0803 批完後續，並因 <code>-</code> 倉庫 Pages 不可用改匯出到 hello-world。篇號依主題往後編，不依實際工作日。</p>
+      <h1>20260805 桌面習作台：掃描匯入與捷徑打不開</h1>
+      <p class="lead">接 0804：桌面習作台接上掃描匯入夾，並修好捷徑開不起來。</p>
 
-      <h2>一｜卡住「批改中」→ 改為 API 自動批</h2>
+      <h2>一｜掃描匯入</h2>
       <ul>
-        <li>現象：00 試發整天停在批改中，01–35 未批，提示預覽空白。</li>
-        <li>根因：舊手機版<strong>不會呼叫 Gemini API</strong>；按「貼上批」只標成批改中，沒有完成回寫。</li>
-        <li>手機設定 AI Studio API 金鑰（存在本機，不進 Git）。</li>
-        <li>可選匯入正確答案；匯入試卷後「Gemini自動批／連續自動批」；批完標已批並寫回覆。</li>
-        <li>「批改中→未批」一鍵解除卡住。</li>
+        <li>「處理掃描匯入」：把掃描匯入夾複製到「練習回傳」並標待回。</li>
+        <li>補回班級資料匯出／匯入、已發→待回。</li>
       </ul>
-
-      <h2>二｜加速：快速批與連續批</h2>
+      <h2>二｜捷徑打不開</h2>
       <ul>
-        <li>預設「快速批」：精簡提示、<code>gemini-2.5-flash-lite</code>、限制輸出長度。</li>
-        <li>匯入時壓縮大圖（最長邊 1600、JPEG）。</li>
-        <li>連續批：答案 base64 只編一次；快速模式可雙線並行。</li>
-        <li>檔名座號自動對應；頂部「一鍵連續批」；螢幕喚醒鎖。</li>
-      </ul>
-
-      <h2>三｜批完後續（對齊 0803）</h2>
-      <ul>
-        <li>依程度給練習模板：跟上／略落後／明顯落後／需補先備。</li>
-        <li>自產練習說明（不用均一；影片用 YouTube 搜尋頁）。</li>
-        <li>複製此生發放訊息、寫入習作台程度、開啟習作台。</li>
-        <li>練習回傳循環：分數／問題點／回饋／下一輪 → 存歷程、下載練習 HTML。</li>
-        <li>習作台「今日流程」同步說明。</li>
-      </ul>
-      <div class="callout">
-        正式 PDF、整班數位練習包、無裝置列印包仍以<strong>電腦「習作批改」</strong>為主。規格對照：
-        <a class="inline" href="https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html">20260803 學習日誌</a>
-      </div>
-
-      <h2>四｜Pages 不可用 → 改匯出 hello-world</h2>
-      <ul>
-        <li>倉庫名 <code>-</code> 的 GitHub Pages（Actions 或 docs）多次失敗／找不到可用網址。</li>
-        <li>使用者也被 raw.githack 英文中轉頁卡住。</li>
-        <li>作法：手機習作批改／習作台放到 <code>_export/hello-world/</code>；本機跑 <code>pull-export-from-dash-repo.ps1</code> 套到桌面 hello-world 並推 Pages。</li>
-        <li>匯出來源改為 <code>main</code>，避免刪分支後下載失敗；套用後自動推 hello-world Pages。</li>
-        <li>無快取網址：<code>docs/td</code>（習作台）、<code>docs/mg</code>（習作批改）。</li>
-      </ul>
-      <div class="callout">
-        正式手機批改：<a class="inline" href="https://copyshae.github.io/hello-world/directory/apps/math-grader/">https://copyshae.github.io/hello-world/directory/apps/math-grader/</a>
-      </div>
-
-      <h2>五｜金鑰、503、免費額度</h2>
-      <ul>
-        <li><strong>測試金鑰</strong>：換鑰後常因貼不完整、貼成網頁訂閱字串、新鑰未開通而失敗；儲存前先測，並清誤貼空白／引號。</li>
-        <li><strong>503／忙碌</strong>：同模型重試 3 次再換模型；提示改為建議稍後再批（不要說成金鑰錯）。</li>
-        <li><strong>免費額度用盡</strong>：解析 retry 秒數再等；連續批改單線、份與份之間稍停。結尾勿寫「請確認網路與金鑰」。</li>
-      </ul>
-
-      <h2>六｜進度備份與開啟方式</h2>
-      <ul>
-        <li>習作批改進度雙重備份：關掉再開可自動恢復已批座號。</li>
-        <li>主畫面網址必須相同才讀得到同一份進度；可匯出／匯入進度。</li>
-        <li>習作台可從習作批改同步程度。</li>
+        <li>現象：<code>習作台.vbs</code>／<code>習作台.cmd</code> 開不起來（中文路徑編碼、舊 install 字串沒閉合）。</li>
+        <li>作法：ASCII 安裝腳本、Bypass 執行原則、絕對路徑啟動器；改完關掉舊視窗再開。</li>
       </ul>
 
       <p class="note">
