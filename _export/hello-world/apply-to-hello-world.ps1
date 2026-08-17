@@ -16,7 +16,20 @@ $pairs = @(
   @{ Src = 'scripts\math-homework-grader-app.ps1'; Dst = 'scripts\math-homework-grader-app.ps1' },
   @{ Src = 'scripts\install-math-homework-grader.ps1'; Dst = 'scripts\install-math-homework-grader.ps1' },
   @{ Src = 'scripts\README-math-homework-grader.md'; Dst = 'scripts\README-math-homework-grader.md' },
-  @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' }
+  @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' },
+  @{ Src = 'directory\202608\20260804-learning-log.html'; Dst = 'directory\202608\20260804-learning-log.html' },
+  @{ Src = 'directory\202608\20260805-learning-log.html'; Dst = 'directory\202608\20260805-learning-log.html' },
+  @{ Src = 'directory\202608\20260806-learning-log.html'; Dst = 'directory\202608\20260806-learning-log.html' },
+  @{ Src = 'directory\202608\20260807-learning-log.html'; Dst = 'directory\202608\20260807-learning-log.html' },
+  @{ Src = 'directory\202608\20260808-learning-log.html'; Dst = 'directory\202608\20260808-learning-log.html' },
+  @{ Src = 'directory\202608\20260809-learning-log.html'; Dst = 'directory\202608\20260809-learning-log.html' },
+  @{ Src = 'directory\202608\20260810-learning-log.html'; Dst = 'directory\202608\20260810-learning-log.html' },
+  @{ Src = 'directory\202608\20260811-learning-log.html'; Dst = 'directory\202608\20260811-learning-log.html' },
+  @{ Src = 'directory\202608\20260812-learning-log.html'; Dst = 'directory\202608\20260812-learning-log.html' },
+  @{ Src = 'directory\202608\20260813-learning-log.html'; Dst = 'directory\202608\20260813-learning-log.html' },
+  @{ Src = 'directory\202608\20260814-learning-log.html'; Dst = 'directory\202608\20260814-learning-log.html' },
+  @{ Src = 'directory\202608\20260815-learning-log.html'; Dst = 'directory\202608\20260815-learning-log.html' },
+  @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' }
 )
 
 foreach ($p in $pairs) {
@@ -46,11 +59,24 @@ if (Test-Path -LiteralPath $rulesSrc) {
 Push-Location $dest
 try {
   git add directory/apps/teacher-desk directory/apps/math-grader `
+    directory/202608/20260804-learning-log.html `
+    directory/202608/20260805-learning-log.html `
+    directory/202608/20260806-learning-log.html `
+    directory/202608/20260807-learning-log.html `
+    directory/202608/20260808-learning-log.html `
+    directory/202608/20260809-learning-log.html `
+    directory/202608/20260810-learning-log.html `
+    directory/202608/20260811-learning-log.html `
+    directory/202608/20260812-learning-log.html `
+    directory/202608/20260813-learning-log.html `
+    directory/202608/20260814-learning-log.html `
+    directory/202608/20260815-learning-log.html `
+    directory/202608/index.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = '新增 20260804–0815 學習日誌：8月3日後一天一主題（到 0815）。'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'
