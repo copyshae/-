@@ -157,6 +157,7 @@
       </div>
       <div class="actions" style="margin-top:0.35rem">
         <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" class="btn secondary" id="btnTestKey">測試金鑰</button>
         <button type="button" class="btn secondary" id="btnOpenKeyPage">開 AI Studio 申請金鑰</button>
         <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
       </div>
@@ -229,7 +230,7 @@
 
     <section id="afterGrade">
       <h2>批完後續（依學習日誌 0803）</h2>
-      <p class="tips">批閱後應接：自產練習 → 發放 → 練習回傳循環 → 歷程。手機可先完成文案／歷程；正式 PDF／數位練習包仍可用電腦「習作批改」。</p>
+      <p class="tips">完整鏈：自產練習 → 發放 → 練習回傳循環 → 歷程。手機可完成文案／歷程／列印清單；正式 PDF／整班數位練習包仍可用電腦版。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnFillPractice">依程度給練習模板</button>
         <button type="button" class="btn secondary" id="btnTextbookPractice">練習整理成課本格式</button>
@@ -237,10 +238,18 @@
         <button type="button" class="btn secondary" id="btnCopyLineMsg">複製此生發放訊息</button>
         <button type="button" class="btn secondary" id="btnPushDesk">寫入習作台程度</button>
         <button type="button" class="btn secondary" id="btnOpenDesk">開啟習作台發放</button>
+        <button type="button" class="btn secondary" id="btnPendingList">開待批／待回清單</button>
+        <button type="button" class="btn secondary" id="btnDigitalPack">下載已批練習包（合訂 HTML）</button>
+        <button type="button" class="btn secondary" id="btnPrintList">無裝置：需列印座號清單</button>
+        <button type="button" class="btn secondary" id="btnPrintPack">無裝置：下載可列印練習</button>
+        <button type="button" class="btn secondary" id="btnUnclearList">匯出待認知清單</button>
+        <button type="button" class="btn secondary" id="btnMarkClarifyDone">此座號認知完成→已批</button>
+        <button type="button" class="btn warn" id="btnMarkRewrite">此座號標「待重謄」</button>
       </div>
       <div class="panel" id="loopPanel" style="margin-top:0.7rem">
         <h2 style="font-size:1.1rem;margin-bottom:0.45rem">練習回傳循環</h2>
         <p class="tips" id="loopPace">選座號後依程度顯示節奏提示。</p>
+        <p class="tips" id="pendingHint">待批清單會顯示於此。</p>
         <div class="row">
           <label for="loopRound">次數 R</label>
           <input id="loopRound" type="number" min="1" max="99" value="1" />
@@ -267,6 +276,7 @@
         <div class="actions">
           <button type="button" class="btn" id="btnSaveLoop">儲存本輪＋下一輪練習</button>
           <button type="button" class="btn secondary" id="btnCopyReturn2">複製「練習回傳再批」提示</button>
+          <button type="button" class="btn secondary" id="btnGradeReturn">此座號回傳自動批</button>
           <button type="button" class="btn secondary" id="btnShowHist">開歷程</button>
           <button type="button" class="btn secondary" id="btnDlPractice">下載本輪練習（HTML）</button>
         </div>
@@ -275,8 +285,8 @@
     </section>
 
     <section id="scanSection">
-      <h2>掃描／試卷匯入（掃描王）</h2>
-      <p class="tips">掃描王匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號 → 再按「Gemini自動批」。正式 PDF 輸出仍回電腦「習作批改」。</p>
+      <h2>掃描／試卷／練習回傳（掃描王）</h2>
+      <p class="tips">試卷：匯入 → 對應座號 → Gemini自動批。練習回傳／手寫：匯入後按「回傳進循環」（對齊 0803 手寫板匯入並批）。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnPickScan">匯入 PDF／圖檔</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
@@ -290,15 +300,14 @@
     </section>
 
     <section>
-      <h2>怎麼用才批得快</h2>
+      <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
-        <li>預設「快速批」；要詳細診斷與自學練習再改「完整批」。所有輸出皆國中課本形式。</li>
-        <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
-        <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
-        <li>若出現「免費額度／速率限制」：等約 1 分鐘再批（程式會依提示自動等待重試）；不是金鑰錯。用量：<a href="https://ai.dev/rate-limit" target="_blank" rel="noopener">ai.dev/rate-limit</a>。</li>
-        <li>批完後用下方「批完後續」：練習模板／發放訊息／寫入習作台／練習回傳循環。</li>
-        <li>只按「開啟 Gemini 貼上批」不會自動完成；請設金鑰後用「Gemini自動批」。</li>
-        <li>若卡在「批改中」：按「全部批改中改回未批」，或重新整理頁面會自動解除。</li>
+        <li>設金鑰 → 按「測試金鑰」→ 匯入試卷 →「Gemini自動批」／「一鍵連續批」。</li>
+        <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
+        <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
+        <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
+        <li>待認知：匯出清單人工確認後，按「認知完成→已批」；要重寫標「待重謄」。</li>
+        <li>所有輸出皆國中課本形式；正式 PDF／整班列印包可用電腦「習作批改」。</li>
       </ul>
     </section>
 
@@ -449,23 +458,160 @@
       }
 
       function getApiKey() {
-        try { return (localStorage.getItem(KEY_API) || "").trim(); } catch (e) { return ""; }
+        try { return normalizeApiKey(localStorage.getItem(KEY_API) || ""); } catch (e) { return ""; }
+      }
+      function normalizeApiKey(k) {
+        return String(k || "").trim().replace(/^["'`]+|["'`]+$/g, "").replace(/\s+/g, "");
       }
       function setApiKey(k) {
-        k = (k || "").trim();
+        k = normalizeApiKey(k);
         if (k) localStorage.setItem(KEY_API, k);
         else localStorage.removeItem(KEY_API);
         refreshKeyStatus();
+      }
+      async function testApiKey(rawKey) {
+        var k = normalizeApiKey(rawKey || getApiKey());
+        if (!k) throw new Error("金鑰空白");
+        if (k.length < 20) throw new Error("金鑰太短，可能貼不完整。請重新從 aistudio.google.com/apikey 複製整串。");
+        if (!/^AIza/.test(k)) throw new Error("這不像 AI Studio 金鑰（通常以 AIza 開頭）。請勿貼網頁訂閱文字。");
+        var res = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(k) + "&pageSize=5"
+        );
+        var raw = await res.text();
+        var data = null;
+        try { data = JSON.parse(raw); } catch (e) {}
+        if (!res.ok) {
+          var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+          if (/401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key/i.test(msg)) {
+            throw new Error("金鑰無效或未開通。請到 aistudio.google.com/apikey 新建。\n" + msg);
+          }
+          if (/503|429|Unavailable|quota|rate/i.test(msg)) {
+            throw new Error("Google 暫時忙碌或額度限制。金鑰格式可接受，請等 1～2 分鐘再測。\n" + msg);
+          }
+          throw new Error("測試金鑰失敗：" + msg);
+        }
+        var names = [];
+        ((data && data.models) || []).forEach(function (m) {
+          if (m.name) names.push(String(m.name).replace(/^models\//, ""));
+        });
+        if (!names.length) throw new Error("金鑰能連上，但列不出模型。請確認帳號已開通 Gemini API。");
+        return { ok: true, sample: names.slice(0, 3).join(", "), count: names.length };
       }
       function refreshKeyStatus() {
         var el = document.getElementById("keyStatus");
         var has = !!getApiKey();
         el.textContent = has
-          ? "已儲存金鑰（僅此裝置）。可開始 Gemini 自動批。"
+          ? "已儲存金鑰（僅此裝置）。建議先按「測試金鑰」再自動批。"
           : "尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）";
         el.classList.toggle("ok", has);
         var inp = document.getElementById("geminiKey");
         if (has && !inp.value) inp.placeholder = "••••••••（已儲存，要換再貼）";
+      }
+
+      function loadDeskState() {
+        try {
+          var raw = localStorage.getItem("teacher-desk-v1");
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+      }
+
+      function buildPendingReturnList() {
+        var desk = loadDeskState();
+        var lines = ["【待批／待回清單】", "班級：" + (state.classLabel || ""), ""];
+        var deskPending = [];
+        var gradedNoHist = [];
+        var unclear = [];
+        var rewrite = [];
+        var returnScans = 0;
+        Object.keys(state.seats).sort().forEach(function (id) {
+          var s = state.seats[id];
+          if (!s) return;
+          if (s.status === "待認知") unclear.push(id);
+          if (s.status === "待重謄") rewrite.push(id);
+          var hist = s.history && s.history.attempts ? s.history.attempts : [];
+          if (s.status === "已批" && !hist.length) gradedNoHist.push(id);
+          if (desk && desk.seats && desk.seats[id] && (desk.seats[id].send === "待回" || desk.seats[id].send === "已發")) {
+            deskPending.push(id + "(" + desk.seats[id].send + "/" + (desk.seats[id].level || s.level || "") + ")");
+          }
+        });
+        lines.push("一、習作台待回／已發：" + (deskPending.length ? deskPending.join("、") : "（無或尚未同步）"));
+        lines.push("二、已批但尚未存練習歷程：" + (gradedNoHist.length ? gradedNoHist.join("、") : "（無）"));
+        lines.push("三、待認知：" + (unclear.length ? unclear.join("、") : "（無）"));
+        lines.push("四、待重謄：" + (rewrite.length ? rewrite.join("、") : "（無）"));
+        lines.push("");
+        lines.push("作法：匯入回傳圖 →「回傳進循環」或「此座號回傳自動批」→ 填分數後「儲存本輪」。");
+        return { text: lines.join("\n"), deskPending: deskPending, gradedNoHist: gradedNoHist, unclear: unclear, rewrite: rewrite };
+      }
+
+      function refreshPendingHint() {
+        var el = document.getElementById("pendingHint");
+        if (!el) return;
+        var p = buildPendingReturnList();
+        el.textContent =
+          "待回／已發 " + p.deskPending.length +
+          "｜已批未存歷程 " + p.gradedNoHist.length +
+          "｜待認知 " + p.unclear.length +
+          "｜待重謄 " + p.rewrite.length +
+          "（按「開待批／待回清單」看明細）";
+      }
+
+      function seatsNeedingPrint() {
+        return Object.keys(state.seats).sort().filter(function (id) {
+          if (id === "00") return false;
+          var s = state.seats[id];
+          if (!s) return false;
+          if (/列印|無裝置/.test(s.note || "")) return true;
+          return s.level === "明顯落後" || s.level === "需補先備" || s.level === "待判定";
+        });
+      }
+
+      function practiceTextForSeat(id) {
+        var s = state.seats[id];
+        if (!s) return "";
+        var hist = ensureHistory(s);
+        if (hist.attempts.length) {
+          var last = hist.attempts[hist.attempts.length - 1];
+          if (last.nextPractice) return toTextbookOutput(last.nextPractice);
+        }
+        if (s.lastReply) {
+          var n = extractFromReply(s.lastReply, "next");
+          if (n) return toTextbookOutput(n);
+        }
+        return toTextbookOutput(getPracticeTemplate(s.level || "未標"));
+      }
+
+      function downloadTextFile(name, text, mime) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([text], { type: (mime || "text/plain") + ";charset=utf-8" }));
+        a.download = name;
+        a.click();
+      }
+
+      function downloadCombinedPracticeHtml(ids, title) {
+        var parts = [
+          "<!DOCTYPE html><html lang=\"zh-Hant\"><head><meta charset=\"UTF-8\"/>",
+          "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
+          "<title>" + title + "</title>",
+          "<style>",
+          "body{font-family:\"DFKai-SB\",\"標楷體\",\"Noto Serif TC\",serif;line-height:1.75;padding:1rem;color:#1a1a1a;background:#faf8f4}",
+          "h1{font-size:1.3rem;border-bottom:2px solid #333;padding-bottom:0.35rem}",
+          "h2{font-size:1.15rem;margin:1.4rem 0 0.5rem;page-break-before:always}",
+          "h2:first-of-type{page-break-before:auto}",
+          "pre{white-space:pre-wrap;font-family:inherit;font-size:1.05rem}",
+          "@media print{body{background:#fff} h2{page-break-before:always}}",
+          "</style></head><body>",
+          "<h1>" + title + "</h1>",
+          "<p>請先看「一、先看這裡」與影片，再做「三、練習」；全部做完再看「四、解答」。</p>"
+        ];
+        ids.forEach(function (id) {
+          var s = state.seats[id];
+          var body = practiceTextForSeat(id).replace(/[&<>]/g, function (c) {
+            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c];
+          });
+          parts.push("<h2>座號 " + id + "｜" + ((s && s.level) || "") + "</h2><pre>" + body + "</pre>");
+        });
+        parts.push("</body></html>");
+        downloadTextFile(title + ".html", parts.join(""), "text/html");
       }
 
       function matchFilter(s) {
@@ -852,6 +998,7 @@
             return "R" + a.round + " " + a.score + "/" + a.maxScore + (a.goalMet ? "✓" : "");
           }).join("、");
         }
+        refreshPendingHint();
       }
 
       function buildLineMessage(id) {
@@ -1553,9 +1700,30 @@
       document.getElementById("btnSaveKey").addEventListener("click", function () {
         var k = document.getElementById("geminiKey").value.trim();
         if (!k) { toast("請先貼上 API 金鑰"); return; }
-        setApiKey(k);
-        document.getElementById("geminiKey").value = "";
-        toast("金鑰已存這支手機");
+        setBusy(true, "測試金鑰", "正在向 Google 確認…");
+        testApiKey(k).then(function (r) {
+          setApiKey(k);
+          document.getElementById("geminiKey").value = "";
+          document.getElementById("preview").value = "金鑰測試成功。\n可用模型例：" + r.sample;
+          toast("金鑰可用（已儲存）");
+        }).catch(function (err) {
+          document.getElementById("preview").value = "測試金鑰失敗：\n" + (err && err.message ? err.message : String(err));
+          toast("金鑰測試失敗，見上方說明");
+        }).finally(function () { setBusy(false); });
+      });
+      document.getElementById("btnTestKey").addEventListener("click", function () {
+        var typed = document.getElementById("geminiKey").value.trim();
+        var k = typed || getApiKey();
+        if (!k) { toast("請先貼上或儲存金鑰"); return; }
+        setBusy(true, "測試金鑰", "正在向 Google 確認…");
+        testApiKey(k).then(function (r) {
+          if (typed) setApiKey(typed);
+          document.getElementById("preview").value = "金鑰測試成功。\n模型數約 " + r.count + "\n例：" + r.sample;
+          toast("金鑰可用");
+        }).catch(function (err) {
+          document.getElementById("preview").value = "測試金鑰失敗：\n" + (err && err.message ? err.message : String(err));
+          toast("金鑰測試失敗");
+        }).finally(function () { setBusy(false); });
       });
       document.getElementById("btnClearKey").addEventListener("click", function () {
         setApiKey("");
@@ -1626,17 +1794,8 @@
         toast("座號 " + selected + " 已改回未批");
       });
       document.getElementById("btnUnstickAll").addEventListener("click", function () {
-        var n = 0;
-        Object.keys(state.seats).forEach(function (id) {
-          if (state.seats[id].status === "批改中") {
-            state.seats[id].status = "未批";
-            n++;
-          }
-        });
-        save(state);
-        if (selected) document.getElementById("gradeStatus").value = state.seats[selected].status;
-        renderGrid();
-        toast(n ? ("已把 " + n + " 個「批改中」改回未批") : "目前沒有批改中");
+        var n = unstickAllStuck(false);
+        if (!n) toast("目前沒有批改中");
       });
 
       document.getElementById("btnExportProgress").addEventListener("click", function () {
@@ -1814,6 +1973,97 @@
         toast("已下載練習 HTML");
       });
 
+      document.getElementById("btnPendingList").addEventListener("click", function () {
+        var p = buildPendingReturnList();
+        document.getElementById("preview").value = p.text;
+        refreshPendingHint();
+        toast("已顯示待批／待回清單");
+      });
+
+      document.getElementById("btnDigitalPack").addEventListener("click", function () {
+        var ids = Object.keys(state.seats).sort().filter(function (id) {
+          var s = state.seats[id];
+          return s && (s.status === "已批" || s.status === "待認知" || (s.history && s.history.attempts && s.history.attempts.length));
+        });
+        if (!ids.length) { toast("尚無已批／有歷程的座號"); return; }
+        downloadCombinedPracticeHtml(ids, (state.classLabel || "本班") + "-數位練習包");
+        toast("已下載練習包（" + ids.length + " 份）");
+      });
+
+      document.getElementById("btnPrintList").addEventListener("click", function () {
+        var ids = seatsNeedingPrint();
+        var text =
+          "【需列印座號】\n" +
+          "班級：" + (state.classLabel || "") + "\n" +
+          "座號：" + (ids.length ? ids.join("、") : "（目前無；可在備註寫「列印」或程度為明顯落後／需補先備／待判定）") + "\n" +
+          "說明：有手機仍發數位；這份給沒裝置者。\n";
+        document.getElementById("preview").value = text;
+        downloadTextFile("需列印座號.txt", text);
+        copyText(text, "已複製並下載需列印座號清單");
+      });
+
+      document.getElementById("btnPrintPack").addEventListener("click", function () {
+        var ids = seatsNeedingPrint();
+        if (!ids.length) { toast("目前沒有需列印座號"); return; }
+        downloadCombinedPracticeHtml(ids, (state.classLabel || "本班") + "-無裝置列印練習");
+        toast("已下載可列印練習（" + ids.length + " 份）");
+      });
+
+      document.getElementById("btnUnclearList").addEventListener("click", function () {
+        var ids = Object.keys(state.seats).sort().filter(function (id) {
+          return state.seats[id] && state.seats[id].status === "待認知";
+        });
+        var lines = ["【待認知清單】", "班級：" + (state.classLabel || ""), ""];
+        if (!ids.length) lines.push("（目前無待認知）");
+        ids.forEach(function (id) {
+          var s = state.seats[id];
+          lines.push("座號 " + id + "｜" + (s.level || "") + "｜" + (s.note || ""));
+          if (s.lastReply) lines.push(String(s.lastReply).slice(0, 400));
+          lines.push("────────");
+        });
+        lines.push("確認後：選座號 →「認知完成→已批」。若要學生重寫：標「待重謄」。");
+        var text = lines.join("\n");
+        document.getElementById("preview").value = text;
+        downloadTextFile("待認知清單.txt", text);
+        toast(ids.length ? ("已匯出待認知 " + ids.length + " 人") : "目前無待認知");
+      });
+
+      document.getElementById("btnMarkClarifyDone").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        state.seats[selected].status = "已批";
+        document.getElementById("gradeStatus").value = "已批";
+        save(state);
+        renderGrid();
+        refreshPendingHint();
+        toast("座號 " + selected + " 已標為已批");
+      });
+
+      document.getElementById("btnMarkRewrite").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        state.seats[selected].status = "待重謄";
+        document.getElementById("gradeStatus").value = "待重謄";
+        save(state);
+        renderGrid();
+        refreshPendingHint();
+        toast("座號 " + selected + " 已標待重謄");
+      });
+
+      document.getElementById("btnGradeReturn").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        if (!getApiKey()) { toast("請先儲存並測試金鑰"); return; }
+        var el = document.getElementById("afterGrade");
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        setBusy(true, "回傳自動批", "座號 " + selected + "…");
+        gradeSeat(selected, { hard: false, fast: false }).then(function (r) {
+          toast("回傳已批（" + r.model + "）");
+          selectSeat(selected);
+          refreshPendingHint();
+        }).catch(function (err) {
+          document.getElementById("preview").value = "回傳自動批失敗：\n" + (err && err.message ? err.message : String(err));
+          toast("回傳自動批失敗");
+        }).finally(function () { setBusy(false); });
+      });
+
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
         copyText(document.getElementById("preview").value || "", "已複製");
       });
@@ -1845,11 +2095,13 @@
             var seatVal = rec.seatId || document.getElementById("defaultSeat").value || "00";
             li.innerHTML =
               "<strong>" + outName(seatVal, rec.name, rec.type) + "</strong>" +
-              '<div class="tips">原檔：' + (rec.name || "") + "</div>" +
+              '<div class="tips">原檔：' + (rec.name || "") +
+              (rec.kind === "return" ? "｜練習回傳" : "｜試卷") + "</div>" +
               '<div class="row"><label>座號</label><select class="grow seat-pick"></select></div>' +
               '<div class="btn-row">' +
               '<button type="button" class="primary act-save">對應座號</button>' +
               '<button type="button" class="primary act-grade">對應並自動批</button>' +
+              '<button type="button" class="primary act-return">回傳進循環</button>' +
               '<button type="button" class="act-dl">下載</button>' +
               '<button type="button" class="act-del">刪</button></div>';
             var seatPick = li.querySelector(".seat-pick");
@@ -1862,22 +2114,28 @@
             seatPick.addEventListener("change", function () {
               li.querySelector("strong").textContent = outName(seatPick.value, rec.name, rec.type);
             });
-            function assignSeat() {
+            function assignSeat(kind) {
               rec.seatId = seatPick.value;
+              if (kind) rec.kind = kind;
               return scanPut(rec).then(function () {
                 selected = rec.seatId;
-                if (state.seats[rec.seatId] && state.seats[rec.seatId].status === "未批") {
-                  /* keep 未批 until auto-grade starts */
-                }
                 selectSeat(rec.seatId);
                 return renderScans();
               });
             }
             li.querySelector(".act-save").addEventListener("click", function () {
-              assignSeat().then(function () { toast("已對應 " + rec.seatId + "，可按 Gemini自動批"); });
+              assignSeat(rec.kind || "exam").then(function () { toast("已對應 " + rec.seatId + "，可按 Gemini自動批"); });
             });
             li.querySelector(".act-grade").addEventListener("click", function () {
-              assignSeat().then(function () { return gradeOneFlow(); });
+              assignSeat("exam").then(function () { return gradeOneFlow(); });
+            });
+            li.querySelector(".act-return").addEventListener("click", function () {
+              assignSeat("return").then(function () {
+                var panel = document.getElementById("afterGrade");
+                if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+                refreshPendingHint();
+                toast("已標為練習回傳並進入循環區；可按「此座號回傳自動批」");
+              });
             });
             li.querySelector(".act-dl").addEventListener("click", function () {
               var a = document.createElement("a");
@@ -1949,6 +2207,7 @@
       if (cleared) {
         toast("已自動解除 " + cleared + " 個卡住的「批改中」→ 請設金鑰後按「Gemini自動批」");
       }
+      refreshPendingHint();
       function restoreProgressBackup() {
         return openScanDb().then(function (db) {
           return new Promise(function (resolve) {

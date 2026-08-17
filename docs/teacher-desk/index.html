@@ -216,19 +216,19 @@
       <div class="actions">
         <button type="button" class="btn" id="btnCopySend">複製群發文</button>
         <button type="button" class="btn secondary" id="btnCopyRet">複製回傳說明</button>
+        <button type="button" class="btn secondary" id="btnCopyPrintList">複製需列印座號</button>
         <button type="button" class="btn secondary" id="btnMarkSent">將「未發」全部標為已發</button>
         <button type="button" class="btn secondary" id="btnMarkPending">將「已發」改為待回</button>
       </div>
     </section>
 
     <section>
-      <h2>今日流程（與習作批改銜接）</h2>
+      <h2>今日流程（與習作批改銜接｜0803 延伸）</h2>
       <ul class="tips">
-        <li>「習作批改」：載入答案 → 批閱（輸出國中課本形式）→ <strong>批完後續</strong>（自產練習／發放訊息／寫入習作台）。</li>
-        <li>「習作台」：從習作批改同步程度 → 複製群發文（一～四步驟）→ 貼到班級群組。</li>
-        <li>學生個別回傳 → 標待回／已回；需補先備採多次少題。</li>
-        <li>練習請先看「一、先看這裡」與影片，再做「三、練習」，全部做完才看「四、解答」。</li>
-        <li>沒裝置者才走列印包；有手機仍用數位。正式 PDF／整班數位練習包可用電腦版。</li>
+        <li>「習作批改」：測試金鑰 → 批閱（國中課本形式）→ 練習模板／發放／寫入習作台／回傳循環／練習包／待認知。</li>
+        <li>「習作台」：同步程度 → 複製群發文（一～四）→ 貼班級群組；沒裝置用「需列印座號」。</li>
+        <li>練習回傳／手寫：匯入後「回傳進循環」；多次少題補齊。</li>
+        <li>正式 PDF／整班列印包可用電腦「習作批改」。</li>
       </ul>
     </section>
 
@@ -428,6 +428,23 @@
         return unsent;
       }
 
+      function buildPrintList() {
+        var ids = Object.keys(state.seats).sort().filter(function (id) {
+          if (id === "00") return false;
+          var s = state.seats[id];
+          if (!s) return false;
+          if (state.sendChannel === "print") return s.send === "未發" || s.send === "已發" || s.send === "待回";
+          if (/列印|無裝置/.test(s.note || "")) return true;
+          return s.level === "明顯落後" || s.level === "需補先備" || s.level === "待判定";
+        });
+        return (
+          "【需列印座號】\n" +
+          "班級：" + (state.classLabel || "") + "\n" +
+          "座號：" + (ids.length ? ids.join("、") : "（目前無）") + "\n" +
+          "說明：有手機仍發數位；這份給沒裝置者。練習請依一～四步驟完成。\n"
+        );
+      }
+
       function buildSend() {
         var list = unsentList();
         var seats = list.length ? list.join("、") : "（請先把要發的座號標成「未發」）";
@@ -507,6 +524,13 @@
         var msg = buildRet();
         document.getElementById("preview").value = msg;
         copyText(msg, "已複製回傳說明");
+      });
+
+      document.getElementById("btnCopyPrintList").addEventListener("click", function () {
+        persistHeader();
+        var msg = buildPrintList();
+        document.getElementById("preview").value = msg;
+        copyText(msg, "已複製需列印座號");
       });
 
       document.getElementById("btnMarkSent").addEventListener("click", function () {
