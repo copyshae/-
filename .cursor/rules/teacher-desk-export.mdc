@@ -8,6 +8,6 @@ alwaysApply: false
 - 正式程式在 `copyshae/hello-world` 的 `directory/apps/teacher-desk`、`directory/apps/math-grader` 與對應 scripts。
 - 本倉庫（`copyshae/-`）以 `_export/hello-world/` 暫存待套用變更。
 - 套用：`_export/hello-world/apply-to-hello-world.ps1` 或桌面 `pull-export-from-dash-repo.ps1`。
-- 手機習作批改：有 **Gemini API 金鑰** 可背景自動批；否則用 **ChatPlayground AI 自動批閱**（一鍵複製提示＋下載試卷＋開站 → 貼回覆 →「套用貼上的回覆」；對方無對外 API，無法真正背景呼叫）。
+- 手機習作批改：預設 **ChatPlayground AI 自動批閱**（終身 Unlimited：一鍵複製提示＋下載試卷＋開站 → 貼回覆）。**Gemini API 金鑰為選用備援**。
 - **介面、提示、對話框、對使用者回覆必須繁體中文**（zh-Hant）；管道用「Google 教室／通訊軟體群組」，掃描來源寫「掃描王」。
 - 只用座號、不存姓名。

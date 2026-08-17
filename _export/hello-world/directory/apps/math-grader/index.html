@@ -126,12 +126,12 @@
   <div class="wrap">
     <header>
       <div class="brand">習作批改</div>
-      <p class="lead">預設「快速批」：壓縮圖、精簡回覆；連續批採單線並自動等待額度。設金鑰 → 匯入試卷 → 一鍵連續批。</p>
+      <p class="lead">預設用 <strong>ChatPlayground AI</strong> 批閱（終身 Unlimited）。匯入試卷 → 點座號 → 自動批閱 → 貼回覆套用。</p>
       <p class="install">關掉再開會自動恢復進度（同一網址）。請用下方固定網址加入主畫面；換網址會變成空白要重新來。</p>
       <p class="summary" id="summary">—</p>
       <p class="tips" id="originTip" style="margin-top:0.45rem">—</p>
       <div class="actions quick-actions">
-        <button type="button" class="btn" id="btnAutoBatchTop">一鍵連續批（有卷未批）</button>
+        <button type="button" class="btn" id="btnAutoBatchTop">連續 ChatPlayground 批（有卷未批）</button>
       </div>
     </header>
 
@@ -150,23 +150,23 @@
         <label><input type="radio" name="gradeSpeed" id="speedFast" value="fast" checked /> 快速批（建議）</label>
         <label><input type="radio" name="gradeSpeed" id="speedFull" value="full" /> 完整批（較慢）</label>
       </div>
-      <p class="tips">快速批／完整批：之後所有輸出皆國中課本形式（【題號】【摘要】【程度】…）。遇免費額度限制會自動等待後重試。</p>
+      <p class="tips">輸出一律國中課本形式（【題號】【摘要】【程度】…）。批閱預設走 ChatPlayground AI；下方 Gemini 金鑰為選用。</p>
       <div class="row">
-        <label for="geminiKey">Gemini金鑰</label>
-        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+        <label for="geminiKey">Gemini金鑰（選用）</label>
+        <input id="geminiKey" type="password" autocomplete="off" placeholder="可留空；預設用 ChatPlayground AI" />
       </div>
       <div class="actions" style="margin-top:0.35rem">
-        <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" class="btn secondary" id="btnSaveKey">儲存金鑰</button>
         <button type="button" class="btn secondary" id="btnTestKey">測試金鑰</button>
         <button type="button" class="btn secondary" id="btnOpenKeyPage">開 AI Studio 申請金鑰</button>
         <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
       </div>
-      <p class="key-status" id="keyStatus">尚未設定金鑰（網頁訂閱≠API；可用 ChatPlayground AI 自動批閱）</p>
+      <p class="key-status" id="keyStatus">預設 ChatPlayground AI（終身 Unlimited）。Gemini 金鑰可留空。</p>
       <div class="actions" style="margin-top:0.45rem">
         <button type="button" class="btn" id="btnOpenChatPlaygroundTop">ChatPlayground AI 自動批閱</button>
         <button type="button" class="btn secondary" id="btnCpUsage">查看 ChatPlayground 用量</button>
       </div>
-      <p class="tips">ChatPlayground 無對外 API，無法像 Gemini 金鑰在背景呼叫；「自動批閱」會一鍵複製提示、下載試卷、開站，你貼回覆即可完成。AppSumo 終身方案請按「查看用量」：登入後看 Settings 的 Plan／Usage／Credits。</p>
+      <p class="tips">預設批閱：ChatPlayground AI（帳號 Unlimited）。按自動批閱會複製提示、下載試卷、開站；貼回覆即可完成。Gemini 金鑰僅備援。</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -206,14 +206,14 @@
           <input id="note" type="text" maxlength="80" placeholder="勿填姓名" />
         </div>
         <div class="actions">
-          <button type="button" class="btn" id="btnAutoOne">Gemini自動批（此座號）</button>
-          <button type="button" class="btn" id="btnAutoBatch">連續自動批（有卷未批）</button>
           <button type="button" class="btn" id="btnCpAutoOne">ChatPlayground AI 自動批閱（此座號）</button>
           <button type="button" class="btn" id="btnCpAutoBatch">連續 ChatPlayground 批（有卷未批）</button>
           <button type="button" class="btn secondary" id="btnSave">儲存此座號</button>
           <button type="button" class="btn warn" id="btnUnstick">此座號「批改中」改回未批</button>
           <button type="button" class="btn secondary" id="btnOpenChatPlayground">再開 ChatPlayground（僅開站／重複製提示）</button>
-          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 網頁貼上批（手動）</button>
+          <button type="button" class="btn secondary" id="btnAutoOne">Gemini自動批（選用）</button>
+          <button type="button" class="btn secondary" id="btnAutoBatch">Gemini連續批（選用）</button>
+          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 網頁貼上批（選用）</button>
           <button type="button" class="btn secondary" id="btnCopyOne">複製「請 AI 批此生」提示（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyHw">複製「手寫加強」提示（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyReturn">複製「練習回傳再批」提示</button>
@@ -229,7 +229,7 @@
 
     <section>
       <h2>提示／批閱結果</h2>
-      <p class="tips" id="cpGuide">ChatPlayground AI 自動批閱：點座號 →「ChatPlayground AI 自動批閱」→ 在開出的網頁貼提示並上傳剛下載的試卷 → 把回覆貼下方 →「套用貼上的回覆」。</p>
+      <p class="tips" id="cpGuide">預設批閱：ChatPlayground AI。點座號 → 自動批閱 → 在開出的網頁貼提示並上傳剛下載的試卷 → 把回覆貼下方 →「套用貼上的回覆」。</p>
       <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 AI 回覆。"></textarea>
       <label for="pasteBox" class="tips">貼上 ChatPlayground AI／Gemini 網頁回覆（自動批閱最後一步）</label>
       <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="把 ChatPlayground AI 的整段回覆貼這裡，再按套用"></textarea>
@@ -298,7 +298,7 @@
 
     <section id="scanSection">
       <h2>掃描／試卷／練習回傳（掃描王）</h2>
-      <p class="tips">試卷：匯入 → 對應座號 → Gemini自動批。練習回傳／手寫：匯入後按「回傳進循環」（對齊 0803 手寫板匯入並批）。</p>
+      <p class="tips">試卷：匯入 → 對應座號 → ChatPlayground AI 自動批閱。練習回傳／手寫：匯入後按「回傳進循環」（對齊 0803 手寫板匯入並批）。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnPickScan">匯入 PDF／圖檔</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
@@ -314,8 +314,8 @@
     <section>
       <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
-        <li>設金鑰 → 按「測試金鑰」→ 匯入試卷 →「Gemini自動批」／「一鍵連續批」。</li>
-        <li>金鑰／額度不穩：用「ChatPlayground AI 自動批閱」（一鍵複製提示＋下載試卷＋開站）→ 貼回覆 →「套用貼上的回覆」。可「連續 ChatPlayground 批」。</li>
+        <li>匯入試卷 → 點座號 →「ChatPlayground AI 自動批閱」→ 貼回覆 →「套用貼上的回覆」。整班用「連續 ChatPlayground 批」。</li>
+        <li>Gemini 金鑰為選用備援，可留空。</li>
         <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
         <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
         <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
@@ -515,8 +515,8 @@
         var el = document.getElementById("keyStatus");
         var has = !!getApiKey();
         el.textContent = has
-          ? "已儲存金鑰（僅此裝置）。建議先按「測試金鑰」再自動批。"
-          : "尚未設定金鑰。可用 ChatPlayground AI 自動批閱（不用 API）。";
+          ? "已儲存 Gemini 金鑰（選用備援）。預設仍用 ChatPlayground AI。"
+          : "預設 ChatPlayground AI（終身 Unlimited）。Gemini 金鑰可留空。";
         el.classList.toggle("ok", has);
         var inp = document.getElementById("geminiKey");
         if (has && !inp.value) inp.placeholder = "••••••••（已儲存，要換再貼）";
@@ -1947,7 +1947,7 @@
 
       document.getElementById("btnAutoOne").addEventListener("click", gradeOneFlow);
       document.getElementById("btnAutoBatch").addEventListener("click", gradeBatchFlow);
-      document.getElementById("btnAutoBatchTop").addEventListener("click", gradeBatchFlow);
+      document.getElementById("btnAutoBatchTop").addEventListener("click", cpAutoBatchFlow);
       document.getElementById("speedFast").addEventListener("change", persistSpeed);
       document.getElementById("speedFull").addEventListener("change", persistSpeed);
       document.getElementById("btnUnstick").addEventListener("click", function () {
@@ -2000,7 +2000,7 @@
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
         // 手動貼不會自動回寫，勿標「批改中」以免卡住
-        copyText(buildPromptOne(selected, false), "已複製（手動貼）。真正自動請用「Gemini自動批」");
+        copyText(buildPromptOne(selected, false), "已複製（手動貼）。預設請用「ChatPlayground AI 自動批閱」");
         document.getElementById("preview").value = buildPromptOne(selected, false);
       });
 
@@ -2224,18 +2224,10 @@
 
       document.getElementById("btnGradeReturn").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
-        if (!getApiKey()) { toast("請先儲存並測試金鑰"); return; }
         var el = document.getElementById("afterGrade");
         if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
-        setBusy(true, "回傳自動批", "座號 " + selected + "…");
-        gradeSeat(selected, { hard: false, fast: false }).then(function (r) {
-          toast("回傳已批（" + r.model + "）");
-          selectSeat(selected);
-          refreshPendingHint();
-        }).catch(function (err) {
-          document.getElementById("preview").value = "回傳自動批失敗：\n" + (err && err.message ? err.message : String(err));
-          toast("回傳自動批失敗");
-        }).finally(function () { setBusy(false); });
+        cpQueue = [];
+        startChatPlaygroundAuto(selected);
       });
 
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
@@ -2274,7 +2266,7 @@
               '<div class="row"><label>座號</label><select class="grow seat-pick"></select></div>' +
               '<div class="btn-row">' +
               '<button type="button" class="primary act-save">對應座號</button>' +
-              '<button type="button" class="primary act-grade">對應並自動批</button>' +
+              '<button type="button" class="primary act-grade">對應並 ChatPlayground 批</button>' +
               '<button type="button" class="primary act-return">回傳進循環</button>' +
               '<button type="button" class="act-dl">下載</button>' +
               '<button type="button" class="act-del">刪</button></div>';
@@ -2298,10 +2290,10 @@
               });
             }
             li.querySelector(".act-save").addEventListener("click", function () {
-              assignSeat(rec.kind || "exam").then(function () { toast("已對應 " + rec.seatId + "，可按 Gemini自動批"); });
+              assignSeat(rec.kind || "exam").then(function () { toast("已對應 " + rec.seatId + "，可按 ChatPlayground AI 自動批閱"); });
             });
             li.querySelector(".act-grade").addEventListener("click", function () {
-              assignSeat("exam").then(function () { return gradeOneFlow(); });
+              assignSeat("exam").then(function () { return cpAutoOneFlow(); });
             });
             li.querySelector(".act-return").addEventListener("click", function () {
               assignSeat("return").then(function () {
@@ -2353,7 +2345,7 @@
           });
         });
         return chain.then(function () {
-          toast("已匯入 " + files.length + " 個檔" + (autoMapped ? "（自動對應座號 " + autoMapped + "）" : "") + "；可一鍵連續批");
+          toast("已匯入 " + files.length + " 個檔" + (autoMapped ? "（自動對應座號 " + autoMapped + "）" : "") + "；可連續 ChatPlayground 批");
           return renderScans();
         });
       }
@@ -2379,7 +2371,7 @@
           "目前網址：" + location.origin + location.pathname + "（請只從此網址加入主畫面；關掉再開會自動恢復）";
       } catch (e) {}
       if (cleared) {
-        toast("已自動解除 " + cleared + " 個卡住的「批改中」→ 請設金鑰後按「Gemini自動批」");
+        toast("已自動解除 " + cleared + " 個卡住的「批改中」→ 請按「ChatPlayground AI 自動批閱」");
       }
       refreshPendingHint();
       function restoreProgressBackup() {
