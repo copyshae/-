@@ -150,7 +150,7 @@
         <label><input type="radio" name="gradeSpeed" id="speedFast" value="fast" checked /> 快速批（建議）</label>
         <label><input type="radio" name="gradeSpeed" id="speedFull" value="full" /> 完整批（較慢）</label>
       </div>
-      <p class="tips">快速批：精簡輸出＋較快模型。完整批：含診斷與練習建議。遇免費額度限制會自動等待後重試。</p>
+      <p class="tips">快速批／完整批：之後所有輸出皆國中課本形式（【題號】【摘要】【程度】…）。遇免費額度限制會自動等待後重試。</p>
       <div class="row">
         <label for="geminiKey">Gemini金鑰</label>
         <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
@@ -223,7 +223,7 @@
       <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 Gemini 回覆。"></textarea>
       <div class="actions">
         <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
-        <button type="button" class="btn secondary" id="btnTextbookFormat">整理成課本格式</button>
+        <button type="button" class="btn secondary" id="btnTextbookFormat">整份整理成課本格式</button>
       </div>
     </section>
 
@@ -292,7 +292,7 @@
     <section>
       <h2>怎麼用才批得快</h2>
       <ul class="tips">
-        <li>預設「快速批」；要詳細診斷再改「完整批」。</li>
+        <li>預設「快速批」；要詳細診斷與自學練習再改「完整批」。所有輸出皆國中課本形式。</li>
         <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
         <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
         <li>若出現「免費額度／速率限制」：等約 1 分鐘再批（程式會依提示自動等待重試）；不是金鑰錯。用量：<a href="https://ai.dev/rate-limit" target="_blank" rel="noopener">ai.dev/rate-limit</a>。</li>
@@ -519,14 +519,14 @@
           );
         return (
           head +
-          "請務必輸出（國中老師批改口吻，短句條列即可）：\n" +
-          (hard ? "0) 手寫轉譯稿\n0b) 認知輸入清單\n" : "") +
-          "1) 題號註記（✓／✗／?）\n" +
-          "2) 對錯摘要（已確認／仍存疑）\n" +
-          "3) 個別診斷（2～4 句）\n" +
-          "4) 程度：跟上／略落後／明顯落後／需補先備／待判定\n" +
-          "5) 個別建議（短）\n" +
-          "6) 依程度自學練習（必須國中課本形式，見下方必守）\n\n" +
+          "請務必整份輸出「國中課本形式」（見下方必守；之後所有段落皆比照）：\n" +
+          (hard ? "【手寫轉譯】…\n【認知清單】…\n" : "") +
+          "【題號】1 ✓｜2 ✗ …（短註可寫在題號後）\n" +
+          "【摘要】已確認：…／仍存疑：…\n" +
+          "【診斷】2～4 句\n" +
+          "【程度】跟上／略落後／明顯落後／需補先備／待判定\n" +
+          "【建議】短\n" +
+          "【自學練習】必須含：一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答\n\n" +
           textbookFormatRules() + "\n" +
           "座號：" + id + "\n" +
           "班級：" + state.classLabel + "\n"
@@ -535,22 +535,27 @@
 
       function textbookFormatRules() {
         return (
-          "【練習呈現｜國中課本形式｜必守】\n" +
-          "用「一、二、三、四」與「【標題】」。\n" +
-          "禁止：####、**粗體**、a.b.c.d 英文小標、LaTeX（\\begin{cases}、\\dfrac、$）。\n" +
-          "聯立方程式寫成兩行，前面加 { ；分數寫 31/13。\n" +
-          "短句、一步一行；解答最後一行寫「答：…」。\n" +
-          "結構固定如下：\n" +
-          "【自學練習｜程度】\n" +
+          "【全部輸出｜國中課本形式｜必守｜之後皆比照】\n" +
+          "1. 用【標題】與「一、二、三、四」；短句、一步一行。\n" +
+          "2. 禁止：####、##、**粗體**、a.b.c.d 英文小標、Markdown 清單符號堆疊、LaTeX（\\begin{cases}、\\dfrac、$）。\n" +
+          "3. 數學：聯立寫兩行前面加 { ；分數寫 31/13；解答最後一行寫「答：…」。\n" +
+          "4. 整份結構固定：\n" +
+          "【批閱結果｜座號】\n" +
+          "【題號】…\n" +
+          "【摘要】…\n" +
+          "【診斷】…\n" +
+          "【程度】…\n" +
+          "【建議】…\n" +
+          "【自學練習】\n" +
           "一、先看這裡（口訣／注意，各 ≤3 點）\n" +
           "二、影片（關鍵詞＋ YouTube 搜尋連結一行）\n" +
-          "三、練習（先做完再看解答；題號 1. 2. 3.）\n" +
+          "三、練習（先做完再看解答）\n" +
           "────────\n" +
-          "四、解答（做完再看；對應題號，結尾答：）\n"
+          "四、解答（做完再看；結尾答：）\n"
         );
       }
 
-      function toTextbookPractice(raw) {
+      function toTextbookOutput(raw) {
         var t = String(raw || "").replace(/\r\n/g, "\n");
         t = t.replace(/^#{1,6}\s*/gm, "");
         t = t.replace(/\*\*([^*]+)\*\*/g, "$1");
@@ -575,6 +580,7 @@
         t = t.replace(/[ \t]+\n/g, "\n");
         return t.trim();
       }
+      function toTextbookPractice(raw) { return toTextbookOutput(raw); }
 
       function buildAutoPrompt(id, hasAns, hard, fast) {
         if (fast) {
@@ -584,12 +590,13 @@
           return (
             "你是數學老師助理，快速批閱一人一檔。\n" +
             modeFast +
-            "輸出務必精簡，不要長文：\n" +
-            "1) 題號：✓／✗／?（一行條列）\n" +
-            "2) 錯因一句\n" +
-            "3) 程度：跟上／略落後／明顯落後／需補先備／待判定\n" +
+            "整份輸出必須國中課本形式（禁止 ####、**粗體**、LaTeX）：\n" +
+            "【批閱結果｜座號 " + id + "】\n" +
+            "【題號】1 ✓｜2 ✗｜3 ?（一行條列）\n" +
+            "【摘要】錯因一句\n" +
+            "【程度】跟上／略落後／明顯落後／需補先備／待判定\n" +
             "看不清標 ?。禁止要我再貼檔。\n" +
-            "座號：" + id + "｜班級：" + state.classLabel
+            "班級：" + state.classLabel
           );
         }
         var mode = hasAns
@@ -598,7 +605,7 @@
         return (
           "【任務】你是數學老師助理，用 Google Gemini 自動批閱。\n" +
           mode +
-          "【禁止】不要要我再貼檔。\n\n" +
+          "【禁止】不要要我再貼檔。之後所有輸出皆比照國中課本形式。\n\n" +
           buildPromptOne(id, !!hard)
         );
       }
@@ -609,9 +616,14 @@
           "請批閱這位學生「練習回傳」（PDF／圖檔）。\n" +
           "座號：" + id + "\n" +
           "程度：" + lv + "\n" +
-          "請輸出：分數或達成情形、問題點、簡短回饋、下一輪練習。\n" +
-          "下一輪練習必須用國中課本形式：一、先看這裡 → 二、影片 → 三、練習 → 四、解答；\n" +
-          "禁止 ####、**粗體**、LaTeX；聯立用兩行 { ；分數寫 a/b；解答結尾寫「答：」。\n" +
+          "之後所有輸出皆比照國中課本形式（禁止 ####、**粗體**、LaTeX）：\n" +
+          "【回傳批閱｜座號 " + id + "】\n" +
+          "【分數】得分/滿分\n" +
+          "【問題點】…\n" +
+          "【回饋】先成就再下一步\n" +
+          "【是否達標】是／否\n" +
+          "【自學練習】一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答\n" +
+          "聯立用兩行 { ；分數寫 a/b；解答結尾「答：」。\n" +
           "明顯落後／需補先備採多次補齊，每次約 1 點、少題。"
         );
       }
@@ -739,21 +751,18 @@
 
       function practiceGuideText() {
         return (
-          "自產練習與影片（國中課本形式｜不用均一）\n====================\n\n" +
+          "自產練習與影片（之後所有輸出皆國中課本形式｜不用均一）\n====================\n\n" +
+          "整份批閱固定結構：\n" +
+          "【批閱結果｜座號】【題號】【摘要】【診斷】【程度】【建議】【自學練習】\n\n" +
+          "自學練習內：\n" +
+          "一、先看這裡 → 二、影片 → 三、練習 → 四、解答\n\n" +
           "做法：\n" +
-          "1. 批完後按「依程度給練習模板」，或從 Gemini 回覆擷取自學練習段。\n" +
-          "2. 若回覆太像 Markdown／LaTeX，按「整理成課本格式」。\n" +
-          "3. 把練習貼到「下一輪練習」→「儲存本輪＋下一輪練習」寫入歷程，並可下載 HTML。\n" +
-          "4. 「複製此生發放訊息」→ 貼到通訊軟體班級群組／個別傳；再「寫入習作台程度」後到習作台標未發／已發。\n" +
-          "5. 學生回傳圖／PDF → 匯入並對應座號 →「練習回傳再批」→ 再進循環。\n\n" +
-          "課本形式：\n" +
-          "- 一、先看這裡 → 二、影片 → 三、練習 → 四、解答\n" +
-          "- 聯立用兩行 { ；分數寫 31/13；解答最後寫「答：」\n" +
-          "- 不要 ####、**粗體**、LaTeX\n\n" +
-          "影片規則：\n" +
-          "- 優先 YouTube 搜尋結果頁：https://www.youtube.com/results?search_query=年級+單元+教學\n" +
-          "- 有把握才貼具體影片網址；不要捏造連結\n\n" +
-          "發放：班級群組公告＋個別傳練習；沒裝置才列印包。\n均一：可完全不用。\n正式 PDF／整班數位練習包：請用電腦「習作批改」。"
+          "1. 批完後按「依程度給練習模板」，或從回覆擷取【自學練習】。\n" +
+          "2. 若回覆仍像 Markdown／LaTeX，按「整份整理成課本格式」。\n" +
+          "3. 聯立用兩行 { ；分數寫 31/13；解答最後寫「答：」。\n" +
+          "4. 禁止 ####、**粗體**、LaTeX。\n\n" +
+          "影片：優先 YouTube 搜尋頁；不要捏造連結。\n" +
+          "正式 PDF／整班數位練習包：請用電腦「習作批改」。"
         );
       }
 
@@ -767,23 +776,31 @@
         var t = String(text || "");
         if (!t) return "";
         if (kind === "problems") {
-          var m1 = t.match(/問題點[：:\s]*([\s\S]*?)(?=\n\s*(?:簡短回饋|回饋|下一輪|個別建議|程度|$))/);
+          var m0 = t.match(/【問題點】\s*([\s\S]*?)(?=\n\s*【|$)/);
+          if (m0) return m0[1].trim().slice(0, 800);
+          var m1 = t.match(/問題點[：:\s]*([\s\S]*?)(?=\n\s*(?:簡短回饋|回饋|下一輪|個別建議|程度|【|$))/);
           if (m1) return m1[1].trim().slice(0, 800);
-          var m2 = t.match(/錯因[：:\s]*([^\n]+)/);
+          var m2 = t.match(/(?:錯因|【摘要】)[：:\s]*([^\n]+)/);
           if (m2) return m2[1].trim();
           return "";
         }
         if (kind === "feedback") {
-          var f1 = t.match(/(?:簡短回饋|回饋|個別建議)[：:\s]*([\s\S]*?)(?=\n\s*(?:下一輪|自學練習|依程度|$))/);
+          var f0 = t.match(/【(?:回饋|建議)】\s*([\s\S]*?)(?=\n\s*【|$)/);
+          if (f0) return f0[1].trim().slice(0, 1200);
+          var f1 = t.match(/(?:簡短回饋|回饋|個別建議)[：:\s]*([\s\S]*?)(?=\n\s*(?:下一輪|自學練習|依程度|【|$))/);
           return f1 ? f1[1].trim().slice(0, 1200) : "";
         }
         if (kind === "next") {
+          var n0 = t.match(/【自學練習】\s*([\s\S]*)$/);
+          if (n0) return n0[1].trim().slice(0, 4000);
           var n1 = t.match(/(?:下一輪練習|自學練習|依程度自學練習)[：:\s]*([\s\S]*)$/);
           if (n1) return n1[1].trim().slice(0, 4000);
           var n2 = t.match(/6\)\s*([\s\S]*)$/);
           return n2 ? n2[1].trim().slice(0, 4000) : "";
         }
         if (kind === "score") {
+          var s0 = t.match(/【分數】\s*(\d+(?:\.\d+)?)\s*[／/]\s*(\d+(?:\.\d+)?)/);
+          if (s0) return { score: s0[1], max: s0[2] };
           var s1 = t.match(/(?:分數|得分|計分)[：:\s]*(\d+(?:\.\d+)?)\s*[／/]\s*(\d+(?:\.\d+)?)/);
           if (s1) return { score: s1[1], max: s1[2] };
           var s2 = t.match(/(\d+(?:\.\d+)?)\s*分/);
@@ -845,7 +862,7 @@
         return (
           "【" + (state.classLabel || "本班數學") + "｜座號 " + id + " 練習】\n" +
           "程度：" + (s.level || "未標") + "\n" +
-          "請先看指導與影片搜尋，再做練習題；全部做完再看解答。\n" +
+          "請先看「一、先看這裡」與影片，再做「三、練習」；全部做完再看「四、解答」。\n" +
           "回傳：個別傳給老師（圖／PDF），檔名建議 " + id + "-R" + (document.getElementById("loopRound").value || "1") + "\n\n" +
           practice
         );
@@ -1208,17 +1225,17 @@
         var s = state.seats[id];
         if (!s) return;
         var lv = null;
-        var m = text.match(/程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)/);
+        var m = text.match(/(?:【程度】|程度[：:\s]*)(跟上|略落後|明顯落後|需補先備|待判定)/);
         if (m) lv = m[1];
         if (!lv && /完全正確|全對|100\s*分/.test(text)) lv = "跟上";
         if (lv && LEVELS.indexOf(lv) >= 0) s.level = lv;
-        if (/\?{2,}|待判定|看不清/.test(text) && /程度[：:\s]*待判定/.test(text)) {
+        if (/\?{2,}|待判定|看不清/.test(text) && /(?:【程度】|程度[：:\s]*)待判定/.test(text)) {
           s.status = "待認知";
         } else {
           s.status = "已批";
         }
         s.note = ("Gemini " + (model || "")).trim().slice(0, 40);
-        s.lastReply = toTextbookPractice(String(text || "")).slice(0, 6000);
+        s.lastReply = toTextbookOutput(String(text || "")).slice(0, 6000);
         s.lastModel = model || "";
         s.lastGradedAt = Date.now();
         if (!opts.silentUi && selected === id) {

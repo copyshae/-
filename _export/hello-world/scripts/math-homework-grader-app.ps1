@@ -220,16 +220,25 @@ function Load-Note([string]$path) {
     itemsText = ''
   }
   if ($raw -match '(?m)^- 座號[：:]\s*(.+)$') { $o.studentId = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^座號[：:]\s*(.+)$') { $o.studentId = $Matches[1].Trim() }
   if ($raw -match '(?m)^- 來源檔[：:]\s*(.+)$') { $o.sourceFile = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^來源檔[：:]\s*(.+)$') { $o.sourceFile = $Matches[1].Trim() }
   if ($raw -match '(?m)^- 總評[：:]\s*(.+)$') { $o.overall = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^總評[：:]\s*(.+)$') { $o.overall = $Matches[1].Trim() }
   if ($raw -match '(?m)^- 程度[：:]\s*(.+)$') { $o.level = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 對錯摘要\s*(.*?)(?=##|$)') { $o.summary = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 個別診斷結果\s*(.*?)(?=##|$)') { $o.diagnosis = $Matches[1].Trim() }
-  elseif ($raw -match '(?s)## 個別建議\s*(.*?)(?=##|$)') { $o.advice = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 個別建議\s*(.*?)(?=##|$)') { $o.advice = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^程度[：:]\s*(.+)$') { $o.level = $Matches[1].Trim() }
+  if ($raw -match '(?m)^【程度】\s*(.+)$') { $o.level = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 對錯摘要\s*(.*?)(?=##|【|$)') { $o.summary = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【摘要】\s*(.*?)(?=【|$)') { $o.summary = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 個別診斷結果\s*(.*?)(?=##|【|$)') { $o.diagnosis = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【診斷】\s*(.*?)(?=【|$)') { $o.diagnosis = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 個別建議\s*(.*?)(?=##|【|$)') { $o.advice = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【建議】\s*(.*?)(?=【|$)') { $o.advice = $Matches[1].Trim() }
   if ($raw -match '(?s)## 依程度自學／補救練習\s*(.*?)(?=##|$)') { $o.practice = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【自學練習】\s*(.*?)(?=$)') { $o.practice = $Matches[1].Trim() }
   elseif ($raw -match '(?s)## 需再練習\s*(.*?)(?=##|$)') { $o.practice = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 題號註記\s*(.*?)(?=##|$)') { $o.itemsText = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 題號註記\s*(.*?)(?=##|【|$)') { $o.itemsText = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【題號】\s*(.*?)(?=【|$)') { $o.itemsText = $Matches[1].Trim() }
   return $o
 }
 
@@ -416,28 +425,28 @@ function Save-Note {
     $Practice = Get-PracticeTemplate $Level
   }
   $lines = @(
-    "# 批閱註記｜座號 $StudentId"
+    "【批閱結果｜座號 $StudentId】"
     ''
-    '- 座號：' + $StudentId
-    '- 來源檔：' + $SourceFile
-    '- 總評：' + $Overall
-    '- 程度：' + $Level
-    '- 批改時間：' + (Get-Date -Format 'yyyy-MM-dd HH:mm')
-    '- 原則：接受其他合理等價解法；存疑項請人工終核'
+    '座號：' + $StudentId
+    '來源檔：' + $SourceFile
+    '總評：' + $Overall
+    '程度：' + $Level
+    '批改時間：' + (Get-Date -Format 'yyyy-MM-dd HH:mm')
+    '原則：接受其他合理等價解法；存疑項請人工終核'
     ''
-    '## 題號註記'
+    '【題號】'
     $(if ($ItemsText) { $ItemsText } else { '（尚未填題號；格式例：1 ✓｜2 ✗ 計算錯｜3 ? 潦草）' })
     ''
-    '## 對錯摘要'
+    '【摘要】'
     $(if ($Summary) { $Summary } else { '（初核摘要）' })
     ''
-    '## 個別診斷結果'
+    '【診斷】'
     $(if ($Diagnosis) { $Diagnosis } else { '（弱點類型：計算／觀念／審題／先備不足／粗心…；是否跟得上進度）' })
     ''
-    '## 個別建議'
+    '【建議】'
     $(if ($Advice) { $Advice } else { '（給學生／家長的短建議）' })
     ''
-    '## 依程度自學／補救練習'
+    '【自學練習】'
     $Practice
     ''
   )
@@ -721,12 +730,20 @@ function Apply-GeminiReplyToForm([string]$text) {
   $text = Format-TextbookPractice $text
   $txtDiagnosis.Text = $text
   $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾）'
-  if ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
+  if ($text -match '(?s)【題號】\s*([\s\S]*?)(?=【|$)') {
+    $txtItems.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  } elseif ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
     $txtItems.Text = $Matches[0].Trim()
   } elseif ($text -match '(?m)(^\d+\s*[✓✗?xX].*)$') {
     # keep default if no clear list
   }
-  if ($text -match '程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)') {
+  if ($text -match '(?s)【摘要】\s*([\s\S]*?)(?=【|$)') {
+    $txtSummary.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  }
+  if ($text -match '(?s)【診斷】\s*([\s\S]*?)(?=【|$)') {
+    $txtDiagnosis.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  }
+  if ($text -match '(?:【程度】|程度[：:\s]*)(跟上|略落後|明顯落後|需補先備|待判定)') {
     $lv = $Matches[1]
     $idx = $cmbLevel.Items.IndexOf($lv)
     if ($idx -ge 0) { $cmbLevel.SelectedIndex = $idx }
@@ -741,10 +758,14 @@ function Apply-GeminiReplyToForm([string]$text) {
     $idx2 = $cmbLevel.Items.IndexOf('跟上')
     if ($idx2 -ge 0) { $cmbLevel.SelectedIndex = $idx2 }
   }
-  if ($text -match '(?s)6\)[\s\S]*') {
+  if ($text -match '(?s)【自學練習】\s*([\s\S]*)') {
+    $txtPractice.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  } elseif ($text -match '(?s)6\)[\s\S]*') {
     $txtPractice.Text = (Format-TextbookPractice $Matches[0]).Trim()
   }
-  if ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
+  if ($text -match '(?s)【建議】\s*([\s\S]*?)(?=【自學練習】|$)') {
+    $txtAdvice.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  } elseif ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
     $txtAdvice.Text = $Matches[1].Trim()
   }
 }
@@ -1275,13 +1296,14 @@ function Build-ReturnCursorPrompt([string]$root, [string]$sid, $returnFile, [int
     [void]$sb.AppendLine('目標：針對問題點給適切回饋並自動產下一輪練習；略落後建議本單元 ≤ 3 輪。')
   }
   [void]$sb.AppendLine('')
-  [void]$sb.AppendLine('請輸出可直接貼回批改程式的欄位：')
-  [void]$sb.AppendLine('1) 分數：得分/滿分')
-  [void]$sb.AppendLine('2) 問題點')
-  [void]$sb.AppendLine('3) 回饋說明（先成就再下一步）')
-  [void]$sb.AppendLine('4) 是否達標：是／否')
-  [void]$sb.AppendLine('5) 下一次練習全文：必須國中課本形式（一、先看這裡 → 二、影片 → 三、練習 → 四、解答）；禁止 ####、**粗體**、LaTeX；聯立用兩行 { ；分數寫 a/b；解答結尾「答：」')
-  [void]$sb.AppendLine('6) 分數進步一句話＋本次成就一句話')
+  [void]$sb.AppendLine('請輸出可直接貼回批改程式的欄位（之後所有輸出皆比照國中課本形式；禁止 ####、**粗體**、LaTeX）：')
+  [void]$sb.AppendLine('【回傳批閱｜座號 ' + $sid + '】')
+  [void]$sb.AppendLine('【分數】得分/滿分')
+  [void]$sb.AppendLine('【問題點】…')
+  [void]$sb.AppendLine('【回饋】先成就再下一步')
+  [void]$sb.AppendLine('【是否達標】是／否')
+  [void]$sb.AppendLine('【自學練習】一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答；聯立用兩行 { ；分數寫 a/b；解答結尾「答：」')
+  [void]$sb.AppendLine('【進步】分數進步一句＋本次成就一句')
   [void]$sb.AppendLine('影片規則：優先給可點的 YouTube 搜尋結果連結；若有把握再給具體影片 URL；禁止捏造不存在的影片網址。')
   [void]$sb.AppendLine('')
   [void]$sb.AppendLine('座號：' + $sid)
@@ -1412,23 +1434,52 @@ function Show-PracticeLoopDialog {
   $txtNext.Size = New-Object System.Drawing.Size(600, 150)
   if ($behind) {
     $txtNext.Text = @"
-#### 練習題（本次補齊｜≤3題｜先延續成就）
-【成就延續】剛做對的類型再穩一次
-1. …
+【自學練習｜本次補齊】
 
-【下一次要補的一小點】（只難一點點；會做就停）
-2. …
-3. （選做）
+一、先看這裡
+今天只要會：________
+跟著做：
+1. ……
+2. ……
 
----
-#### 解答（全部題目完成後再看）
-1. …
-2. …
-3. …
-備註：未補完的洞下次再補＝多次補齊；中間可隔日，不要連催。
+二、影片
+關鍵詞：________
+https://www.youtube.com/results?search_query=________
+
+三、練習（≤3 題，先做完再看解答）
+1. （成就延續）……
+2. （下一小點）……
+3. （選做）……
+
+────────
+四、解答（做完再看）
+1. ……
+答：……
+2. ……
+答：……
+3. ……
+答：……
+未補完的洞下次再補；中間可隔日。
 "@
   } else {
-    $txtNext.Text = "#### 練習題（先做完再看解答）`r`n1. …`r`n`r`n---`r`n#### 解答（全部題目完成後再看）`r`n1. …"
+    $txtNext.Text = @"
+【自學練習】
+
+一、先看這裡
+……
+
+二、影片
+關鍵詞：……
+https://www.youtube.com/results?search_query=……
+
+三、練習（先做完再看解答）
+1. ……
+
+────────
+四、解答（做完再看）
+1. ……
+答：……
+"@
   }
   $dlg.Controls.Add($txtNext)
 
@@ -1541,7 +1592,8 @@ function Build-CursorPrompt([string]$root) {
   $sb = New-Object System.Text.StringBuilder
   [void]$sb.AppendLine('請初核下列數學習作（加速人工打勾；非最終成績）。')
   [void]$sb.AppendLine('規則：有標準答案時以答案為準；接受其他合理等價解法；潦草／不確定標「存疑」。')
-  [void]$sb.AppendLine('每位學生輸出一份註記：題號註記、對錯摘要、診斷、程度、建議、自學練習（含自學指導＋建議影片＋練習題＋解答）。')
+  [void]$sb.AppendLine('每位學生輸出一份國中課本形式註記：【題號】【摘要】【診斷】【程度】【建議】【自學練習】（一、先看這裡→二、影片→三、練習→四、解答）。')
+  [void]$sb.AppendLine('禁止 ####、**粗體**、LaTeX；聯立用兩行 { ；分數寫 a/b；解答結尾「答：」。之後所有輸出皆比照。')
   [void]$sb.AppendLine('不要用均一指派；請直接自動產生練習題、指導步驟、合適網路教學影片連結或 YouTube 搜尋頁。')
   [void]$sb.AppendLine('跟上者：少鞏固、多再提升挑戰；好的學生要能再進步。')
   [void]$sb.AppendLine('')
@@ -1583,21 +1635,24 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
     }
     [void]$sb.AppendLine('若字跡潦草：寧可多標 ?，不要猜錯；可先給看得懂題目的診斷與練習。')
   }
-  [void]$sb.AppendLine('請務必輸出（國中老師批改口吻，短句條列即可）：')
+  [void]$sb.AppendLine('請務必整份輸出「國中課本形式」（之後所有段落皆比照；禁止 ####、**粗體**、a.b.c.d、LaTeX）：')
   if ($HandwritingHard) {
-    [void]$sb.AppendLine('0) 手寫轉譯稿（純文字式子＋【?】）')
-    [void]$sb.AppendLine('0b) 老師認知輸入清單（題號／位置／候選字）')
+    [void]$sb.AppendLine('【手寫轉譯】純文字式子＋【?】')
+    [void]$sb.AppendLine('【認知清單】題號／位置／候選字')
   }
-  [void]$sb.AppendLine('1) 題號註記（✓／✗／?；? 要附原因）')
-  [void]$sb.AppendLine('2) 對錯摘要（分開：已確認／仍存疑）')
-  [void]$sb.AppendLine('3) 個別診斷結果（弱點類型、是否跟得上進度；存疑多則待判定；2～4 句）')
-  [void]$sb.AppendLine('4) 程度分級：跟上／略落後／明顯落後／需補先備／待判定')
-  [void]$sb.AppendLine('5) 個別建議（短）')
-  [void]$sb.AppendLine('6) 依程度自學練習（請一次寫完整，我會存成數位練習給學生）：')
-  [void]$sb.AppendLine('【練習呈現｜國中課本形式｜必守】')
-  [void]$sb.AppendLine('用「一、二、三、四」與「【標題】」。禁止 ####、**粗體**、a.b.c.d、LaTeX（\begin{cases}、\dfrac、$）。')
-  [void]$sb.AppendLine('聯立方程式寫成兩行，前面加 { ；分數寫 31/13。短句、一步一行；解答最後一行寫「答：…」。')
-  [void]$sb.AppendLine('結構：【自學練習｜程度】→ 一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答')
+  [void]$sb.AppendLine('【批閱結果｜座號 ' + $id + '】')
+  [void]$sb.AppendLine('【題號】1 ✓｜2 ✗ …（? 要附原因）')
+  [void]$sb.AppendLine('【摘要】已確認：…／仍存疑：…')
+  [void]$sb.AppendLine('【診斷】弱點類型、是否跟上；2～4 句')
+  [void]$sb.AppendLine('【程度】跟上／略落後／明顯落後／需補先備／待判定')
+  [void]$sb.AppendLine('【建議】短')
+  [void]$sb.AppendLine('【自學練習】')
+  [void]$sb.AppendLine('一、先看這裡（口訣／注意，各 ≤3 點）')
+  [void]$sb.AppendLine('二、影片（關鍵詞＋ YouTube 搜尋連結一行；禁止捏造網址）')
+  [void]$sb.AppendLine('三、練習（先做完再看解答）')
+  [void]$sb.AppendLine('────────')
+  [void]$sb.AppendLine('四、解答（做完再看；結尾答：）')
+  [void]$sb.AppendLine('聯立方程式寫成兩行，前面加 { ；分數寫 31/13。')
   [void]$sb.AppendLine('   - 跟上：少鞏固、多靈活＋再提升挑戰；禁止只改數字。')
   [void]$sb.AppendLine('   - 略落後：對應錯題，少而精。')
   [void]$sb.AppendLine('   - 明顯落後／需補先備：多次補齊（每次 1 點、≤3 題），先有成就再漸次跟上。')
