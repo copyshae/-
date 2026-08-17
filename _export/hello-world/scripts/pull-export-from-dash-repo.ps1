@@ -2,7 +2,8 @@
 # Pull latest export from copyshae/- branch into Desktop\hello-world and reinstall.
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
-$branch = "main"
+# 預設 main；尚未合併時可：$env:DASH_EXPORT_BRANCH='cursor/textbook-grade-format-459a'
+$branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "main" }
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path

@@ -8,15 +8,31 @@
 | 電腦習作台 | 完整版（篩選／管道／匯入匯出）＋處理掃描匯入 |
 | 手機習作批改 | **批完後續完整鏈**（測試金鑰／練習模板／發放／寫入習作台／回傳循環／待批清單／練習包／無裝置列印／待認知） |
 | 手機習作台 | 同步程度（含待判定）、掃描王匯入、群發文（一～四）、需列印座號 |
+| 金鑰備援 | **ChatPlayground AI** 貼上批（不用 API）→ 貼回覆 → 套用為已批；亦可 Gemini 網頁 |
 
 > Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
 
 ## 一鍵套用（PowerShell 整段貼上）
 
+PR 尚未合併進 `main` 時，先設分支再拉（含 ChatPlayground AI 備援）：
+
 ```powershell
 cd $env:USERPROFILE\Desktop\hello-world
 $dir = Join-Path $PWD 'scripts'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
+$env:DASH_EXPORT_BRANCH = 'cursor/textbook-grade-format-459a'
+$url = "https://raw.githubusercontent.com/copyshae/-/$env:DASH_EXPORT_BRANCH/_export/hello-world/scripts/pull-export-from-dash-repo.ps1"
+Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
+```
+
+已合併 `main` 後可改：
+
+```powershell
+cd $env:USERPROFILE\Desktop\hello-world
+$dir = Join-Path $PWD 'scripts'
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+Remove-Item Env:DASH_EXPORT_BRANCH -ErrorAction SilentlyContinue
 $url = 'https://raw.githubusercontent.com/copyshae/-/main/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1

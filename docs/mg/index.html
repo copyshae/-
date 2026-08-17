@@ -162,6 +162,9 @@
         <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
       </div>
       <p class="key-status" id="keyStatus">尚未設定金鑰（網頁訂閱≠API；金鑰不穩可用 ChatPlayground AI 手動批）</p>
+      <div class="actions" style="margin-top:0.45rem">
+        <button type="button" class="btn" id="btnOpenChatPlaygroundTop">金鑰不穩 → ChatPlayground AI 貼上批</button>
+      </div>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -205,10 +208,10 @@
           <button type="button" class="btn" id="btnAutoBatch">連續自動批（有卷未批）</button>
           <button type="button" class="btn secondary" id="btnSave">儲存此座號</button>
           <button type="button" class="btn warn" id="btnUnstick">此座號「批改中」改回未批</button>
+          <button type="button" class="btn" id="btnOpenChatPlayground">開啟 ChatPlayground AI 貼上批（金鑰備援）</button>
+          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 網頁貼上批（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyOne">複製「請 AI 批此生」提示（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyHw">複製「手寫加強」提示（手動）</button>
-          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 網頁貼上批（手動）</button>
-          <button type="button" class="btn" id="btnOpenChatPlayground">開啟 ChatPlayground AI 貼上批（金鑰備援）</button>
           <button type="button" class="btn secondary" id="btnCopyReturn">複製「練習回傳再批」提示</button>
         </div>
       </div>
@@ -1904,6 +1907,9 @@
       });
 
       document.getElementById("btnOpenChatPlayground").addEventListener("click", function () {
+        openManualChat("chatplayground");
+      });
+      document.getElementById("btnOpenChatPlaygroundTop").addEventListener("click", function () {
         openManualChat("chatplayground");
       });
 
