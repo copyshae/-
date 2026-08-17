@@ -161,7 +161,7 @@
         <button type="button" class="btn secondary" id="btnOpenKeyPage">開 AI Studio 申請金鑰</button>
         <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
       </div>
-      <p class="key-status" id="keyStatus">尚未設定金鑰（網頁訂閱≠API；金鑰不穩可用 ChatGPT Pro 手動批）</p>
+      <p class="key-status" id="keyStatus">尚未設定金鑰（網頁訂閱≠API；金鑰不穩可用 ChatPlayground AI 手動批）</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -208,7 +208,7 @@
           <button type="button" class="btn secondary" id="btnCopyOne">複製「請 AI 批此生」提示（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyHw">複製「手寫加強」提示（手動）</button>
           <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 網頁貼上批（手動）</button>
-          <button type="button" class="btn" id="btnOpenChatGPT">開啟 ChatGPT Pro 貼上批（金鑰備援）</button>
+          <button type="button" class="btn" id="btnOpenChatPlayground">開啟 ChatPlayground AI 貼上批（金鑰備援）</button>
           <button type="button" class="btn secondary" id="btnCopyReturn">複製「練習回傳再批」提示</button>
         </div>
       </div>
@@ -222,10 +222,10 @@
 
     <section>
       <h2>提示／批閱結果</h2>
-      <p class="tips">金鑰一直有問題時：按「開啟 ChatGPT Pro 貼上批」→ 貼提示並上傳試卷 → 把回覆貼到下方 →「套用貼上的回覆」。</p>
+      <p class="tips">金鑰一直有問題時：按「開啟 ChatPlayground AI 貼上批」→ 貼提示並上傳試卷 → 把回覆貼到下方 →「套用貼上的回覆」。</p>
       <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 AI 回覆。"></textarea>
-      <label for="pasteBox" class="tips">貼上 ChatGPT Pro／Gemini 網頁回覆（手動備援）</label>
-      <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="把 ChatGPT Pro 或 Gemini 網頁的整段回覆貼這裡"></textarea>
+      <label for="pasteBox" class="tips">貼上 ChatPlayground AI／Gemini 網頁回覆（手動備援）</label>
+      <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="把 ChatPlayground AI 或 Gemini 網頁的整段回覆貼這裡"></textarea>
       <div class="actions">
         <button type="button" class="btn" id="btnApplyPaste">套用貼上的回覆→已批</button>
         <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
@@ -308,7 +308,7 @@
       <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
         <li>設金鑰 → 按「測試金鑰」→ 匯入試卷 →「Gemini自動批」／「一鍵連續批」。</li>
-        <li>金鑰／額度一直有問題：用「ChatGPT Pro 貼上批」或「Gemini 網頁貼上批」→ 貼回覆 →「套用貼上的回覆」。</li>
+        <li>金鑰／額度一直有問題：用「ChatPlayground AI 貼上批」或「Gemini 網頁貼上批」→ 貼回覆 →「套用貼上的回覆」。</li>
         <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
         <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
         <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
@@ -508,7 +508,7 @@
         var has = !!getApiKey();
         el.textContent = has
           ? "已儲存金鑰（僅此裝置）。建議先按「測試金鑰」再自動批。"
-          : "尚未設定金鑰。金鑰不穩可用 ChatGPT Pro／Gemini 網頁手動批。";
+          : "尚未設定金鑰。金鑰不穩可用 ChatPlayground AI／Gemini 網頁手動批。";
         el.classList.toggle("ok", has);
         var inp = document.getElementById("geminiKey");
         if (has && !inp.value) inp.placeholder = "••••••••（已儲存，要換再貼）";
@@ -1277,18 +1277,18 @@
         if (sawQuota) {
           return base + models +
             "\n\n這是免費額度／速率限制（不是金鑰或網路錯）。" +
-            "\n請等約 1 分鐘再按自動批；或改用「ChatGPT Pro 貼上批／Gemini 網頁貼上批」→ 貼回覆 →「套用貼上的回覆」。" +
+            "\n請等約 1 分鐘再按自動批；或改用「ChatPlayground AI 貼上批／Gemini 網頁貼上批」→ 貼回覆 →「套用貼上的回覆」。" +
             "\n查看用量：https://ai.dev/rate-limit" +
             "\n長期可到 AI Studio 提高配額或改付費方案。";
         }
         return base + models +
-          "\n請確認網路與金鑰；或改用 ChatGPT Pro／Gemini 網頁手動批（見下方貼上框）。";
+          "\n請確認網路與金鑰；或改用 ChatPlayground AI／Gemini 網頁手動批（見下方貼上框）。";
       }
 
       function manualGradeFallbackHint() {
         return (
           "\n\n【備援｜不用 API 金鑰】\n" +
-          "1. 按「開啟 ChatGPT Pro 貼上批」或「開啟 Gemini 網頁貼上批」\n" +
+          "1. 按「開啟 ChatPlayground AI 貼上批」或「開啟 Gemini 網頁貼上批」\n" +
           "2. 貼上已複製的提示，並上傳此生試卷（可加答案）\n" +
           "3. 把回覆整段貼到「貼上…回覆」框 →「套用貼上的回覆→已批」\n" +
           "輸出仍須國中課本形式：【題號】【摘要】【診斷】【程度】【建議】【自學練習】"
@@ -1313,12 +1313,12 @@
         document.getElementById("preview").value = p;
         copyText(
           p,
-          which === "chatgpt"
-            ? "已複製 → 開 ChatGPT Pro 貼上並上傳試卷"
+          which === "chatplayground"
+            ? "已複製 → 開 ChatPlayground AI 貼上並上傳試卷"
             : "已複製 → 開 Gemini 網頁貼上並上傳試卷"
         );
-        var url = which === "chatgpt"
-          ? "https://chatgpt.com/"
+        var url = which === "chatplayground"
+          ? "https://web.chatplayground.ai/"
           : "https://gemini.google.com/app";
         window.open(url, "_blank", "noopener,noreferrer");
       }
@@ -1622,7 +1622,7 @@
             document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" });
           } catch (e) {}
           var short = msg.replace(/\s+/g, " ").slice(0, 36);
-          toast("自動批失敗：" + short + "｜可改 ChatGPT Pro");
+          toast("自動批失敗：" + short + "｜可改 ChatPlayground AI");
         } finally {
           setBusy(false);
         }
@@ -1903,15 +1903,15 @@
         openManualChat("gemini");
       });
 
-      document.getElementById("btnOpenChatGPT").addEventListener("click", function () {
-        openManualChat("chatgpt");
+      document.getElementById("btnOpenChatPlayground").addEventListener("click", function () {
+        openManualChat("chatplayground");
       });
 
       document.getElementById("btnApplyPaste").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         var text = (document.getElementById("pasteBox").value || "").trim();
         if (!text) {
-          toast("請先把 ChatGPT Pro／Gemini 回覆貼到下方框");
+          toast("請先把 ChatPlayground AI／Gemini 回覆貼到下方框");
           document.getElementById("pasteBox").focus();
           return;
         }
