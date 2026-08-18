@@ -75,6 +75,7 @@ $files = @(
   "directory/apps/index.html",
   "directory/202608/index.html",
   "directory/202608/20260818-learning-log.html",
+  "scripts/refresh-desktop-vbs.ps1",
   "scripts/sync-docs-from-export.sh"
 )
 

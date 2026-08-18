@@ -12,6 +12,16 @@
 
 > Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
 
+## 只更新桌面兩個 .vbs
+
+PowerShell 貼上（會覆寫 `習作批改.vbs`、`習作台.vbs`，並更新對應程式）：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
+```
+
+關掉舊視窗後再雙擊那兩個檔。副檔名是 **.vbs**（不是 .vsb）。
+
 ## 一鍵套用（PowerShell 整段貼上）
 
 PR 尚未合併進 `main` 時，先設分支再拉（含 ChatPlayground AI 備援）：
