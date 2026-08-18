@@ -169,7 +169,19 @@
         <button type="button" class="btn" id="btnGptAutoBatch">連續 ChatGPT 免費版批（有卷未批）</button>
         <button type="button" class="btn warn" id="btnGeminiAutoFallback">改 Gemini 自動批（需金鑰）</button>
       </div>
-      <p class="tips" id="cpSiteTip">ChatPlayground 維護中請用「ChatGPT 免費版自動批閱」（chatgpt.com，免金鑰；免費版有用量上限，無法背景全自動）。套用回覆後可連續下一位。</p>
+      <p class="tips" id="cpSiteTip">ChatGPT 免費網頁<strong>不會自己貼上、也不會自己把結果送回</strong>。請：①按自動批閱 ②到 ChatGPT 按 Ctrl+V 貼提示並上傳剛下載的試卷 ③回本頁把回覆貼到下方「貼上自動批閱」。</p>
+      <section class="panel" id="pasteAutoSection" style="margin-top:0.7rem">
+        <h2 style="font-size:1.1rem;margin-bottom:0.45rem">貼上自動批閱</h2>
+        <p class="tips" id="cpGuide">先按上面的「ChatGPT 免費版自動批閱」（會複製提示、下載試卷、開 chatgpt.com）。到 ChatGPT 按 Ctrl+V，上傳試卷。把回覆貼這裡再按綠色按鈕，格子才會變已批。</p>
+        <textarea id="preview" readonly placeholder="按自動批閱後，這裡會出現已複製的提示。"></textarea>
+        <label for="pasteBox" class="tips">把 ChatGPT／ChatPlayground／Gemini 的整段回覆貼這裡</label>
+        <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="貼上回覆後，按下面「貼上自動批閱」"></textarea>
+        <div class="actions">
+          <button type="button" class="btn" id="btnApplyPaste">貼上自動批閱（套用→已批）</button>
+          <button type="button" class="btn secondary" id="btnCopyPreview">再複製一次提示（Ctrl+V 到 ChatGPT）</button>
+          <button type="button" class="btn secondary" id="btnTextbookFormat">整份整理成課本格式</button>
+        </div>
+      </section>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -229,19 +241,6 @@
         <button type="button" class="btn secondary" id="btnExportProgress">匯出批改進度</button>
         <button type="button" class="btn secondary" id="btnImportProgress">匯入批改進度（覆蓋）</button>
         <input class="hidden-file" id="fileProgress" type="file" accept="application/json,.json" />
-      </div>
-    </section>
-
-    <section>
-      <h2>提示／批閱結果</h2>
-      <p class="tips" id="cpGuide">預設批閱：ChatPlayground AI。點座號 → 自動批閱 → 在開出的網頁貼提示並上傳剛下載的試卷 → 把回覆貼下方 →「套用貼上的回覆」。</p>
-      <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 AI 回覆。"></textarea>
-      <label for="pasteBox" class="tips">貼上 ChatGPT／ChatPlayground／Gemini 回覆（最後一步）</label>
-      <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="把整段回覆貼這裡，再按套用"></textarea>
-      <div class="actions">
-        <button type="button" class="btn" id="btnApplyPaste">套用貼上的回覆→已批</button>
-        <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
-        <button type="button" class="btn secondary" id="btnTextbookFormat">整份整理成課本格式</button>
       </div>
     </section>
 
@@ -1172,12 +1171,31 @@
 
       async function copyText(text, ok) {
         document.getElementById("preview").value = text;
+        var copied = false;
         try {
-          await navigator.clipboard.writeText(text);
-          toast(ok);
-        } catch (e) {
-          window.prompt("請手動複製：", text);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+          }
+        } catch (e) {}
+        if (!copied) {
+          try {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.setAttribute("readonly", "readonly");
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            copied = document.execCommand("copy");
+            ta.remove();
+          } catch (e2) {}
         }
+        if (!copied) {
+          window.prompt("請全選後複製（Ctrl+C）：", text);
+        }
+        toast(copied ? (ok || "已複製，請到 ChatGPT 按 Ctrl+V") : "請用跳出的框複製");
+        return copied;
       }
 
       function abToBase64(buf) {
@@ -1429,12 +1447,9 @@
         if (answers.length) {
           try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
         }
-        copyText(prompt, "已複製提示並下載試卷 → 請在網頁貼上並上傳，再把回覆貼回本頁套用");
         var remain = cpQueue.length;
         setCpGuide(
-          meta.label + "：座號 " + id +
-          (remain ? ("（尚有 " + remain + " 位）") : "") +
-          "。請貼回覆後按「套用貼上的回覆」，格子才會變已批。"
+          "請立刻到剛開的 " + meta.label + " 按 Ctrl+V 貼上提示並上傳試卷。批完後回本頁，把回覆貼到「貼上自動批閱」再按綠色按鈕。"
         );
         try {
           var s = state.seats[id];
@@ -1445,10 +1460,11 @@
             renderGrid();
           }
         } catch (e3) {}
+        await copyText(prompt, "已複製。請到 " + meta.label + " 按 Ctrl+V");
         window.open(meta.url, "_blank", "noopener,noreferrer");
         try {
-          document.getElementById("pasteBox").focus();
-          document.getElementById("pasteBox").scrollIntoView({ behavior: "smooth", block: "center" });
+          var box = document.getElementById("pasteAutoSection");
+          if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (e) {}
         return true;
       }
