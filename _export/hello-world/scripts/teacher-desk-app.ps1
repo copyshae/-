@@ -4,6 +4,7 @@
 param([string]$WorkDir = "")
 
 $ErrorActionPreference = 'Stop'
+$script:AppBuild = '20260818-sync'
 $desk = [Environment]::GetFolderPath('Desktop')
 $logPath = Join-Path $desk '習作台錯誤.txt'
 $PhoneUrl = 'https://copyshae.github.io/hello-world/directory/apps/teacher-desk/'
@@ -343,7 +344,7 @@ try {
 
   $uiFont = New-UiFont 10
   $form = New-Object System.Windows.Forms.Form
-  $form.Text = '習作台｜電腦完整版'
+  $form.Text = ('習作台｜電腦完整版 [{0}]' -f $script:AppBuild)
   $form.Size = New-Object System.Drawing.Size(980, 720)
   $form.StartPosition = 'CenterScreen'
   $form.Font = $uiFont

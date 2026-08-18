@@ -20,7 +20,7 @@ PowerShell 貼上（覆寫 `習作批改.vbs`、`習作台.vbs`，並更新 `Mat
 irm https://raw.githubusercontent.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
 ```
 
-**關掉**舊的習作批改視窗後，再雙擊 `習作批改.vbs`。新視窗標題應為「ChatPlayground 預設」，並有綠色 **ChatPlayground批** 與下方 **③ 貼上自動批閱** 區塊。副檔名是 **.vbs**（不是 .vsb）。
+**關掉**舊的習作批改視窗後，再雙擊 `習作批改.vbs`。新視窗標題列應含 **`[20260818-sync]`**，並有綠色 **ChatPlayground批** 與下方 **③ 貼上自動批閱**。若畫面仍舊：代表只更新了 vbs、ps1 沒重下，或舊視窗沒關；腳本結束會跳提示框，桌面會有 `習作程式版本.txt`。勿用 `習作台.cmd` 或 `MathGrading` 舊捷徑。
 
 ## 一鍵套用（PowerShell 整段貼上）
 

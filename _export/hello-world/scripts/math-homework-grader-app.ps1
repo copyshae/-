@@ -20,6 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:AppBuild = '20260818-sync'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -1777,7 +1778,7 @@ $font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 12)
 $fontBig = New-Object System.Drawing.Font('Microsoft JhengHei UI', 15, [System.Drawing.FontStyle]::Bold)
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = '數學習作批改（ChatPlayground 預設｜Gemini 選用｜一人一檔）'
+$form.Text = ('數學習作批改（ChatPlayground 預設｜Gemini 選用｜一人一檔） [{0}]' -f $script:AppBuild)
 $form.Size = New-Object System.Drawing.Size(1060, 820)
 $form.StartPosition = 'CenterScreen'
 $form.Font = $font
