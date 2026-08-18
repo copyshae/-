@@ -94,6 +94,22 @@
       opacity: 0; transition: 0.25s ease; z-index: 20; max-width: 92vw; pointer-events: none;
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .copy-sheet {
+      position: fixed; inset: 0; background: rgba(26, 31, 28, 0.45); z-index: 40;
+      display: none; align-items: flex-end; justify-content: center; padding: 0.8rem;
+    }
+    .copy-sheet.show { display: flex; }
+    .copy-sheet-card {
+      width: min(28rem, 100%); background: #f7fbf8; border: 1px solid var(--line);
+      padding: 1rem 0.95rem 1.1rem; max-height: 88vh; overflow: auto;
+    }
+    .copy-sheet-card strong {
+      display: block; font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.25rem; font-weight: 400; color: var(--accent); margin-bottom: 0.4rem;
+    }
+    .copy-sheet-card p { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.55rem; }
+    .copy-sheet-card textarea { min-height: 10rem; font-size: 0.86rem; background: #fff; }
+    .copy-sheet-card .actions { margin-top: 0.55rem; }
     .nav { margin-top: 1.75rem; font-size: 0.88rem; }
     .nav a { color: var(--accent); }
     .hidden-file { display: none; }
@@ -273,6 +289,17 @@
     </p>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <div class="copy-sheet" id="copySheet" role="dialog" aria-labelledby="copySheetTitle">
+    <div class="copy-sheet-card">
+      <strong id="copySheetTitle">請複製這段文字</strong>
+      <p>手機沒有 Ctrl+C。請長按下框 → 全選 → 複製。</p>
+      <textarea id="copySheetText" aria-label="待複製的文案"></textarea>
+      <div class="actions">
+        <button type="button" class="btn" id="btnCopySheetRetry">再試一次複製</button>
+        <button type="button" class="btn secondary" id="btnCopySheetClose">關閉</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function () {
@@ -483,14 +510,67 @@
         document.getElementById("preview").value = buildSend();
       }
 
-      async function copyText(text, ok) {
+      function copyNow(text) {
+        text = text == null ? "" : String(text);
+        var sheet = document.getElementById("copySheet");
+        var sheetOn = sheet && sheet.classList.contains("show");
+        var preview = document.getElementById("preview");
+        if (preview) preview.value = text;
+        var target = (sheetOn && document.getElementById("copySheetText")) || preview;
+        if (!target) return false;
         try {
-          await navigator.clipboard.writeText(text);
-          toast(ok);
+          var wasReadonly = target.hasAttribute("readonly");
+          target.removeAttribute("readonly");
+          target.value = text;
+          target.focus();
+          target.select();
+          if (target.setSelectionRange) target.setSelectionRange(0, text.length);
+          var ok = document.execCommand("copy");
+          if (wasReadonly) target.setAttribute("readonly", "readonly");
+          return !!ok;
         } catch (e) {
-          window.prompt("請手動複製：", text);
+          try { if (preview) preview.setAttribute("readonly", "readonly"); } catch (e2) {}
+          return false;
         }
       }
+
+      function showCopySheet(text) {
+        var sheet = document.getElementById("copySheet");
+        var ta = document.getElementById("copySheetText");
+        ta.value = text || "";
+        sheet.classList.add("show");
+        try {
+          ta.focus();
+          ta.select();
+          if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length);
+        } catch (e) {}
+      }
+
+      async function copyText(text, ok) {
+        if (copyNow(text)) {
+          toast(ok);
+          return true;
+        }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            toast(ok);
+            return true;
+          }
+        } catch (e) {}
+        showCopySheet(text);
+        toast("請長按下框全選複製（手機沒有 Ctrl+C）");
+        return false;
+      }
+
+      document.getElementById("btnCopySheetRetry").addEventListener("click", function () {
+        var text = document.getElementById("copySheetText").value || "";
+        if (copyNow(text)) toast("已複製");
+        else toast("請長按下框 → 全選 → 複製");
+      });
+      document.getElementById("btnCopySheetClose").addEventListener("click", function () {
+        document.getElementById("copySheet").classList.remove("show");
+      });
 
       document.getElementById("filters").addEventListener("click", function (e) {
         var t = e.target;

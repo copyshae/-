@@ -120,6 +120,23 @@
     .speed-row { margin-top: 0.55rem; gap: 0.55rem; }
     .speed-row label { display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: var(--ink); }
     .quick-actions { margin-top: 0.85rem; }
+    .copy-sheet {
+      position: fixed; inset: 0; background: rgba(26, 31, 28, 0.45); z-index: 40;
+      display: none; align-items: flex-end; justify-content: center; padding: 0.8rem;
+    }
+    .copy-sheet.show { display: flex; }
+    .copy-sheet-card {
+      width: min(28rem, 100%); background: #f7fbf8; border: 1px solid var(--line);
+      padding: 1rem 0.95rem 1.1rem; max-height: 88vh; overflow: auto;
+    }
+    .copy-sheet-card strong {
+      display: block; font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.25rem; font-weight: 400; color: var(--accent); margin-bottom: 0.4rem;
+    }
+    .copy-sheet-card p { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.55rem; }
+    .copy-sheet-card textarea {
+      min-height: 10rem; font-size: 0.86rem; background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -169,16 +186,16 @@
         <button type="button" class="btn" id="btnGptAutoBatch">連續 ChatGPT 免費版批（有卷未批）</button>
         <button type="button" class="btn warn" id="btnGeminiAutoFallback">改 Gemini 自動批（需金鑰）</button>
       </div>
-      <p class="tips" id="cpSiteTip">ChatGPT 免費網頁<strong>不會自己貼上、也不會自己把結果送回</strong>。請：①按自動批閱 ②到 ChatGPT 按 Ctrl+V 貼提示並上傳剛下載的試卷 ③回本頁把回覆貼到下方「貼上自動批閱」。</p>
+      <p class="tips" id="cpSiteTip">ChatGPT 免費網頁<strong>不會自己貼上、也不會自己把結果送回</strong>。請：①按自動批閱 ②到 ChatGPT 貼上提示（手機長按貼上；電腦 Ctrl+V）並上傳剛下載的試卷 ③回本頁把回覆貼到下方「貼上自動批閱」。</p>
       <section class="panel" id="pasteAutoSection" style="margin-top:0.7rem">
         <h2 style="font-size:1.1rem;margin-bottom:0.45rem">貼上自動批閱</h2>
-        <p class="tips" id="cpGuide">先按上面的「ChatGPT 免費版自動批閱」（會複製提示、下載試卷、開 chatgpt.com）。到 ChatGPT 按 Ctrl+V，上傳試卷。把回覆貼這裡再按綠色按鈕，格子才會變已批。</p>
+        <p class="tips" id="cpGuide">先按上面的「ChatGPT 免費版自動批閱」（會複製提示、下載試卷、開 chatgpt.com）。到 ChatGPT 貼上提示（手機長按貼上），上傳試卷。把回覆貼這裡再按綠色按鈕，格子才會變已批。</p>
         <textarea id="preview" readonly placeholder="按自動批閱後，這裡會出現已複製的提示。"></textarea>
         <label for="pasteBox" class="tips">把 ChatGPT／ChatPlayground／Gemini 的整段回覆貼這裡</label>
         <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="貼上回覆後，按下面「貼上自動批閱」"></textarea>
         <div class="actions">
           <button type="button" class="btn" id="btnApplyPaste">貼上自動批閱（套用→已批）</button>
-          <button type="button" class="btn secondary" id="btnCopyPreview">再複製一次提示（Ctrl+V 到 ChatGPT）</button>
+          <button type="button" class="btn secondary" id="btnCopyPreview">再複製一次提示（到 ChatGPT 貼上）</button>
           <button type="button" class="btn secondary" id="btnTextbookFormat">整份整理成課本格式</button>
         </div>
       </section>
@@ -320,7 +337,7 @@
       <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
         <li>匯入試卷 → 點座號 →「ChatPlayground AI 自動批閱」→ 貼回覆 →「套用貼上的回覆」。整班用「連續 ChatPlayground 批」。</li>
-        <li>ChatPlayground 維護中：點座號 →「ChatGPT 免費版自動批閱」→ 貼提示上傳試卷 → 套用回覆。整班用「連續 ChatGPT 免費版批」。</li>
+        <li>ChatPlayground 維護中：點座號 →「ChatGPT 免費版自動批閱」→ 貼提示（手機長按貼上）並上傳試卷 → 套用回覆。整班用「連續 ChatGPT 免費版批」。</li>
         <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
         <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
         <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
@@ -342,6 +359,18 @@
       <p id="busyMsg">請稍候，不要關頁。</p>
     </div>
   </div>
+  <div class="copy-sheet" id="copySheet" role="dialog" aria-labelledby="copySheetTitle">
+    <div class="copy-sheet-card">
+      <strong id="copySheetTitle">請複製這段提示</strong>
+      <p id="copySheetHint">手機沒有 Ctrl+C。請長按下框文字 → 選「全選」→「複製」。再到 ChatGPT 長按輸入框貼上。</p>
+      <textarea id="copySheetText" aria-label="待複製的提示"></textarea>
+      <div class="actions">
+        <button type="button" class="btn" id="btnCopySheetRetry">再試一次複製</button>
+        <button type="button" class="btn" id="btnCopySheetOpen">已複製，開啟批閱網頁</button>
+        <button type="button" class="btn secondary" id="btnCopySheetClose">關閉</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function () {
@@ -354,6 +383,8 @@
       var wakeLock = null;
       var cpQueue = [];
       var webPasteSite = "chatplayground";
+      var pendingCopyOpenUrl = "";
+      var pendingCopyOpenLabel = "";
       var MODELS_FAST = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
       var MODELS_FULL = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-pro"];
       var STATUSES = ["未批", "批改中", "已批", "待認知", "待重謄"];
@@ -1171,33 +1202,80 @@
         save(state);
       }
 
-      async function copyText(text, ok) {
-        document.getElementById("preview").value = text;
-        var copied = false;
+      function hideCopySheet() {
+        var sheet = document.getElementById("copySheet");
+        if (sheet) sheet.classList.remove("show");
+      }
+
+      function showCopySheet(text, openUrl, openLabel) {
+        pendingCopyOpenUrl = openUrl || "";
+        pendingCopyOpenLabel = openLabel || "";
+        var sheet = document.getElementById("copySheet");
+        var ta = document.getElementById("copySheetText");
+        var hint = document.getElementById("copySheetHint");
+        var btnOpen = document.getElementById("btnCopySheetOpen");
+        ta.value = text || "";
+        if (hint) {
+          hint.textContent = pendingCopyOpenLabel
+            ? ("手機沒有 Ctrl+C。請長按下框 → 全選 → 複製。再到「" + pendingCopyOpenLabel + "」長按貼上並上傳試卷。")
+            : "手機沒有 Ctrl+C。請長按下框文字 → 選「全選」→「複製」。";
+        }
+        if (btnOpen) {
+          btnOpen.hidden = !pendingCopyOpenUrl;
+          btnOpen.textContent = pendingCopyOpenLabel
+            ? ("已複製，開啟" + pendingCopyOpenLabel)
+            : "已複製，開啟批閱網頁";
+        }
+        sheet.classList.add("show");
         try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-            copied = true;
-          }
+          ta.focus();
+          ta.select();
+          if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length);
         } catch (e) {}
+      }
+
+      function copyNow(text) {
+        text = text == null ? "" : String(text);
+        var sheet = document.getElementById("copySheet");
+        var sheetOn = sheet && sheet.classList.contains("show");
+        var preview = document.getElementById("preview");
+        if (preview) preview.value = text;
+        var target = (sheetOn && document.getElementById("copySheetText")) || preview;
+        if (!target) return false;
+        try {
+          var wasReadonly = target.hasAttribute("readonly");
+          target.removeAttribute("readonly");
+          target.value = text;
+          target.focus();
+          target.select();
+          if (target.setSelectionRange) target.setSelectionRange(0, text.length);
+          var ok = document.execCommand("copy");
+          if (wasReadonly) target.setAttribute("readonly", "readonly");
+          return !!ok;
+        } catch (e) {
+          try { if (preview) preview.setAttribute("readonly", "readonly"); } catch (e2) {}
+          return false;
+        }
+      }
+
+      async function copyText(text, ok, opts) {
+        opts = opts || {};
+        var copied = copyNow(text);
         if (!copied) {
           try {
-            var ta = document.createElement("textarea");
-            ta.value = text;
-            ta.setAttribute("readonly", "readonly");
-            ta.style.position = "fixed";
-            ta.style.left = "-9999px";
-            document.body.appendChild(ta);
-            ta.select();
-            copied = document.execCommand("copy");
-            ta.remove();
-          } catch (e2) {}
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+              copied = true;
+            }
+          } catch (e) {}
         }
-        if (!copied) {
-          window.prompt("請全選後複製（Ctrl+C）：", text);
+        if (copied) {
+          toast(ok || "已複製");
+          return true;
         }
-        toast(copied ? (ok || "已複製，請到 ChatGPT 按 Ctrl+V") : "請用跳出的框複製");
-        return copied;
+        showCopySheet(text, opts.openUrl || "", opts.openLabel || "");
+        toast("請長按下框全選複製（手機沒有 Ctrl+C）");
+        return false;
       }
 
       function abToBase64(buf) {
@@ -1428,6 +1506,22 @@
         persistHeader();
         selected = id;
         try { selectSeat(id); } catch (e) {}
+
+        var prompt = opts.prompt || buildManualChatPrompt(id, true);
+        document.getElementById("preview").value = prompt;
+
+        // 必須在任何 await 之前：手機複製／開新分頁都要使用者手勢
+        var copied = opts.alreadyCopied;
+        if (copied == null) copied = copyNow(prompt);
+        var opened = !!opts.alreadyOpened;
+        if (copied && !opened) {
+          try {
+            opened = !!window.open(meta.url, "_blank", "noopener,noreferrer");
+          } catch (eOpen) {
+            opened = false;
+          }
+        }
+
         var scans = opts.scans || await scanAll();
         var scan = latestScanForSeat(scans, id);
         if (!scan) {
@@ -1435,12 +1529,11 @@
           return false;
         }
         var answers = opts.answers || await answerAll();
-        var prompt = buildManualChatPrompt(id, true);
         document.getElementById("preview").value =
           prompt +
           "\n\n【" + meta.label + "自動批閱｜進行中】\n" +
           "（網頁版無法在背景自己批完）\n" +
-          "1. 提示已複製\n" +
+          "1. 提示" + (copied ? "已複製" : "請用下方面板長按複製") + "\n" +
           "2. 試卷已下載（請到剛開的網頁上傳）\n" +
           (answers.length ? "3. 答案檔也已下載\n" : "") +
           "4. 把 AI 回覆整段貼到下方框 →「套用貼上的回覆→已批」\n" +
@@ -1449,9 +1542,10 @@
         if (answers.length) {
           try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
         }
-        var remain = cpQueue.length;
         setCpGuide(
-          "請立刻到剛開的 " + meta.label + " 按 Ctrl+V 貼上提示並上傳試卷。批完後回本頁，把回覆貼到「貼上自動批閱」再按綠色按鈕。"
+          copied
+            ? ("請到 " + meta.label + " 貼上提示（手機長按貼上；電腦 Ctrl+V）並上傳試卷。批完後回本頁，把回覆貼到「貼上自動批閱」再按綠色按鈕。")
+            : ("請先長按全選複製提示，再開啟「" + meta.label + "」貼上並上傳試卷。")
         );
         try {
           var s = state.seats[id];
@@ -1462,8 +1556,12 @@
             renderGrid();
           }
         } catch (e3) {}
-        await copyText(prompt, "已複製。請到 " + meta.label + " 按 Ctrl+V");
-        window.open(meta.url, "_blank", "noopener,noreferrer");
+        if (copied && opened) {
+          toast("已複製提示。請到 " + meta.label + " 貼上（手機長按貼上）並上傳試卷");
+        } else {
+          showCopySheet(prompt, meta.url, meta.label);
+          toast(copied ? ("請按「開啟" + meta.label + "」") : "請長按全選複製（不要用系統 Ctrl+C 框）");
+        }
         try {
           var box = document.getElementById("pasteAutoSection");
           if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2379,8 +2477,32 @@
         startChatPlaygroundAuto(selected);
       });
 
+      document.getElementById("btnCopySheetRetry").addEventListener("click", function () {
+        var text = (document.getElementById("copySheetText").value || "");
+        if (copyNow(text)) {
+          toast("已複製，請貼到批閱網頁（手機長按貼上）");
+        } else {
+          try {
+            var ta = document.getElementById("copySheetText");
+            ta.focus();
+            ta.select();
+            if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length);
+          } catch (e) {}
+          toast("請長按下框 → 全選 → 複製");
+        }
+      });
+      document.getElementById("btnCopySheetOpen").addEventListener("click", function () {
+        var text = (document.getElementById("copySheetText").value || "");
+        copyNow(text);
+        if (pendingCopyOpenUrl) {
+          window.open(pendingCopyOpenUrl, "_blank", "noopener,noreferrer");
+        }
+        hideCopySheet();
+      });
+      document.getElementById("btnCopySheetClose").addEventListener("click", hideCopySheet);
+
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
-        copyText(document.getElementById("preview").value || "", "已複製");
+        copyText(document.getElementById("preview").value || "", "已複製，請到批閱網頁貼上");
       });
 
       document.getElementById("btnTextbookFormat").addEventListener("click", function () {
