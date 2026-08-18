@@ -706,23 +706,23 @@ function Show-GeminiKeyDialog {
   $has = -not [string]::IsNullOrWhiteSpace((Get-GeminiApiKey $script:WorkDir))
   $dlg = New-Object System.Windows.Forms.Form
   $dlg.Text = '設定 Gemini API 金鑰'
-  $dlg.Size = New-Object System.Drawing.Size(560, 300)
+  $dlg.Size = New-Object System.Drawing.Size(560, 360)
   $dlg.StartPosition = 'CenterParent'
   $dlg.Font = $font
   $lbl = New-Object System.Windows.Forms.Label
   $lbl.Location = New-Object System.Drawing.Point(12, 12)
-  $lbl.Size = New-Object System.Drawing.Size(520, 88)
-  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n換過金鑰後若批失敗：先按「測試金鑰」確認。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
+  $lbl.Size = New-Object System.Drawing.Size(520, 128)
+  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n金鑰只需 1 把。要提高配額次數（每天／每分鐘能批幾份）：按「提高配額」。`n免費層用完就等；長期請開帳單升層。再建金鑰不會加配額。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
   $dlg.Controls.Add($lbl)
   $tb = New-Object System.Windows.Forms.TextBox
-  $tb.Location = New-Object System.Drawing.Point(12, 108)
+  $tb.Location = New-Object System.Drawing.Point(12, 148)
   $tb.Width = 520
   $tb.UseSystemPasswordChar = $true
   if ($has) { $tb.Text = Get-GeminiApiKey $script:WorkDir }
   $dlg.Controls.Add($tb)
   $btnTest = New-Object System.Windows.Forms.Button
   $btnTest.Text = '測試金鑰'
-  $btnTest.Location = New-Object System.Drawing.Point(12, 150)
+  $btnTest.Location = New-Object System.Drawing.Point(12, 190)
   $btnTest.Size = New-Object System.Drawing.Size(110, 32)
   $btnTest.Add_Click({
       try {
@@ -738,7 +738,7 @@ function Show-GeminiKeyDialog {
   $dlg.Controls.Add($btnTest)
   $btnOk = New-Object System.Windows.Forms.Button
   $btnOk.Text = '儲存'
-  $btnOk.Location = New-Object System.Drawing.Point(320, 150)
+  $btnOk.Location = New-Object System.Drawing.Point(320, 190)
   $btnOk.Size = New-Object System.Drawing.Size(100, 32)
   $btnOk.DialogResult = 'None'
   $btnOk.Add_Click({
@@ -768,13 +768,19 @@ function Show-GeminiKeyDialog {
   $dlg.Controls.Add($btnOk)
   $btnOpen = New-Object System.Windows.Forms.Button
   $btnOpen.Text = '開啟申請頁'
-  $btnOpen.Location = New-Object System.Drawing.Point(140, 150)
+  $btnOpen.Location = New-Object System.Drawing.Point(140, 190)
   $btnOpen.Size = New-Object System.Drawing.Size(120, 32)
   $btnOpen.Add_Click({ Start-Process 'https://aistudio.google.com/apikey' })
   $dlg.Controls.Add($btnOpen)
+  $btnQuota = New-Object System.Windows.Forms.Button
+  $btnQuota.Text = '提高配額'
+  $btnQuota.Location = New-Object System.Drawing.Point(12, 230)
+  $btnQuota.Size = New-Object System.Drawing.Size(140, 32)
+  $btnQuota.Add_Click({ Start-Process 'https://aistudio.google.com/rate-limit' })
+  $dlg.Controls.Add($btnQuota)
   $btnCancel = New-Object System.Windows.Forms.Button
   $btnCancel.Text = '關閉'
-  $btnCancel.Location = New-Object System.Drawing.Point(440, 150)
+  $btnCancel.Location = New-Object System.Drawing.Point(440, 190)
   $btnCancel.Size = New-Object System.Drawing.Size(90, 32)
   $btnCancel.DialogResult = 'Cancel'
   $dlg.Controls.Add($btnCancel)

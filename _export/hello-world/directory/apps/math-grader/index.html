@@ -158,9 +158,11 @@
       <div class="actions" style="margin-top:0.35rem">
         <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
         <button type="button" class="btn secondary" id="btnOpenKeyPage">開 AI Studio 申請金鑰</button>
+        <button type="button" class="btn secondary" id="btnOpenQuota">提高配額</button>
         <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
       </div>
       <p class="key-status" id="keyStatus">尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）</p>
+      <p class="tips">金鑰只要 1 把。要提高<strong>配額次數</strong>（每天／每分鐘能批幾份），請按「提高配額」開 AI Studio 用量頁：免費層用完就等、或開帳單升層。再建金鑰<strong>不會</strong>加配額。</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -292,7 +294,7 @@
       <ul class="tips">
         <li>預設「快速批」；要詳細診斷再改「完整批」。</li>
         <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
-        <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
+        <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。配額不夠請按「提高配額」，多把金鑰不會加次數。</li>
         <li>批完後用下方「批完後續」：練習模板／發放訊息／寫入習作台／練習回傳循環。</li>
         <li>只按「開啟 Gemini 貼上批」不會自動完成，又慢又會卡在批改中。</li>
       </ul>
@@ -1307,6 +1309,9 @@
       });
       document.getElementById("btnOpenKeyPage").addEventListener("click", function () {
         window.open("https://aistudio.google.com/apikey", "_blank", "noopener,noreferrer");
+      });
+      document.getElementById("btnOpenQuota").addEventListener("click", function () {
+        window.open("https://aistudio.google.com/rate-limit", "_blank", "noopener,noreferrer");
       });
 
       document.getElementById("btnPickAnswer").addEventListener("click", function () {
