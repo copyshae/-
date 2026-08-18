@@ -1,4 +1,4 @@
-const CACHE = "math-grader-v31";
+const CACHE = "math-grader-v32";
 const ASSETS = ["./", "./index.html", "./share.html", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 const DB_NAME = "math-grader-scans";
 const DB_STORE = "inbox";

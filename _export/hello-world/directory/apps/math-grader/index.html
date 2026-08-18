@@ -165,10 +165,11 @@
       <div class="actions" style="margin-top:0.45rem">
         <button type="button" class="btn" id="btnOpenChatPlaygroundTop">ChatPlayground AI 自動批閱</button>
         <button type="button" class="btn secondary" id="btnCpUsage">查看 ChatPlayground 用量</button>
-        <button type="button" class="btn" id="btnChatGptFree">ChatGPT 免費版貼上批</button>
-        <button type="button" class="btn warn" id="btnGeminiAutoFallback">ChatPlayground 開不了？改 Gemini 自動批</button>
+        <button type="button" class="btn" id="btnChatGptFree">ChatGPT 免費版自動批閱</button>
+        <button type="button" class="btn" id="btnGptAutoBatch">連續 ChatGPT 免費版批（有卷未批）</button>
+        <button type="button" class="btn warn" id="btnGeminiAutoFallback">改 Gemini 自動批（需金鑰）</button>
       </div>
-      <p class="tips" id="cpSiteTip">ChatPlayground 維護中：可用「ChatGPT 免費版貼上批」（chatgpt.com，免 API 金鑰；免費版有用量上限）。Gemini 自動批需有效金鑰。</p>
+      <p class="tips" id="cpSiteTip">ChatPlayground 維護中請用「ChatGPT 免費版自動批閱」（chatgpt.com，免金鑰；免費版有用量上限，無法背景全自動）。套用回覆後可連續下一位。</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -208,6 +209,8 @@
           <input id="note" type="text" maxlength="80" placeholder="勿填姓名" />
         </div>
         <div class="actions">
+          <button type="button" class="btn" id="btnGptAutoOne">ChatGPT 免費版自動批閱（此座號）</button>
+          <button type="button" class="btn" id="btnGptAutoBatchSeat">連續 ChatGPT 免費版批</button>
           <button type="button" class="btn" id="btnCpAutoOne">ChatPlayground AI 自動批閱（此座號）</button>
           <button type="button" class="btn" id="btnCpAutoBatch">連續 ChatPlayground 批（有卷未批）</button>
           <button type="button" class="btn secondary" id="btnSave">儲存此座號</button>
@@ -317,7 +320,7 @@
       <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
         <li>匯入試卷 → 點座號 →「ChatPlayground AI 自動批閱」→ 貼回覆 →「套用貼上的回覆」。整班用「連續 ChatPlayground 批」。</li>
-        <li>ChatPlayground 維護中：貼 Gemini 金鑰 →「ChatPlayground 開不了？改 Gemini 自動批」（會呼叫 API 自動批，不用貼回覆）。</li>
+        <li>ChatPlayground 維護中：點座號 →「ChatGPT 免費版自動批閱」→ 貼提示上傳試卷 → 套用回覆。整班用「連續 ChatGPT 免費版批」。</li>
         <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
         <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
         <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
@@ -349,6 +352,7 @@
       var grading = false;
       var wakeLock = null;
       var cpQueue = [];
+      var webPasteSite = "chatplayground";
       var MODELS_FAST = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
       var MODELS_FULL = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-pro"];
       var STATUSES = ["未批", "批改中", "已批", "待認知", "待重謄"];
@@ -452,7 +456,7 @@
         document.getElementById("busyMsg").textContent = msg || "請稍候，不要關頁。";
         el.classList.toggle("show", !!on);
         grading = !!on;
-        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnCpAutoOne", "btnCpAutoBatch", "btnGeminiAutoFallback", "btnSaveKey"].forEach(function (id) {
+        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnCpAutoOne", "btnCpAutoBatch", "btnChatGptFree", "btnGptAutoBatch", "btnGptAutoOne", "btnGptAutoBatchSeat", "btnGeminiAutoFallback", "btnSaveKey"].forEach(function (id) {
           var b = document.getElementById(id);
           if (b) b.disabled = !!on;
         });
@@ -1366,54 +1370,21 @@
         );
       }
 
-      async function startChatPlaygroundAuto(id, opts) {
-        opts = opts || {};
-        if (!id) { toast("請先點座號"); return false; }
-        persistHeader();
-        selected = id;
-        try { selectSeat(id); } catch (e) {}
-        var scans = opts.scans || await scanAll();
-        var scan = latestScanForSeat(scans, id);
-        if (!scan) {
-          toast("座號 " + id + " 還沒有匯入試卷");
-          setCpGuide("請先匯入座號 " + id + " 的試卷，再按 ChatPlayground AI 自動批閱。");
-          return false;
+      function webPasteMeta(site) {
+        if (site === "chatgpt") {
+          return { label: "ChatGPT 免費版", url: "https://chatgpt.com/", model: "ChatGPT免費版" };
         }
-        var answers = opts.answers || await answerAll();
-        var prompt = buildManualChatPrompt(id, true);
-        document.getElementById("preview").value =
-          prompt +
-          "\n\n【ChatPlayground AI 自動批閱｜進行中】\n" +
-          "1. 提示已複製\n" +
-          "2. 試卷已下載（請上傳到 ChatPlayground）\n" +
-          (answers.length ? "3. 答案檔也已下載（可一併上傳）\n" : "") +
-          "最後：把回覆貼到下方框 →「套用貼上的回覆→已批」";
-        try { downloadRecFile(scan, "座號" + id + "_試卷"); } catch (e) {}
-        if (answers.length) {
-          try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
+        if (site === "gemini") {
+          return { label: "Gemini 網頁", url: "https://gemini.google.com/app", model: "Gemini網頁" };
         }
-        copyText(prompt, "已複製提示；試卷已下載 → 開 ChatPlayground");
-        var remain = cpQueue.length;
-        setCpGuide(
-          "進行中：座號 " + id +
-          (remain ? ("（尚有 " + remain + " 位待連續批）") : "") +
-          "。在 ChatPlayground 貼提示＋上傳下載的試卷 → 回覆貼下方 → 套用。"
-        );
-        window.open("https://web.chatplayground.ai/", "_blank", "noopener,noreferrer");
-        toast("已開 ChatPlayground。若維護中／白屏 → 按「改 Gemini 自動批」");
-        var box = document.getElementById("pasteBox");
-        try {
-          box.focus();
-          box.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch (e) {}
-        return true;
+        return { label: "ChatPlayground AI", url: "https://web.chatplayground.ai/", model: "ChatPlayground" };
       }
 
       async function startWebPasteAuto(id, opts) {
         opts = opts || {};
-        var site = opts.site || "gemini";
-        var label = site === "chatgpt" ? "ChatGPT 免費版" : "Gemini 網頁";
-        var url = site === "chatgpt" ? "https://chatgpt.com/" : "https://gemini.google.com/app";
+        var site = opts.site || webPasteSite || "chatplayground";
+        webPasteSite = site;
+        var meta = webPasteMeta(site);
         if (!id) { toast("請先點座號"); return false; }
         persistHeader();
         selected = id;
@@ -1422,13 +1393,15 @@
         var scan = latestScanForSeat(scans, id);
         if (!scan) {
           toast("座號 " + id + " 還沒有匯入試卷");
+          setCpGuide("請先匯入座號 " + id + " 的試卷，再按「" + meta.label + "自動批閱」。");
           return false;
         }
         var answers = opts.answers || await answerAll();
         var prompt = buildManualChatPrompt(id, true);
         document.getElementById("preview").value =
           prompt +
-          "\n\n【" + label + " 批閱｜進行中】\n" +
+          "\n\n【" + meta.label + "自動批閱｜進行中】\n" +
+          "（網頁版無對外 API，無法背景全自動；本頁一鍵協助）\n" +
           "1. 提示已複製\n" +
           "2. 試卷已下載（請上傳）\n" +
           (answers.length ? "3. 答案檔也已下載\n" : "") +
@@ -1437,14 +1410,25 @@
         if (answers.length) {
           try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
         }
-        copyText(prompt, "已複製提示；試卷已下載 → 開 " + label);
-        setCpGuide(label + "：座號 " + id + "。貼提示＋上傳試卷 → 回覆貼下方 → 套用。");
-        window.open(url, "_blank", "noopener,noreferrer");
+        copyText(prompt, "已複製提示；試卷已下載 → 開 " + meta.label);
+        var remain = cpQueue.length;
+        setCpGuide(
+          meta.label + "自動批閱：座號 " + id +
+          (remain ? ("（尚有 " + remain + " 位待連續批）") : "") +
+          "。貼提示＋上傳試卷 → 回覆貼下方 → 套用。"
+        );
+        window.open(meta.url, "_blank", "noopener,noreferrer");
         try {
           document.getElementById("pasteBox").focus();
           document.getElementById("pasteBox").scrollIntoView({ behavior: "smooth", block: "center" });
         } catch (e) {}
         return true;
+      }
+
+      async function startChatPlaygroundAuto(id, opts) {
+        opts = opts || {};
+        opts.site = "chatplayground";
+        return startWebPasteAuto(id, opts);
       }
 
       async function startGeminiWebAuto(id, opts) {
@@ -1466,13 +1450,7 @@
         window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
       }
 
-      async function cpAutoOneFlow() {
-        if (!selected) { toast("請先點座號"); return; }
-        cpQueue = [];
-        await startChatPlaygroundAuto(selected);
-      }
-
-      async function cpAutoBatchFlow() {
+      async function webPasteBatchFlow(site) {
         if (grading) return;
         var scans = await scanAll();
         var answers = await answerAll();
@@ -1486,32 +1464,55 @@
           toast("沒有「有卷未批」可連續批");
           return;
         }
+        webPasteSite = site;
         cpQueue = ids.slice(1);
-        toast("連續 ChatPlayground：共 " + ids.length + " 位，先批座號 " + ids[0]);
-        await startChatPlaygroundAuto(ids[0], { scans: scans, answers: answers });
+        var meta = webPasteMeta(site);
+        toast("連續 " + meta.label + "：共 " + ids.length + " 位，先批座號 " + ids[0]);
+        await startWebPasteAuto(ids[0], { scans: scans, answers: answers, site: site });
+      }
+
+      async function cpAutoOneFlow() {
+        if (!selected) { toast("請先點座號"); return; }
+        cpQueue = [];
+        await startWebPasteAuto(selected, { site: "chatplayground" });
+      }
+
+      async function gptAutoOneFlow() {
+        if (!selected) { toast("請先點座號"); return; }
+        cpQueue = [];
+        await startWebPasteAuto(selected, { site: "chatgpt" });
+      }
+
+      async function cpAutoBatchFlow() {
+        return webPasteBatchFlow("chatplayground");
+      }
+
+      async function gptAutoBatchFlow() {
+        return webPasteBatchFlow("chatgpt");
       }
 
       async function applyChatPlaygroundPaste() {
         if (!selected) { toast("請先點座號"); return; }
         var text = (document.getElementById("pasteBox").value || "").trim();
         if (!text) {
-          toast("請先把 ChatGPT／ChatPlayground／Gemini 回覆貼到下方框");
+          toast("請先把 AI 回覆貼到下方框");
           document.getElementById("pasteBox").focus();
           return;
         }
         text = toTextbookOutput(text);
         var doneId = selected;
-        applyReplyToSeat(doneId, text, "ChatPlayground");
+        var meta = webPasteMeta(webPasteSite || "chatplayground");
+        applyReplyToSeat(doneId, text, meta.model);
         document.getElementById("preview").value = text;
         document.getElementById("pasteBox").value = "";
         refreshLoopPanel(doneId);
         if (cpQueue.length) {
           var nextId = cpQueue.shift();
           toast("座號 " + doneId + " 已批；接著 " + nextId + "（尚餘 " + cpQueue.length + "）");
-          await startChatPlaygroundAuto(nextId);
+          await startWebPasteAuto(nextId, { site: webPasteSite });
         } else {
-          setCpGuide("座號 " + doneId + " 已用 ChatPlayground AI 批完。可再點其他座號繼續。");
-          toast("已套用 ChatPlayground 回覆，座號 " + doneId + " 標為已批");
+          setCpGuide("座號 " + doneId + " 已用 " + meta.label + " 批完。可再點其他座號繼續。");
+          toast("已套用 " + meta.label + " 回覆，座號 " + doneId + " 標為已批");
         }
       }
 
@@ -2116,7 +2117,16 @@
         else gradeBatchFlow();
       });
       document.getElementById("btnChatGptFree").addEventListener("click", function () {
-        startWebPasteAuto(selected, { site: "chatgpt" });
+        gptAutoOneFlow();
+      });
+      document.getElementById("btnGptAutoBatch").addEventListener("click", function () {
+        gptAutoBatchFlow();
+      });
+      document.getElementById("btnGptAutoOne").addEventListener("click", function () {
+        gptAutoOneFlow();
+      });
+      document.getElementById("btnGptAutoBatchSeat").addEventListener("click", function () {
+        gptAutoBatchFlow();
       });
       document.getElementById("btnCpAutoOne").addEventListener("click", function () {
         cpAutoOneFlow();
