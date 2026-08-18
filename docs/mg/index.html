@@ -150,7 +150,7 @@
         <label><input type="radio" name="gradeSpeed" id="speedFast" value="fast" checked /> 快速批（建議）</label>
         <label><input type="radio" name="gradeSpeed" id="speedFull" value="full" /> 完整批（較慢）</label>
       </div>
-      <p class="tips">輸出一律國中課本形式（【題號】【摘要】【程度】…）。批閱預設走 ChatPlayground AI；下方 Gemini 金鑰為選用。</p>
+      <p class="tips">快速批／完整批：輸出一律國中課本形式。若「測試金鑰」失敗：往下看「提示／批閱結果」完整原因。常見是金鑰設了網站限制（預覽網址 raw.githack.com 會被擋）或免費額度用完（等 1～2 分鐘或隔日，不一定要等下個月）。</p>
       <div class="row">
         <label for="geminiKey">Gemini金鑰（選用）</label>
         <input id="geminiKey" type="password" autocomplete="off" placeholder="可留空；預設用 ChatPlayground AI" />
@@ -165,9 +165,10 @@
       <div class="actions" style="margin-top:0.45rem">
         <button type="button" class="btn" id="btnOpenChatPlaygroundTop">ChatPlayground AI 自動批閱</button>
         <button type="button" class="btn secondary" id="btnCpUsage">查看 ChatPlayground 用量</button>
+        <button type="button" class="btn" id="btnChatGptFree">ChatGPT 免費版貼上批</button>
         <button type="button" class="btn warn" id="btnGeminiAutoFallback">ChatPlayground 開不了？改 Gemini 自動批</button>
       </div>
-      <p class="tips" id="cpSiteTip">ChatPlayground 維護中／打不開時：先貼 Gemini 金鑰並儲存，再按「改 Gemini 自動批」（已選座號批一位；未選則連續批有卷未批）。</p>
+      <p class="tips" id="cpSiteTip">ChatPlayground 維護中：可用「ChatGPT 免費版貼上批」（chatgpt.com，免 API 金鑰；免費版有用量上限）。Gemini 自動批需有效金鑰。</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -232,8 +233,8 @@
       <h2>提示／批閱結果</h2>
       <p class="tips" id="cpGuide">預設批閱：ChatPlayground AI。點座號 → 自動批閱 → 在開出的網頁貼提示並上傳剛下載的試卷 → 把回覆貼下方 →「套用貼上的回覆」。</p>
       <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 AI 回覆。"></textarea>
-      <label for="pasteBox" class="tips">貼上 ChatPlayground AI／Gemini 網頁回覆（自動批閱最後一步）</label>
-      <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="把 ChatPlayground AI 的整段回覆貼這裡，再按套用"></textarea>
+      <label for="pasteBox" class="tips">貼上 ChatGPT／ChatPlayground／Gemini 回覆（最後一步）</label>
+      <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="把整段回覆貼這裡，再按套用"></textarea>
       <div class="actions">
         <button type="button" class="btn" id="btnApplyPaste">套用貼上的回覆→已批</button>
         <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
@@ -1408,8 +1409,11 @@
         return true;
       }
 
-      async function startGeminiWebAuto(id, opts) {
+      async function startWebPasteAuto(id, opts) {
         opts = opts || {};
+        var site = opts.site || "gemini";
+        var label = site === "chatgpt" ? "ChatGPT 免費版" : "Gemini 網頁";
+        var url = site === "chatgpt" ? "https://chatgpt.com/" : "https://gemini.google.com/app";
         if (!id) { toast("請先點座號"); return false; }
         persistHeader();
         selected = id;
@@ -1424,24 +1428,29 @@
         var prompt = buildManualChatPrompt(id, true);
         document.getElementById("preview").value =
           prompt +
-          "\n\n【Gemini 網頁批閱｜進行中】\n" +
-          "（ChatPlayground 開不了時的備援；流程相同）\n" +
+          "\n\n【" + label + " 批閱｜進行中】\n" +
           "1. 提示已複製\n" +
-          "2. 試卷已下載\n" +
+          "2. 試卷已下載（請上傳）\n" +
           (answers.length ? "3. 答案檔也已下載\n" : "") +
           "最後：回覆貼下方 →「套用貼上的回覆→已批」";
         try { downloadRecFile(scan, "座號" + id + "_試卷"); } catch (e) {}
         if (answers.length) {
           try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
         }
-        copyText(prompt, "已複製提示；試卷已下載 → 開 Gemini 網頁");
-        setCpGuide("Gemini 網頁批閱：座號 " + id + "。貼提示＋上傳試卷 → 回覆貼下方 → 套用。");
-        window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
+        copyText(prompt, "已複製提示；試卷已下載 → 開 " + label);
+        setCpGuide(label + "：座號 " + id + "。貼提示＋上傳試卷 → 回覆貼下方 → 套用。");
+        window.open(url, "_blank", "noopener,noreferrer");
         try {
           document.getElementById("pasteBox").focus();
           document.getElementById("pasteBox").scrollIntoView({ behavior: "smooth", block: "center" });
         } catch (e) {}
         return true;
+      }
+
+      async function startGeminiWebAuto(id, opts) {
+        opts = opts || {};
+        opts.site = "gemini";
+        return startWebPasteAuto(id, opts);
       }
 
       function openManualChat(which) {
@@ -1486,7 +1495,7 @@
         if (!selected) { toast("請先點座號"); return; }
         var text = (document.getElementById("pasteBox").value || "").trim();
         if (!text) {
-          toast("請先把 ChatPlayground AI 回覆貼到下方框");
+          toast("請先把 ChatGPT／ChatPlayground／Gemini 回覆貼到下方框");
           document.getElementById("pasteBox").focus();
           return;
         }
@@ -2105,6 +2114,9 @@
       document.getElementById("btnGeminiAutoFallback").addEventListener("click", function () {
         if (selected) gradeOneFlow();
         else gradeBatchFlow();
+      });
+      document.getElementById("btnChatGptFree").addEventListener("click", function () {
+        startWebPasteAuto(selected, { site: "chatgpt" });
       });
       document.getElementById("btnCpAutoOne").addEventListener("click", function () {
         cpAutoOneFlow();
