@@ -93,7 +93,10 @@ def main(src: str):
 
     print(f"找到 {len(all_items)} 種物品：{all_items}")
 
-    # 在「其他細項」欄之後插入新欄（原欄留著）
+    # 保留原欄，但改名避免和拆出的欄位混淆
+    ws.cell(header_row, other_col).value = "其他細項原文"
+
+    # 在「其他細項原文」欄之後插入新欄
     insert_at = other_col + 1  # 插入位置（1-based → 插在「其他細項」後）
 
     # 插入欄（從右到左插，保持順序）
@@ -107,6 +110,24 @@ def main(src: str):
         for c_idx, name in enumerate(all_items):
             qty = parsed.get(name, 0)
             ws.cell(row, insert_at + c_idx).value = qty if qty else 0
+
+    # 若有「總計」列，補上新欄位總計
+    total_row = None
+    for r in range(header_row + 1, ws.max_row + 1):
+        row_vals = [ws.cell(r, c).value for c in range(1, min(ws.max_column, 5) + 1)]
+        if "總計" in row_vals:
+            total_row = r
+            break
+    if total_row:
+        data_end = total_row - 1
+        for c_idx, name in enumerate(all_items):
+            col = insert_at + c_idx
+            total = 0
+            for r in range(header_row + 1, data_end + 1):
+                v = ws.cell(r, col).value
+                if isinstance(v, (int, float)):
+                    total += v
+            ws.cell(total_row, col).value = total
 
     out_path = src_path.parent / (src_path.stem + "_拆欄.xlsx")
     wb.save(out_path)
