@@ -303,7 +303,7 @@
 
     <section id="scanSection">
       <h2>掃描／試卷／練習回傳（掃描王）</h2>
-      <p class="tips">試卷：匯入 → 對應座號 → ChatPlayground AI 自動批閱。練習回傳／手寫：匯入後按「回傳進循環」（對齊 0803 手寫板匯入並批）。</p>
+      <p class="tips">試卷：必須先「匯入 PDF／圖檔」並對應座號，自動批才會成功（正確答案可選）。ChatPlayground 維護中用 ChatGPT 免費版：開站後還要把回覆貼回來按「套用」才會變已批。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnPickScan">匯入 PDF／圖檔</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
@@ -1380,6 +1380,25 @@
         return { label: "ChatPlayground AI", url: "https://web.chatplayground.ai/", model: "ChatPlayground" };
       }
 
+      function failNeedScan(id, meta) {
+        var msg =
+          "自動批還沒開始：座號 " + id + " 沒有試卷檔。\n\n" +
+          "請先往下到「掃描／試卷」→「匯入 PDF／圖檔」（掃描王）→ 對應座號 → 再按「" +
+          (meta && meta.label ? meta.label : "ChatGPT 免費版") + "自動批閱」。\n" +
+          "正確答案可選。沒匯入試卷，格子會一直停在「未批」。\n\n" +
+          "若已開 ChatGPT：把回覆貼到下方框 →「套用貼上的回覆→已批」才會變已批。";
+        try {
+          document.getElementById("preview").value = msg;
+          document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (e) {}
+        setCpGuide(msg.replace(/\n+/g, " "));
+        toast("請先匯入試卷並對應座號（見提示欄）");
+        try {
+          var sec = document.getElementById("scanSection");
+          if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e2) {}
+      }
+
       async function startWebPasteAuto(id, opts) {
         opts = opts || {};
         var site = opts.site || webPasteSite || "chatplayground";
@@ -1392,8 +1411,7 @@
         var scans = opts.scans || await scanAll();
         var scan = latestScanForSeat(scans, id);
         if (!scan) {
-          toast("座號 " + id + " 還沒有匯入試卷");
-          setCpGuide("請先匯入座號 " + id + " 的試卷，再按「" + meta.label + "自動批閱」。");
+          failNeedScan(id, meta);
           return false;
         }
         var answers = opts.answers || await answerAll();
@@ -1401,22 +1419,32 @@
         document.getElementById("preview").value =
           prompt +
           "\n\n【" + meta.label + "自動批閱｜進行中】\n" +
-          "（網頁版無對外 API，無法背景全自動；本頁一鍵協助）\n" +
+          "（網頁版無法在背景自己批完）\n" +
           "1. 提示已複製\n" +
-          "2. 試卷已下載（請上傳）\n" +
+          "2. 試卷已下載（請到剛開的網頁上傳）\n" +
           (answers.length ? "3. 答案檔也已下載\n" : "") +
-          "最後：回覆貼下方 →「套用貼上的回覆→已批」";
+          "4. 把 AI 回覆整段貼到下方框 →「套用貼上的回覆→已批」\n" +
+          "沒套用前回格子仍是「未批」，這是正常的。";
         try { downloadRecFile(scan, "座號" + id + "_試卷"); } catch (e) {}
         if (answers.length) {
           try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
         }
-        copyText(prompt, "已複製提示；試卷已下載 → 開 " + meta.label);
+        copyText(prompt, "已複製提示並下載試卷 → 請在網頁貼上並上傳，再把回覆貼回本頁套用");
         var remain = cpQueue.length;
         setCpGuide(
-          meta.label + "自動批閱：座號 " + id +
-          (remain ? ("（尚有 " + remain + " 位待連續批）") : "") +
-          "。貼提示＋上傳試卷 → 回覆貼下方 → 套用。"
+          meta.label + "：座號 " + id +
+          (remain ? ("（尚有 " + remain + " 位）") : "") +
+          "。請貼回覆後按「套用貼上的回覆」，格子才會變已批。"
         );
+        try {
+          var s = state.seats[id];
+          if (s) {
+            s.note = ("待貼" + meta.label + "回覆").slice(0, 40);
+            save(state);
+            if (selected === id) document.getElementById("note").value = s.note;
+            renderGrid();
+          }
+        } catch (e3) {}
         window.open(meta.url, "_blank", "noopener,noreferrer");
         try {
           document.getElementById("pasteBox").focus();
@@ -1478,7 +1506,7 @@
       }
 
       async function gptAutoOneFlow() {
-        if (!selected) { toast("請先點座號"); return; }
+        if (!selected) { toast("請先點座號（或先匯入試卷）"); return; }
         cpQueue = [];
         await startWebPasteAuto(selected, { site: "chatgpt" });
       }
