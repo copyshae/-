@@ -12,15 +12,15 @@
 
 > Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
 
-## 只更新桌面兩個 .vbs
+## 只更新桌面兩個 .vbs（＋電腦視窗程式）
 
-PowerShell 貼上（會覆寫 `習作批改.vbs`、`習作台.vbs`，並更新對應程式）：
+PowerShell 貼上（覆寫 `習作批改.vbs`、`習作台.vbs`，並更新 `MathGradingApp`／`習作台程式` 裡的 ps1）：
 
 ```powershell
 irm https://raw.githubusercontent.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
 ```
 
-關掉舊視窗後再雙擊那兩個檔。副檔名是 **.vbs**（不是 .vsb）。
+**關掉**舊的習作批改視窗後，再雙擊 `習作批改.vbs`。新視窗標題應為「ChatPlayground 預設」，並有綠色 **ChatPlayground批** 與下方 **③ 貼上自動批閱** 區塊。副檔名是 **.vbs**（不是 .vsb）。
 
 ## 一鍵套用（PowerShell 整段貼上）
 

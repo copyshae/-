@@ -57,4 +57,5 @@ Save-Utf16 (Join-Path $deskAppDir "啟動習作台.vbs") $deskVbs
 Write-Host "OK"
 Write-Host (Join-Path $desk "習作批改.vbs")
 Write-Host (Join-Path $desk "習作台.vbs")
-Write-Host "Close old windows, then double-click those two files."
+Write-Host "Close OLD grader window first, then double-click 習作批改.vbs"
+Write-Host "New UI: title has ChatPlayground, green ChatPlayground批 button, section ③ paste box"
