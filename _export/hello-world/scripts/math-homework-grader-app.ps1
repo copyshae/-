@@ -712,7 +712,7 @@ function Show-GeminiKeyDialog {
   $lbl = New-Object System.Windows.Forms.Label
   $lbl.Location = New-Object System.Drawing.Point(12, 12)
   $lbl.Size = New-Object System.Drawing.Size(520, 128)
-  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n本程式只需 1 把金鑰。同一專案再建多把不會提高每天／每分鐘次數。`n額度用完：等約 1 分鐘、改快速批；要加次數請開帳單（多數預付約 10 美元，按用量扣、非月租）。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
+  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n金鑰只需 1 把。要提高配額次數（每天／每分鐘能批幾份）：按「提高配額」。`n免費層用完就等；長期請開帳單升層。再建金鑰不會加配額。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
   $dlg.Controls.Add($lbl)
   $tb = New-Object System.Windows.Forms.TextBox
   $tb.Location = New-Object System.Drawing.Point(12, 148)
@@ -773,7 +773,7 @@ function Show-GeminiKeyDialog {
   $btnOpen.Add_Click({ Start-Process 'https://aistudio.google.com/apikey' })
   $dlg.Controls.Add($btnOpen)
   $btnQuota = New-Object System.Windows.Forms.Button
-  $btnQuota.Text = '看用量／升 Tier'
+  $btnQuota.Text = '提高配額'
   $btnQuota.Location = New-Object System.Drawing.Point(12, 230)
   $btnQuota.Size = New-Object System.Drawing.Size(140, 32)
   $btnQuota.Add_Click({ Start-Process 'https://aistudio.google.com/rate-limit' })

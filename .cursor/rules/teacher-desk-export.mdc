@@ -9,6 +9,6 @@ alwaysApply: false
 - 本倉庫（`copyshae/-`）以 `_export/hello-world/` 暫存待套用變更。
 - 套用：`_export/hello-world/apply-to-hello-world.ps1` 或桌面 `pull-export-from-dash-repo.ps1`。
 - 手機習作批改需 **Gemini API 金鑰** 才能自動批；「貼上批」是手動，會卡在批改中。
-- 提高 Gemini **使用次數**靠專案開帳單升 Tier，不是多建金鑰。用量：https://aistudio.google.com/rate-limit
+- 提高 Gemini **配額次數**靠專案開帳單升層，不是多建金鑰。用量頁：https://aistudio.google.com/rate-limit
 - **介面、提示、對話框、對使用者回覆必須繁體中文**（zh-Hant）；管道用「Google 教室／通訊軟體群組」，掃描來源寫「掃描王」。
 - 只用座號、不存姓名。
