@@ -4,7 +4,7 @@
 param([string]$WorkDir = "")
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-sync'
+$script:AppBuild = '20260818-fast'
 $desk = [Environment]::GetFolderPath('Desktop')
 $logPath = Join-Path $desk '習作台錯誤.txt'
 $PhoneUrl = 'https://copyshae.github.io/hello-world/directory/apps/teacher-desk/'
@@ -825,8 +825,10 @@ try {
     } catch {}
   })
 
-  Refresh-Filters
-  Refresh-Grid
+  $form.Add_Load({
+    Refresh-Filters
+    Refresh-Grid
+  })
   if (Test-Path -LiteralPath $logPath) {
     Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
   }

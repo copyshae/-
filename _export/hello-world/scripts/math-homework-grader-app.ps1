@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-sync'
+$script:AppBuild = '20260818-fast'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -38,11 +38,13 @@ function Get-DefaultWorkDir {
   return (Join-Path $desk 'MathGrading')
 }
 
-function Ensure-WorkTree([string]$root) {
+function Ensure-WorkDirs([string]$root) {
   foreach ($n in @('標準答案', '輸入', '輸出', '認知輸入', '重謄補充', '數位練習', '列印專用', '練習回傳', '練習歷程', '手寫匯入')) {
     New-Item -ItemType Directory -Force -Path (Join-Path $root $n) | Out-Null
   }
-  $printList = Join-Path (Join-Path $root '列印專用') '需列印座號.txt'
+}
+
+function Ensure-WorkGuides([string]$root) {
   if (-not (Test-Path -LiteralPath $printList)) {
     @(
       '# 沒有手機／平板等通訊裝置、需要紙本練習的座號'
@@ -102,6 +104,11 @@ function Ensure-WorkTree([string]$root) {
     '6. 回傳／手寫板：圖檔進「練習回傳」或「手寫匯入」→「手寫板匯入並批」'
     '7. 歷程在「練習歷程」；沒裝置才用「列印專用」'
   ) | Set-Content -LiteralPath $readme -Encoding UTF8
+}
+
+function Ensure-WorkTree([string]$root) {
+  Ensure-WorkDirs $root
+  Ensure-WorkGuides $root
 }
 
 function Find-Python {
@@ -1770,7 +1777,7 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
 
 # ----- UI -----
 if ([string]::IsNullOrWhiteSpace($WorkDir)) { $WorkDir = Get-DefaultWorkDir }
-Ensure-WorkTree $WorkDir
+Ensure-WorkDirs $WorkDir
 $script:WorkDir = $WorkDir
 $script:settings = Load-Settings $WorkDir
 
@@ -2065,6 +2072,7 @@ function Ensure-AnswerOrWarn {
 }
 
 function Refresh-List {
+  param([switch]$OnStartup)
   $list.Items.Clear()
   $script:files = @(Get-InputFiles $script:WorkDir)
   foreach ($f in $script:files) {
@@ -2076,7 +2084,7 @@ function Refresh-List {
   $inDir = Join-Path $script:WorkDir '輸入'
   $skipped = @(Get-InputSkipped $script:WorkDir)
   $allCount = @(Get-ChildItem -LiteralPath $inDir -File -ErrorAction SilentlyContinue).Count
-  if ($script:files.Count -eq 0 -and $allCount -gt 0) {
+  if (-not $OnStartup -and $script:files.Count -eq 0 -and $allCount -gt 0) {
     $names = ($skipped | Select-Object -First 5 | ForEach-Object { $_.Name }) -join '、'
     $status.Text = ("輸入夾有 {0} 個檔，但副檔名不支援（需 pdf/png/jpg/heic…）。例：{1}" -f $allCount, $names)
     [void][System.Windows.Forms.MessageBox]::Show(
@@ -2773,9 +2781,12 @@ $form.Controls.AddRange(@(
     $btnTools, $btnLoop, $btnRetFolder, $btnJunyi, $btnTablet
   ))
 
-Refresh-PathLabel
-Refresh-AnswerLabel
-Refresh-List
-if ($list.Items.Count -gt 0) { $list.SelectedIndex = 0 }
+$form.Add_Load({
+  Ensure-WorkGuides $script:WorkDir
+  Refresh-PathLabel
+  Refresh-AnswerLabel
+  Refresh-List -OnStartup
+  if ($list.Items.Count -gt 0) { $list.SelectedIndex = 0 }
+})
 
 [void]$form.ShowDialog()
