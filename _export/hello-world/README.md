@@ -57,3 +57,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 ## 規格依據
 
 https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html
+
+手機批閱路徑（ChatPlayground／貼上自動批閱）：
+https://copyshae.github.io/hello-world/directory/202608/20260818-learning-log.html

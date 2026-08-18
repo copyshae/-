@@ -73,6 +73,8 @@ $files = @(
   "directory/apps/teacher-desk/icon-192.png",
   "directory/apps/teacher-desk/icon-512.png",
   "directory/apps/index.html",
+  "directory/202608/index.html",
+  "directory/202608/20260818-learning-log.html",
   "scripts/sync-docs-from-export.sh"
 )
 
@@ -116,7 +118,8 @@ Write-Host ""
 Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
 Push-Location $root
 try {
-  git add directory/apps/math-grader directory/apps/teacher-desk `
+  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/index.html `
+    directory/202608/index.html directory/202608/20260818-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null

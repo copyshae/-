@@ -11,6 +11,8 @@ $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
   @{ Src = 'directory\apps\index.html'; Dst = 'directory\apps\index.html' },
+  @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
+  @{ Src = 'directory\202608\20260818-learning-log.html'; Dst = 'directory\202608\20260818-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -46,7 +48,8 @@ if (Test-Path -LiteralPath $rulesSrc) {
 
 Push-Location $dest
 try {
-  git add directory/apps/teacher-desk directory/apps/math-grader `
+  git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/index.html `
+    directory/202608/index.html directory/202608/20260818-learning-log.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
