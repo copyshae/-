@@ -20,10 +20,16 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-fast3'
+$script:AppBuild = '20260818-fast4'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
+
+$script:SingleMtx = New-Object System.Threading.Mutex($false, 'Local\HomeworkGraderApp')
+if (-not $script:SingleMtx.WaitOne(0)) {
+  [void][System.Windows.Forms.MessageBox]::Show('習作批改已在執行，請看工作列。', '習作批改')
+  exit 0
+}
 
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:PyMakePdf = Join-Path $script:ScriptDir 'math_grade_make_note_pdf.py'

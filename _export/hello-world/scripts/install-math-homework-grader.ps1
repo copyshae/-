@@ -34,8 +34,8 @@ $vbs = @"
 Set sh = CreateObject("WScript.Shell")
 desk = sh.SpecialFolders("Desktop")
 ps1 = desk & "\MathGradingApp\launch-grader.ps1"
-cmd = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -File """ & ps1 & """ -WorkDir """ & desk & "\MathGrading"""
-sh.Run cmd, 1, False
+cmd = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File """ & ps1 & """ -WorkDir """ & desk & "\MathGrading"""
+sh.Run cmd, 0, False
 "@
 $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
 [System.IO.File]::WriteAllText((Join-Path $appDir 'launch.vbs'), $vbs, $utf16)

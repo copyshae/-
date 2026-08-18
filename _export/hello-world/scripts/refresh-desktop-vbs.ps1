@@ -6,12 +6,12 @@ param([switch]$ShowTip)
 $ErrorActionPreference = "Stop"
 $branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "cursor/launch-efficiency-459a" }
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world/scripts"
-$expectedBuild = "20260818-fast3"
+$expectedBuild = "20260818-fast4"
 $desk = [Environment]::GetFolderPath("Desktop")
 $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
 $utf8Bom = New-Object System.Text.UTF8Encoding $true
 $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-$psLaunch = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -File"
+$psLaunch = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File"
 
 function Save-Utf16([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText($Path, $Text, $utf16)
@@ -52,7 +52,7 @@ Set sh = CreateObject("WScript.Shell")
 desk = sh.SpecialFolders("Desktop")
 ps1 = desk & "\$ps1Rel"
 cmd = "$psLaunch """ & ps1 & """ -WorkDir """ & desk & "\$workSub"""
-sh.Run cmd, 1, False
+sh.Run cmd, 0, False
 "@
   }
   return @"
@@ -60,7 +60,7 @@ Set sh = CreateObject("WScript.Shell")
 desk = sh.SpecialFolders("Desktop")
 ps1 = desk & "\$ps1Rel"
 cmd = "$psLaunch """ & ps1 & """"
-sh.Run cmd, 1, False
+sh.Run cmd, 0, False
 "@
 }
 
@@ -71,8 +71,8 @@ New-Item -ItemType Directory -Force -Path $graderDir, $deskAppDir, $hubDir | Out
 
 Save-RemotePs1 "math-homework-grader-app.ps1" $graderDir @($expectedBuild, "ChatPlayground批")
 Save-RemotePs1 "teacher-desk-app.ps1" $deskAppDir @($expectedBuild, "從批改進度檔同步")
-Save-RemotePs1 "launch-grader.ps1" $graderDir @("正在啟動習作批改")
-Save-RemotePs1 "launch-teacher-desk.ps1" $deskAppDir @("正在啟動習作台")
+Save-RemotePs1 "launch-grader.ps1" $graderDir @("出現主視窗後此畫面會自動關閉")
+Save-RemotePs1 "launch-teacher-desk.ps1" $deskAppDir @("出現主視窗後此畫面會自動關閉")
 Save-RemotePs1 "launch-homework-apps.ps1" $hubDir @("習作工具")
 
 Save-Utf16 (Join-Path $desk "習作工具.vbs") (Make-VbsLaunch "習作工具程式\launch-homework-apps.ps1" "")

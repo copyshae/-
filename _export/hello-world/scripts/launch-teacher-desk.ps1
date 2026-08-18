@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# 快速啟動習作台：先顯示「正在啟動」，再載入主程式
+# 快速啟動習作台：先顯示「正在啟動」，再開主程式（不卡住）
 param([string]$WorkDir = "")
 
 $ErrorActionPreference = "Stop"
@@ -27,6 +27,13 @@ if (-not (Test-Path -LiteralPath $mainPs1)) {
   exit 1
 }
 
+$existing = @(Get-Process -Name powershell -ErrorAction SilentlyContinue |
+  Where-Object { $_.MainWindowTitle -like "*習作台*" -and $_.MainWindowTitle -notlike "*正在啟動*" })
+if ($existing.Count -gt 0) {
+  [void][System.Windows.Forms.MessageBox]::Show("習作台已在執行，請看工作列。", "習作台")
+  exit 0
+}
+
 $splash = New-Object System.Windows.Forms.Form
 $splash.Text = "習作台"
 $splash.FormBorderStyle = "FixedDialog"
@@ -39,27 +46,39 @@ $splash.TopMost = $true
 $splash.BackColor = [System.Drawing.Color]::FromArgb(245, 248, 244)
 
 $lbl = New-Object System.Windows.Forms.Label
-$lbl.Text = "正在啟動習作台…"
+$lbl.Text = "正在啟動習作台…" + [Environment]::NewLine + "出現主視窗後此畫面會自動關閉"
 $lbl.Dock = "Fill"
 $lbl.TextAlign = "MiddleCenter"
-$lbl.Font = New-Object System.Drawing.Font("Microsoft JhengHei UI", 12)
+$lbl.Font = New-Object System.Drawing.Font("Microsoft JhengHei UI", 11)
 $lbl.ForeColor = [System.Drawing.Color]::FromArgb(20, 70, 50)
 $splash.Controls.Add($lbl)
+$splash.Show()
+$splash.Refresh()
+[System.Windows.Forms.Application]::DoEvents()
 
-$splash.Add_Shown({
+$arg = "-NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File `"$mainPs1`" -WorkDir `"$WorkDir`""
+$p = Start-Process -FilePath "powershell.exe" -ArgumentList $arg -PassThru -WindowStyle Hidden
+
+$ready = $false
+$deadline = (Get-Date).AddSeconds(45)
+while ((Get-Date) -lt $deadline) {
+  Start-Sleep -Milliseconds 350
   [System.Windows.Forms.Application]::DoEvents()
-  try {
-    & $mainPs1 -WorkDir $WorkDir
-  } catch {
-    [void][System.Windows.Forms.MessageBox]::Show(
-      ("啟動失敗：`n{0}" -f $_.Exception.Message),
-      "習作台",
-      [System.Windows.Forms.MessageBoxButtons]::OK,
-      [System.Windows.Forms.MessageBoxIcon]::Error
-    )
-  } finally {
-    $splash.Close()
-  }
-})
+  if ($p.HasExited) { break }
+  $hit = @(Get-Process -Name powershell -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowTitle -like "*習作台｜*" })
+  if ($hit.Count -gt 0) { $ready = $true; break }
+}
 
-[void]$splash.ShowDialog()
+$splash.Close()
+$splash.Dispose()
+
+if ($p.HasExited -and -not $ready) {
+  [void][System.Windows.Forms.MessageBox]::Show(
+    "主程式立刻結束。請看桌面「習作台錯誤.txt」，或再跑 refresh-desktop-vbs.ps1。",
+    "習作台",
+    [System.Windows.Forms.MessageBoxButtons]::OK,
+    [System.Windows.Forms.MessageBoxIcon]::Error
+  )
+  exit 1
+}

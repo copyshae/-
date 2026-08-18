@@ -62,12 +62,9 @@ function Start-App([string]$launcher) {
     )
     return
   }
-  $form.Hide()
-  try {
-    & $launcher
-  } finally {
-    $form.Close()
-  }
+  $arg = "-NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File `"$launcher`""
+  Start-Process -FilePath "powershell.exe" -ArgumentList $arg -WindowStyle Hidden
+  $form.Close()
 }
 
 $btnGrader.Add_Click({ Start-App $launchGrader })

@@ -47,8 +47,8 @@ $vbs = @"
 Set sh = CreateObject("WScript.Shell")
 desk = sh.SpecialFolders("Desktop")
 ps1 = desk & "\習作台程式\launch-teacher-desk.ps1"
-cmd = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -File """ & ps1 & """ -WorkDir """ & desk & "\習作台資料"""
-sh.Run cmd, 1, False
+cmd = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File """ & ps1 & """ -WorkDir """ & desk & "\習作台資料"""
+sh.Run cmd, 0, False
 "@
 $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
 [System.IO.File]::WriteAllText((Join-Path $desk '習作台.vbs'), $vbs, $utf16)
