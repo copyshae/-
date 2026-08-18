@@ -712,7 +712,7 @@ function Show-GeminiKeyDialog {
   $lbl = New-Object System.Windows.Forms.Label
   $lbl.Location = New-Object System.Drawing.Point(12, 12)
   $lbl.Size = New-Object System.Drawing.Size(520, 128)
-  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n本程式只需 1 把金鑰。同一專案再建多把不會提高每天／每分鐘次數。`n額度用完：等約 1 分鐘、改快速批，或到 AI Studio 開帳單升 Tier。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
+  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n本程式只需 1 把金鑰。同一專案再建多把不會提高每天／每分鐘次數。`n額度用完：等約 1 分鐘、改快速批；要加次數請開帳單（多數預付約 10 美元，按用量扣、非月租）。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
   $dlg.Controls.Add($lbl)
   $tb = New-Object System.Windows.Forms.TextBox
   $tb.Location = New-Object System.Drawing.Point(12, 148)
