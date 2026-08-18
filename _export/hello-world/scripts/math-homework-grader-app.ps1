@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-fast4'
+$script:AppBuild = '20260818-fast5'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -816,6 +816,19 @@ function Get-WebPasteMeta([string]$Site) {
   return @{ Label = 'ChatPlayground AI'; Url = 'https://web.chatplayground.ai/' }
 }
 
+function Try-PasteIntoChatSite([string]$Hint) {
+  try {
+    $sh = New-Object -ComObject WScript.Shell
+    $ok = $false
+    foreach ($t in @($Hint, 'ChatPlayground', 'chatgpt.com', 'ChatGPT', 'Chrome', 'Edge')) {
+      if ($sh.AppActivate($t)) { $ok = $true; break }
+    }
+    if (-not $ok) { return }
+    Start-Sleep -Milliseconds 500
+    [System.Windows.Forms.SendKeys]::SendWait('^v')
+  } catch {}
+}
+
 function Start-WebPasteAuto {
   param([string]$Site = 'chatplayground')
   if (-not $script:current) {
@@ -827,11 +840,8 @@ function Start-WebPasteAuto {
   $sid = Get-StudentId $script:current.Name
   $p = Build-CursorPromptOne $script:WorkDir $script:current
   $header = @(
-    "【$($meta.Label) 自動批閱｜座號 $sid】"
-    '（網頁版不會自己寫回程式；批完要把回覆貼到下方框再按「套用貼上回覆」）'
-    '1. 提示已複製 → 到剛開的網頁按 Ctrl+V'
-    '2. 上傳試卷（已開啟學生檔；有答案也請一併上傳）'
-    '3. 把 AI 整段回覆貼回程式 → 按「套用貼上回覆」'
+    "【$($meta.Label) 批閱｜座號 $sid】"
+    '網頁不會自己寫回程式。請：Ctrl+V 貼提示 → 附加試卷 → 傳送 → 把回覆貼回程式「貼上回覆」。'
     ''
   ) -join "`r`n"
   $full = $header + $p
@@ -846,8 +856,26 @@ function Start-WebPasteAuto {
   Start-Process -FilePath $script:current.FullName
   foreach ($a in @(Get-AnswerFiles $script:WorkDir)) { Start-Process -FilePath $a.FullName }
   try { Start-Process $meta.Url } catch {}
+  Start-Sleep -Seconds 3
+  Try-PasteIntoChatSite $meta.Label
   $txtPasteReply.Focus()
-  $status.Text = "已複製提示並開 $($meta.Label)｜座號 $sid｜貼回覆後按「套用貼上回覆」"
+  $status.Text = "已複製提示｜座號 $sid｜網頁 Ctrl+V → 附加試卷 → 傳送 → 回覆貼下方再套用"
+  [void][System.Windows.Forms.MessageBox]::Show(
+    @"
+ChatPlayground／ChatGPT 網頁「不會自己批完」。空白四格＝還沒貼提示。
+
+請依序：
+1. 網頁改成「單欄」（不要四格）
+2. 點輸入框，按 Ctrl+V（提示已複製；若沒貼上再按一次）
+3. 附加這位學生的試卷（已幫你打開檔案）
+4. 按「傳送」等回覆
+5. 複製整段回覆 → 貼回本程式下方「③ 貼上回覆」→ 按「套用貼上回覆」
+
+左側才會變成〔已有註記〕。
+真正全自動（不開網頁）請用藍色「Gemini自動批」（需金鑰）。
+"@,
+    'ChatPlayground 不是全自動'
+  )
 }
 
 function Apply-WebPasteReply {
@@ -2432,7 +2460,7 @@ function Select-NextUngraded {
 
 $y1 = 520
 $grpPaste = New-Object System.Windows.Forms.GroupBox
-$grpPaste.Text = '③ 貼上自動批閱（ChatPlayground／ChatGPT 回覆）'
+$grpPaste.Text = '③ 把網頁回覆貼這裡（沒貼就不會變成已批）'
 $grpPaste.Location = New-Object System.Drawing.Point(16, 586)
 $grpPaste.Size = New-Object System.Drawing.Size(950, 72)
 
