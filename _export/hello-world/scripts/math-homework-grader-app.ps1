@@ -741,7 +741,7 @@ function Apply-GeminiReplyToForm([string]$text) {
   $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾）'
   if ($text -match '(?s)【題號】\s*([\s\S]*?)(?=【|$)') {
     $txtItems.Text = (Format-TextbookPractice $Matches[1]).Trim()
-  } elseif ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
+  } elseif ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|$)') {
     $txtItems.Text = $Matches[0].Trim()
   } elseif ($text -match '(?m)(^\d+\s*[✓✗?xX].*)$') {
     # keep default if no clear list
