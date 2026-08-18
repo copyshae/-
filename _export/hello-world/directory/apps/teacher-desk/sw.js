@@ -1,5 +1,5 @@
 /* 習作台：快取＋接收分享的掃描檔 */
-const CACHE = "teacher-desk-preview-v3";
+const CACHE = "teacher-desk-preview-v10";
 const ASSETS = [
   "./",
   "./index.html",
@@ -87,16 +87,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.method !== "GET") return;
+  // 網路優先：避免一直卡在舊版畫面
   event.respondWith(
-    caches.match(event.request).then((hit) => {
-      const net = fetch(event.request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(event.request, copy));
-          return res;
-        })
-        .catch(() => hit);
-      return hit || net;
-    })
+    fetch(event.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(event.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(event.request).then((hit) => hit || Response.error()))
   );
 });

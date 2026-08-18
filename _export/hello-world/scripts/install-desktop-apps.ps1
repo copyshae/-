@@ -35,8 +35,8 @@ if ((Test-Path -LiteralPath $srcSkill) -and (Test-Path -LiteralPath $srcRule)) {
 
 Write-Host ""
 Write-Host "===== 安裝完成（電腦完整版）====="
-Write-Host "請雙擊桌面："
-Write-Host "  習作台.cmd　　＝　掌握程度／發送／篩選／與手機同步"
+Write-Host "請雙擊桌面兩個 .vbs（不要用舊的 .cmd）："
+Write-Host "  習作台.vbs　　＝　掌握程度／發送／篩選／與手機同步"
 Write-Host "  習作批改.vbs　＝　批閱習作／自產練習（完整批改流程）"
 Write-Host "資料夾："
 Write-Host "  桌面\習作台資料\"
