@@ -4,7 +4,7 @@
 param([string]$WorkDir = "")
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-fast'
+$script:AppBuild = '20260818-fast2'
 $desk = [Environment]::GetFolderPath('Desktop')
 $logPath = Join-Path $desk '習作台錯誤.txt'
 $PhoneUrl = 'https://copyshae.github.io/hello-world/directory/apps/teacher-desk/'
