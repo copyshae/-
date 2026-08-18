@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-fast2'
+$script:AppBuild = '20260818-fast3'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -739,9 +739,30 @@ function Apply-GeminiReplyToForm([string]$text) {
   $text = Format-TextbookPractice $text
   $txtDiagnosis.Text = $text
   $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾）'
-  if ($text -match '(?s)【題號】\s*([\s\S]*?)(?=【|$)') {
+
+  # 正則用 here-string，避免 PS 5.1 把 '\)' 誤解析成結束括號
+  $rxItemsBracket = @'
+(?s)【題號】\s*([\s\S]*?)(?=【|$)
+'@
+  $rxItemsLegacy = @'
+(?m)^1\)[\s\S]*?(?=^2\)|$)
+'@
+  $rxPracticeBracket = @'
+(?s)【自學練習】\s*([\s\S]*)
+'@
+  $rxPracticeLegacy = @'
+(?s)6\)[\s\S]*
+'@
+  $rxAdviceBracket = @'
+(?s)【建議】\s*([\s\S]*?)(?=【自學練習】|$)
+'@
+  $rxAdviceLegacy = @'
+(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|$)
+'@
+
+  if ($text -match $rxItemsBracket) {
     $txtItems.Text = (Format-TextbookPractice $Matches[1]).Trim()
-  } elseif ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|$)') {
+  } elseif ($text -match $rxItemsLegacy) {
     $txtItems.Text = $Matches[0].Trim()
   } elseif ($text -match '(?m)(^\d+\s*[✓✗?xX].*)$') {
     # keep default if no clear list
@@ -767,14 +788,17 @@ function Apply-GeminiReplyToForm([string]$text) {
     $idx2 = $cmbLevel.Items.IndexOf('跟上')
     if ($idx2 -ge 0) { $cmbLevel.SelectedIndex = $idx2 }
   }
-  if ($text -match '(?s)【自學練習】\s*([\s\S]*)') {
+  if ($text -match $rxPracticeBracket) {
     $txtPractice.Text = (Format-TextbookPractice $Matches[1]).Trim()
-  } elseif ($text -match '(?s)6\)[\s\S]*') {
+  } elseif ($text -match $rxPracticeLegacy) {
     $txtPractice.Text = (Format-TextbookPractice $Matches[0]).Trim()
   }
-  if ($text -match '(?s)【建議】\s*([\s\S]*?)(?=【自學練習】|$)') {
+  $adviceSet = $false
+  if ($text -match $rxAdviceBracket) {
     $txtAdvice.Text = (Format-TextbookPractice $Matches[1]).Trim()
-  } elseif ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|$)') {
+    $adviceSet = $true
+  }
+  if (-not $adviceSet -and ($text -match $rxAdviceLegacy)) {
     $txtAdvice.Text = $Matches[1].Trim()
   }
 }
