@@ -17,4 +17,5 @@ globs:
 - 「網頁批閱」只開瀏覽器，**不是自動**；介面文案須標明「要手動貼」。
 - API key 存在本機 `MathGrading\gemini-api-key.txt`，禁止提交 Git。
 - 金鑰申請：https://aistudio.google.com/apikey（與網頁 Pro 訂閱分開）。
+- **提高使用次數＝提高專案額度，不是多建金鑰。** 同一專案多把鑰匙共用 RPM／RPD。看用量：https://aistudio.google.com/rate-limit ；長期請開帳單升 Tier。
 - 介面、說明、commit 一律繁體中文；只用座號、不存姓名。
