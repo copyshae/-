@@ -316,7 +316,7 @@
       <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
         <li>匯入試卷 → 點座號 →「ChatPlayground AI 自動批閱」→ 貼回覆 →「套用貼上的回覆」。整班用「連續 ChatPlayground 批」。</li>
-        <li>Gemini 金鑰為選用備援，可留空。</li>
+        <li>ChatPlayground 維護中：貼 Gemini 金鑰 →「ChatPlayground 開不了？改 Gemini 自動批」（會呼叫 API 自動批，不用貼回覆）。</li>
         <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
         <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
         <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
@@ -484,26 +484,59 @@
         else localStorage.removeItem(KEY_API);
         refreshKeyStatus();
       }
+      function explainKeyTestError(msg) {
+        var m = String(msg || "");
+        var origin = "";
+        try { origin = location.origin || location.href; } catch (e) {}
+        if (/referer|referrer|Requests from referer|blocked.*refer/i.test(m)) {
+          return (
+            "這支金鑰有「網站／Referer 限制」，目前網址不被允許。\n" +
+            "現在網址：" + origin + "\n" +
+            "請到 aistudio.google.com/apikey → 編輯金鑰 → 應用程式限制改「無」；或把 raw.githack.com 與 copyshae.github.io 都加進去。\n" +
+            "不必等下個月。\n\n" + m
+          );
+        }
+        if (/RESOURCE_EXHAUSTED|429|quota|rate.?limit|free[_ ]?tier/i.test(m)) {
+          return (
+            "這是免費額度／速率限制（金鑰本身多半沒壞）。\n" +
+            "請等 1～2 分鐘再測；若寫 daily／RPD 用盡，通常隔日重置，不是一定要等下個月。\n" +
+            "查看用量：https://ai.dev/rate-limit\n\n" + m
+          );
+        }
+        if (/401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key|API_KEY_INVALID/i.test(m)) {
+          return (
+            "金鑰無效、已刪除，或此 Google 帳號尚未開通 Gemini API。\n" +
+            "請到 aistudio.google.com/apikey 新建（整串 AIza 開頭），勿貼 Gemini 網頁訂閱文字。\n\n" + m
+          );
+        }
+        if (/Failed to fetch|NetworkError|Load failed|CORS/i.test(m)) {
+          return (
+            "連不到 Google（網路、廣告擋、或瀏覽器擋了 API）。\n" +
+            "請換網路／關擋廣告再測；或等 ChatPlayground 維護結束後用自動批閱。\n\n" + m
+          );
+        }
+        return m;
+      }
+
       async function testApiKey(rawKey) {
         var k = normalizeApiKey(rawKey || getApiKey());
         if (!k) throw new Error("金鑰空白");
         if (k.length < 20) throw new Error("金鑰太短，可能貼不完整。請重新從 aistudio.google.com/apikey 複製整串。");
         if (!/^AIza/.test(k)) throw new Error("這不像 AI Studio 金鑰（通常以 AIza 開頭）。請勿貼網頁訂閱文字。");
-        var res = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(k) + "&pageSize=5"
-        );
+        var res;
+        try {
+          res = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(k) + "&pageSize=5"
+          );
+        } catch (net) {
+          throw new Error(explainKeyTestError(net && net.message ? net.message : "Failed to fetch"));
+        }
         var raw = await res.text();
         var data = null;
         try { data = JSON.parse(raw); } catch (e) {}
         if (!res.ok) {
           var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
-          if (/401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key/i.test(msg)) {
-            throw new Error("金鑰無效或未開通。請到 aistudio.google.com/apikey 新建。\n" + msg);
-          }
-          if (/503|429|Unavailable|quota|rate/i.test(msg)) {
-            throw new Error("Google 暫時忙碌或額度限制。金鑰格式可接受，請等 1～2 分鐘再測。\n" + msg);
-          }
-          throw new Error("測試金鑰失敗：" + msg);
+          throw new Error(explainKeyTestError(msg));
         }
         var names = [];
         ((data && data.models) || []).forEach(function (m) {
@@ -1907,8 +1940,11 @@
           document.getElementById("preview").value = "金鑰測試成功。\n可用模型例：" + r.sample;
           toast("金鑰可用（已儲存）");
         }).catch(function (err) {
-          document.getElementById("preview").value = "測試金鑰失敗：\n" + (err && err.message ? err.message : String(err));
-          toast("金鑰測試失敗，見上方說明");
+          var msg = err && err.message ? err.message : String(err);
+          document.getElementById("preview").value = "測試金鑰失敗：\n" + msg;
+          document.getElementById("keyStatus").textContent = "金鑰測試失敗（見提示／批閱結果欄完整說明）";
+          try { document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+          toast("金鑰測試失敗：" + msg.replace(/\s+/g, " ").slice(0, 48));
         }).finally(function () { setBusy(false); });
       });
       document.getElementById("btnTestKey").addEventListener("click", function () {
@@ -1921,8 +1957,11 @@
           document.getElementById("preview").value = "金鑰測試成功。\n模型數約 " + r.count + "\n例：" + r.sample;
           toast("金鑰可用");
         }).catch(function (err) {
-          document.getElementById("preview").value = "測試金鑰失敗：\n" + (err && err.message ? err.message : String(err));
-          toast("金鑰測試失敗");
+          var msg = err && err.message ? err.message : String(err);
+          document.getElementById("preview").value = "測試金鑰失敗：\n" + msg;
+          document.getElementById("keyStatus").textContent = "金鑰測試失敗（見提示／批閱結果欄完整說明）";
+          try { document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+          toast("金鑰測試失敗：" + msg.replace(/\s+/g, " ").slice(0, 48));
         }).finally(function () { setBusy(false); });
       });
       document.getElementById("btnClearKey").addEventListener("click", function () {
