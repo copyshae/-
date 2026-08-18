@@ -41,7 +41,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 完成後：
 
 1. **關掉**舊的習作批改／習作台視窗  
-2. 再雙擊桌面 `習作批改.vbs`、`習作台.cmd`  
+2. 再雙擊桌面兩個捷徑：`習作批改.vbs`、`習作台.vbs`  
 3. 手機強制重新整理：  
    - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
    - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  

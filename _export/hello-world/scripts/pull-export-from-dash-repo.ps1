@@ -141,6 +141,6 @@ try {
 }
 
 Write-Host ""
-Write-Host "DONE. Close old grader/desk window, then open desktop shortcut again."
+Write-Host "DONE. Close old grader/desk window, then double-click 習作批改.vbs and 習作台.vbs."
 Write-Host "Phone: ChatPlayground AI 自動批閱 → 貼回覆套用。Teacher desk: sync level → copy group message."
 Write-Host "Desktop: Gemini key -> Gemini auto grade"
