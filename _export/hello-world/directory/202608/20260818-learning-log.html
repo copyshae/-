@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>20260818 學習日誌・習作批改手機版 ChatPlayground 與貼上自動批閱</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --paper: #e8efe6;
+      --accent: #2d6a4f;
+      --muted: #4a5c52;
+      --line: rgba(45, 106, 79, 0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      line-height: 1.7;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(149, 213, 178, 0.35), transparent 55%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 50%, #d8e8dc 100%);
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; padding: 2rem 1.35rem 4rem; }
+    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; font-size: 0.95rem; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .nav a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+    article {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      padding: 1.75rem 1.5rem 2.5rem;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.45rem, 4.5vw, 2rem);
+      font-weight: 400;
+      color: var(--accent);
+      line-height: 1.35;
+      margin-bottom: 0.75rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 1.5rem; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: var(--accent);
+      margin: 1.75rem 0 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--line);
+    }
+    ul, ol { margin: 0.5rem 0 0.85rem 1.35rem; }
+    li { margin: 0.3rem 0; }
+    code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
+    a.inline { color: var(--accent); word-break: break-all; }
+    .callout {
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(45,106,79,0.08);
+      font-size: 0.95rem;
+    }
+    .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../index.html">← 首頁</a>
+      <a href="../index.html">← 學習日誌</a>
+      <a href="./index.html">← 日誌列表</a>
+    </nav>
+    <article>
+      <h1>20260818 習作批改手機版：ChatPlayground 與貼上自動批閱</h1>
+      <p class="lead">接續 0803 電腦視窗與 0817 換機安裝。手機習作批改預設走 ChatPlayground AI（終身 Unlimited）；維護時改 ChatGPT 免費版。網頁不會自己貼提示，必須「貼上自動批閱」格子才會已批。</p>
+
+      <h2>一｜接續哪一則</h2>
+      <ul>
+        <li>電腦視窗規格仍以 <a class="inline" href="./20260803-learning-log.html">20260803</a> 為準（一人一檔、程度、自產練習、發放與回傳循環）。</li>
+        <li>換機安裝見 <a class="inline" href="./20260817-learning-log.html">20260817</a>。</li>
+        <li>本則把 0803 之後的<strong>手機版批閱路徑</strong>連上公開學習日誌（工作日誌 0818）。</li>
+      </ul>
+
+      <h2>二｜今天怎麼批（手機）</h2>
+      <ol>
+        <li>打開 <a class="inline" href="https://copyshae.github.io/hello-world/directory/apps/math-grader/">習作批改</a>，用掃描王匯入試卷（檔名只要座號）。</li>
+        <li>點座號 →「ChatPlayground AI 自動批閱」（會複製提示、下載試卷、開網站）。整班用「連續 ChatPlayground 批」。</li>
+        <li>到 <a class="inline" href="https://web.chatplayground.ai/">https://web.chatplayground.ai/</a> 按 Ctrl+V 貼提示並上傳試卷。</li>
+        <li>把回覆貼回頁面上方「貼上自動批閱」→ 綠色按鈕才變已批。沒貼回覆、格子會一直未批。</li>
+        <li>ChatPlayground 顯示維護中時：改按「ChatGPT 免費版自動批閱」，開 <a class="inline" href="https://chatgpt.com/">https://chatgpt.com/</a>，流程相同。免費版有用量上限；恢復後改回 ChatPlayground。</li>
+      </ol>
+      <div class="callout">
+        沒匯入試卷會捲到掃描區並寫明原因。網頁版 ChatPlayground／ChatGPT <strong>沒有對外 API</strong>，無法在背景全自動寫回格子。
+      </div>
+
+      <h2>三｜Gemini 金鑰（選用備援）</h2>
+      <ul>
+        <li>預設不必填金鑰。需要時才用「改 Gemini 自動批（需金鑰）」。</li>
+        <li>測試失敗常見原因：預覽網址 <code>raw.githack.com</code> 被網站限制擋 Referer、429／額度、金鑰無效。不必等下個月才再試。</li>
+        <li>不要把金鑰貼進對話或提交 Git。沒有現成金鑰可借用。</li>
+      </ul>
+
+      <h2>四｜0803 延伸已在手機版</h2>
+      <ul>
+        <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
+        <li>待批／待回清單；掃描「回傳進循環」；已批練習包；無裝置列印；待認知／待重謄。</li>
+        <li>所有輸出國中課本形式（全形＋－＝、禁止 LaTeX／<code>$$</code>）。</li>
+        <li>習作台：同步程度（含待判定）、群發文一～四步驟、複製需列印座號。掃描來源寫「掃描王」。</li>
+        <li>正式 PDF／整班列印包仍以電腦「習作批改」為主。</li>
+      </ul>
+
+      <h2>五｜套用正式站（本機）</h2>
+      <p>Cloud Agent 不能推 <code>copyshae/hello-world</code>。在桌面 hello-world 跑套用腳本後，本則與習作批改才會上 GitHub Pages。</p>
+      <ol>
+        <li><code>cd $env:USERPROFILE\Desktop\hello-world</code></li>
+        <li>PowerShell：<code>$env:DASH_EXPORT_BRANCH='cursor/textbook-grade-format-459a'</code> 後執行 <code>scripts\pull-export-from-dash-repo.ps1</code>（見 dash 倉庫 <code>_export/hello-world/README.md</code>）。</li>
+        <li>關掉舊視窗，再雙擊桌面兩個捷徑：<code>習作批改.vbs</code>、<code>習作台.vbs</code>（不要用舊的 <code>習作台.cmd</code>）。</li>
+      </ol>
+
+      <h2>六｜供日後修正程式</h2>
+      <ul>
+        <li>手機快取：<code>math-grader-v35</code>；習作台 <code>teacher-desk-preview-v8</code>。</li>
+        <li>匯出在 dash 倉庫 <code>_export/hello-world/</code>；改完要同步 docs 並更新套用腳本檔案清單。</li>
+        <li>只用座號，不把學生姓名寫進檔名與日誌。</li>
+        <li>「連日誌」＝公開學習日誌下一則（本月目錄最晚日期的隔天），不要用日曆明天。</li>
+      </ul>
+
+      <p class="note">
+        線上（套用 hello-world 後）：
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/202608/20260818-learning-log.html">https://copyshae.github.io/hello-world/directory/202608/20260818-learning-log.html</a>
+        ｜手機習作批改：
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/apps/math-grader/">https://copyshae.github.io/hello-world/directory/apps/math-grader/</a>
+        ｜上一則：
+        <a class="inline" href="./20260817-learning-log.html">20260817</a>
+        ｜電腦規格：
+        <a class="inline" href="./20260803-learning-log.html">20260803</a>
+      </p>
+    </article>
+  </div>
+</body>
+</html>

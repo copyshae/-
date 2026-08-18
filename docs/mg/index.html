@@ -126,12 +126,12 @@
   <div class="wrap">
     <header>
       <div class="brand">習作批改</div>
-      <p class="lead">預設「快速批」：壓縮圖、精簡回覆、雙線並行。設金鑰 → 匯入試卷 → 一鍵連續批。</p>
+      <p class="lead">預設用 <strong>ChatPlayground AI</strong> 批閱（終身 Unlimited）。匯入試卷 → 點座號 → 自動批閱 → 貼回覆套用。</p>
       <p class="install">關掉再開會自動恢復進度（同一網址）。請用下方固定網址加入主畫面；換網址會變成空白要重新來。</p>
       <p class="summary" id="summary">—</p>
       <p class="tips" id="originTip" style="margin-top:0.45rem">—</p>
       <div class="actions quick-actions">
-        <button type="button" class="btn" id="btnAutoBatchTop">一鍵連續批（有卷未批）</button>
+        <button type="button" class="btn" id="btnAutoBatchTop">連續 ChatPlayground 批（有卷未批）</button>
       </div>
     </header>
 
@@ -150,17 +150,38 @@
         <label><input type="radio" name="gradeSpeed" id="speedFast" value="fast" checked /> 快速批（建議）</label>
         <label><input type="radio" name="gradeSpeed" id="speedFull" value="full" /> 完整批（較慢）</label>
       </div>
-      <p class="tips">快速批：精簡輸出＋較快模型＋一次批 2 份。完整批：含診斷與練習建議。</p>
+      <p class="tips">快速批／完整批：輸出一律國中課本形式。若「測試金鑰」失敗：往下看「提示／批閱結果」完整原因。常見是金鑰設了網站限制（預覽網址 raw.githack.com 會被擋）或免費額度用完（等 1～2 分鐘或隔日，不一定要等下個月）。</p>
       <div class="row">
-        <label for="geminiKey">Gemini金鑰</label>
-        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+        <label for="geminiKey">Gemini金鑰（選用）</label>
+        <input id="geminiKey" type="password" autocomplete="off" placeholder="可留空；預設用 ChatPlayground AI" />
       </div>
       <div class="actions" style="margin-top:0.35rem">
-        <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" class="btn secondary" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" class="btn secondary" id="btnTestKey">測試金鑰</button>
         <button type="button" class="btn secondary" id="btnOpenKeyPage">開 AI Studio 申請金鑰</button>
         <button type="button" class="btn secondary" id="btnClearKey">清除金鑰</button>
       </div>
-      <p class="key-status" id="keyStatus">尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）</p>
+      <p class="key-status" id="keyStatus">預設 ChatPlayground AI（終身 Unlimited）。Gemini 金鑰可留空。</p>
+      <div class="actions" style="margin-top:0.45rem">
+        <button type="button" class="btn" id="btnOpenChatPlaygroundTop">ChatPlayground AI 自動批閱</button>
+        <button type="button" class="btn secondary" id="btnCpUsage">查看 ChatPlayground 用量</button>
+        <button type="button" class="btn" id="btnChatGptFree">ChatGPT 免費版自動批閱</button>
+        <button type="button" class="btn" id="btnGptAutoBatch">連續 ChatGPT 免費版批（有卷未批）</button>
+        <button type="button" class="btn warn" id="btnGeminiAutoFallback">改 Gemini 自動批（需金鑰）</button>
+      </div>
+      <p class="tips" id="cpSiteTip">ChatGPT 免費網頁<strong>不會自己貼上、也不會自己把結果送回</strong>。請：①按自動批閱 ②到 ChatGPT 按 Ctrl+V 貼提示並上傳剛下載的試卷 ③回本頁把回覆貼到下方「貼上自動批閱」。</p>
+      <section class="panel" id="pasteAutoSection" style="margin-top:0.7rem">
+        <h2 style="font-size:1.1rem;margin-bottom:0.45rem">貼上自動批閱</h2>
+        <p class="tips" id="cpGuide">先按上面的「ChatGPT 免費版自動批閱」（會複製提示、下載試卷、開 chatgpt.com）。到 ChatGPT 按 Ctrl+V，上傳試卷。把回覆貼這裡再按綠色按鈕，格子才會變已批。</p>
+        <textarea id="preview" readonly placeholder="按自動批閱後，這裡會出現已複製的提示。"></textarea>
+        <label for="pasteBox" class="tips">把 ChatGPT／ChatPlayground／Gemini 的整段回覆貼這裡</label>
+        <textarea id="pasteBox" style="min-height:8rem;margin-top:0.25rem" placeholder="貼上回覆後，按下面「貼上自動批閱」"></textarea>
+        <div class="actions">
+          <button type="button" class="btn" id="btnApplyPaste">貼上自動批閱（套用→已批）</button>
+          <button type="button" class="btn secondary" id="btnCopyPreview">再複製一次提示（Ctrl+V 到 ChatGPT）</button>
+          <button type="button" class="btn secondary" id="btnTextbookFormat">整份整理成課本格式</button>
+        </div>
+      </section>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -200,13 +221,18 @@
           <input id="note" type="text" maxlength="80" placeholder="勿填姓名" />
         </div>
         <div class="actions">
-          <button type="button" class="btn" id="btnAutoOne">Gemini自動批（此座號）</button>
-          <button type="button" class="btn" id="btnAutoBatch">連續自動批（有卷未批）</button>
+          <button type="button" class="btn" id="btnGptAutoOne">ChatGPT 免費版自動批閱（此座號）</button>
+          <button type="button" class="btn" id="btnGptAutoBatchSeat">連續 ChatGPT 免費版批</button>
+          <button type="button" class="btn" id="btnCpAutoOne">ChatPlayground AI 自動批閱（此座號）</button>
+          <button type="button" class="btn" id="btnCpAutoBatch">連續 ChatPlayground 批（有卷未批）</button>
           <button type="button" class="btn secondary" id="btnSave">儲存此座號</button>
           <button type="button" class="btn warn" id="btnUnstick">此座號「批改中」改回未批</button>
+          <button type="button" class="btn secondary" id="btnOpenChatPlayground">再開 ChatPlayground（僅開站／重複製提示）</button>
+          <button type="button" class="btn secondary" id="btnAutoOne">Gemini自動批（選用）</button>
+          <button type="button" class="btn secondary" id="btnAutoBatch">Gemini連續批（選用）</button>
+          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 網頁貼上批（選用）</button>
           <button type="button" class="btn secondary" id="btnCopyOne">複製「請 AI 批此生」提示（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyHw">複製「手寫加強」提示（手動）</button>
-          <button type="button" class="btn secondary" id="btnOpenGemini">開啟 Gemini 貼上批（手動）</button>
           <button type="button" class="btn secondary" id="btnCopyReturn">複製「練習回傳再批」提示</button>
         </div>
       </div>
@@ -216,29 +242,31 @@
         <button type="button" class="btn secondary" id="btnImportProgress">匯入批改進度（覆蓋）</button>
         <input class="hidden-file" id="fileProgress" type="file" accept="application/json,.json" />
       </div>
-    </section>
-
-    <section>
-      <h2>提示／批閱結果</h2>
-      <textarea id="preview" readonly placeholder="選座號後會顯示提示；自動批完會顯示 Gemini 回覆。"></textarea>
-      <div class="actions">
-        <button type="button" class="btn secondary" id="btnCopyPreview">複製上方文字</button>
-      </div>
+      <p class="tips" style="margin-top:0.65rem">兩台電腦＋手機：<strong>匯出批改進度</strong> 存成 <code>習作批改進度.json</code>，放到 OneDrive／Google 雲端，在另一台按「匯入」。習作台程度請在習作台匯出 <code>班級狀態.json</code> 或「匯入批改進度」。同一台瀏覽器才可用習作台「本機：從習作批改同步」。</p>
     </section>
 
     <section id="afterGrade">
       <h2>批完後續（依學習日誌 0803）</h2>
-      <p class="tips">批閱後應接：自產練習 → 發放 → 練習回傳循環 → 歷程。手機可先完成文案／歷程；正式 PDF／數位練習包仍可用電腦「習作批改」。</p>
+      <p class="tips">完整鏈：自產練習 → 發放 → 練習回傳循環 → 歷程。手機可完成文案／歷程／列印清單；正式 PDF／整班數位練習包仍可用電腦版。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnFillPractice">依程度給練習模板</button>
+        <button type="button" class="btn secondary" id="btnTextbookPractice">練習整理成課本格式</button>
         <button type="button" class="btn secondary" id="btnPracticeGuide">自產練習說明</button>
         <button type="button" class="btn secondary" id="btnCopyLineMsg">複製此生發放訊息</button>
         <button type="button" class="btn secondary" id="btnPushDesk">寫入習作台程度</button>
         <button type="button" class="btn secondary" id="btnOpenDesk">開啟習作台發放</button>
+        <button type="button" class="btn secondary" id="btnPendingList">開待批／待回清單</button>
+        <button type="button" class="btn secondary" id="btnDigitalPack">下載已批練習包（合訂 HTML）</button>
+        <button type="button" class="btn secondary" id="btnPrintList">無裝置：需列印座號清單</button>
+        <button type="button" class="btn secondary" id="btnPrintPack">無裝置：下載可列印練習</button>
+        <button type="button" class="btn secondary" id="btnUnclearList">匯出待認知清單</button>
+        <button type="button" class="btn secondary" id="btnMarkClarifyDone">此座號認知完成→已批</button>
+        <button type="button" class="btn warn" id="btnMarkRewrite">此座號標「待重謄」</button>
       </div>
       <div class="panel" id="loopPanel" style="margin-top:0.7rem">
         <h2 style="font-size:1.1rem;margin-bottom:0.45rem">練習回傳循環</h2>
         <p class="tips" id="loopPace">選座號後依程度顯示節奏提示。</p>
+        <p class="tips" id="pendingHint">待批清單會顯示於此。</p>
         <div class="row">
           <label for="loopRound">次數 R</label>
           <input id="loopRound" type="number" min="1" max="99" value="1" />
@@ -265,6 +293,7 @@
         <div class="actions">
           <button type="button" class="btn" id="btnSaveLoop">儲存本輪＋下一輪練習</button>
           <button type="button" class="btn secondary" id="btnCopyReturn2">複製「練習回傳再批」提示</button>
+          <button type="button" class="btn secondary" id="btnGradeReturn">此座號回傳自動批</button>
           <button type="button" class="btn secondary" id="btnShowHist">開歷程</button>
           <button type="button" class="btn secondary" id="btnDlPractice">下載本輪練習（HTML）</button>
         </div>
@@ -273,8 +302,8 @@
     </section>
 
     <section id="scanSection">
-      <h2>掃描／試卷匯入（掃描王）</h2>
-      <p class="tips">掃描王匯出 → 分享 → 儲存到檔案 → 這裡匯入 → 對應座號 → 再按「Gemini自動批」。正式 PDF 輸出仍回電腦「習作批改」。</p>
+      <h2>掃描／試卷／練習回傳（掃描王）</h2>
+      <p class="tips">試卷：必須先「匯入 PDF／圖檔」並對應座號，自動批才會成功（正確答案可選）。ChatPlayground 維護中用 ChatGPT 免費版：開站後還要把回覆貼回來按「套用」才會變已批。</p>
       <div class="actions">
         <button type="button" class="btn" id="btnPickScan">匯入 PDF／圖檔</button>
         <input class="hidden-file" id="fileScan" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" multiple />
@@ -288,18 +317,22 @@
     </section>
 
     <section>
-      <h2>怎麼用才批得快</h2>
+      <h2>怎麼用才批得快（含 0803 延伸）</h2>
       <ul class="tips">
-        <li>預設「快速批」；要詳細診斷再改「完整批」。</li>
-        <li>檔名盡量用座號開頭（如 <code>05.jpg</code>、<code>00-試發.pdf</code>），匯入會自動對應。</li>
-        <li>設金鑰 → 匯入試卷（可選答案）→ 按「一鍵連續批」。</li>
-        <li>只按「開啟 Gemini 貼上批」不會自動完成，又慢又會卡在批改中。</li>
+        <li>匯入試卷 → 點座號 →「ChatPlayground AI 自動批閱」→ 貼回覆 →「套用貼上的回覆」。整班用「連續 ChatPlayground 批」。</li>
+        <li>ChatPlayground 維護中：點座號 →「ChatGPT 免費版自動批閱」→ 貼提示上傳試卷 → 套用回覆。整班用「連續 ChatGPT 免費版批」。</li>
+        <li>批完後續：練習模板 → 發放訊息 → 寫入習作台 → 回傳循環 → 歷程。</li>
+        <li>練習回傳／手寫：匯入後按「回傳進循環」或「此座號回傳自動批」。</li>
+        <li>沒裝置：用「需列印座號清單」＋「下載可列印練習」；有手機仍用數位練習包。</li>
+        <li>待認知：匯出清單人工確認後，按「認知完成→已批」；要重寫標「待重謄」。</li>
+        <li>所有輸出皆國中課本形式；正式 PDF／整班列印包可用電腦「習作批改」。</li>
       </ul>
     </section>
 
     <p class="nav">
       <a href="../teacher-desk/">習作台（掌握／發送）</a> ·
-      <a href="../../">學習日誌</a>
+      <a href="../../">學習日誌</a> ·
+      <a href="../../202608/20260818-learning-log.html">學習日誌 0818</a>
     </p>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -319,6 +352,8 @@
       var filter = "all";
       var grading = false;
       var wakeLock = null;
+      var cpQueue = [];
+      var webPasteSite = "chatplayground";
       var MODELS_FAST = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
       var MODELS_FULL = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-pro"];
       var STATUSES = ["未批", "批改中", "已批", "待認知", "待重謄"];
@@ -422,7 +457,7 @@
         document.getElementById("busyMsg").textContent = msg || "請稍候，不要關頁。";
         el.classList.toggle("show", !!on);
         grading = !!on;
-        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnSaveKey"].forEach(function (id) {
+        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnCpAutoOne", "btnCpAutoBatch", "btnChatGptFree", "btnGptAutoBatch", "btnGptAutoOne", "btnGptAutoBatchSeat", "btnGeminiAutoFallback", "btnSaveKey"].forEach(function (id) {
           var b = document.getElementById(id);
           if (b) b.disabled = !!on;
         });
@@ -444,23 +479,193 @@
       }
 
       function getApiKey() {
-        try { return (localStorage.getItem(KEY_API) || "").trim(); } catch (e) { return ""; }
+        try { return normalizeApiKey(localStorage.getItem(KEY_API) || ""); } catch (e) { return ""; }
+      }
+      function normalizeApiKey(k) {
+        return String(k || "").trim().replace(/^["'`]+|["'`]+$/g, "").replace(/\s+/g, "");
       }
       function setApiKey(k) {
-        k = (k || "").trim();
+        k = normalizeApiKey(k);
         if (k) localStorage.setItem(KEY_API, k);
         else localStorage.removeItem(KEY_API);
         refreshKeyStatus();
+      }
+      function explainKeyTestError(msg) {
+        var m = String(msg || "");
+        var origin = "";
+        try { origin = location.origin || location.href; } catch (e) {}
+        if (/referer|referrer|Requests from referer|blocked.*refer/i.test(m)) {
+          return (
+            "這支金鑰有「網站／Referer 限制」，目前網址不被允許。\n" +
+            "現在網址：" + origin + "\n" +
+            "請到 aistudio.google.com/apikey → 編輯金鑰 → 應用程式限制改「無」；或把 raw.githack.com 與 copyshae.github.io 都加進去。\n" +
+            "不必等下個月。\n\n" + m
+          );
+        }
+        if (/RESOURCE_EXHAUSTED|429|quota|rate.?limit|free[_ ]?tier/i.test(m)) {
+          return (
+            "這是免費額度／速率限制（金鑰本身多半沒壞）。\n" +
+            "請等 1～2 分鐘再測；若寫 daily／RPD 用盡，通常隔日重置，不是一定要等下個月。\n" +
+            "查看用量：https://ai.dev/rate-limit\n\n" + m
+          );
+        }
+        if (/401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key|API_KEY_INVALID/i.test(m)) {
+          return (
+            "金鑰無效、已刪除，或此 Google 帳號尚未開通 Gemini API。\n" +
+            "請到 aistudio.google.com/apikey 新建（整串 AIza 開頭），勿貼 Gemini 網頁訂閱文字。\n\n" + m
+          );
+        }
+        if (/Failed to fetch|NetworkError|Load failed|CORS/i.test(m)) {
+          return (
+            "連不到 Google（網路、廣告擋、或瀏覽器擋了 API）。\n" +
+            "請換網路／關擋廣告再測；或等 ChatPlayground 維護結束後用自動批閱。\n\n" + m
+          );
+        }
+        return m;
+      }
+
+      async function testApiKey(rawKey) {
+        var k = normalizeApiKey(rawKey || getApiKey());
+        if (!k) throw new Error("金鑰空白");
+        if (k.length < 20) throw new Error("金鑰太短，可能貼不完整。請重新從 aistudio.google.com/apikey 複製整串。");
+        if (!/^AIza/.test(k)) throw new Error("這不像 AI Studio 金鑰（通常以 AIza 開頭）。請勿貼網頁訂閱文字。");
+        var res;
+        try {
+          res = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(k) + "&pageSize=5"
+          );
+        } catch (net) {
+          throw new Error(explainKeyTestError(net && net.message ? net.message : "Failed to fetch"));
+        }
+        var raw = await res.text();
+        var data = null;
+        try { data = JSON.parse(raw); } catch (e) {}
+        if (!res.ok) {
+          var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+          throw new Error(explainKeyTestError(msg));
+        }
+        var names = [];
+        ((data && data.models) || []).forEach(function (m) {
+          if (m.name) names.push(String(m.name).replace(/^models\//, ""));
+        });
+        if (!names.length) throw new Error("金鑰能連上，但列不出模型。請確認帳號已開通 Gemini API。");
+        return { ok: true, sample: names.slice(0, 3).join(", "), count: names.length };
       }
       function refreshKeyStatus() {
         var el = document.getElementById("keyStatus");
         var has = !!getApiKey();
         el.textContent = has
-          ? "已儲存金鑰（僅此裝置）。可開始 Gemini 自動批。"
-          : "尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）";
+          ? "已儲存 Gemini 金鑰（選用備援）。預設仍用 ChatPlayground AI。"
+          : "預設 ChatPlayground AI（終身 Unlimited）。Gemini 金鑰可留空。";
         el.classList.toggle("ok", has);
         var inp = document.getElementById("geminiKey");
         if (has && !inp.value) inp.placeholder = "••••••••（已儲存，要換再貼）";
+      }
+
+      function loadDeskState() {
+        try {
+          var raw = localStorage.getItem("teacher-desk-v1");
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+      }
+
+      function buildPendingReturnList() {
+        var desk = loadDeskState();
+        var lines = ["【待批／待回清單】", "班級：" + (state.classLabel || ""), ""];
+        var deskPending = [];
+        var gradedNoHist = [];
+        var unclear = [];
+        var rewrite = [];
+        var returnScans = 0;
+        Object.keys(state.seats).sort().forEach(function (id) {
+          var s = state.seats[id];
+          if (!s) return;
+          if (s.status === "待認知") unclear.push(id);
+          if (s.status === "待重謄") rewrite.push(id);
+          var hist = s.history && s.history.attempts ? s.history.attempts : [];
+          if (s.status === "已批" && !hist.length) gradedNoHist.push(id);
+          if (desk && desk.seats && desk.seats[id] && (desk.seats[id].send === "待回" || desk.seats[id].send === "已發")) {
+            deskPending.push(id + "(" + desk.seats[id].send + "/" + (desk.seats[id].level || s.level || "") + ")");
+          }
+        });
+        lines.push("一、習作台待回／已發：" + (deskPending.length ? deskPending.join("、") : "（無或尚未同步）"));
+        lines.push("二、已批但尚未存練習歷程：" + (gradedNoHist.length ? gradedNoHist.join("、") : "（無）"));
+        lines.push("三、待認知：" + (unclear.length ? unclear.join("、") : "（無）"));
+        lines.push("四、待重謄：" + (rewrite.length ? rewrite.join("、") : "（無）"));
+        lines.push("");
+        lines.push("作法：匯入回傳圖 →「回傳進循環」或「此座號回傳自動批」→ 填分數後「儲存本輪」。");
+        return { text: lines.join("\n"), deskPending: deskPending, gradedNoHist: gradedNoHist, unclear: unclear, rewrite: rewrite };
+      }
+
+      function refreshPendingHint() {
+        var el = document.getElementById("pendingHint");
+        if (!el) return;
+        var p = buildPendingReturnList();
+        el.textContent =
+          "待回／已發 " + p.deskPending.length +
+          "｜已批未存歷程 " + p.gradedNoHist.length +
+          "｜待認知 " + p.unclear.length +
+          "｜待重謄 " + p.rewrite.length +
+          "（按「開待批／待回清單」看明細）";
+      }
+
+      function seatsNeedingPrint() {
+        return Object.keys(state.seats).sort().filter(function (id) {
+          if (id === "00") return false;
+          var s = state.seats[id];
+          if (!s) return false;
+          if (/列印|無裝置/.test(s.note || "")) return true;
+          return s.level === "明顯落後" || s.level === "需補先備" || s.level === "待判定";
+        });
+      }
+
+      function practiceTextForSeat(id) {
+        var s = state.seats[id];
+        if (!s) return "";
+        var hist = ensureHistory(s);
+        if (hist.attempts.length) {
+          var last = hist.attempts[hist.attempts.length - 1];
+          if (last.nextPractice) return toTextbookOutput(last.nextPractice);
+        }
+        if (s.lastReply) {
+          var n = extractFromReply(s.lastReply, "next");
+          if (n) return toTextbookOutput(n);
+        }
+        return toTextbookOutput(getPracticeTemplate(s.level || "未標"));
+      }
+
+      function downloadTextFile(name, text, mime) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([text], { type: (mime || "text/plain") + ";charset=utf-8" }));
+        a.download = name;
+        a.click();
+      }
+
+      function downloadCombinedPracticeHtml(ids, title) {
+        var parts = [
+          "<!DOCTYPE html><html lang=\"zh-Hant\"><head><meta charset=\"UTF-8\"/>",
+          "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
+          "<title>" + title + "</title>",
+          "<style>",
+          "body{font-family:\"DFKai-SB\",\"標楷體\",\"Noto Serif TC\",serif;line-height:1.75;padding:1rem;color:#1a1a1a;background:#faf8f4}",
+          "h1{font-size:1.3rem;border-bottom:2px solid #333;padding-bottom:0.35rem}",
+          "h2{font-size:1.15rem;margin:1.4rem 0 0.5rem;page-break-before:always}",
+          "h2:first-of-type{page-break-before:auto}",
+          "pre{white-space:pre-wrap;font-family:inherit;font-size:1.05rem}",
+          "@media print{body{background:#fff} h2{page-break-before:always}}",
+          "</style></head><body>",
+          "<h1>" + title + "</h1>",
+          "<p>請先看「一、先看這裡」與影片，再做「三、練習」；全部做完再看「四、解答」。</p>"
+        ];
+        ids.forEach(function (id) {
+          var s = state.seats[id];
+          var body = practiceTextForSeat(id).replace(/[&<>]/g, function (c) {
+            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c];
+          });
+          parts.push("<h2>座號 " + id + "｜" + ((s && s.level) || "") + "</h2><pre>" + body + "</pre>");
+        });
+        parts.push("</body></html>");
+        downloadTextFile(title + ".html", parts.join(""), "text/html");
       }
 
       function matchFilter(s) {
@@ -515,18 +720,68 @@
           );
         return (
           head +
-          "請務必輸出：\n" +
-          (hard ? "0) 手寫轉譯稿\n0b) 認知輸入清單\n" : "") +
-          "1) 題號註記（✓／✗／?）\n" +
-          "2) 對錯摘要（已確認／仍存疑）\n" +
-          "3) 個別診斷\n" +
-          "4) 程度：跟上／略落後／明顯落後／需補先備／待判定\n" +
-          "5) 個別建議\n" +
-          "6) 依程度自學練習（指導＋影片搜尋＋題＋解答）\n\n" +
+          "請務必整份輸出「國中課本形式」（見下方必守；之後所有段落皆比照）：\n" +
+          (hard ? "【手寫轉譯】…\n【認知清單】…\n" : "") +
+          "【題號】1 ✓｜2 ✗ …（短註可寫在題號後）\n" +
+          "【摘要】已確認：…／仍存疑：…\n" +
+          "【診斷】2～4 句\n" +
+          "【程度】跟上／略落後／明顯落後／需補先備／待判定\n" +
+          "【建議】短\n" +
+          "【自學練習】必須含：一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答\n\n" +
+          textbookFormatRules() + "\n" +
           "座號：" + id + "\n" +
           "班級：" + state.classLabel + "\n"
         );
       }
+
+      function textbookFormatRules() {
+        return (
+          "【全部輸出｜國中課本形式｜必守｜之後皆比照】\n" +
+          "1. 用【標題】與「一、二、三、四」；短句、一步一行。\n" +
+          "2. 禁止：####、##、**粗體**、a.b.c.d 英文小標、Markdown 清單符號堆疊、LaTeX（\\begin{cases}、\\dfrac、$）。\n" +
+          "3. 數學：聯立寫兩行前面加 { ；分數寫 31/13；解答最後一行寫「答：…」。\n" +
+          "4. 整份結構固定：\n" +
+          "【批閱結果｜座號】\n" +
+          "【題號】…\n" +
+          "【摘要】…\n" +
+          "【診斷】…\n" +
+          "【程度】…\n" +
+          "【建議】…\n" +
+          "【自學練習】\n" +
+          "一、先看這裡（口訣／注意，各 ≤3 點）\n" +
+          "二、影片（關鍵詞＋ YouTube 搜尋連結一行）\n" +
+          "三、練習（先做完再看解答）\n" +
+          "────────\n" +
+          "四、解答（做完再看；結尾答：）\n"
+        );
+      }
+
+      function toTextbookOutput(raw) {
+        var t = String(raw || "").replace(/\r\n/g, "\n");
+        t = t.replace(/^#{1,6}\s*/gm, "");
+        t = t.replace(/\*\*([^*]+)\*\*/g, "$1");
+        t = t.replace(/\*([^*\n]+)\*/g, "$1");
+        t = t.replace(/^[a-d]\.\s+/gmi, "");
+        t = t.replace(/\\dfrac\{([^{}]+)\}\{([^{}]+)\}/g, "$1/$2");
+        t = t.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "$1/$2");
+        t = t.replace(/\$\$([\s\S]*?)\$\$/g, "$1");
+        t = t.replace(/\$([^$\n]+)\$/g, "$1");
+        t = t.replace(/\\begin\{cases\}/gi, "\n");
+        t = t.replace(/\\end\{cases\}/gi, "\n");
+        t = t.replace(/\s*\\\\\s*/g, "\n");
+        t = t.replace(/\\left\.?/g, "");
+        t = t.replace(/\\right\.?/g, "");
+        t = t.replace(/\\,/g, " ");
+        t = t.replace(/\\ /g, " ");
+        t = t.replace(/\\([a-zA-Z]+)/g, "$1");
+        t = t.replace(/^---+$/gm, "────────");
+        t = t.replace(/^\*\s+/gm, "");
+        t = t.replace(/^-\s+/gm, "");
+        t = t.replace(/\n{3,}/g, "\n\n");
+        t = t.replace(/[ \t]+\n/g, "\n");
+        return t.trim();
+      }
+      function toTextbookPractice(raw) { return toTextbookOutput(raw); }
 
       function buildAutoPrompt(id, hasAns, hard, fast) {
         if (fast) {
@@ -536,12 +791,13 @@
           return (
             "你是數學老師助理，快速批閱一人一檔。\n" +
             modeFast +
-            "輸出務必精簡，不要長文：\n" +
-            "1) 題號：✓／✗／?（一行條列）\n" +
-            "2) 錯因一句\n" +
-            "3) 程度：跟上／略落後／明顯落後／需補先備／待判定\n" +
+            "整份輸出必須國中課本形式（禁止 ####、**粗體**、LaTeX）：\n" +
+            "【批閱結果｜座號 " + id + "】\n" +
+            "【題號】1 ✓｜2 ✗｜3 ?（一行條列）\n" +
+            "【摘要】錯因一句\n" +
+            "【程度】跟上／略落後／明顯落後／需補先備／待判定\n" +
             "看不清標 ?。禁止要我再貼檔。\n" +
-            "座號：" + id + "｜班級：" + state.classLabel
+            "班級：" + state.classLabel
           );
         }
         var mode = hasAns
@@ -550,7 +806,7 @@
         return (
           "【任務】你是數學老師助理，用 Google Gemini 自動批閱。\n" +
           mode +
-          "【禁止】不要要我再貼檔。\n\n" +
+          "【禁止】不要要我再貼檔。之後所有輸出皆比照國中課本形式。\n\n" +
           buildPromptOne(id, !!hard)
         );
       }
@@ -561,7 +817,14 @@
           "請批閱這位學生「練習回傳」（PDF／圖檔）。\n" +
           "座號：" + id + "\n" +
           "程度：" + lv + "\n" +
-          "請輸出：分數或達成情形、問題點、簡短回饋、下一輪練習（指導＋題＋解答＋影片搜尋連結）。\n" +
+          "之後所有輸出皆比照國中課本形式（禁止 ####、**粗體**、LaTeX）：\n" +
+          "【回傳批閱｜座號 " + id + "】\n" +
+          "【分數】得分/滿分\n" +
+          "【問題點】…\n" +
+          "【回饋】先成就再下一步\n" +
+          "【是否達標】是／否\n" +
+          "【自學練習】一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答\n" +
+          "聯立用兩行 { ；分數寫 a/b；解答結尾「答：」。\n" +
           "明顯落後／需補先備採多次補齊，每次約 1 點、少題。"
         );
       }
@@ -573,54 +836,134 @@
       function getPracticeTemplate(level) {
         if (level === "跟上") {
           return (
-            "### 程度：跟上｜目標：再提升（少重複、多挑戰）\n" +
-            "說明：已掌握本單元。A 少練；重心 B、C。禁止整份只改數字。不使用均一；練習／指導／影片由此產生。\n\n" +
-            "#### 自學指導（先看再做）\n- 重點觀念：________\n- 解題步驟口訣：________\n- 易錯提醒：________\n\n" +
-            "#### 建議影片／學習連結（1～2 個）\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n- 備用關鍵詞：________\n\n" +
-            "#### 練習題（先做完再看解答）\n【A 鞏固｜少而精】\n1. …\n【B 靈活】\n2. …\n3. …\n【C 再提升｜必做】\n4. …\n5. …\n6. …\n【D 超前伸展｜選做】\n7. …\n\n---\n#### 解答（全部題目完成後再看）\n1. …\n2. …\n3. …\n4. …\n5. …\n6. …\n7. …\n提升小提示：挑戰題做完寫「我多學到什麼」。"
+            "【自學練習｜跟上｜再提升】\n\n" +
+            "一、先看這裡\n" +
+            "口訣：\n" +
+            "1. ________\n" +
+            "2. ________\n" +
+            "注意：\n" +
+            "1. ________\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n\n" +
+            "三、練習（先全部做完，再看解答）\n" +
+            "1. （鞏固）……\n" +
+            "2. （靈活）……\n" +
+            "3. （靈活）……\n" +
+            "4. （再提升｜必做）……\n" +
+            "5. （再提升｜必做）……\n" +
+            "6. （再提升｜必做）……\n" +
+            "7. （超前｜選做）……\n\n" +
+            "────────\n" +
+            "四、解答（做完再看）\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……\n" +
+            "4. ……\n答：……\n" +
+            "5. ……\n答：……\n" +
+            "6. ……\n答：……\n" +
+            "7. ……\n答：……\n" +
+            "做完挑戰題後，寫一句「我多學到什麼」。"
           );
         }
         if (level === "略落後") {
           return (
-            "### 程度：略落後｜目標：跟上本單元\n先復習：________（本單元核心觀念）\n不使用均一；練習／指導／影片由此產生。\n\n" +
-            "#### 自學指導（先看再做）\n- 先搞懂：________\n- 步驟：1) … 2) … 3) …\n- 做完自問：________\n\n" +
-            "#### 建議影片／學習連結\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n\n" +
-            "#### 練習題（先做完再看解答）\n【A 關鍵基本】\n1. …\n2. …\n3. …\n【B 對應錯題類型】\n4. …\n5. …\n\n---\n#### 解答（全部題目完成後再看）\n1. …\n2. …\n3. …\n4. …\n5. …"
+            "【自學練習｜略落後｜跟上本單元】\n\n" +
+            "一、先看這裡\n" +
+            "先搞懂：________\n" +
+            "步驟：\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. ……\n" +
+            "做完自問：________\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n\n" +
+            "三、練習（先全部做完，再看解答）\n" +
+            "1. （基本）……\n" +
+            "2. （基本）……\n" +
+            "3. （基本）……\n" +
+            "4. （對應錯題）……\n" +
+            "5. （對應錯題）……\n\n" +
+            "────────\n" +
+            "四、解答（做完再看）\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……\n" +
+            "4. ……\n答：……\n" +
+            "5. ……\n答：……"
           );
         }
         if (level === "明顯落後") {
           return (
-            "### 程度：明顯落後｜目標：多次補齊、每次有成就（漸次跟上）\n原則：每次只補 1 個小洞、題數 ≤ 3；做對就停，隔日再補。\n本次只補：________\n不使用均一；練習／指導／影片由此自動產生。\n\n" +
-            "#### 自學指導（短、好懂）\n- 今天只要會：________\n- 跟著做：第一步… → 第二步… → 第三步…\n- 做對的樣子：（簡短示範）\n\n" +
-            "#### 建議影片／學習連結（對準本次這 1 點）\n- 搜尋關鍵詞：________（年級＋單元＋教學）\n- 連結：https://www.youtube.com/results?search_query=________\n- 看片重點：________（不必整部）\n\n" +
-            "#### 練習題（≤3 題）\n【A 本次小洞｜求做對有成就】\n1. …\n2. …\n【B 極簡銜接｜選做】\n3. …\n\n---\n#### 解答（逐步寫）\n1. …\n2. …\n3. …\n說明：本次成功＝有成就；其餘下次再補。"
+            "【自學練習｜明顯落後｜本次只補一小點】\n\n" +
+            "一、先看這裡\n" +
+            "今天只要會：________\n" +
+            "跟著做：\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. ……\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n" +
+            "看片重點：________\n\n" +
+            "三、練習（≤3 題，先做完再看解答）\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. （選做）……\n\n" +
+            "────────\n" +
+            "四、解答（做完再看）\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……\n" +
+            "本次做對＝有成就；其餘下次再補。"
           );
         }
         if (level === "需補先備") {
           return (
-            "### 程度：需補先備｜目標：分次回到起點（多次補齊）\n本次只補：________（1 個觀念）\n尚未補、下次再補：________\n不使用均一；練習／指導／影片由此產生。\n\n" +
-            "#### 自學指導\n- 先回到：________\n- 超短步驟：________\n- 不會就先看影片再做 1～2 題\n\n" +
-            "#### 建議影片／學習連結（先備觀念）\n- 搜尋關鍵詞：________\n- 連結：https://www.youtube.com/results?search_query=________\n\n" +
-            "#### 練習題（≤3 題）\n1. …\n2. …\n3. （選做）\n\n---\n#### 解答\n1. …\n2. …\n3. …\n建議：與導師協調；家長說明「多次小補」。"
+            "【自學練習｜需補先備｜本次只補一個觀念】\n\n" +
+            "一、先看這裡\n" +
+            "先回到：________\n" +
+            "超短步驟：________\n" +
+            "不會就先看影片，再做 1～2 題。\n\n" +
+            "二、影片\n" +
+            "關鍵詞：________\n" +
+            "https://www.youtube.com/results?search_query=________\n\n" +
+            "三、練習（≤3 題）\n" +
+            "1. ……\n" +
+            "2. ……\n" +
+            "3. （選做）……\n\n" +
+            "────────\n" +
+            "四、解答\n" +
+            "1. ……\n答：……\n" +
+            "2. ……\n答：……\n" +
+            "3. ……\n答：……"
           );
         }
         return (
-          "### 程度：待判定\n#### 自學指導\n- …\n#### 建議影片／學習連結\n- 搜尋關鍵詞：…\n- 連結：https://www.youtube.com/results?search_query=…\n#### 練習題（先做完再看解答）\n1. …\n---\n#### 解答（全部題目完成後再看）\n1. …"
+          "【自學練習｜待判定】\n\n" +
+          "一、先看這裡\n……\n\n" +
+          "二、影片\n關鍵詞：……\nhttps://www.youtube.com/results?search_query=……\n\n" +
+          "三、練習\n1. ……\n\n" +
+          "────────\n" +
+          "四、解答\n1. ……\n答：……"
         );
       }
 
       function practiceGuideText() {
         return (
-          "自產練習與影片（不用均一）\n====================\n\n" +
+          "自產練習與影片（之後所有輸出皆國中課本形式｜不用均一）\n====================\n\n" +
+          "整份批閱固定結構：\n" +
+          "【批閱結果｜座號】【題號】【摘要】【診斷】【程度】【建議】【自學練習】\n\n" +
+          "自學練習內：\n" +
+          "一、先看這裡 → 二、影片 → 三、練習 → 四、解答\n\n" +
           "做法：\n" +
-          "1. 批完後按「依程度給練習模板」，或從 Gemini 回覆擷取自學練習段。\n" +
-          "2. 把練習貼到「下一輪練習」→「儲存本輪＋下一輪練習」寫入歷程，並可下載 HTML。\n" +
-          "3. 「複製此生發放訊息」→ 貼到通訊軟體班級群組／個別傳；再「寫入習作台程度」後到習作台標未發／已發。\n" +
-          "4. 學生回傳圖／PDF → 匯入並對應座號 →「練習回傳再批」→ 再進循環。\n\n" +
-          "影片規則：\n" +
-          "- 優先 YouTube 搜尋結果頁：https://www.youtube.com/results?search_query=年級+單元+教學\n" +
-          "- 有把握才貼具體影片網址；不要捏造連結\n\n" +
-          "發放：班級群組公告＋個別傳練習；沒裝置才列印包。\n均一：可完全不用。\n正式 PDF／整班數位練習包：請用電腦「習作批改」。"
+          "1. 批完後按「依程度給練習模板」，或從回覆擷取【自學練習】。\n" +
+          "2. 若回覆仍像 Markdown／LaTeX，按「整份整理成課本格式」。\n" +
+          "3. 聯立用兩行 { ；分數寫 31/13；解答最後寫「答：」。\n" +
+          "4. 禁止 ####、**粗體**、LaTeX。\n\n" +
+          "影片：優先 YouTube 搜尋頁；不要捏造連結。\n" +
+          "正式 PDF／整班數位練習包：請用電腦「習作批改」。"
         );
       }
 
@@ -634,23 +977,31 @@
         var t = String(text || "");
         if (!t) return "";
         if (kind === "problems") {
-          var m1 = t.match(/問題點[：:\s]*([\s\S]*?)(?=\n\s*(?:簡短回饋|回饋|下一輪|個別建議|程度|$))/);
+          var m0 = t.match(/【問題點】\s*([\s\S]*?)(?=\n\s*【|$)/);
+          if (m0) return m0[1].trim().slice(0, 800);
+          var m1 = t.match(/問題點[：:\s]*([\s\S]*?)(?=\n\s*(?:簡短回饋|回饋|下一輪|個別建議|程度|【|$))/);
           if (m1) return m1[1].trim().slice(0, 800);
-          var m2 = t.match(/錯因[：:\s]*([^\n]+)/);
+          var m2 = t.match(/(?:錯因|【摘要】)[：:\s]*([^\n]+)/);
           if (m2) return m2[1].trim();
           return "";
         }
         if (kind === "feedback") {
-          var f1 = t.match(/(?:簡短回饋|回饋|個別建議)[：:\s]*([\s\S]*?)(?=\n\s*(?:下一輪|自學練習|依程度|$))/);
+          var f0 = t.match(/【(?:回饋|建議)】\s*([\s\S]*?)(?=\n\s*【|$)/);
+          if (f0) return f0[1].trim().slice(0, 1200);
+          var f1 = t.match(/(?:簡短回饋|回饋|個別建議)[：:\s]*([\s\S]*?)(?=\n\s*(?:下一輪|自學練習|依程度|【|$))/);
           return f1 ? f1[1].trim().slice(0, 1200) : "";
         }
         if (kind === "next") {
+          var n0 = t.match(/【自學練習】\s*([\s\S]*)$/);
+          if (n0) return n0[1].trim().slice(0, 4000);
           var n1 = t.match(/(?:下一輪練習|自學練習|依程度自學練習)[：:\s]*([\s\S]*)$/);
           if (n1) return n1[1].trim().slice(0, 4000);
           var n2 = t.match(/6\)\s*([\s\S]*)$/);
           return n2 ? n2[1].trim().slice(0, 4000) : "";
         }
         if (kind === "score") {
+          var s0 = t.match(/【分數】\s*(\d+(?:\.\d+)?)\s*[／/]\s*(\d+(?:\.\d+)?)/);
+          if (s0) return { score: s0[1], max: s0[2] };
           var s1 = t.match(/(?:分數|得分|計分)[：:\s]*(\d+(?:\.\d+)?)\s*[／/]\s*(\d+(?:\.\d+)?)/);
           if (s1) return { score: s1[1], max: s1[2] };
           var s2 = t.match(/(\d+(?:\.\d+)?)\s*分/);
@@ -692,7 +1043,7 @@
         document.getElementById("loopProblems").value = extractFromReply(reply, "problems") || "";
         document.getElementById("loopFeedback").value = extractFromReply(reply, "feedback") || (behind ? "（先寫做對了什麼 → 再寫下一步一小步）" : "");
         var nextText = extractFromReply(reply, "next");
-        document.getElementById("loopNext").value = nextText || getPracticeTemplate(lv);
+        document.getElementById("loopNext").value = toTextbookPractice(nextText || getPracticeTemplate(lv));
         document.getElementById("loopMet").checked = false;
         if (!hist.attempts.length) {
           histEl.textContent = "尚無歷程。批完或回傳批完後在此儲存本輪。";
@@ -701,6 +1052,7 @@
             return "R" + a.round + " " + a.score + "/" + a.maxScore + (a.goalMet ? "✓" : "");
           }).join("、");
         }
+        refreshPendingHint();
       }
 
       function buildLineMessage(id) {
@@ -712,7 +1064,7 @@
         return (
           "【" + (state.classLabel || "本班數學") + "｜座號 " + id + " 練習】\n" +
           "程度：" + (s.level || "未標") + "\n" +
-          "請先看指導與影片搜尋，再做練習題；全部做完再看解答。\n" +
+          "請先看「一、先看這裡」與影片，再做「三、練習」；全部做完再看「四、解答」。\n" +
           "回傳：個別傳給老師（圖／PDF），檔名建議 " + id + "-R" + (document.getElementById("loopRound").value || "1") + "\n\n" +
           practice
         );
@@ -752,15 +1104,24 @@
       function downloadPracticeHtml(id) {
         var s = state.seats[id];
         if (!s) return;
-        var body = (document.getElementById("loopNext").value || "").trim() || getPracticeTemplate(s.level || "未標");
+        var body = toTextbookPractice(
+          (document.getElementById("loopNext").value || "").trim() || getPracticeTemplate(s.level || "未標")
+        );
+        var esc = body.replace(/[&<>]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]; });
         var html =
           "<!DOCTYPE html><html lang=\"zh-Hant\"><head><meta charset=\"UTF-8\"/>" +
           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
           "<title>座號 " + id + " 練習</title>" +
-          "<style>body{font-family:sans-serif;line-height:1.6;padding:1rem;max-width:40rem;margin:auto;white-space:pre-wrap}</style>" +
-          "</head><body><h1>座號 " + id + "｜" + (s.level || "") + "</h1><pre>" +
-          body.replace(/[&<>]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]; }) +
-          "</pre></body></html>";
+          "<style>" +
+          "body{font-family:\"DFKai-SB\",\"標楷體\",\"Noto Serif TC\",serif;line-height:1.75;" +
+          "padding:1.1rem;max-width:40rem;margin:auto;color:#1a1a1a;background:#faf8f4}" +
+          "h1{font-size:1.25rem;border-bottom:2px solid #333;padding-bottom:0.35rem;margin:0 0 0.8rem}" +
+          ".meta{color:#555;font-size:0.92rem;margin-bottom:1rem}" +
+          "pre{white-space:pre-wrap;font-family:inherit;font-size:1.05rem;margin:0}" +
+          "</style></head><body>" +
+          "<h1>座號 " + id + "｜練習</h1>" +
+          "<p class=\"meta\">程度：" + (s.level || "未標") + "　｜　請先做「三、練習」，全部做完再看「四、解答」</p>" +
+          "<pre>" + esc + "</pre></body></html>";
         var a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
         a.download = id + "-練習題.html";
@@ -812,12 +1173,31 @@
 
       async function copyText(text, ok) {
         document.getElementById("preview").value = text;
+        var copied = false;
         try {
-          await navigator.clipboard.writeText(text);
-          toast(ok);
-        } catch (e) {
-          window.prompt("請手動複製：", text);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+          }
+        } catch (e) {}
+        if (!copied) {
+          try {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.setAttribute("readonly", "readonly");
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            copied = document.execCommand("copy");
+            ta.remove();
+          } catch (e2) {}
         }
+        if (!copied) {
+          window.prompt("請全選後複製（Ctrl+C）：", text);
+        }
+        toast(copied ? (ok || "已複製，請到 ChatGPT 按 Ctrl+V") : "請用跳出的框複製");
+        return copied;
       }
 
       function abToBase64(buf) {
@@ -926,6 +1306,262 @@
         return rec._part;
       }
 
+      function sleepMs(ms) {
+        return new Promise(function (r) { setTimeout(r, ms); });
+      }
+
+      function parseRetryAfterMs(msg) {
+        var m = String(msg || "").match(/retry in\s+([\d.]+)\s*s/i);
+        if (m) {
+          var sec = parseFloat(m[1]);
+          if (isFinite(sec) && sec > 0) {
+            return Math.min(Math.ceil(sec * 1000) + 800, 90000);
+          }
+        }
+        return null;
+      }
+
+      function isQuotaOrRateMsg(msg) {
+        return /RESOURCE_EXHAUSTED|429|quota|rate.?limit|free[_ ]?tier|exceeded your current quota/i.test(String(msg || ""));
+      }
+
+      function noteQuotaWait(model, waitMs, attempt, maxAttempt) {
+        var sec = Math.max(1, Math.ceil(waitMs / 1000));
+        var line = "免費額度忙碌，約 " + sec + " 秒後重試 " + model +
+          "（第 " + attempt + "/" + maxAttempt + " 次）…";
+        try {
+          var busy = document.getElementById("busy");
+          var bm = document.getElementById("busyMsg");
+          if (busy && busy.classList.contains("show") && bm) bm.textContent = line;
+          var prev = document.getElementById("preview");
+          if (prev) prev.value = line + "\n（這不是金鑰錯誤；短時間請求太多時 Google 會要求等待。）";
+        } catch (e) {}
+      }
+
+      function formatFinalGeminiError(lastErr, tried, sawQuota) {
+        var base = lastErr && lastErr.message ? lastErr.message + "\n\n" : "";
+        var models = "已嘗試模型：" + tried.join(", ");
+        if (sawQuota) {
+          return base + models +
+            "\n\n這是免費額度／速率限制（不是金鑰或網路錯）。" +
+            "\n請等約 1 分鐘再按自動批；或改用「ChatPlayground AI 自動批閱」→ 貼回覆 →「套用貼上的回覆」。" +
+            "\n查看用量：https://ai.dev/rate-limit" +
+            "\n長期可到 AI Studio 提高配額或改付費方案。";
+        }
+        return base + models +
+          "\n請確認網路與金鑰；或改用 ChatPlayground AI 自動批閱（見下方）。";
+      }
+
+      function manualGradeFallbackHint() {
+        return (
+          "\n\n【備援｜ChatPlayground AI 自動批閱】\n" +
+          "（對方無對外 API，無法在背景直接呼叫；本頁一鍵協助完成）\n" +
+          "1. 按「ChatPlayground AI 自動批閱」：複製提示＋下載試卷＋開站\n" +
+          "2. 在 ChatPlayground 貼提示並上傳剛下載的試卷（可加答案）\n" +
+          "3. 回覆整段貼到「貼上…回覆」→「套用貼上的回覆→已批」\n" +
+          "輸出仍須國中課本形式：【題號】【摘要】【診斷】【程度】【建議】【自學練習】"
+        );
+      }
+
+      function setCpGuide(msg) {
+        var el = document.getElementById("cpGuide");
+        if (el) el.textContent = msg;
+      }
+
+      function downloadRecFile(rec, fallbackName) {
+        if (!rec) return;
+        var blob = bufferToBlob(rec);
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = rec.name || fallbackName || "檔案";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 60000);
+      }
+
+      function buildManualChatPrompt(id, hard) {
+        return (
+          "【任務】請依國中課本形式批閱這位學生的數學試卷（一人一檔）。\n" +
+          "【必做】對照正確答案（若有上傳）；等價解法給 ✓；看不清標 ?。\n" +
+          "【禁止】####、**粗體**、LaTeX；聯立用兩行 { ；分數寫 a/b；解答結尾「答：」。\n\n" +
+          buildPromptOne(id, !!hard) +
+          "\n請上傳：學生試卷" + (hard ? "（手寫請放大辨識）" : "") + "；有正確答案也一併上傳。"
+        );
+      }
+
+      function webPasteMeta(site) {
+        if (site === "chatgpt") {
+          return { label: "ChatGPT 免費版", url: "https://chatgpt.com/", model: "ChatGPT免費版" };
+        }
+        if (site === "gemini") {
+          return { label: "Gemini 網頁", url: "https://gemini.google.com/app", model: "Gemini網頁" };
+        }
+        return { label: "ChatPlayground AI", url: "https://web.chatplayground.ai/", model: "ChatPlayground" };
+      }
+
+      function failNeedScan(id, meta) {
+        var msg =
+          "自動批還沒開始：座號 " + id + " 沒有試卷檔。\n\n" +
+          "請先往下到「掃描／試卷」→「匯入 PDF／圖檔」（掃描王）→ 對應座號 → 再按「" +
+          (meta && meta.label ? meta.label : "ChatGPT 免費版") + "自動批閱」。\n" +
+          "正確答案可選。沒匯入試卷，格子會一直停在「未批」。\n\n" +
+          "若已開 ChatGPT：把回覆貼到下方框 →「套用貼上的回覆→已批」才會變已批。";
+        try {
+          document.getElementById("preview").value = msg;
+          document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (e) {}
+        setCpGuide(msg.replace(/\n+/g, " "));
+        toast("請先匯入試卷並對應座號（見提示欄）");
+        try {
+          var sec = document.getElementById("scanSection");
+          if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e2) {}
+      }
+
+      async function startWebPasteAuto(id, opts) {
+        opts = opts || {};
+        var site = opts.site || webPasteSite || "chatplayground";
+        webPasteSite = site;
+        var meta = webPasteMeta(site);
+        if (!id) { toast("請先點座號"); return false; }
+        persistHeader();
+        selected = id;
+        try { selectSeat(id); } catch (e) {}
+        var scans = opts.scans || await scanAll();
+        var scan = latestScanForSeat(scans, id);
+        if (!scan) {
+          failNeedScan(id, meta);
+          return false;
+        }
+        var answers = opts.answers || await answerAll();
+        var prompt = buildManualChatPrompt(id, true);
+        document.getElementById("preview").value =
+          prompt +
+          "\n\n【" + meta.label + "自動批閱｜進行中】\n" +
+          "（網頁版無法在背景自己批完）\n" +
+          "1. 提示已複製\n" +
+          "2. 試卷已下載（請到剛開的網頁上傳）\n" +
+          (answers.length ? "3. 答案檔也已下載\n" : "") +
+          "4. 把 AI 回覆整段貼到下方框 →「套用貼上的回覆→已批」\n" +
+          "沒套用前回格子仍是「未批」，這是正常的。";
+        try { downloadRecFile(scan, "座號" + id + "_試卷"); } catch (e) {}
+        if (answers.length) {
+          try { downloadRecFile(answers[0], "正確答案"); } catch (e) {}
+        }
+        var remain = cpQueue.length;
+        setCpGuide(
+          "請立刻到剛開的 " + meta.label + " 按 Ctrl+V 貼上提示並上傳試卷。批完後回本頁，把回覆貼到「貼上自動批閱」再按綠色按鈕。"
+        );
+        try {
+          var s = state.seats[id];
+          if (s) {
+            s.note = ("待貼" + meta.label + "回覆").slice(0, 40);
+            save(state);
+            if (selected === id) document.getElementById("note").value = s.note;
+            renderGrid();
+          }
+        } catch (e3) {}
+        await copyText(prompt, "已複製。請到 " + meta.label + " 按 Ctrl+V");
+        window.open(meta.url, "_blank", "noopener,noreferrer");
+        try {
+          var box = document.getElementById("pasteAutoSection");
+          if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {}
+        return true;
+      }
+
+      async function startChatPlaygroundAuto(id, opts) {
+        opts = opts || {};
+        opts.site = "chatplayground";
+        return startWebPasteAuto(id, opts);
+      }
+
+      async function startGeminiWebAuto(id, opts) {
+        opts = opts || {};
+        opts.site = "gemini";
+        return startWebPasteAuto(id, opts);
+      }
+
+      function openManualChat(which) {
+        if (which === "chatplayground") {
+          startChatPlaygroundAuto(selected);
+          return;
+        }
+        if (!selected) { toast("請先點座號"); return; }
+        persistHeader();
+        var p = buildManualChatPrompt(selected, true);
+        document.getElementById("preview").value = p;
+        copyText(p, "已複製 → 開 Gemini 網頁貼上並上傳試卷");
+        window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
+      }
+
+      async function webPasteBatchFlow(site) {
+        if (grading) return;
+        var scans = await scanAll();
+        var answers = await answerAll();
+        var ids = Object.keys(state.seats).filter(function (id) {
+          var st = (state.seats[id] && state.seats[id].status) || "未批";
+          return (st === "未批" || st === "待重謄") && !!latestScanForSeat(scans, id);
+        }).sort(function (a, b) {
+          return String(a).localeCompare(String(b), "zh-Hant", { numeric: true });
+        });
+        if (!ids.length) {
+          toast("沒有「有卷未批」可連續批");
+          return;
+        }
+        webPasteSite = site;
+        cpQueue = ids.slice(1);
+        var meta = webPasteMeta(site);
+        toast("連續 " + meta.label + "：共 " + ids.length + " 位，先批座號 " + ids[0]);
+        await startWebPasteAuto(ids[0], { scans: scans, answers: answers, site: site });
+      }
+
+      async function cpAutoOneFlow() {
+        if (!selected) { toast("請先點座號"); return; }
+        cpQueue = [];
+        await startWebPasteAuto(selected, { site: "chatplayground" });
+      }
+
+      async function gptAutoOneFlow() {
+        if (!selected) { toast("請先點座號（或先匯入試卷）"); return; }
+        cpQueue = [];
+        await startWebPasteAuto(selected, { site: "chatgpt" });
+      }
+
+      async function cpAutoBatchFlow() {
+        return webPasteBatchFlow("chatplayground");
+      }
+
+      async function gptAutoBatchFlow() {
+        return webPasteBatchFlow("chatgpt");
+      }
+
+      async function applyChatPlaygroundPaste() {
+        if (!selected) { toast("請先點座號"); return; }
+        var text = (document.getElementById("pasteBox").value || "").trim();
+        if (!text) {
+          toast("請先把 AI 回覆貼到下方框");
+          document.getElementById("pasteBox").focus();
+          return;
+        }
+        text = toTextbookOutput(text);
+        var doneId = selected;
+        var meta = webPasteMeta(webPasteSite || "chatplayground");
+        applyReplyToSeat(doneId, text, meta.model);
+        document.getElementById("preview").value = text;
+        document.getElementById("pasteBox").value = "";
+        refreshLoopPanel(doneId);
+        if (cpQueue.length) {
+          var nextId = cpQueue.shift();
+          toast("座號 " + doneId + " 已批；接著 " + nextId + "（尚餘 " + cpQueue.length + "）");
+          await startWebPasteAuto(nextId, { site: webPasteSite });
+        } else {
+          setCpGuide("座號 " + doneId + " 已用 " + meta.label + " 批完。可再點其他座號繼續。");
+          toast("已套用 " + meta.label + " 回覆，座號 " + doneId + " 標為已批");
+        }
+      }
+
       async function callGemini(apiKey, prompt, fileRecs, models) {
         var parts = [{ text: prompt }];
         (fileRecs || []).forEach(function (rec) { parts.push(recToPart(rec)); });
@@ -940,59 +1576,80 @@
         var list = models && models.length ? models : (isFastMode() ? MODELS_FAST : MODELS_FULL);
         var lastErr = null;
         var tried = [];
+        var sawQuota = false;
         for (var i = 0; i < list.length; i++) {
           var model = list[i];
           tried.push(model);
           var uri = "https://generativelanguage.googleapis.com/v1beta/models/" +
             encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
-          try {
-            var res = await fetch(uri, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: body
-            });
-            var raw = await res.text();
-            var data = null;
-            try { data = JSON.parse(raw); } catch (e) {}
-            if (!res.ok) {
-              var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
-              if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { lastErr = new Error(msg); continue; }
-              if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
-                throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
-              }
-              if (/RESOURCE_EXHAUSTED|429|quota|rate/i.test(msg)) {
-                await new Promise(function (r) { setTimeout(r, 1200); });
-                lastErr = new Error(msg);
-                continue;
-              }
-              if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(msg)) {
-                lastErr = new Error(msg); continue;
-              }
-              throw new Error(msg);
-            }
-            var text = "";
-            var cands = (data && data.candidates) || [];
-            cands.forEach(function (c) {
-              (((c.content || {}).parts) || []).forEach(function (p) {
-                if (p.text) text += p.text;
+          var maxAttempt = 3;
+          for (var attempt = 1; attempt <= maxAttempt; attempt++) {
+            try {
+              var res = await fetch(uri, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: body
               });
-            });
-            if (!text.trim()) throw new Error("Gemini 沒有回傳文字（model=" + model + "）");
-            return { text: text, model: model };
-          } catch (err) {
-            lastErr = err;
-            var m = String(err && err.message || err);
-            if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400|429|RESOURCE_EXHAUSTED/i.test(m) &&
-                !/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) {
-              continue;
+              var raw = await res.text();
+              var data = null;
+              try { data = JSON.parse(raw); } catch (e) {}
+              if (!res.ok) {
+                var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+                if (/404|NOT_FOUND|not found|was not found/i.test(msg)) {
+                  lastErr = new Error(msg);
+                  break;
+                }
+                if (/API[_ ]?key|PERMISSION|401|403|UNAUTHENTICATED|INVALID_ARGUMENT.*key|金鑰/i.test(msg)) {
+                  throw new Error("Gemini 金鑰無效或未開通。請到 aistudio.google.com/apikey 重建。\n" + msg);
+                }
+                if (isQuotaOrRateMsg(msg)) {
+                  sawQuota = true;
+                  lastErr = new Error(msg);
+                  if (attempt < maxAttempt) {
+                    var wait = parseRetryAfterMs(msg) || (2000 * attempt);
+                    noteQuotaWait(model, wait, attempt, maxAttempt);
+                    await sleepMs(wait);
+                    continue;
+                  }
+                  break;
+                }
+                if (/INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(msg)) {
+                  lastErr = new Error(msg);
+                  break;
+                }
+                throw new Error(msg);
+              }
+              var text = "";
+              var cands = (data && data.candidates) || [];
+              cands.forEach(function (c) {
+                (((c.content || {}).parts) || []).forEach(function (p) {
+                  if (p.text) text += p.text;
+                });
+              });
+              if (!text.trim()) throw new Error("Gemini 沒有回傳文字（model=" + model + "）");
+              return { text: text, model: model };
+            } catch (err) {
+              lastErr = err;
+              var m = String(err && err.message || err);
+              if (/金鑰|API[_ ]?key|PERMISSION|401|403/i.test(m)) throw err;
+              if (isQuotaOrRateMsg(m)) {
+                sawQuota = true;
+                if (attempt < maxAttempt) {
+                  var wait2 = parseRetryAfterMs(m) || (2000 * attempt);
+                  noteQuotaWait(model, wait2, attempt, maxAttempt);
+                  await sleepMs(wait2);
+                  continue;
+                }
+                break;
+              }
+              if (/404|NOT_FOUND|not found|INVALID_ARGUMENT|unsupported|FAILED_PRECONDITION|400/i.test(m)) {
+                break;
+              }
+              throw err;
             }
-            throw err;
           }
         }
-        throw new Error(
-          (lastErr && lastErr.message ? lastErr.message + "\n\n" : "") +
-          "已嘗試模型：" + tried.join(", ") + "\n請確認網路與金鑰。"
-        );
+        throw new Error(formatFinalGeminiError(lastErr, tried, sawQuota));
       }
 
       function applyReplyToSeat(id, text, model, opts) {
@@ -1000,24 +1657,24 @@
         var s = state.seats[id];
         if (!s) return;
         var lv = null;
-        var m = text.match(/程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)/);
+        var m = text.match(/(?:【程度】|程度[：:\s]*)(跟上|略落後|明顯落後|需補先備|待判定)/);
         if (m) lv = m[1];
         if (!lv && /完全正確|全對|100\s*分/.test(text)) lv = "跟上";
         if (lv && LEVELS.indexOf(lv) >= 0) s.level = lv;
-        if (/\?{2,}|待判定|看不清/.test(text) && /程度[：:\s]*待判定/.test(text)) {
+        if (/\?{2,}|待判定|看不清/.test(text) && /(?:【程度】|程度[：:\s]*)待判定/.test(text)) {
           s.status = "待認知";
         } else {
           s.status = "已批";
         }
-        s.note = ("Gemini " + (model || "")).trim().slice(0, 40);
-        s.lastReply = String(text || "").slice(0, 6000);
+        s.note = String(model || "AI").trim().slice(0, 40);
+        s.lastReply = toTextbookOutput(String(text || "")).slice(0, 6000);
         s.lastModel = model || "";
         s.lastGradedAt = Date.now();
         if (!opts.silentUi && selected === id) {
           document.getElementById("gradeStatus").value = s.status;
           document.getElementById("level").value = s.level || "未標";
           document.getElementById("note").value = s.note || "";
-          document.getElementById("preview").value = text;
+          document.getElementById("preview").value = s.lastReply;
           refreshLoopPanel(id);
         }
         if (!opts.skipSave) save(state);
@@ -1137,14 +1794,26 @@
         if (!opts.silentUi) {
           document.getElementById("preview").value = "正在呼叫 Gemini…\n座號 " + id + "\n檔案：" + (scan.name || "");
         }
-        var files = [scan].concat(answers);
-        var result = await callGemini(key, prompt, files, opts.models);
-        applyReplyToSeat(id, result.text, result.model, {
-          silentUi: !!opts.silentUi,
-          skipSave: !!opts.skipSave,
-          skipRender: !!opts.skipRender
-        });
-        return result;
+        try {
+          var files = [scan].concat(answers);
+          var result = await callGemini(key, prompt, files, opts.models);
+          applyReplyToSeat(id, result.text, result.model, {
+            silentUi: !!opts.silentUi,
+            skipSave: !!opts.skipSave,
+            skipRender: !!opts.skipRender
+          });
+          return result;
+        } catch (err) {
+          if (state.seats[id] && state.seats[id].status === "批改中") {
+            state.seats[id].status = "未批";
+            if (!opts.skipSave) save(state);
+            if (!opts.skipRender) renderGrid();
+            if (!opts.silentUi && selected === id) {
+              document.getElementById("gradeStatus").value = "未批";
+            }
+          }
+          throw err;
+        }
       }
 
       async function mapPool(items, concurrency, worker) {
@@ -1186,8 +1855,13 @@
           toast("座號 " + selected + " 已批完（" + r.model + "）");
           selectSeat(selected);
         } catch (err) {
-          document.getElementById("preview").value = "自動批失敗：\n" + (err && err.message ? err.message : String(err));
-          toast("自動批失敗，見上方說明");
+          var msg = err && err.message ? err.message : String(err);
+          document.getElementById("preview").value = "自動批失敗：\n" + msg + manualGradeFallbackHint();
+          try {
+            document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch (e) {}
+          var short = msg.replace(/\s+/g, " ").slice(0, 36);
+          toast("自動批失敗：" + short + "｜可改 ChatPlayground AI 自動批閱");
         } finally {
           setBusy(false);
         }
@@ -1216,12 +1890,12 @@
           return;
         }
         var fast = isFastMode();
-        var conc = fast ? 2 : 1;
+        // 免費額度 RPM 低：快速批也改單線，避免雙線同時撞 429
+        var conc = 1;
         var modeLabel = fast ? "快速連續批" : "完整連續批";
         if (!window.confirm(
-          "將" + modeLabel + " " + queue.length + " 份" +
-          (conc > 1 ? "（同時 " + conc + " 份）" : "") +
-          "。中途失敗會停下。開始？"
+          "將" + modeLabel + " " + queue.length + " 份（單線，較不易撞免費額度）。" +
+          "中途失敗會停下。開始？"
         )) return;
         setBusy(true, modeLabel, "共 " + queue.length + " 份，請保持畫面開啟。");
         var done = 0;
@@ -1246,6 +1920,7 @@
             renderGrid();
             var elapsed = ((Date.now() - t0) / 1000).toFixed(0);
             setBusy(true, modeLabel, "已完成 " + done + "/" + queue.length + "｜耗時 " + elapsed + " 秒");
+            if (done < queue.length) await sleepMs(700);
           });
           var sec = ((Date.now() - t0) / 1000).toFixed(0);
           toast("連續批完成：" + done + " 份／" + sec + " 秒");
@@ -1275,6 +1950,25 @@
         }
       }
 
+      function unstickAllStuck(silent) {
+        var n = 0;
+        Object.keys(state.seats).forEach(function (id) {
+          if (state.seats[id].status === "批改中") {
+            state.seats[id].status = "未批";
+            n++;
+          }
+        });
+        if (n) {
+          save(state);
+          renderGrid();
+          if (selected && state.seats[selected]) {
+            document.getElementById("gradeStatus").value = state.seats[selected].status;
+          }
+          if (!silent) toast("已把 " + n + " 個「批改中」改回未批");
+        }
+        return n;
+      }
+
       document.getElementById("filters").addEventListener("click", function (e) {
         var t = e.target;
         if (!t.classList.contains("chip")) return;
@@ -1295,9 +1989,36 @@
       document.getElementById("btnSaveKey").addEventListener("click", function () {
         var k = document.getElementById("geminiKey").value.trim();
         if (!k) { toast("請先貼上 API 金鑰"); return; }
-        setApiKey(k);
-        document.getElementById("geminiKey").value = "";
-        toast("金鑰已存這支手機");
+        setBusy(true, "測試金鑰", "正在向 Google 確認…");
+        testApiKey(k).then(function (r) {
+          setApiKey(k);
+          document.getElementById("geminiKey").value = "";
+          document.getElementById("preview").value = "金鑰測試成功。\n可用模型例：" + r.sample;
+          toast("金鑰可用（已儲存）");
+        }).catch(function (err) {
+          var msg = err && err.message ? err.message : String(err);
+          document.getElementById("preview").value = "測試金鑰失敗：\n" + msg;
+          document.getElementById("keyStatus").textContent = "金鑰測試失敗（見提示／批閱結果欄完整說明）";
+          try { document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+          toast("金鑰測試失敗：" + msg.replace(/\s+/g, " ").slice(0, 48));
+        }).finally(function () { setBusy(false); });
+      });
+      document.getElementById("btnTestKey").addEventListener("click", function () {
+        var typed = document.getElementById("geminiKey").value.trim();
+        var k = typed || getApiKey();
+        if (!k) { toast("請先貼上或儲存金鑰"); return; }
+        setBusy(true, "測試金鑰", "正在向 Google 確認…");
+        testApiKey(k).then(function (r) {
+          if (typed) setApiKey(typed);
+          document.getElementById("preview").value = "金鑰測試成功。\n模型數約 " + r.count + "\n例：" + r.sample;
+          toast("金鑰可用");
+        }).catch(function (err) {
+          var msg = err && err.message ? err.message : String(err);
+          document.getElementById("preview").value = "測試金鑰失敗：\n" + msg;
+          document.getElementById("keyStatus").textContent = "金鑰測試失敗（見提示／批閱結果欄完整說明）";
+          try { document.getElementById("preview").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+          toast("金鑰測試失敗：" + msg.replace(/\s+/g, " ").slice(0, 48));
+        }).finally(function () { setBusy(false); });
       });
       document.getElementById("btnClearKey").addEventListener("click", function () {
         setApiKey("");
@@ -1359,7 +2080,7 @@
 
       document.getElementById("btnAutoOne").addEventListener("click", gradeOneFlow);
       document.getElementById("btnAutoBatch").addEventListener("click", gradeBatchFlow);
-      document.getElementById("btnAutoBatchTop").addEventListener("click", gradeBatchFlow);
+      document.getElementById("btnAutoBatchTop").addEventListener("click", cpAutoBatchFlow);
       document.getElementById("speedFast").addEventListener("change", persistSpeed);
       document.getElementById("speedFull").addEventListener("change", persistSpeed);
       document.getElementById("btnUnstick").addEventListener("click", function () {
@@ -1368,17 +2089,8 @@
         toast("座號 " + selected + " 已改回未批");
       });
       document.getElementById("btnUnstickAll").addEventListener("click", function () {
-        var n = 0;
-        Object.keys(state.seats).forEach(function (id) {
-          if (state.seats[id].status === "批改中") {
-            state.seats[id].status = "未批";
-            n++;
-          }
-        });
-        save(state);
-        if (selected) document.getElementById("gradeStatus").value = state.seats[selected].status;
-        renderGrid();
-        toast(n ? ("已把 " + n + " 個「批改中」改回未批") : "目前沒有批改中");
+        var n = unstickAllStuck(false);
+        if (!n) toast("目前沒有批改中");
       });
 
       document.getElementById("btnExportProgress").addEventListener("click", function () {
@@ -1389,7 +2101,7 @@
         a.download = "習作批改進度.json";
         a.click();
         URL.revokeObjectURL(a.href);
-        toast("已匯出進度（可在另一網址匯入）");
+        toast("已匯出進度，可放 OneDrive 後在另一台匯入");
       });
       document.getElementById("btnImportProgress").addEventListener("click", function () {
         document.getElementById("fileProgress").click();
@@ -1420,35 +2132,57 @@
       document.getElementById("btnCopyOne").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
-        state.seats[selected].status = "批改中";
-        save(state);
-        renderGrid();
-        copyText(buildPromptOne(selected, false), "已複製（手動貼）。真正自動請用「Gemini自動批」");
+        // 手動貼不會自動回寫，勿標「批改中」以免卡住
+        copyText(buildPromptOne(selected, false), "已複製（手動貼）。預設請用「ChatPlayground AI 自動批閱」");
+        document.getElementById("preview").value = buildPromptOne(selected, false);
       });
 
       document.getElementById("btnCopyHw").addEventListener("click", function () {
         if (!selected) { toast("請先點座號"); return; }
         persistHeader();
-        state.seats[selected].status = "批改中";
-        save(state);
-        renderGrid();
         copyText(buildPromptOne(selected, true), "已複製手寫加強提示（手動）");
+        document.getElementById("preview").value = buildPromptOne(selected, true);
       });
 
       document.getElementById("btnOpenGemini").addEventListener("click", function () {
-        if (!selected) { toast("請先點座號"); return; }
-        persistHeader();
-        state.seats[selected].status = "批改中";
-        save(state);
-        renderGrid();
-        copyText(
-          "【任務】用 Google Gemini 批閱。\n" +
-          "【模式】有正確答案就對照；沒有就直接 AI 批。\n" +
-          "【請上傳】學生試卷（＋正確答案若有）。\n" +
-          "【必做】逐題判 ✓／✗／?；等價解法可給 ✓。\n\n" + buildPromptOne(selected, true),
-          "已複製 → 開 Gemini 手動貼。想免手動請用「Gemini自動批」"
-        );
-        window.open("https://gemini.google.com/app", "_blank", "noopener,noreferrer");
+        openManualChat("gemini");
+      });
+
+      document.getElementById("btnOpenChatPlayground").addEventListener("click", function () {
+        openManualChat("chatplayground");
+      });
+      document.getElementById("btnOpenChatPlaygroundTop").addEventListener("click", function () {
+        cpAutoOneFlow();
+      });
+      document.getElementById("btnCpUsage").addEventListener("click", function () {
+        window.open("https://web.chatplayground.ai/settings", "_blank", "noopener,noreferrer");
+        toast("已開設定頁：找 Plan／Usage／Credits 看本月剩餘");
+      });
+      document.getElementById("btnGeminiAutoFallback").addEventListener("click", function () {
+        if (selected) gradeOneFlow();
+        else gradeBatchFlow();
+      });
+      document.getElementById("btnChatGptFree").addEventListener("click", function () {
+        gptAutoOneFlow();
+      });
+      document.getElementById("btnGptAutoBatch").addEventListener("click", function () {
+        gptAutoBatchFlow();
+      });
+      document.getElementById("btnGptAutoOne").addEventListener("click", function () {
+        gptAutoOneFlow();
+      });
+      document.getElementById("btnGptAutoBatchSeat").addEventListener("click", function () {
+        gptAutoBatchFlow();
+      });
+      document.getElementById("btnCpAutoOne").addEventListener("click", function () {
+        cpAutoOneFlow();
+      });
+      document.getElementById("btnCpAutoBatch").addEventListener("click", function () {
+        cpAutoBatchFlow();
+      });
+
+      document.getElementById("btnApplyPaste").addEventListener("click", function () {
+        applyChatPlaygroundPaste();
       });
 
       document.getElementById("btnCopyReturn").addEventListener("click", function () {
@@ -1562,8 +2296,106 @@
         toast("已下載練習 HTML");
       });
 
+      document.getElementById("btnPendingList").addEventListener("click", function () {
+        var p = buildPendingReturnList();
+        document.getElementById("preview").value = p.text;
+        refreshPendingHint();
+        toast("已顯示待批／待回清單");
+      });
+
+      document.getElementById("btnDigitalPack").addEventListener("click", function () {
+        var ids = Object.keys(state.seats).sort().filter(function (id) {
+          var s = state.seats[id];
+          return s && (s.status === "已批" || s.status === "待認知" || (s.history && s.history.attempts && s.history.attempts.length));
+        });
+        if (!ids.length) { toast("尚無已批／有歷程的座號"); return; }
+        downloadCombinedPracticeHtml(ids, (state.classLabel || "本班") + "-數位練習包");
+        toast("已下載練習包（" + ids.length + " 份）");
+      });
+
+      document.getElementById("btnPrintList").addEventListener("click", function () {
+        var ids = seatsNeedingPrint();
+        var text =
+          "【需列印座號】\n" +
+          "班級：" + (state.classLabel || "") + "\n" +
+          "座號：" + (ids.length ? ids.join("、") : "（目前無；可在備註寫「列印」或程度為明顯落後／需補先備／待判定）") + "\n" +
+          "說明：有手機仍發數位；這份給沒裝置者。\n";
+        document.getElementById("preview").value = text;
+        downloadTextFile("需列印座號.txt", text);
+        copyText(text, "已複製並下載需列印座號清單");
+      });
+
+      document.getElementById("btnPrintPack").addEventListener("click", function () {
+        var ids = seatsNeedingPrint();
+        if (!ids.length) { toast("目前沒有需列印座號"); return; }
+        downloadCombinedPracticeHtml(ids, (state.classLabel || "本班") + "-無裝置列印練習");
+        toast("已下載可列印練習（" + ids.length + " 份）");
+      });
+
+      document.getElementById("btnUnclearList").addEventListener("click", function () {
+        var ids = Object.keys(state.seats).sort().filter(function (id) {
+          return state.seats[id] && state.seats[id].status === "待認知";
+        });
+        var lines = ["【待認知清單】", "班級：" + (state.classLabel || ""), ""];
+        if (!ids.length) lines.push("（目前無待認知）");
+        ids.forEach(function (id) {
+          var s = state.seats[id];
+          lines.push("座號 " + id + "｜" + (s.level || "") + "｜" + (s.note || ""));
+          if (s.lastReply) lines.push(String(s.lastReply).slice(0, 400));
+          lines.push("────────");
+        });
+        lines.push("確認後：選座號 →「認知完成→已批」。若要學生重寫：標「待重謄」。");
+        var text = lines.join("\n");
+        document.getElementById("preview").value = text;
+        downloadTextFile("待認知清單.txt", text);
+        toast(ids.length ? ("已匯出待認知 " + ids.length + " 人") : "目前無待認知");
+      });
+
+      document.getElementById("btnMarkClarifyDone").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        state.seats[selected].status = "已批";
+        document.getElementById("gradeStatus").value = "已批";
+        save(state);
+        renderGrid();
+        refreshPendingHint();
+        toast("座號 " + selected + " 已標為已批");
+      });
+
+      document.getElementById("btnMarkRewrite").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        state.seats[selected].status = "待重謄";
+        document.getElementById("gradeStatus").value = "待重謄";
+        save(state);
+        renderGrid();
+        refreshPendingHint();
+        toast("座號 " + selected + " 已標待重謄");
+      });
+
+      document.getElementById("btnGradeReturn").addEventListener("click", function () {
+        if (!selected) { toast("請先點座號"); return; }
+        var el = document.getElementById("afterGrade");
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        cpQueue = [];
+        startChatPlaygroundAuto(selected);
+      });
+
       document.getElementById("btnCopyPreview").addEventListener("click", function () {
         copyText(document.getElementById("preview").value || "", "已複製");
+      });
+
+      document.getElementById("btnTextbookFormat").addEventListener("click", function () {
+        var el = document.getElementById("preview");
+        el.value = toTextbookPractice(el.value || "");
+        toast("已整理成課本格式");
+      });
+
+      document.getElementById("btnTextbookPractice").addEventListener("click", function () {
+        var el = document.getElementById("loopNext");
+        el.value = toTextbookPractice(el.value || "");
+        if (document.getElementById("preview").value) {
+          document.getElementById("preview").value = toTextbookPractice(document.getElementById("preview").value);
+        }
+        toast("練習已整理成課本格式");
       });
 
       function renderScans() {
@@ -1578,11 +2410,13 @@
             var seatVal = rec.seatId || document.getElementById("defaultSeat").value || "00";
             li.innerHTML =
               "<strong>" + outName(seatVal, rec.name, rec.type) + "</strong>" +
-              '<div class="tips">原檔：' + (rec.name || "") + "</div>" +
+              '<div class="tips">原檔：' + (rec.name || "") +
+              (rec.kind === "return" ? "｜練習回傳" : "｜試卷") + "</div>" +
               '<div class="row"><label>座號</label><select class="grow seat-pick"></select></div>' +
               '<div class="btn-row">' +
               '<button type="button" class="primary act-save">對應座號</button>' +
-              '<button type="button" class="primary act-grade">對應並自動批</button>' +
+              '<button type="button" class="primary act-grade">對應並 ChatPlayground 批</button>' +
+              '<button type="button" class="primary act-return">回傳進循環</button>' +
               '<button type="button" class="act-dl">下載</button>' +
               '<button type="button" class="act-del">刪</button></div>';
             var seatPick = li.querySelector(".seat-pick");
@@ -1595,22 +2429,28 @@
             seatPick.addEventListener("change", function () {
               li.querySelector("strong").textContent = outName(seatPick.value, rec.name, rec.type);
             });
-            function assignSeat() {
+            function assignSeat(kind) {
               rec.seatId = seatPick.value;
+              if (kind) rec.kind = kind;
               return scanPut(rec).then(function () {
                 selected = rec.seatId;
-                if (state.seats[rec.seatId] && state.seats[rec.seatId].status === "未批") {
-                  /* keep 未批 until auto-grade starts */
-                }
                 selectSeat(rec.seatId);
                 return renderScans();
               });
             }
             li.querySelector(".act-save").addEventListener("click", function () {
-              assignSeat().then(function () { toast("已對應 " + rec.seatId + "，可按 Gemini自動批"); });
+              assignSeat(rec.kind || "exam").then(function () { toast("已對應 " + rec.seatId + "，可按 ChatPlayground AI 自動批閱"); });
             });
             li.querySelector(".act-grade").addEventListener("click", function () {
-              assignSeat().then(function () { return gradeOneFlow(); });
+              assignSeat("exam").then(function () { return cpAutoOneFlow(); });
+            });
+            li.querySelector(".act-return").addEventListener("click", function () {
+              assignSeat("return").then(function () {
+                var panel = document.getElementById("afterGrade");
+                if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+                refreshPendingHint();
+                toast("已標為練習回傳並進入循環區；可按「此座號回傳自動批」");
+              });
             });
             li.querySelector(".act-dl").addEventListener("click", function () {
               var a = document.createElement("a");
@@ -1654,7 +2494,7 @@
           });
         });
         return chain.then(function () {
-          toast("已匯入 " + files.length + " 個檔" + (autoMapped ? "（自動對應座號 " + autoMapped + "）" : "") + "；可一鍵連續批");
+          toast("已匯入 " + files.length + " 個檔" + (autoMapped ? "（自動對應座號 " + autoMapped + "）" : "") + "；可連續 ChatPlayground 批");
           return renderScans();
         });
       }
@@ -1671,13 +2511,18 @@
       fillSeatSelect();
       refreshKeyStatus();
       refreshAnswerStatus();
+      // 重新開啟頁面時，先前卡住的「批改中」一律改回未批（否則無法再批）
+      var cleared = unstickAllStuck(true);
       renderGrid();
       renderScans();
       try {
         document.getElementById("originTip").textContent =
           "目前網址：" + location.origin + location.pathname + "（請只從此網址加入主畫面；關掉再開會自動恢復）";
       } catch (e) {}
-
+      if (cleared) {
+        toast("已自動解除 " + cleared + " 個卡住的「批改中」→ 請按「ChatPlayground AI 自動批閱」");
+      }
+      refreshPendingHint();
       function restoreProgressBackup() {
         return openScanDb().then(function (db) {
           return new Promise(function (resolve) {
@@ -1724,8 +2569,17 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("./sw.js").then(function (reg) {
           try { reg.update(); } catch (e) {}
+          if (reg.waiting) {
+            try { reg.waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) {}
+          }
           setTimeout(renderScans, 400);
         }).catch(function () {});
+        var reloaded = false;
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+          if (reloaded) return;
+          reloaded = true;
+          location.reload();
+        });
       }
     })();
   </script>

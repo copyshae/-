@@ -20,6 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:AppBuild = '20260818-sync'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -220,16 +221,25 @@ function Load-Note([string]$path) {
     itemsText = ''
   }
   if ($raw -match '(?m)^- 座號[：:]\s*(.+)$') { $o.studentId = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^座號[：:]\s*(.+)$') { $o.studentId = $Matches[1].Trim() }
   if ($raw -match '(?m)^- 來源檔[：:]\s*(.+)$') { $o.sourceFile = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^來源檔[：:]\s*(.+)$') { $o.sourceFile = $Matches[1].Trim() }
   if ($raw -match '(?m)^- 總評[：:]\s*(.+)$') { $o.overall = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^總評[：:]\s*(.+)$') { $o.overall = $Matches[1].Trim() }
   if ($raw -match '(?m)^- 程度[：:]\s*(.+)$') { $o.level = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 對錯摘要\s*(.*?)(?=##|$)') { $o.summary = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 個別診斷結果\s*(.*?)(?=##|$)') { $o.diagnosis = $Matches[1].Trim() }
-  elseif ($raw -match '(?s)## 個別建議\s*(.*?)(?=##|$)') { $o.advice = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 個別建議\s*(.*?)(?=##|$)') { $o.advice = $Matches[1].Trim() }
+  elseif ($raw -match '(?m)^程度[：:]\s*(.+)$') { $o.level = $Matches[1].Trim() }
+  if ($raw -match '(?m)^【程度】\s*(.+)$') { $o.level = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 對錯摘要\s*(.*?)(?=##|【|$)') { $o.summary = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【摘要】\s*(.*?)(?=【|$)') { $o.summary = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 個別診斷結果\s*(.*?)(?=##|【|$)') { $o.diagnosis = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【診斷】\s*(.*?)(?=【|$)') { $o.diagnosis = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 個別建議\s*(.*?)(?=##|【|$)') { $o.advice = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【建議】\s*(.*?)(?=【|$)') { $o.advice = $Matches[1].Trim() }
   if ($raw -match '(?s)## 依程度自學／補救練習\s*(.*?)(?=##|$)') { $o.practice = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【自學練習】\s*(.*?)(?=$)') { $o.practice = $Matches[1].Trim() }
   elseif ($raw -match '(?s)## 需再練習\s*(.*?)(?=##|$)') { $o.practice = $Matches[1].Trim() }
-  if ($raw -match '(?s)## 題號註記\s*(.*?)(?=##|$)') { $o.itemsText = $Matches[1].Trim() }
+  if ($raw -match '(?s)## 題號註記\s*(.*?)(?=##|【|$)') { $o.itemsText = $Matches[1].Trim() }
+  elseif ($raw -match '(?s)【題號】\s*(.*?)(?=【|$)') { $o.itemsText = $Matches[1].Trim() }
   return $o
 }
 
@@ -237,151 +247,162 @@ function Get-PracticeTemplate([string]$level) {
   switch -Regex ($level) {
     '跟上' {
       return @"
-### 程度：跟上｜目標：再提升（少重複、多挑戰）
-說明：已掌握本單元。A 少練；重心 B、C。禁止整份只改數字。不使用均一；練習／指導／影片由此產生。
+【自學練習｜跟上｜再提升】
 
-#### 自學指導（先看再做）
-- 重點觀念：________
-- 解題步驟口訣：________
-- 易錯提醒：________
+一、先看這裡
+口訣：
+1. ________
+2. ________
+注意：
+1. ________
 
-#### 建議影片／學習連結（1～2 個）
-- 搜尋關鍵詞：________
-- 連結：https://www.youtube.com/results?search_query=________
-- 備用關鍵詞：________
+二、影片
+關鍵詞：________
+https://www.youtube.com/results?search_query=________
 
-#### 練習題（先做完再看解答）
-【A 鞏固｜少而精】
-1. …
-【B 靈活】
-2. …
-3. …
-【C 再提升｜必做】
-4. …
-5. …
-6. …
-【D 超前伸展｜選做】
-7. …
+三、練習（先全部做完，再看解答）
+1. （鞏固）……
+2. （靈活）……
+3. （靈活）……
+4. （再提升｜必做）……
+5. （再提升｜必做）……
+6. （再提升｜必做）……
+7. （超前｜選做）……
 
----
-#### 解答（全部題目完成後再看）
-1. …
-2. …
-3. …
-4. …
-5. …
-6. …
-7. …
-提升小提示：挑戰題做完寫「我多學到什麼」。
+────────
+四、解答（做完再看）
+1. ……
+答：……
+2. ……
+答：……
+3. ……
+答：……
+4. ……
+答：……
+5. ……
+答：……
+6. ……
+答：……
+7. ……
+答：……
+做完挑戰題後，寫一句「我多學到什麼」。
 "@
     }
     '略落後' {
       return @"
-### 程度：略落後｜目標：跟上本單元
-先復習：________（本單元核心觀念）
-不使用均一；練習／指導／影片由此產生。
+【自學練習｜略落後｜跟上本單元】
 
-#### 自學指導（先看再做）
-- 先搞懂：________
-- 步驟：1) … 2) … 3) …
-- 做完自問：________
+一、先看這裡
+先搞懂：________
+步驟：
+1. ……
+2. ……
+3. ……
+做完自問：________
 
-#### 建議影片／學習連結
-- 搜尋關鍵詞：________
-- 連結：https://www.youtube.com/results?search_query=________
+二、影片
+關鍵詞：________
+https://www.youtube.com/results?search_query=________
 
-#### 練習題（先做完再看解答）
-【A 關鍵基本】
-1. …
-2. …
-3. …
-【B 對應錯題類型】
-4. …
-5. …
+三、練習（先全部做完，再看解答）
+1. （基本）……
+2. （基本）……
+3. （基本）……
+4. （對應錯題）……
+5. （對應錯題）……
 
----
-#### 解答（全部題目完成後再看）
-1. …
-2. …
-3. …
-4. …
-5. …
+────────
+四、解答（做完再看）
+1. ……
+答：……
+2. ……
+答：……
+3. ……
+答：……
+4. ……
+答：……
+5. ……
+答：……
 "@
     }
     '明顯落後' {
       return @"
-### 程度：明顯落後｜目標：多次補齊、每次有成就（漸次跟上）
-原則：每次只補 1 個小洞、題數 ≤ 3；做對就停，隔日再補。
-本次只補：________
-不使用均一；練習／指導／影片由此自動產生。
+【自學練習｜明顯落後｜本次只補一小點】
 
-#### 自學指導（短、好懂）
-- 今天只要會：________
-- 跟著做：第一步… → 第二步… → 第三步…
-- 做對的樣子：（簡短示範）
+一、先看這裡
+今天只要會：________
+跟著做：
+1. ……
+2. ……
+3. ……
 
-#### 建議影片／學習連結（對準本次這 1 點）
-- 搜尋關鍵詞：________（年級＋單元＋教學）
-- 連結：https://www.youtube.com/results?search_query=________
-- 看片重點：________（不必整部）
+二、影片
+關鍵詞：________
+https://www.youtube.com/results?search_query=________
+看片重點：________
 
-#### 練習題（≤3 題）
-【A 本次小洞｜求做對有成就】
-1. …
-2. …
-【B 極簡銜接｜選做】
-3. …
+三、練習（≤3 題，先做完再看解答）
+1. ……
+2. ……
+3. （選做）……
 
----
-#### 解答（逐步寫）
-1. …
-2. …
-3. …
-說明：本次成功＝有成就；其餘下次再補。
+────────
+四、解答（做完再看）
+1. ……
+答：……
+2. ……
+答：……
+3. ……
+答：……
+本次做對＝有成就；其餘下次再補。
 "@
     }
     '需補先備' {
       return @"
-### 程度：需補先備｜目標：分次回到起點（多次補齊）
-本次只補：________（1 個觀念）
-尚未補、下次再補：________
-不使用均一；練習／指導／影片由此產生。
+【自學練習｜需補先備｜本次只補一個觀念】
 
-#### 自學指導
-- 先回到：________
-- 超短步驟：________
-- 不會就先看影片再做 1～2 題
+一、先看這裡
+先回到：________
+超短步驟：________
+不會就先看影片，再做 1～2 題。
 
-#### 建議影片／學習連結（先備觀念）
-- 搜尋關鍵詞：________
-- 連結：https://www.youtube.com/results?search_query=________
+二、影片
+關鍵詞：________
+https://www.youtube.com/results?search_query=________
 
-#### 練習題（≤3 題）
-1. …
-2. …
-3. （選做）
+三、練習（≤3 題）
+1. ……
+2. ……
+3. （選做）……
 
----
-#### 解答
-1. …
-2. …
-3. …
-建議：與導師協調；家長說明「多次小補」。
+────────
+四、解答
+1. ……
+答：……
+2. ……
+答：……
+3. ……
+答：……
 "@
     }
     default {
       return @"
-### 程度：待判定
-#### 自學指導
-- …
-#### 建議影片／學習連結
-- 搜尋關鍵詞：…
-- 連結：https://www.youtube.com/results?search_query=…
-#### 練習題（先做完再看解答）
-1. …
----
-#### 解答（全部題目完成後再看）
-1. …
+【自學練習｜待判定】
+
+一、先看這裡
+……
+
+二、影片
+關鍵詞：……
+https://www.youtube.com/results?search_query=……
+
+三、練習
+1. ……
+
+────────
+四、解答
+1. ……
+答：……
 "@
     }
   }
@@ -405,28 +426,28 @@ function Save-Note {
     $Practice = Get-PracticeTemplate $Level
   }
   $lines = @(
-    "# 批閱註記｜座號 $StudentId"
+    "【批閱結果｜座號 $StudentId】"
     ''
-    '- 座號：' + $StudentId
-    '- 來源檔：' + $SourceFile
-    '- 總評：' + $Overall
-    '- 程度：' + $Level
-    '- 批改時間：' + (Get-Date -Format 'yyyy-MM-dd HH:mm')
-    '- 原則：接受其他合理等價解法；存疑項請人工終核'
+    '座號：' + $StudentId
+    '來源檔：' + $SourceFile
+    '總評：' + $Overall
+    '程度：' + $Level
+    '批改時間：' + (Get-Date -Format 'yyyy-MM-dd HH:mm')
+    '原則：接受其他合理等價解法；存疑項請人工終核'
     ''
-    '## 題號註記'
+    '【題號】'
     $(if ($ItemsText) { $ItemsText } else { '（尚未填題號；格式例：1 ✓｜2 ✗ 計算錯｜3 ? 潦草）' })
     ''
-    '## 對錯摘要'
+    '【摘要】'
     $(if ($Summary) { $Summary } else { '（初核摘要）' })
     ''
-    '## 個別診斷結果'
+    '【診斷】'
     $(if ($Diagnosis) { $Diagnosis } else { '（弱點類型：計算／觀念／審題／先備不足／粗心…；是否跟得上進度）' })
     ''
-    '## 個別建議'
+    '【建議】'
     $(if ($Advice) { $Advice } else { '（給學生／家長的短建議）' })
     ''
-    '## 依程度自學／補救練習'
+    '【自學練習】'
     $Practice
     ''
   )
@@ -653,10 +674,17 @@ function Invoke-GeminiGenerateContent {
         if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
           throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
         }
-        # 503／429／忙碌：同模型重試，再換下一個模型
-        if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時') {
+        # 503／429／忙碌／額度：同模型重試（依 API 建議秒數），再換下一個模型
+        if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時|exceeded your current quota|free[_ ]?tier') {
           if ($attempt -lt $maxAttempt) {
-            Start-Sleep -Seconds (2 * $attempt)
+            $waitSec = 2 * $attempt
+            if ($msg -match 'retry in\s+([\d.]+)\s*s') {
+              try {
+                $parsed = [double]$Matches[1]
+                if ($parsed -gt 0) { $waitSec = [Math]::Min([Math]::Ceiling($parsed) + 1, 90) }
+              } catch {}
+            }
+            Start-Sleep -Seconds $waitSec
             continue
           }
           break
@@ -666,20 +694,57 @@ function Invoke-GeminiGenerateContent {
       }
     }
   }
-  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
+  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))"
+  if ($lastErr -and ([string]$lastErr.Exception.Message) -match 'RESOURCE_EXHAUSTED|429|quota|rate|exceeded your current quota|free[_ ]?tier') {
+    $hint += "`n`n這是免費額度／速率限制（不是金鑰或網路錯）。請等約 1 分鐘再按「Gemini自動批」。`n查看用量：https://ai.dev/rate-limit`n長期可到 AI Studio 提高配額或改付費方案。"
+  } else {
+    $hint += "`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
+  }
   if ($lastErr) { throw (($lastErr.Exception.Message) + "`n`n" + $hint) }
   throw $hint
 }
 
+function Format-TextbookPractice([string]$raw) {
+  if ([string]::IsNullOrWhiteSpace($raw)) { return '' }
+  $t = $raw -replace "`r`n", "`n"
+  $t = [regex]::Replace($t, '(?m)^#{1,6}\s*', '')
+  $t = [regex]::Replace($t, '\*\*([^*]+)\*\*', '$1')
+  $t = [regex]::Replace($t, '\*([^*\n]+)\*', '$1')
+  $t = [regex]::Replace($t, '(?mi)^[a-d]\.\s+', '')
+  $t = [regex]::Replace($t, '\\dfrac\{([^{}]+)\}\{([^{}]+)\}', '$1/$2')
+  $t = [regex]::Replace($t, '\\frac\{([^{}]+)\}\{([^{}]+)\}', '$1/$2')
+  $t = [regex]::Replace($t, '\$\$([\s\S]*?)\$\$', '$1')
+  $t = [regex]::Replace($t, '\$([^$\n]+)\$', '$1')
+  $t = [regex]::Replace($t, '\\begin\{cases\}', "`n", 'IgnoreCase')
+  $t = [regex]::Replace($t, '\\end\{cases\}', "`n", 'IgnoreCase')
+  $t = [regex]::Replace($t, '\s*\\\\\s*', "`n")
+  $t = $t -replace '\\left\.?', '' -replace '\\right\.?', ''
+  $t = [regex]::Replace($t, '\\([a-zA-Z]+)', '$1')
+  $t = [regex]::Replace($t, '(?m)^---+$', '────────')
+  $t = [regex]::Replace($t, '(?m)^\*\s+', '')
+  $t = [regex]::Replace($t, '(?m)^-\s+', '')
+  $t = [regex]::Replace($t, '\n{3,}', "`n`n")
+  return $t.Trim()
+}
+
 function Apply-GeminiReplyToForm([string]$text) {
+  $text = Format-TextbookPractice $text
   $txtDiagnosis.Text = $text
   $txtSummary.Text = '（Gemini 自動批閱完成，詳見診斷欄／輸出資料夾）'
-  if ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
+  if ($text -match '(?s)【題號】\s*([\s\S]*?)(?=【|$)') {
+    $txtItems.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  } elseif ($text -match '(?m)^1\)[\s\S]*?(?=^2\)|\z)') {
     $txtItems.Text = $Matches[0].Trim()
   } elseif ($text -match '(?m)(^\d+\s*[✓✗?xX].*)$') {
     # keep default if no clear list
   }
-  if ($text -match '程度[：:\s]*(跟上|略落後|明顯落後|需補先備|待判定)') {
+  if ($text -match '(?s)【摘要】\s*([\s\S]*?)(?=【|$)') {
+    $txtSummary.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  }
+  if ($text -match '(?s)【診斷】\s*([\s\S]*?)(?=【|$)') {
+    $txtDiagnosis.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  }
+  if ($text -match '(?:【程度】|程度[：:\s]*)(跟上|略落後|明顯落後|需補先備|待判定)') {
     $lv = $Matches[1]
     $idx = $cmbLevel.Items.IndexOf($lv)
     if ($idx -ge 0) { $cmbLevel.SelectedIndex = $idx }
@@ -694,11 +759,108 @@ function Apply-GeminiReplyToForm([string]$text) {
     $idx2 = $cmbLevel.Items.IndexOf('跟上')
     if ($idx2 -ge 0) { $cmbLevel.SelectedIndex = $idx2 }
   }
-  if ($text -match '(?s)6\)[\s\S]*') {
-    $txtPractice.Text = $Matches[0].Trim()
+  if ($text -match '(?s)【自學練習】\s*([\s\S]*)') {
+    $txtPractice.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  } elseif ($text -match '(?s)6\)[\s\S]*') {
+    $txtPractice.Text = (Format-TextbookPractice $Matches[0]).Trim()
   }
-  if ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
+  if ($text -match '(?s)【建議】\s*([\s\S]*?)(?=【自學練習】|$)') {
+    $txtAdvice.Text = (Format-TextbookPractice $Matches[1]).Trim()
+  } else  if ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
     $txtAdvice.Text = $Matches[1].Trim()
+  }
+}
+
+function Get-WebPasteMeta([string]$Site) {
+  if ($Site -eq 'chatgpt') {
+    return @{ Label = 'ChatGPT 免費版'; Url = 'https://chatgpt.com/' }
+  }
+  return @{ Label = 'ChatPlayground AI'; Url = 'https://web.chatplayground.ai/' }
+}
+
+function Start-WebPasteAuto {
+  param([string]$Site = 'chatplayground')
+  if (-not $script:current) {
+    [void][System.Windows.Forms.MessageBox]::Show('請先選左側一位學生', '提示')
+    return
+  }
+  $script:WebPasteSite = $Site
+  $meta = Get-WebPasteMeta $Site
+  $sid = Get-StudentId $script:current.Name
+  $p = Build-CursorPromptOne $script:WorkDir $script:current
+  $header = @(
+    "【$($meta.Label) 自動批閱｜座號 $sid】"
+    '（網頁版不會自己寫回程式；批完要把回覆貼到下方框再按「套用貼上回覆」）'
+    '1. 提示已複製 → 到剛開的網頁按 Ctrl+V'
+    '2. 上傳試卷（已開啟學生檔；有答案也請一併上傳）'
+    '3. 把 AI 整段回覆貼回程式 → 按「套用貼上回覆」'
+    ''
+  ) -join "`r`n"
+  $full = $header + $p
+  [System.Windows.Forms.Clipboard]::SetText($full)
+  try {
+    $outDir = Join-Path $script:WorkDir '輸出'
+    New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+    $tag = if ($Site -eq 'chatgpt') { 'ChatGPT提示' } else { 'ChatPlayground提示' }
+    $utf8 = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllText((Join-Path $outDir ($sid + '-' + $tag + '.txt')), $full, $utf8)
+  } catch {}
+  Start-Process -FilePath $script:current.FullName
+  foreach ($a in @(Get-AnswerFiles $script:WorkDir)) { Start-Process -FilePath $a.FullName }
+  try { Start-Process $meta.Url } catch {}
+  $txtPasteReply.Focus()
+  $status.Text = "已複製提示並開 $($meta.Label)｜座號 $sid｜貼回覆後按「套用貼上回覆」"
+}
+
+function Apply-WebPasteReply {
+  if (-not $script:current) {
+    [void][System.Windows.Forms.MessageBox]::Show('請先選左側一位學生', '提示')
+    return
+  }
+  $text = [string]$txtPasteReply.Text
+  if ([string]::IsNullOrWhiteSpace($text)) {
+    [void][System.Windows.Forms.MessageBox]::Show(
+      "請先把 ChatPlayground／ChatGPT 的整段回覆貼到「貼上回覆」框。`n`n只按自動批、沒貼回覆，左側仍會顯示〔未批〕。",
+      '貼上自動批閱'
+    )
+    $txtPasteReply.Focus()
+    return
+  }
+  $meta = Get-WebPasteMeta $script:WebPasteSite
+  Apply-GeminiReplyToForm $text
+  if ($cmbOverall.SelectedIndex -eq 0) { $cmbOverall.SelectedIndex = 1 }
+  $txtSummary.Text = ('（{0} 批閱完成；可按「輸出此生PDF」）' -f $meta.Label)
+  $sid = Get-StudentId $script:current.Name
+  try {
+    $outDir = Join-Path $script:WorkDir '輸出'
+    $utf8 = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllText((Join-Path $outDir ($sid + '-' + $script:WebPasteSite + '回覆.md')), (Format-TextbookPractice $text), $utf8)
+  } catch {}
+  [void](Save-Current)
+  $txtPasteReply.Clear()
+  $status.Text = "座號 $sid 已套用 $($meta.Label) 回覆"
+  if ($script:CpQueue -and $script:CpQueue.Count -gt 0) {
+    $nextId = [string]$script:CpQueue[0]
+    if ($script:CpQueue.Count -gt 1) {
+      $script:CpQueue = @($script:CpQueue[1..($script:CpQueue.Count - 1)])
+    } else {
+      $script:CpQueue = @()
+    }
+    for ($i = 0; $i -lt $script:files.Count; $i++) {
+      if ((Get-StudentId $script:files[$i].Name) -eq $nextId) {
+        $list.SelectedIndex = $i
+        Load-Selected
+        break
+      }
+    }
+    if ($script:current) {
+      $remain = $script:CpQueue.Count
+      [void][System.Windows.Forms.MessageBox]::Show(
+        ("座號 $sid 已批完。`n接著座號 $nextId（尚餘 $remain 位）。"),
+        '連續 ChatPlayground 批'
+      )
+      Start-WebPasteAuto -Site $script:WebPasteSite
+    }
   }
 }
 
@@ -1228,13 +1390,14 @@ function Build-ReturnCursorPrompt([string]$root, [string]$sid, $returnFile, [int
     [void]$sb.AppendLine('目標：針對問題點給適切回饋並自動產下一輪練習；略落後建議本單元 ≤ 3 輪。')
   }
   [void]$sb.AppendLine('')
-  [void]$sb.AppendLine('請輸出可直接貼回批改程式的欄位：')
-  [void]$sb.AppendLine('1) 分數：得分/滿分')
-  [void]$sb.AppendLine('2) 問題點')
-  [void]$sb.AppendLine('3) 回饋說明（先成就再下一步）')
-  [void]$sb.AppendLine('4) 是否達標：是／否')
-  [void]$sb.AppendLine('5) 下一次練習全文：須含「自學指導」「建議影片／學習連結」「練習題」「解答」（題目與解答分段）')
-  [void]$sb.AppendLine('6) 分數進步一句話＋本次成就一句話')
+  [void]$sb.AppendLine('請輸出可直接貼回批改程式的欄位（之後所有輸出皆比照國中課本形式；禁止 ####、**粗體**、LaTeX）：')
+  [void]$sb.AppendLine('【回傳批閱｜座號 ' + $sid + '】')
+  [void]$sb.AppendLine('【分數】得分/滿分')
+  [void]$sb.AppendLine('【問題點】…')
+  [void]$sb.AppendLine('【回饋】先成就再下一步')
+  [void]$sb.AppendLine('【是否達標】是／否')
+  [void]$sb.AppendLine('【自學練習】一、先看這裡 → 二、影片 → 三、練習 → ──────── → 四、解答；聯立用兩行 { ；分數寫 a/b；解答結尾「答：」')
+  [void]$sb.AppendLine('【進步】分數進步一句＋本次成就一句')
   [void]$sb.AppendLine('影片規則：優先給可點的 YouTube 搜尋結果連結；若有把握再給具體影片 URL；禁止捏造不存在的影片網址。')
   [void]$sb.AppendLine('')
   [void]$sb.AppendLine('座號：' + $sid)
@@ -1365,23 +1528,52 @@ function Show-PracticeLoopDialog {
   $txtNext.Size = New-Object System.Drawing.Size(600, 150)
   if ($behind) {
     $txtNext.Text = @"
-#### 練習題（本次補齊｜≤3題｜先延續成就）
-【成就延續】剛做對的類型再穩一次
-1. …
+【自學練習｜本次補齊】
 
-【下一次要補的一小點】（只難一點點；會做就停）
-2. …
-3. （選做）
+一、先看這裡
+今天只要會：________
+跟著做：
+1. ……
+2. ……
 
----
-#### 解答（全部題目完成後再看）
-1. …
-2. …
-3. …
-備註：未補完的洞下次再補＝多次補齊；中間可隔日，不要連催。
+二、影片
+關鍵詞：________
+https://www.youtube.com/results?search_query=________
+
+三、練習（≤3 題，先做完再看解答）
+1. （成就延續）……
+2. （下一小點）……
+3. （選做）……
+
+────────
+四、解答（做完再看）
+1. ……
+答：……
+2. ……
+答：……
+3. ……
+答：……
+未補完的洞下次再補；中間可隔日。
 "@
   } else {
-    $txtNext.Text = "#### 練習題（先做完再看解答）`r`n1. …`r`n`r`n---`r`n#### 解答（全部題目完成後再看）`r`n1. …"
+    $txtNext.Text = @"
+【自學練習】
+
+一、先看這裡
+……
+
+二、影片
+關鍵詞：……
+https://www.youtube.com/results?search_query=……
+
+三、練習（先做完再看解答）
+1. ……
+
+────────
+四、解答（做完再看）
+1. ……
+答：……
+"@
   }
   $dlg.Controls.Add($txtNext)
 
@@ -1494,7 +1686,8 @@ function Build-CursorPrompt([string]$root) {
   $sb = New-Object System.Text.StringBuilder
   [void]$sb.AppendLine('請初核下列數學習作（加速人工打勾；非最終成績）。')
   [void]$sb.AppendLine('規則：有標準答案時以答案為準；接受其他合理等價解法；潦草／不確定標「存疑」。')
-  [void]$sb.AppendLine('每位學生輸出一份註記：題號註記、對錯摘要、診斷、程度、建議、自學練習（含自學指導＋建議影片＋練習題＋解答）。')
+  [void]$sb.AppendLine('每位學生輸出一份國中課本形式註記：【題號】【摘要】【診斷】【程度】【建議】【自學練習】（一、先看這裡→二、影片→三、練習→四、解答）。')
+  [void]$sb.AppendLine('禁止 ####、**粗體**、LaTeX；聯立用兩行 { ；分數寫 a/b；解答結尾「答：」。之後所有輸出皆比照。')
   [void]$sb.AppendLine('不要用均一指派；請直接自動產生練習題、指導步驟、合適網路教學影片連結或 YouTube 搜尋頁。')
   [void]$sb.AppendLine('跟上者：少鞏固、多再提升挑戰；好的學生要能再進步。')
   [void]$sb.AppendLine('')
@@ -1536,21 +1729,24 @@ function Build-CursorPromptOne([string]$root, $studentFile, [switch]$Handwriting
     }
     [void]$sb.AppendLine('若字跡潦草：寧可多標 ?，不要猜錯；可先給看得懂題目的診斷與練習。')
   }
-  [void]$sb.AppendLine('請務必輸出：')
+  [void]$sb.AppendLine('請務必整份輸出「國中課本形式」（之後所有段落皆比照；禁止 ####、**粗體**、a.b.c.d、LaTeX）：')
   if ($HandwritingHard) {
-    [void]$sb.AppendLine('0) 手寫轉譯稿（純文字式子＋【?】）')
-    [void]$sb.AppendLine('0b) 老師認知輸入清單（題號／位置／候選字）')
+    [void]$sb.AppendLine('【手寫轉譯】純文字式子＋【?】')
+    [void]$sb.AppendLine('【認知清單】題號／位置／候選字')
   }
-  [void]$sb.AppendLine('1) 題號註記（✓／✗／?；? 要附原因）')
-  [void]$sb.AppendLine('2) 對錯摘要（分開：已確認／仍存疑）')
-  [void]$sb.AppendLine('3) 個別診斷結果（弱點類型、是否跟得上進度；存疑多則待判定）')
-  [void]$sb.AppendLine('4) 程度分級：跟上／略落後／明顯落後／需補先備／待判定')
-  [void]$sb.AppendLine('5) 個別建議（短）')
-  [void]$sb.AppendLine('6) 依程度自學練習（請一次寫完整，我會存成數位練習給學生）：')
-  [void]$sb.AppendLine('   a. 自學指導：短步驟／口訣／易錯提醒')
-  [void]$sb.AppendLine('   b. 建議影片／學習連結：給 1～2 個；優先 https://www.youtube.com/results?search_query=編碼後關鍵詞 ；有把握才給具體影片 URL；禁止捏造網址')
-  [void]$sb.AppendLine('   c. 練習題（先全部列出）')
-  [void]$sb.AppendLine('   d. 解答（全部放在題目之後另段）')
+  [void]$sb.AppendLine('【批閱結果｜座號 ' + $id + '】')
+  [void]$sb.AppendLine('【題號】1 ✓｜2 ✗ …（? 要附原因）')
+  [void]$sb.AppendLine('【摘要】已確認：…／仍存疑：…')
+  [void]$sb.AppendLine('【診斷】弱點類型、是否跟上；2～4 句')
+  [void]$sb.AppendLine('【程度】跟上／略落後／明顯落後／需補先備／待判定')
+  [void]$sb.AppendLine('【建議】短')
+  [void]$sb.AppendLine('【自學練習】')
+  [void]$sb.AppendLine('一、先看這裡（口訣／注意，各 ≤3 點）')
+  [void]$sb.AppendLine('二、影片（關鍵詞＋ YouTube 搜尋連結一行；禁止捏造網址）')
+  [void]$sb.AppendLine('三、練習（先做完再看解答）')
+  [void]$sb.AppendLine('────────')
+  [void]$sb.AppendLine('四、解答（做完再看；結尾答：）')
+  [void]$sb.AppendLine('聯立方程式寫成兩行，前面加 { ；分數寫 31/13。')
   [void]$sb.AppendLine('   - 跟上：少鞏固、多靈活＋再提升挑戰；禁止只改數字。')
   [void]$sb.AppendLine('   - 略落後：對應錯題，少而精。')
   [void]$sb.AppendLine('   - 明顯落後／需補先備：多次補齊（每次 1 點、≤3 題），先有成就再漸次跟上。')
@@ -1582,14 +1778,14 @@ $font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 12)
 $fontBig = New-Object System.Drawing.Font('Microsoft JhengHei UI', 15, [System.Drawing.FontStyle]::Bold)
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = '數學習作批改（Gemini 自動批｜對照答案或直接 AI｜一人一檔）'
-$form.Size = New-Object System.Drawing.Size(1060, 780)
+$form.Text = ('數學習作批改（ChatPlayground 預設｜Gemini 選用｜一人一檔） [{0}]' -f $script:AppBuild)
+$form.Size = New-Object System.Drawing.Size(1060, 820)
 $form.StartPosition = 'CenterScreen'
 $form.Font = $font
 $form.BackColor = [System.Drawing.Color]::FromArgb(245, 248, 244)
 
 $lbl = New-Object System.Windows.Forms.Label
-$lbl.Text = 'Gemini 自動批：有正確答案就對照；沒有就直接 AI 批（都自動處理）'
+$lbl.Text = '預設 ChatPlayground AI（終身 Unlimited）：選學生 → ChatPlayground批 → 貼回覆 → 套用。Gemini 金鑰僅選用。'
 $lbl.Font = $fontBig
 $lbl.ForeColor = [System.Drawing.Color]::FromArgb(20, 70, 50)
 $lbl.Location = New-Object System.Drawing.Point(16, 10)
@@ -1811,12 +2007,14 @@ $txtPractice.Text = '（先寫全部練習題；解答另段「解答」，做�
 $grp.Controls.Add($txtPractice)
 
 $status = New-Object System.Windows.Forms.Label
-$status.Location = New-Object System.Drawing.Point(16, 648)
-$status.Size = New-Object System.Drawing.Size(950, 40)
-$status.Text = '可載入正確答案（對照批）或直接按 Gemini 自動批（預設）'
+$status.Location = New-Object System.Drawing.Point(240, 552)
+$status.Size = New-Object System.Drawing.Size(720, 28)
+$status.Text = '選學生 → ChatPlayground批 → 網頁貼提示 → 回覆貼下方 → 套用貼上回覆'
 
 $script:files = @()
 $script:current = $null
+$script:WebPasteSite = 'chatplayground'
+$script:CpQueue = @()
 # 連續自動批：成功後不跳確認窗，直接下一位
 $script:SilentAutoContinue = $false
 $script:AutoBatchDone = 0
@@ -2194,6 +2392,29 @@ function Select-NextUngraded {
 }
 
 $y1 = 520
+$grpPaste = New-Object System.Windows.Forms.GroupBox
+$grpPaste.Text = '③ 貼上自動批閱（ChatPlayground／ChatGPT 回覆）'
+$grpPaste.Location = New-Object System.Drawing.Point(16, 586)
+$grpPaste.Size = New-Object System.Drawing.Size(950, 72)
+
+$txtPasteReply = New-Object System.Windows.Forms.TextBox
+$txtPasteReply.Multiline = $true
+$txtPasteReply.ScrollBars = 'Vertical'
+$txtPasteReply.Location = New-Object System.Drawing.Point(12, 22)
+$txtPasteReply.Size = New-Object System.Drawing.Size(720, 40)
+$txtPasteReply.Font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 10)
+$grpPaste.Controls.Add($txtPasteReply)
+
+$btnApplyPaste = New-Object System.Windows.Forms.Button
+$btnApplyPaste.Text = '套用貼上回覆'
+$btnApplyPaste.Location = New-Object System.Drawing.Point(744, 22)
+$btnApplyPaste.Size = New-Object System.Drawing.Size(190, 40)
+$btnApplyPaste.BackColor = [System.Drawing.Color]::FromArgb(30, 100, 70)
+$btnApplyPaste.ForeColor = [System.Drawing.Color]::White
+$btnApplyPaste.FlatStyle = 'Flat'
+$btnApplyPaste.Add_Click({ Apply-WebPasteReply })
+$grpPaste.Controls.Add($btnApplyPaste)
+
 $btnWork = New-Object System.Windows.Forms.Button
 $btnWork.Text = '選工作資料夾'
 $btnWork.Location = New-Object System.Drawing.Point(16, $y1)
@@ -2238,10 +2459,25 @@ $btnOpenOut.Location = New-Object System.Drawing.Point(256, $y1)
 $btnOpenOut.Size = New-Object System.Drawing.Size(90, 36)
 $btnOpenOut.Add_Click({ Start-Process explorer.exe (Join-Path $script:WorkDir '輸出') })
 
+$btnCpAuto = New-Object System.Windows.Forms.Button
+$btnCpAuto.Text = 'ChatPlayground批'
+$btnCpAuto.Location = New-Object System.Drawing.Point(356, $y1)
+$btnCpAuto.Size = New-Object System.Drawing.Size(140, 36)
+$btnCpAuto.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnCpAuto.ForeColor = [System.Drawing.Color]::White
+$btnCpAuto.FlatStyle = 'Flat'
+$btnCpAuto.Add_Click({ Start-WebPasteAuto -Site 'chatplayground' })
+
+$btnGptAuto = New-Object System.Windows.Forms.Button
+$btnGptAuto.Text = 'ChatGPT批'
+$btnGptAuto.Location = New-Object System.Drawing.Point(506, $y1)
+$btnGptAuto.Size = New-Object System.Drawing.Size(100, 36)
+$btnGptAuto.Add_Click({ Start-WebPasteAuto -Site 'chatgpt' })
+
 $btnGrade = New-Object System.Windows.Forms.Button
 $btnGrade.Text = 'Gemini自動批'
-$btnGrade.Location = New-Object System.Drawing.Point(356, $y1)
-$btnGrade.Size = New-Object System.Drawing.Size(120, 36)
+$btnGrade.Location = New-Object System.Drawing.Point(616, $y1)
+$btnGrade.Size = New-Object System.Drawing.Size(110, 36)
 $btnGrade.BackColor = [System.Drawing.Color]::FromArgb(40, 90, 140)
 $btnGrade.ForeColor = [System.Drawing.Color]::White
 $btnGrade.FlatStyle = 'Flat'
@@ -2255,8 +2491,8 @@ $btnGrade.Add_Click({
 
 $btnSave = New-Object System.Windows.Forms.Button
 $btnSave.Text = '輸出此生PDF'
-$btnSave.Location = New-Object System.Drawing.Point(486, $y1)
-$btnSave.Size = New-Object System.Drawing.Size(130, 36)
+$btnSave.Location = New-Object System.Drawing.Point(736, $y1)
+$btnSave.Size = New-Object System.Drawing.Size(120, 36)
 $btnSave.BackColor = [System.Drawing.Color]::FromArgb(30, 100, 70)
 $btnSave.ForeColor = [System.Drawing.Color]::White
 $btnSave.FlatStyle = 'Flat'
@@ -2264,65 +2500,61 @@ $btnSave.Add_Click({ [void](Save-Current) })
 
 $btnNext = New-Object System.Windows.Forms.Button
 $btnNext.Text = '下一位未批'
-$btnNext.Location = New-Object System.Drawing.Point(626, $y1)
+$btnNext.Location = New-Object System.Drawing.Point(866, $y1)
 $btnNext.Size = New-Object System.Drawing.Size(100, 36)
 $btnNext.Add_Click({ Select-NextUngraded })
 
 $btnAutoAll = New-Object System.Windows.Forms.Button
-$btnAutoAll.Text = '連續自動批'
-$btnAutoAll.Location = New-Object System.Drawing.Point(736, $y1)
-$btnAutoAll.Size = New-Object System.Drawing.Size(110, 36)
-$btnAutoAll.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
-$btnAutoAll.ForeColor = [System.Drawing.Color]::White
-$btnAutoAll.FlatStyle = 'Flat'
+$btnAutoAll.Text = '連續CP批'
+$btnAutoAll.Location = New-Object System.Drawing.Point(0, 0)
+$btnAutoAll.Size = New-Object System.Drawing.Size(0, 0)
+$btnAutoAll.Visible = $false
 $btnAutoAll.Add_Click({
-  # Gemini API 連續自動批：有答案就對照，沒有就直接 AI
-  $cmbMode.SelectedIndex = 3
-  [void](Ensure-AnswerOrWarn -OfferForAuto)
-  $key = Get-GeminiApiKey $script:WorkDir
-  if ([string]::IsNullOrWhiteSpace($key)) {
-    $askKey = [System.Windows.Forms.MessageBox]::Show(
-      "連續自動批需要 Gemini API 金鑰。`n`n現在設定嗎？",
-      '需要 Gemini 金鑰',
-      [System.Windows.Forms.MessageBoxButtons]::YesNo
-    )
-    if ($askKey -ne 'Yes') { return }
-    if (-not (Show-GeminiKeyDialog)) { return }
+  $script:CpQueue = @()
+  Refresh-List
+  foreach ($f in $script:files) {
+    $id = Get-StudentId $f.Name
+    $note = Get-NotePath $script:WorkDir $id
+    if (-not (Test-Path -LiteralPath $note)) { $script:CpQueue += $id }
   }
-  # 若目前這份已有註記，跳到下一位未批
-  if ($script:current) {
-    $curId = Get-StudentId $script:current.Name
-    $curNote = Get-NotePath $script:WorkDir $curId
-    if (Test-Path -LiteralPath $curNote) { [void](Select-NextUngraded -Quiet) }
-  } else {
-    [void](Select-NextUngraded -Quiet)
-  }
-  if (-not $script:current) {
+  if ($script:CpQueue.Count -eq 0) {
     [void][System.Windows.Forms.MessageBox]::Show('沒有未批學生（請把試卷放入「輸入」夾）。', '提示')
     return
   }
-  $ansN = @(Get-AnswerFiles $script:WorkDir).Count
-  $modeHint = if ($ansN -gt 0) { "有正確答案 $ansN 檔 → 對照批" } else { '無正確答案 → 直接 AI 批' }
+  $first = [string]$script:CpQueue[0]
+  for ($i = 0; $i -lt $script:files.Count; $i++) {
+    if ((Get-StudentId $script:files[$i].Name) -eq $first) {
+      $list.SelectedIndex = $i
+      Load-Selected
+      break
+    }
+  }
+  $script:WebPasteSite = 'chatplayground'
   $confirm = [System.Windows.Forms.MessageBox]::Show(
-    ("將用 Gemini 連續自動批所有未批學生。`n$modeHint`n`n每份成功會自動存註記／PDF，再處理下一位。`n中途失敗會停下。`n`n開始？"),
-    '連續自動批',
-    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-    [System.Windows.Forms.MessageBoxIcon]::Question
+    ("將用 ChatPlayground 連續批 $($script:CpQueue.Count) 位。`n每位：開站 → 你貼回覆 → 套用 → 自動跳下一位。`n`n開始？"),
+    '連續 ChatPlayground 批',
+    [System.Windows.Forms.MessageBoxButtons]::YesNo
   )
-  if ($confirm -ne 'Yes') { return }
-  $script:SilentAutoContinue = $true
-  $script:AutoBatchDone = 0
-  $status.Text = "連續自動批開始｜Gemini｜$modeHint"
-  Start-GradeCurrent
+  if ($confirm -ne 'Yes') { $script:CpQueue = @(); return }
+  Start-WebPasteAuto -Site 'chatplayground'
 })
+
+$btnCpBatch = New-Object System.Windows.Forms.Button
+$btnCpBatch.Text = '連續CP批'
+$btnCpBatch.Location = New-Object System.Drawing.Point(16, 552)
+$btnCpBatch.Size = New-Object System.Drawing.Size(110, 28)
+$btnCpBatch.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnCpBatch.ForeColor = [System.Drawing.Color]::White
+$btnCpBatch.FlatStyle = 'Flat'
+$btnCpBatch.Add_Click({ $btnAutoAll.PerformClick() })
 
 $btnRefresh = New-Object System.Windows.Forms.Button
 $btnRefresh.Text = '重新整理'
-$btnRefresh.Location = New-Object System.Drawing.Point(856, $y1)
-$btnRefresh.Size = New-Object System.Drawing.Size(90, 36)
+$btnRefresh.Location = New-Object System.Drawing.Point(136, 552)
+$btnRefresh.Size = New-Object System.Drawing.Size(90, 28)
 $btnRefresh.Add_Click({ Refresh-List; Refresh-AnswerLabel })
 
-$y2 = 566
+$y2 = 686
 $btnCsv = New-Object System.Windows.Forms.Button
 $btnCsv.Text = '全班學習總表'
 $btnCsv.Location = New-Object System.Drawing.Point(16, $y2)
@@ -2377,7 +2609,7 @@ $btnOpenCog.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '重謄補充')
   })
 
-$y3 = 600
+$y3 = 720
 $btnDigital = New-Object System.Windows.Forms.Button
 $btnDigital.Text = '數位練習包（手機）'
 $btnDigital.Location = New-Object System.Drawing.Point(16, $y3)
@@ -2458,7 +2690,7 @@ $btnOpenDigital.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '列印專用')
   })
 
-$y4 = 640
+$y4 = 758
 $btnTools = New-Object System.Windows.Forms.Button
 $btnTools.Text = '工具選擇（LINE群／個別…）'
 $btnTools.Location = New-Object System.Drawing.Point(16, $y4)
@@ -2528,13 +2760,14 @@ $btnTablet.ForeColor = [System.Drawing.Color]::White
 $btnTablet.FlatStyle = 'Flat'
 $btnTablet.Add_Click({ Show-TabletImportAndGrade })
 
-$form.Size = New-Object System.Drawing.Size(1000, 820)
-$status.Location = New-Object System.Drawing.Point(16, 688)
-$status.Size = New-Object System.Drawing.Size(950, 40)
+$form.Size = New-Object System.Drawing.Size(1060, 840)
+$status.Location = New-Object System.Drawing.Point(240, 552)
+$status.Size = New-Object System.Drawing.Size(720, 28)
 
 $form.Controls.AddRange(@(
-    $lbl, $grpStart, $lblPath, $list, $grp, $status,
-    $btnWork, $btnOpenIn, $btnOpenOut, $btnGrade, $btnSave, $btnNext, $btnAutoAll, $btnRefresh,
+    $lbl, $grpStart, $lblPath, $list, $grp, $grpPaste, $status,
+    $btnWork, $btnOpenIn, $btnOpenOut, $btnCpAuto, $btnGptAuto, $btnGrade, $btnSave, $btnNext,
+    $btnAutoAll, $btnCpBatch, $btnRefresh,
     $btnCsv, $btnUnclear, $btnClarify, $btnOpenCog,
     $btnDigital, $btnCopyLine, $btnPrintPack, $btnOpenDigital,
     $btnTools, $btnLoop, $btnRetFolder, $btnJunyi, $btnTablet

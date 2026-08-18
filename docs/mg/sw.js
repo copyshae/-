@@ -1,4 +1,4 @@
-const CACHE = "math-grader-mg-v4";
+const CACHE = "math-grader-v36";
 const ASSETS = ["./", "./index.html", "./share.html", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 const DB_NAME = "math-grader-scans";
 const DB_STORE = "inbox";
@@ -30,8 +30,11 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
-  self.clients.claim();
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(function () {
+      return self.clients.claim();
+    })
+  );
 });
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
@@ -61,14 +64,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (event.request.method !== "GET") return;
+  // 網路優先：避免一直卡在舊版畫面
   event.respondWith(
-    caches.match(event.request).then((hit) => {
-      const net = fetch(event.request).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(event.request, copy));
-        return res;
-      }).catch(() => hit);
-      return hit || net;
-    })
+    fetch(event.request).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(event.request, copy));
+      return res;
+    }).catch(() => caches.match(event.request).then((hit) => hit || Response.error()))
   );
 });
