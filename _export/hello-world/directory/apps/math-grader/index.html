@@ -242,6 +242,7 @@
         <button type="button" class="btn secondary" id="btnImportProgress">匯入批改進度（覆蓋）</button>
         <input class="hidden-file" id="fileProgress" type="file" accept="application/json,.json" />
       </div>
+      <p class="tips" style="margin-top:0.65rem">兩台電腦＋手機：<strong>匯出批改進度</strong> 存成 <code>習作批改進度.json</code>，放到 OneDrive／Google 雲端，在另一台按「匯入」。習作台程度請在習作台匯出 <code>班級狀態.json</code> 或「匯入批改進度」。同一台瀏覽器才可用習作台「本機：從習作批改同步」。</p>
     </section>
 
     <section id="afterGrade">
@@ -2100,7 +2101,7 @@
         a.download = "習作批改進度.json";
         a.click();
         URL.revokeObjectURL(a.href);
-        toast("已匯出進度（可在另一網址匯入）");
+        toast("已匯出進度，可放 OneDrive 後在另一台匯入");
       });
       document.getElementById("btnImportProgress").addEventListener("click", function () {
         document.getElementById("fileProgress").click();

@@ -250,19 +250,26 @@
     </section>
 
     <section>
-      <h2>同步更新</h2>
-      <p class="tips">習作批改與習作台資料分開存放。若已在「習作批改」批完，按下方可把程度（與批改備註）同步過來。</p>
+      <h2>兩台電腦＋手機同步</h2>
+      <p class="tips">沒有自動雲端。請用 <strong>OneDrive／Google 雲端</strong> 放兩個 JSON，或同一台瀏覽器才用「本機同步」。</p>
+      <ul class="tips" style="margin:0.4rem 0 0.8rem 1.1rem">
+        <li>習作批改：匯出 <code>習作批改進度.json</code> → 另一台手機／電腦「匯入」</li>
+        <li>習作台：匯出 <code>班級狀態.json</code> → 另一台「匯入班級資料」</li>
+        <li>電腦↔電腦：桌面 <code>MathGrading</code>、<code>習作台資料</code> 整夾放 OneDrive 同步</li>
+      </ul>
       <div class="actions">
-        <button type="button" class="btn" id="btnSyncGrader">從習作批改同步程度</button>
+        <button type="button" class="btn" id="btnSyncGrader">本機：從習作批改同步</button>
+        <button type="button" class="btn" id="btnImportGrader">匯入批改進度.json</button>
         <button type="button" class="btn secondary" id="btnExport">匯出班級資料</button>
         <button type="button" class="btn secondary" id="btnImport">匯入班級資料（覆蓋）</button>
         <input class="hidden-file" id="fileImport" type="file" accept="application/json,.json" />
+        <input class="hidden-file" id="fileGrader" type="file" accept="application/json,.json" />
       </div>
     </section>
 
     <p class="nav">
       <a href="../math-grader/">習作批改</a> ·
-      本頁與習作批改共用同一預覽網址較易同步程度
+      <a href="../../apps/desktop-install.html">兩台電腦安裝</a>
     </p>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -553,33 +560,8 @@
         toast("已發 → 待回");
       });
 
-      document.getElementById("btnExport").addEventListener("click", function () {
-        persistHeader();
-        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "班級狀態.json";
-        a.click();
-        URL.revokeObjectURL(a.href);
-        toast("已匯出，可傳到電腦習作台匯入");
-      });
-
-      document.getElementById("btnSyncGrader").addEventListener("click", function () {
-        var raw = null;
-        try { raw = localStorage.getItem("math-grader-v1"); } catch (e) {}
-        if (!raw) {
-          toast("找不到習作批改資料。請先用同一個預覽網址打開「習作批改」並批過");
-          return;
-        }
-        var g = null;
-        try { g = JSON.parse(raw); } catch (e) {
-          toast("習作批改資料讀取失敗");
-          return;
-        }
-        if (!g || !g.seats) {
-          toast("習作批改尚無座號資料");
-          return;
-        }
+      function mergeGraderIntoDesk(g) {
+        if (!g || !g.seats) return -1;
         persistHeader();
         var n = 0;
         Object.keys(g.seats).forEach(function (id) {
@@ -613,7 +595,63 @@
         syncForm();
         renderGrid();
         fillSeatSelect();
+        return n;
+      }
+
+      document.getElementById("btnExport").addEventListener("click", function () {
+        persistHeader();
+        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "班級狀態.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("已匯出，可傳到 OneDrive／另一台匯入");
+      });
+
+      document.getElementById("btnSyncGrader").addEventListener("click", function () {
+        var raw = null;
+        try { raw = localStorage.getItem("math-grader-v1"); } catch (e) {}
+        if (!raw) {
+          toast("找不到習作批改資料。請先用同一個網址打開「習作批改」並批過，或改匯入 JSON");
+          return;
+        }
+        var g = null;
+        try { g = JSON.parse(raw); } catch (e) {
+          toast("習作批改資料讀取失敗");
+          return;
+        }
+        var n = mergeGraderIntoDesk(g);
+        if (n < 0) {
+          toast("習作批改尚無座號資料");
+          return;
+        }
         toast(n ? ("已同步 " + n + " 個座號程度") : "沒有可同步的程度（請先在習作批改完成自動批）");
+      });
+
+      document.getElementById("btnImportGrader").addEventListener("click", function () {
+        document.getElementById("fileGrader").click();
+      });
+
+      document.getElementById("fileGrader").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var g = JSON.parse(reader.result);
+            var n = mergeGraderIntoDesk(g);
+            if (n < 0) {
+              toast("檔案不是有效的批改進度");
+              return;
+            }
+            toast(n ? ("已從檔案同步 " + n + " 個座號程度") : "檔案裡沒有可同步的程度");
+          } catch (err) {
+            toast("匯入批改進度失敗");
+          }
+        };
+        reader.readAsText(f);
       });
 
       document.getElementById("btnImport").addEventListener("click", function () {

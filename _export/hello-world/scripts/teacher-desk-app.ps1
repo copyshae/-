@@ -148,6 +148,58 @@ try {
     return $st
   }
 
+  function Merge-GraderIntoDesk($grader) {
+    if (-not $grader -or -not $grader.seats) { return 0 }
+    Persist-Header
+    $n = 0
+    foreach ($prop in $grader.seats.PSObject.Properties) {
+      $id = [string]$prop.Name
+      $src = $prop.Value
+      if (-not $src) { continue }
+      if (-not $script:State.seats.ContainsKey($id)) {
+        $num = 0
+        if ($id -eq '00' -or ([int]::TryParse($id, [ref]$num) -and $num -ge 1 -and $num -le $script:State.seatCount)) {
+          $script:State.seats[$id] = @{ level = '未標'; send = '未發'; note = $(if ($id -eq '00') { '試發' } else { '' }) }
+        } else { continue }
+      }
+      $lv = [string]$src.level
+      if ($lv -and $lv -ne '未標') {
+        $script:State.seats[$id].level = $lv
+        $n++
+      }
+      $st = [string]$src.status
+      if ($st -in @('已批', '待認知', '待重謄')) {
+        $bits = @()
+        if ($src.note) {
+          $noteStr = [string]$src.note
+          if ($noteStr.Length -gt 24) { $noteStr = $noteStr.Substring(0, 24) }
+          $bits += $noteStr
+        }
+        if ($src.lastModel) {
+          $mStr = [string]$src.lastModel
+          if ($mStr.Length -gt 16) { $mStr = $mStr.Substring(0, 16) }
+          $bits += $mStr
+        }
+        if ($st -eq '待認知') { $bits += '待認知' }
+        if ($bits.Count -gt 0) {
+          $joined = $bits -join '｜'
+          if ($joined.Length -gt 80) { $joined = $joined.Substring(0, 80) }
+          $script:State.seats[$id].note = $joined
+        }
+      }
+      if ($st -eq '待認知' -and (-not $script:State.seats[$id].level -or $script:State.seats[$id].level -eq '未標')) {
+        $script:State.seats[$id].level = '待判定'
+      }
+    }
+    if ($grader.classLabel) { $script:State.classLabel = [string]$grader.classLabel }
+    if ($grader.seatCount) { $script:State.seatCount = [int]$grader.seatCount }
+    $script:State = Ensure-State $script:State
+    Save-StateFile $script:State $script:StatePath
+    Sync-FormFromState
+    Refresh-Grid
+    return $n
+  }
+
   function Save-StateFile($st, $path) {
     $obj = [ordered]@{
       classLabel    = $st.classLabel
@@ -461,21 +513,30 @@ try {
   $btnImport.Size = New-Object System.Drawing.Size(170, 30)
   $right.Controls.Add($btnImport)
 
+  $btnSyncGrader = New-Object System.Windows.Forms.Button
+  $btnSyncGrader.Text = '從批改進度檔同步'
+  $btnSyncGrader.Location = New-Object System.Drawing.Point(180, 268)
+  $btnSyncGrader.Size = New-Object System.Drawing.Size(170, 30)
+  $btnSyncGrader.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+  $btnSyncGrader.ForeColor = [System.Drawing.Color]::White
+  $btnSyncGrader.FlatStyle = 'Flat'
+  $right.Controls.Add($btnSyncGrader)
+
   $btnPhone = New-Object System.Windows.Forms.Button
   $btnPhone.Text = '開啟手機版'
-  $btnPhone.Location = New-Object System.Drawing.Point(180, 268)
+  $btnPhone.Location = New-Object System.Drawing.Point(0, 306)
   $btnPhone.Size = New-Object System.Drawing.Size(170, 30)
   $right.Controls.Add($btnPhone)
 
   $btnFolder = New-Object System.Windows.Forms.Button
   $btnFolder.Text = '開啟工作夾'
-  $btnFolder.Location = New-Object System.Drawing.Point(0, 306)
+  $btnFolder.Location = New-Object System.Drawing.Point(180, 306)
   $btnFolder.Size = New-Object System.Drawing.Size(170, 28)
   $right.Controls.Add($btnFolder)
 
   $btnScanFolder = New-Object System.Windows.Forms.Button
   $btnScanFolder.Text = '掃描匯入夾'
-  $btnScanFolder.Location = New-Object System.Drawing.Point(180, 306)
+  $btnScanFolder.Location = New-Object System.Drawing.Point(0, 344)
   $btnScanFolder.Size = New-Object System.Drawing.Size(170, 28)
   $right.Controls.Add($btnScanFolder)
 
@@ -681,6 +742,27 @@ try {
       } catch {
         [void][System.Windows.Forms.MessageBox]::Show('匯入失敗，請確認是習作台匯出的班級資料。', '習作台')
       }
+    }
+  })
+  $btnSyncGrader.Add_Click({
+    $syncDir = Join-Path $WorkDir '匯出給手機'
+    New-Item -ItemType Directory -Force -Path $syncDir | Out-Null
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Title = '選擇習作批改進度.json（手機匯出）'
+    $dlg.Filter = '批改進度 (*.json)|*.json|所有檔案 (*.*)|*.*'
+    $dlg.InitialDirectory = $syncDir
+    $dlg.FileName = '習作批改進度.json'
+    if ($dlg.ShowDialog() -ne 'OK') { return }
+    try {
+      $grader = Get-Content -LiteralPath $dlg.FileName -Raw -Encoding UTF8 | ConvertFrom-Json
+      $n = Merge-GraderIntoDesk $grader
+      if ($n -gt 0) {
+        [void][System.Windows.Forms.MessageBox]::Show("已從批改進度檔同步 $n 個座號程度。", '習作台')
+      } else {
+        [void][System.Windows.Forms.MessageBox]::Show('檔案裡沒有可同步的程度（請先在習作批改完成自動批）。', '習作台')
+      }
+    } catch {
+      [void][System.Windows.Forms.MessageBox]::Show('讀取失敗，請確認是「習作批改進度.json」。', '習作台')
     }
   })
   $btnPhone.Add_Click({
