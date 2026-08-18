@@ -165,9 +165,9 @@
       <div class="actions" style="margin-top:0.45rem">
         <button type="button" class="btn" id="btnOpenChatPlaygroundTop">ChatPlayground AI 自動批閱</button>
         <button type="button" class="btn secondary" id="btnCpUsage">查看 ChatPlayground 用量</button>
-        <button type="button" class="btn warn" id="btnGeminiWebFallback">ChatPlayground 開不了？改 Gemini 網頁批</button>
+        <button type="button" class="btn warn" id="btnGeminiAutoFallback">ChatPlayground 開不了？改 Gemini 自動批</button>
       </div>
-      <p class="tips" id="cpSiteTip">若 ChatPlayground 顯示 emailAddress 錯誤：先登出再登入、清該站 Cookie，或改按上方「Gemini 網頁批」（提示與試卷已下載流程相同）。</p>
+      <p class="tips" id="cpSiteTip">ChatPlayground 維護中／打不開時：先貼 Gemini 金鑰並儲存，再按「改 Gemini 自動批」（已選座號批一位；未選則連續批有卷未批）。</p>
       <div class="row" style="margin-top:0.7rem">
         <label>正確答案</label>
         <button type="button" class="btn secondary" id="btnPickAnswer" style="width:auto;padding:0.45rem 0.75rem">匯入答案圖／PDF</button>
@@ -451,7 +451,7 @@
         document.getElementById("busyMsg").textContent = msg || "請稍候，不要關頁。";
         el.classList.toggle("show", !!on);
         grading = !!on;
-        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnCpAutoOne", "btnCpAutoBatch", "btnSaveKey"].forEach(function (id) {
+        ["btnAutoOne", "btnAutoBatch", "btnAutoBatchTop", "btnCpAutoOne", "btnCpAutoBatch", "btnGeminiAutoFallback", "btnSaveKey"].forEach(function (id) {
           var b = document.getElementById(id);
           if (b) b.disabled = !!on;
         });
@@ -1366,7 +1366,7 @@
           "。在 ChatPlayground 貼提示＋上傳下載的試卷 → 回覆貼下方 → 套用。"
         );
         window.open("https://web.chatplayground.ai/", "_blank", "noopener,noreferrer");
-        toast("已開 ChatPlayground。若白屏 emailAddress 錯誤 → 按「Gemini 網頁批」");
+        toast("已開 ChatPlayground。若維護中／白屏 → 按「改 Gemini 自動批」");
         var box = document.getElementById("pasteBox");
         try {
           box.focus();
@@ -2063,9 +2063,9 @@
         window.open("https://web.chatplayground.ai/settings", "_blank", "noopener,noreferrer");
         toast("已開設定頁：找 Plan／Usage／Credits 看本月剩餘");
       });
-      document.getElementById("btnGeminiWebFallback").addEventListener("click", function () {
-        cpQueue = [];
-        startGeminiWebAuto(selected);
+      document.getElementById("btnGeminiAutoFallback").addEventListener("click", function () {
+        if (selected) gradeOneFlow();
+        else gradeBatchFlow();
       });
       document.getElementById("btnCpAutoOne").addEventListener("click", function () {
         cpAutoOneFlow();
