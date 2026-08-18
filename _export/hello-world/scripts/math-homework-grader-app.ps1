@@ -765,8 +765,101 @@ function Apply-GeminiReplyToForm([string]$text) {
   }
   if ($text -match '(?s)【建議】\s*([\s\S]*?)(?=【自學練習】|$)') {
     $txtAdvice.Text = (Format-TextbookPractice $Matches[1]).Trim()
-  } elseif ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
+  } else  if ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
     $txtAdvice.Text = $Matches[1].Trim()
+  }
+}
+
+function Get-WebPasteMeta([string]$Site) {
+  if ($Site -eq 'chatgpt') {
+    return @{ Label = 'ChatGPT 免費版'; Url = 'https://chatgpt.com/' }
+  }
+  return @{ Label = 'ChatPlayground AI'; Url = 'https://web.chatplayground.ai/' }
+}
+
+function Start-WebPasteAuto {
+  param([string]$Site = 'chatplayground')
+  if (-not $script:current) {
+    [void][System.Windows.Forms.MessageBox]::Show('請先選左側一位學生', '提示')
+    return
+  }
+  $script:WebPasteSite = $Site
+  $meta = Get-WebPasteMeta $Site
+  $sid = Get-StudentId $script:current.Name
+  $p = Build-CursorPromptOne $script:WorkDir $script:current
+  $header = @(
+    "【$($meta.Label) 自動批閱｜座號 $sid】"
+    '（網頁版不會自己寫回程式；批完要把回覆貼到下方框再按「套用貼上回覆」）'
+    '1. 提示已複製 → 到剛開的網頁按 Ctrl+V'
+    '2. 上傳試卷（已開啟學生檔；有答案也請一併上傳）'
+    '3. 把 AI 整段回覆貼回程式 → 按「套用貼上回覆」'
+    ''
+  ) -join "`r`n"
+  $full = $header + $p
+  [System.Windows.Forms.Clipboard]::SetText($full)
+  try {
+    $outDir = Join-Path $script:WorkDir '輸出'
+    New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+    $tag = if ($Site -eq 'chatgpt') { 'ChatGPT提示' } else { 'ChatPlayground提示' }
+    $utf8 = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllText((Join-Path $outDir ($sid + '-' + $tag + '.txt')), $full, $utf8)
+  } catch {}
+  Start-Process -FilePath $script:current.FullName
+  foreach ($a in @(Get-AnswerFiles $script:WorkDir)) { Start-Process -FilePath $a.FullName }
+  try { Start-Process $meta.Url } catch {}
+  $txtPasteReply.Focus()
+  $status.Text = "已複製提示並開 $($meta.Label)｜座號 $sid｜貼回覆後按「套用貼上回覆」"
+}
+
+function Apply-WebPasteReply {
+  if (-not $script:current) {
+    [void][System.Windows.Forms.MessageBox]::Show('請先選左側一位學生', '提示')
+    return
+  }
+  $text = [string]$txtPasteReply.Text
+  if ([string]::IsNullOrWhiteSpace($text)) {
+    [void][System.Windows.Forms.MessageBox]::Show(
+      "請先把 ChatPlayground／ChatGPT 的整段回覆貼到「貼上回覆」框。`n`n只按自動批、沒貼回覆，左側仍會顯示〔未批〕。",
+      '貼上自動批閱'
+    )
+    $txtPasteReply.Focus()
+    return
+  }
+  $meta = Get-WebPasteMeta $script:WebPasteSite
+  Apply-GeminiReplyToForm $text
+  if ($cmbOverall.SelectedIndex -eq 0) { $cmbOverall.SelectedIndex = 1 }
+  $txtSummary.Text = ('（{0} 批閱完成；可按「輸出此生PDF」）' -f $meta.Label)
+  $sid = Get-StudentId $script:current.Name
+  try {
+    $outDir = Join-Path $script:WorkDir '輸出'
+    $utf8 = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllText((Join-Path $outDir ($sid + '-' + $script:WebPasteSite + '回覆.md')), (Format-TextbookPractice $text), $utf8)
+  } catch {}
+  [void](Save-Current)
+  $txtPasteReply.Clear()
+  $status.Text = "座號 $sid 已套用 $($meta.Label) 回覆"
+  if ($script:CpQueue -and $script:CpQueue.Count -gt 0) {
+    $nextId = [string]$script:CpQueue[0]
+    if ($script:CpQueue.Count -gt 1) {
+      $script:CpQueue = @($script:CpQueue[1..($script:CpQueue.Count - 1)])
+    } else {
+      $script:CpQueue = @()
+    }
+    for ($i = 0; $i -lt $script:files.Count; $i++) {
+      if ((Get-StudentId $script:files[$i].Name) -eq $nextId) {
+        $list.SelectedIndex = $i
+        Load-Selected
+        break
+      }
+    }
+    if ($script:current) {
+      $remain = $script:CpQueue.Count
+      [void][System.Windows.Forms.MessageBox]::Show(
+        ("座號 $sid 已批完。`n接著座號 $nextId（尚餘 $remain 位）。"),
+        '連續 ChatPlayground 批'
+      )
+      Start-WebPasteAuto -Site $script:WebPasteSite
+    }
   }
 }
 
@@ -1684,14 +1777,14 @@ $font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 12)
 $fontBig = New-Object System.Drawing.Font('Microsoft JhengHei UI', 15, [System.Drawing.FontStyle]::Bold)
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = '數學習作批改（Gemini 自動批｜對照答案或直接 AI｜一人一檔）'
-$form.Size = New-Object System.Drawing.Size(1060, 780)
+$form.Text = '數學習作批改（ChatPlayground 預設｜Gemini 選用｜一人一檔）'
+$form.Size = New-Object System.Drawing.Size(1060, 820)
 $form.StartPosition = 'CenterScreen'
 $form.Font = $font
 $form.BackColor = [System.Drawing.Color]::FromArgb(245, 248, 244)
 
 $lbl = New-Object System.Windows.Forms.Label
-$lbl.Text = 'Gemini 自動批：有正確答案就對照；沒有就直接 AI 批（都自動處理）'
+$lbl.Text = '預設 ChatPlayground AI（終身 Unlimited）：選學生 → ChatPlayground批 → 貼回覆 → 套用。Gemini 金鑰僅選用。'
 $lbl.Font = $fontBig
 $lbl.ForeColor = [System.Drawing.Color]::FromArgb(20, 70, 50)
 $lbl.Location = New-Object System.Drawing.Point(16, 10)
@@ -1913,12 +2006,14 @@ $txtPractice.Text = '（先寫全部練習題；解答另段「解答」，做�
 $grp.Controls.Add($txtPractice)
 
 $status = New-Object System.Windows.Forms.Label
-$status.Location = New-Object System.Drawing.Point(16, 648)
-$status.Size = New-Object System.Drawing.Size(950, 40)
-$status.Text = '可載入正確答案（對照批）或直接按 Gemini 自動批（預設）'
+$status.Location = New-Object System.Drawing.Point(240, 552)
+$status.Size = New-Object System.Drawing.Size(720, 28)
+$status.Text = '選學生 → ChatPlayground批 → 網頁貼提示 → 回覆貼下方 → 套用貼上回覆'
 
 $script:files = @()
 $script:current = $null
+$script:WebPasteSite = 'chatplayground'
+$script:CpQueue = @()
 # 連續自動批：成功後不跳確認窗，直接下一位
 $script:SilentAutoContinue = $false
 $script:AutoBatchDone = 0
@@ -2296,6 +2391,29 @@ function Select-NextUngraded {
 }
 
 $y1 = 520
+$grpPaste = New-Object System.Windows.Forms.GroupBox
+$grpPaste.Text = '③ 貼上自動批閱（ChatPlayground／ChatGPT 回覆）'
+$grpPaste.Location = New-Object System.Drawing.Point(16, 586)
+$grpPaste.Size = New-Object System.Drawing.Size(950, 72)
+
+$txtPasteReply = New-Object System.Windows.Forms.TextBox
+$txtPasteReply.Multiline = $true
+$txtPasteReply.ScrollBars = 'Vertical'
+$txtPasteReply.Location = New-Object System.Drawing.Point(12, 22)
+$txtPasteReply.Size = New-Object System.Drawing.Size(720, 40)
+$txtPasteReply.Font = New-Object System.Drawing.Font('Microsoft JhengHei UI', 10)
+$grpPaste.Controls.Add($txtPasteReply)
+
+$btnApplyPaste = New-Object System.Windows.Forms.Button
+$btnApplyPaste.Text = '套用貼上回覆'
+$btnApplyPaste.Location = New-Object System.Drawing.Point(744, 22)
+$btnApplyPaste.Size = New-Object System.Drawing.Size(190, 40)
+$btnApplyPaste.BackColor = [System.Drawing.Color]::FromArgb(30, 100, 70)
+$btnApplyPaste.ForeColor = [System.Drawing.Color]::White
+$btnApplyPaste.FlatStyle = 'Flat'
+$btnApplyPaste.Add_Click({ Apply-WebPasteReply })
+$grpPaste.Controls.Add($btnApplyPaste)
+
 $btnWork = New-Object System.Windows.Forms.Button
 $btnWork.Text = '選工作資料夾'
 $btnWork.Location = New-Object System.Drawing.Point(16, $y1)
@@ -2340,10 +2458,25 @@ $btnOpenOut.Location = New-Object System.Drawing.Point(256, $y1)
 $btnOpenOut.Size = New-Object System.Drawing.Size(90, 36)
 $btnOpenOut.Add_Click({ Start-Process explorer.exe (Join-Path $script:WorkDir '輸出') })
 
+$btnCpAuto = New-Object System.Windows.Forms.Button
+$btnCpAuto.Text = 'ChatPlayground批'
+$btnCpAuto.Location = New-Object System.Drawing.Point(356, $y1)
+$btnCpAuto.Size = New-Object System.Drawing.Size(140, 36)
+$btnCpAuto.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnCpAuto.ForeColor = [System.Drawing.Color]::White
+$btnCpAuto.FlatStyle = 'Flat'
+$btnCpAuto.Add_Click({ Start-WebPasteAuto -Site 'chatplayground' })
+
+$btnGptAuto = New-Object System.Windows.Forms.Button
+$btnGptAuto.Text = 'ChatGPT批'
+$btnGptAuto.Location = New-Object System.Drawing.Point(506, $y1)
+$btnGptAuto.Size = New-Object System.Drawing.Size(100, 36)
+$btnGptAuto.Add_Click({ Start-WebPasteAuto -Site 'chatgpt' })
+
 $btnGrade = New-Object System.Windows.Forms.Button
 $btnGrade.Text = 'Gemini自動批'
-$btnGrade.Location = New-Object System.Drawing.Point(356, $y1)
-$btnGrade.Size = New-Object System.Drawing.Size(120, 36)
+$btnGrade.Location = New-Object System.Drawing.Point(616, $y1)
+$btnGrade.Size = New-Object System.Drawing.Size(110, 36)
 $btnGrade.BackColor = [System.Drawing.Color]::FromArgb(40, 90, 140)
 $btnGrade.ForeColor = [System.Drawing.Color]::White
 $btnGrade.FlatStyle = 'Flat'
@@ -2357,8 +2490,8 @@ $btnGrade.Add_Click({
 
 $btnSave = New-Object System.Windows.Forms.Button
 $btnSave.Text = '輸出此生PDF'
-$btnSave.Location = New-Object System.Drawing.Point(486, $y1)
-$btnSave.Size = New-Object System.Drawing.Size(130, 36)
+$btnSave.Location = New-Object System.Drawing.Point(736, $y1)
+$btnSave.Size = New-Object System.Drawing.Size(120, 36)
 $btnSave.BackColor = [System.Drawing.Color]::FromArgb(30, 100, 70)
 $btnSave.ForeColor = [System.Drawing.Color]::White
 $btnSave.FlatStyle = 'Flat'
@@ -2366,65 +2499,61 @@ $btnSave.Add_Click({ [void](Save-Current) })
 
 $btnNext = New-Object System.Windows.Forms.Button
 $btnNext.Text = '下一位未批'
-$btnNext.Location = New-Object System.Drawing.Point(626, $y1)
+$btnNext.Location = New-Object System.Drawing.Point(866, $y1)
 $btnNext.Size = New-Object System.Drawing.Size(100, 36)
 $btnNext.Add_Click({ Select-NextUngraded })
 
 $btnAutoAll = New-Object System.Windows.Forms.Button
-$btnAutoAll.Text = '連續自動批'
-$btnAutoAll.Location = New-Object System.Drawing.Point(736, $y1)
-$btnAutoAll.Size = New-Object System.Drawing.Size(110, 36)
-$btnAutoAll.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
-$btnAutoAll.ForeColor = [System.Drawing.Color]::White
-$btnAutoAll.FlatStyle = 'Flat'
+$btnAutoAll.Text = '連續CP批'
+$btnAutoAll.Location = New-Object System.Drawing.Point(0, 0)
+$btnAutoAll.Size = New-Object System.Drawing.Size(0, 0)
+$btnAutoAll.Visible = $false
 $btnAutoAll.Add_Click({
-  # Gemini API 連續自動批：有答案就對照，沒有就直接 AI
-  $cmbMode.SelectedIndex = 3
-  [void](Ensure-AnswerOrWarn -OfferForAuto)
-  $key = Get-GeminiApiKey $script:WorkDir
-  if ([string]::IsNullOrWhiteSpace($key)) {
-    $askKey = [System.Windows.Forms.MessageBox]::Show(
-      "連續自動批需要 Gemini API 金鑰。`n`n現在設定嗎？",
-      '需要 Gemini 金鑰',
-      [System.Windows.Forms.MessageBoxButtons]::YesNo
-    )
-    if ($askKey -ne 'Yes') { return }
-    if (-not (Show-GeminiKeyDialog)) { return }
+  $script:CpQueue = @()
+  Refresh-List
+  foreach ($f in $script:files) {
+    $id = Get-StudentId $f.Name
+    $note = Get-NotePath $script:WorkDir $id
+    if (-not (Test-Path -LiteralPath $note)) { $script:CpQueue += $id }
   }
-  # 若目前這份已有註記，跳到下一位未批
-  if ($script:current) {
-    $curId = Get-StudentId $script:current.Name
-    $curNote = Get-NotePath $script:WorkDir $curId
-    if (Test-Path -LiteralPath $curNote) { [void](Select-NextUngraded -Quiet) }
-  } else {
-    [void](Select-NextUngraded -Quiet)
-  }
-  if (-not $script:current) {
+  if ($script:CpQueue.Count -eq 0) {
     [void][System.Windows.Forms.MessageBox]::Show('沒有未批學生（請把試卷放入「輸入」夾）。', '提示')
     return
   }
-  $ansN = @(Get-AnswerFiles $script:WorkDir).Count
-  $modeHint = if ($ansN -gt 0) { "有正確答案 $ansN 檔 → 對照批" } else { '無正確答案 → 直接 AI 批' }
+  $first = [string]$script:CpQueue[0]
+  for ($i = 0; $i -lt $script:files.Count; $i++) {
+    if ((Get-StudentId $script:files[$i].Name) -eq $first) {
+      $list.SelectedIndex = $i
+      Load-Selected
+      break
+    }
+  }
+  $script:WebPasteSite = 'chatplayground'
   $confirm = [System.Windows.Forms.MessageBox]::Show(
-    ("將用 Gemini 連續自動批所有未批學生。`n$modeHint`n`n每份成功會自動存註記／PDF，再處理下一位。`n中途失敗會停下。`n`n開始？"),
-    '連續自動批',
-    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-    [System.Windows.Forms.MessageBoxIcon]::Question
+    ("將用 ChatPlayground 連續批 $($script:CpQueue.Count) 位。`n每位：開站 → 你貼回覆 → 套用 → 自動跳下一位。`n`n開始？"),
+    '連續 ChatPlayground 批',
+    [System.Windows.Forms.MessageBoxButtons]::YesNo
   )
-  if ($confirm -ne 'Yes') { return }
-  $script:SilentAutoContinue = $true
-  $script:AutoBatchDone = 0
-  $status.Text = "連續自動批開始｜Gemini｜$modeHint"
-  Start-GradeCurrent
+  if ($confirm -ne 'Yes') { $script:CpQueue = @(); return }
+  Start-WebPasteAuto -Site 'chatplayground'
 })
+
+$btnCpBatch = New-Object System.Windows.Forms.Button
+$btnCpBatch.Text = '連續CP批'
+$btnCpBatch.Location = New-Object System.Drawing.Point(16, 552)
+$btnCpBatch.Size = New-Object System.Drawing.Size(110, 28)
+$btnCpBatch.BackColor = [System.Drawing.Color]::FromArgb(45, 106, 79)
+$btnCpBatch.ForeColor = [System.Drawing.Color]::White
+$btnCpBatch.FlatStyle = 'Flat'
+$btnCpBatch.Add_Click({ $btnAutoAll.PerformClick() })
 
 $btnRefresh = New-Object System.Windows.Forms.Button
 $btnRefresh.Text = '重新整理'
-$btnRefresh.Location = New-Object System.Drawing.Point(856, $y1)
-$btnRefresh.Size = New-Object System.Drawing.Size(90, 36)
+$btnRefresh.Location = New-Object System.Drawing.Point(136, 552)
+$btnRefresh.Size = New-Object System.Drawing.Size(90, 28)
 $btnRefresh.Add_Click({ Refresh-List; Refresh-AnswerLabel })
 
-$y2 = 566
+$y2 = 686
 $btnCsv = New-Object System.Windows.Forms.Button
 $btnCsv.Text = '全班學習總表'
 $btnCsv.Location = New-Object System.Drawing.Point(16, $y2)
@@ -2479,7 +2608,7 @@ $btnOpenCog.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '重謄補充')
   })
 
-$y3 = 600
+$y3 = 720
 $btnDigital = New-Object System.Windows.Forms.Button
 $btnDigital.Text = '數位練習包（手機）'
 $btnDigital.Location = New-Object System.Drawing.Point(16, $y3)
@@ -2560,7 +2689,7 @@ $btnOpenDigital.Add_Click({
     Start-Process explorer.exe (Join-Path $script:WorkDir '列印專用')
   })
 
-$y4 = 640
+$y4 = 758
 $btnTools = New-Object System.Windows.Forms.Button
 $btnTools.Text = '工具選擇（LINE群／個別…）'
 $btnTools.Location = New-Object System.Drawing.Point(16, $y4)
@@ -2630,13 +2759,14 @@ $btnTablet.ForeColor = [System.Drawing.Color]::White
 $btnTablet.FlatStyle = 'Flat'
 $btnTablet.Add_Click({ Show-TabletImportAndGrade })
 
-$form.Size = New-Object System.Drawing.Size(1000, 820)
-$status.Location = New-Object System.Drawing.Point(16, 688)
-$status.Size = New-Object System.Drawing.Size(950, 40)
+$form.Size = New-Object System.Drawing.Size(1060, 840)
+$status.Location = New-Object System.Drawing.Point(240, 552)
+$status.Size = New-Object System.Drawing.Size(720, 28)
 
 $form.Controls.AddRange(@(
-    $lbl, $grpStart, $lblPath, $list, $grp, $status,
-    $btnWork, $btnOpenIn, $btnOpenOut, $btnGrade, $btnSave, $btnNext, $btnAutoAll, $btnRefresh,
+    $lbl, $grpStart, $lblPath, $list, $grp, $grpPaste, $status,
+    $btnWork, $btnOpenIn, $btnOpenOut, $btnCpAuto, $btnGptAuto, $btnGrade, $btnSave, $btnNext,
+    $btnAutoAll, $btnCpBatch, $btnRefresh,
     $btnCsv, $btnUnclear, $btnClarify, $btnOpenCog,
     $btnDigital, $btnCopyLine, $btnPrintPack, $btnOpenDigital,
     $btnTools, $btnLoop, $btnRetFolder, $btnJunyi, $btnTablet
