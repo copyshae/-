@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-fast'
+$script:AppBuild = '20260818-fast2'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -45,6 +45,7 @@ function Ensure-WorkDirs([string]$root) {
 }
 
 function Ensure-WorkGuides([string]$root) {
+  $printList = Join-Path (Join-Path $root '列印專用') '需列印座號.txt'
   if (-not (Test-Path -LiteralPath $printList)) {
     @(
       '# 沒有手機／平板等通訊裝置、需要紙本練習的座號'
@@ -773,7 +774,7 @@ function Apply-GeminiReplyToForm([string]$text) {
   }
   if ($text -match '(?s)【建議】\s*([\s\S]*?)(?=【自學練習】|$)') {
     $txtAdvice.Text = (Format-TextbookPractice $Matches[1]).Trim()
-  } else  if ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|\z)') {
+  } elseif ($text -match '(?s)5\)[^\n]*\n([\s\S]*?)(?=6\)|$)') {
     $txtAdvice.Text = $Matches[1].Trim()
   }
 }

@@ -6,7 +6,7 @@ param([switch]$ShowTip)
 $ErrorActionPreference = "Stop"
 $branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "cursor/launch-efficiency-459a" }
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world/scripts"
-$expectedBuild = "20260818-fast"
+$expectedBuild = "20260818-fast2"
 $desk = [Environment]::GetFolderPath("Desktop")
 $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
 $utf8Bom = New-Object System.Text.UTF8Encoding $true

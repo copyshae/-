@@ -22,11 +22,7 @@ PowerShell 貼上（覆寫捷徑、快速啟動器、ps1 本體；預設不跳�
 irm https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
 ```
 
-若要更新完跳提示框：`...refresh-desktop-vbs.ps1 | iex; refresh-desktop-vbs.ps1 -ShowTip` 不行，需下載後執行。改：
-
-```powershell
-iex (irm .../refresh-desktop-vbs.ps1); refresh-desktop-vbs.ps1 -ShowTip
-```
+若要更新完跳提示框，先下載再執行：`refresh-desktop-vbs.ps1 -ShowTip`
 
 雙擊 **`習作工具.vbs`** → 選程式。會先顯示 **「正在啟動…」**（不再無反應等很久）。標題列應含 **`[20260818-fast]`**。
 
