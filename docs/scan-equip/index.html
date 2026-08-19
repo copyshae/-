@@ -2444,7 +2444,10 @@
       var teacher = teacherIdx >= 0 ? (cols[teacherIdx] || "").trim() : "";
       var qtys = emptyQtys();
       itemCols.forEach(function (ic) {
-        qtys[ic.itemId] = parseFloat(cols[ic.idx]) || 0;
+        var raw = (cols[ic.idx] || "").trim();
+        /* 支援 Excel 負數格式 (2) → -2 */
+        if (/^\([\d.]+\)$/.test(raw)) raw = "-" + raw.slice(1, -1);
+        qtys[ic.itemId] = parseFloat(raw) || 0;
       });
       var existing = state.records.find(function (r) {
         return r.date === date && r.className === className && r.teacher === teacher;
