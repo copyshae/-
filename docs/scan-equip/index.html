@@ -2444,7 +2444,7 @@
       var teacher = teacherIdx >= 0 ? (cols[teacherIdx] || "").trim() : "";
       var qtys = emptyQtys();
       itemCols.forEach(function (ic) {
-        qtys[ic.itemId] = Math.max(0, parseInt(cols[ic.idx], 10) || 0);
+        qtys[ic.itemId] = parseInt(cols[ic.idx], 10) || 0;
       });
       var existing = state.records.find(function (r) {
         return r.date === date && r.className === className && r.teacher === teacher;
