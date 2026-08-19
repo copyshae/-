@@ -523,6 +523,15 @@
 
       document.getElementById("btnExport").addEventListener("click", function () {
         persistHeader();
+        /* 若所有座號都還是預設值，可能是剛開啟尚未載入真實資料，先確認 */
+        var seats = state.seats;
+        var hasRealData = Object.keys(seats).some(function (k) {
+          if (k === "00") return false;
+          return seats[k].level !== "未標" || seats[k].send !== "未發";
+        });
+        if (!hasRealData) {
+          if (!confirm("目前所有座號都還是初始狀態（未標／未發），確定要匯出這份空白資料嗎？\n\n若您有真實紀錄，請先確認頁面已正確載入，再進行匯出。")) return;
+        }
         var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
