@@ -1,0 +1,24 @@
+---
+description: 學習日誌捷徑：推日誌／連日誌／日誌首頁（桌面與手機 Cursor 都適用）
+alwaysApply: true
+---
+
+# 學習日誌捷徑（hello-world）
+
+使用者說下列短語時，立刻讀並執行 skill `push-learning-log`（`.cursor/skills/push-learning-log/SKILL.md`）。**不限桌面或手機。**
+
+## 開啟網頁（只回連結，不改檔）
+
+- **連日誌**／**連上學習日誌**／**開日誌** → 當月列表 https://copyshae.github.io/hello-world/directory/202608/
+- **日誌首頁**／**學習日誌首頁**／**開首頁** → https://copyshae.github.io/hello-world/directory/
+- 手機 Cursor 把網址用 Markdown 連結回給使用者（可點）；不要假設能開系統瀏覽器。
+
+## 推送工作大要
+
+- **推日誌**／**上日誌**／**收工推日誌**／**工作大要推 hello-world**／**推到 github hello world**
+- 可加日期：`推日誌 0819`
+- 本倉庫（`copyshae/-`）是 Cloud Agent／手機 Cursor 的工作倉：寫進 `_export/hello-world/`，**不要**直接 push `copyshae/hello-world`（會 403）。
+
+## 安裝／更新快捷詞
+
+- **裝快捷詞**：桌面跑 hello-world 的 `install-push-log-shortcut.ps1`；手機不必跑，本倉庫規則已生效，請新開一個對話。

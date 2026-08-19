@@ -3,6 +3,9 @@
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
 $branch = "main"
+if ($env:DASH_EXPORT_BRANCH -and $env:DASH_EXPORT_BRANCH.Trim()) {
+  $branch = $env:DASH_EXPORT_BRANCH.Trim()
+}
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -50,6 +53,14 @@ function Save-RemoteFile([string]$Rel) {
 }
 
 $files = @(
+  "install-push-log-shortcut.ps1",
+  ".cursor/rules/push-learning-log.mdc",
+  ".cursor/skills/push-learning-log/SKILL.md",
+  "directory/index.html",
+  "directory/202608/index.html",
+  "directory/202608/20260819-learning-log.html",
+  "directory/logs/prompts/index.html",
+  "directory/logs/prompts/push-learning-log.md",
   "scripts/install-desktop-apps.ps1",
   "scripts/install-math-homework-grader.ps1",
   "scripts/math-homework-grader-app.ps1",
@@ -124,13 +135,17 @@ Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
 Push-Location $root
 try {
   git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
+    directory/202608/20260819-learning-log.html directory/202608/index.html directory/index.html `
+    directory/logs/prompts `
+    .cursor/rules/push-learning-log.mdc .cursor/skills/push-learning-log `
+    install-push-log-shortcut.ps1 `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "掃具台：匯入負數修正＋同步至 hello-world（2026-08-19）"
+    git commit -m "學習日誌：20260819 手機 Cursor 快捷詞；同步匯出包"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"

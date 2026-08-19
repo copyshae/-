@@ -11,3 +11,4 @@ alwaysApply: false
 - 手機習作批改需 **Gemini API 金鑰** 才能自動批；「貼上批」是手動，會卡在批改中。
 - **介面、提示、對話框、對使用者回覆必須繁體中文**（zh-Hant）；管道用「Google 教室／通訊軟體群組」，掃描來源寫「掃描王」。
 - 只用座號、不存姓名。
+- **推日誌／連日誌／日誌首頁**：桌面與**手機 Cursor**（Cloud Agent）都適用；規則在 `.cursor/rules/push-learning-log.mdc`。手機開本倉庫說話即可，不必跑 Windows `install-push-log-shortcut.ps1`。Cloud Agent 寫 `_export/hello-world/`，不要直接 push `copyshae/hello-world`。

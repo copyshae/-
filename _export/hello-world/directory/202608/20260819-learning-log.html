@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>20260819 學習日誌・手機 Cursor 也能用推日誌快捷詞</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --paper: #e8efe6;
+      --accent: #2d6a4f;
+      --muted: #4a5c52;
+      --line: rgba(45, 106, 79, 0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      line-height: 1.7;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(149, 213, 178, 0.35), transparent 55%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 50%, #d8e8dc 100%);
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; padding: 2rem 1.35rem 4rem; }
+    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; font-size: 0.95rem; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .nav a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+    article {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      padding: 1.75rem 1.5rem 2.5rem;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.45rem, 4.5vw, 2rem);
+      font-weight: 400;
+      color: var(--accent);
+      line-height: 1.35;
+      margin-bottom: 0.75rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 1.5rem; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: var(--accent);
+      margin: 1.75rem 0 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--line);
+    }
+    ul, ol { margin: 0.5rem 0 0.85rem 1.35rem; }
+    li { margin: 0.3rem 0; }
+    code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
+    a.inline { color: var(--accent); word-break: break-all; }
+    .callout {
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(45,106,79,0.08);
+      font-size: 0.95rem;
+    }
+    .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../index.html">← 首頁</a>
+      <a href="../index.html">← 學習日誌</a>
+      <a href="./index.html">← 日誌列表</a>
+    </nav>
+    <article>
+      <h1>20260819 手機 Cursor 也能用推日誌快捷詞</h1>
+      <p class="lead">桌面快捷詞只裝在 Windows 的 <code>%USERPROFILE%\.cursor</code>。手機 Cursor 是 Cloud Agent，必須把規則放進倉庫，打「推日誌」「連日誌」才會生效。</p>
+
+      <h2>一｜線上學習日誌在哪</h2>
+      <ul>
+        <li>首頁：<a class="inline" href="https://copyshae.github.io/hello-world/directory/">https://copyshae.github.io/hello-world/directory/</a></li>
+        <li>202608：<a class="inline" href="https://copyshae.github.io/hello-world/directory/202608/">https://copyshae.github.io/hello-world/directory/202608/</a></li>
+        <li>202607 舊路徑：<a class="inline" href="https://copyshae.github.io/hello-world/directory/logs/">https://copyshae.github.io/hello-world/directory/logs/</a></li>
+        <li>hello-world 沒開 Discussions；用法寫在 skill／規則，不是 GitHub 討論區。</li>
+      </ul>
+
+      <h2>二｜推日誌原本怎麼用（桌面）</h2>
+      <ul>
+        <li>倉庫檔：<code>.cursor/skills/push-learning-log/SKILL.md</code>、<code>.cursor/rules/push-learning-log.mdc</code></li>
+        <li>安裝：<code>install-push-log-shortcut.ps1</code> → 複製到本機 <code>%USERPROFILE%\.cursor</code></li>
+        <li>短語：<code>推日誌</code>、<code>連日誌</code>、<code>日誌首頁</code>、<code>裝快捷詞</code>；可 <code>推日誌 0819</code></li>
+        <li><code>202608</code> 起檔案在 <code>directory/YYYYMM/</code>，不要再寫進 <code>directory/logs/</code></li>
+      </ul>
+
+      <h2>三｜手機為什麼沒用</h2>
+      <ul>
+        <li>手機 Cursor = Cloud Agent，工作倉是 <code>copyshae/-</code>，看不到桌機 <code>~/.cursor</code>。</li>
+        <li>Cloud Agent <strong>不能推</strong> <code>copyshae/hello-world</code>（403）。要先寫 dash 的 <code>_export/hello-world/</code>，電腦再套用。</li>
+        <li>先前有一篇 0819 誤放 <code>directory/logs/</code>；正確是 <code>directory/202608/20260819-learning-log.html</code>。</li>
+      </ul>
+
+      <h2>四｜手機現在怎麼打</h2>
+      <ol>
+        <li>手機 Cursor 開倉庫 <strong>copyshae/-</strong>，新開一個對話。</li>
+        <li>打 <code>推日誌</code>、<code>連日誌</code>、<code>日誌首頁</code>；或 <code>/push-learning-log</code>。</li>
+        <li>連日誌：對話會回可點網址（手機點開即可）。</li>
+        <li>推日誌：寫進 <code>_export/hello-world/directory/202608/</code> 與 <code>工作日誌.md</code>，推本倉庫。正式 Pages 仍要電腦套用。</li>
+        <li>也可打開快捷詞頁長按複製：套用後網址 <a class="inline" href="https://copyshae.github.io/hello-world/directory/logs/prompts/">https://copyshae.github.io/hello-world/directory/logs/prompts/</a></li>
+      </ol>
+      <div class="callout">
+        若對話開在別的倉庫：把「說推日誌／連日誌時依 skill push-learning-log 執行」貼到 Cursor 設定 → Rules → User Rules（同一帳號會同步到手機）。
+      </div>
+
+      <h2>五｜同日其他工作大要（掃具台）</h2>
+      <ul>
+        <li>校園掃具請領 PWA：請領、庫存（新／舊／尚可）、拍照辨識、CSV、離線備份。</li>
+        <li>每次請領各一列；導師優先、班級可略；欄位可增刪；確認視窗後再寫入。</li>
+        <li>正式手機網址仍走 hello-world Pages；dash 倉庫名 <code>-</code> 的 Pages 不可用。</li>
+      </ul>
+
+      <h2>六｜套用正式站（本機）</h2>
+      <p>在桌面 hello-world 跑 <code>_export/hello-world/README.md</code> 的套用指令，本則與快捷詞頁才會上 GitHub Pages。</p>
+
+      <p class="note">
+        線上（套用 hello-world 後）：
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html">https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html</a>
+        ｜快捷詞：
+        <a class="inline" href="https://copyshae.github.io/hello-world/directory/logs/prompts/">https://copyshae.github.io/hello-world/directory/logs/prompts/</a>
+        ｜上一則：
+        <a class="inline" href="./20260817-learning-log.html">20260817</a>
+      </p>
+    </article>
+  </div>
+</body>
+</html>

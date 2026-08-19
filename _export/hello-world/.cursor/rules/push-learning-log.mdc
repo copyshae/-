@@ -1,0 +1,24 @@
+---
+description: 學習日誌捷徑：推日誌／連日誌／日誌首頁（桌面與手機 Cursor 都適用）
+alwaysApply: true
+---
+
+# 學習日誌捷徑（hello-world）
+
+使用者說下列短語時，依 skill `push-learning-log` 執行。**桌面與手機 Cursor 都適用。**
+
+## 開啟網頁
+
+- **連日誌**／**連上學習日誌**／**開日誌** → https://copyshae.github.io/hello-world/directory/202608/
+- **日誌首頁**／**學習日誌首頁**／**開首頁** → https://copyshae.github.io/hello-world/directory/
+- 手機只回可點連結，不要假設能開系統瀏覽器。
+
+## 安裝／更新快捷詞
+
+- **裝快捷詞** → 桌面執行本倉庫 `install-push-log-shortcut.ps1`；手機開本倉庫新對話即可，不必跑腳本。
+
+## 推送工作大要
+
+- **推日誌**／**上日誌**／**收工推日誌**／**工作大要推 hello-world**／**推到 github hello world**
+- 可加日期（如 `推日誌 0819`）
+- `202608` 起寫 `directory/YYYYMM/`，不要寫進 `directory/logs/`

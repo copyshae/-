@@ -10,6 +10,13 @@ if (-not (Test-Path -LiteralPath $dest)) {
 $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
+  @{ Src = 'directory\202608\20260819-learning-log.html'; Dst = 'directory\202608\20260819-learning-log.html' },
+  @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
+  @{ Src = 'directory\index.html'; Dst = 'directory\index.html' },
+  @{ Src = 'directory\logs\prompts'; Dst = 'directory\logs\prompts' },
+  @{ Src = '.cursor\rules\push-learning-log.mdc'; Dst = '.cursor\rules\push-learning-log.mdc' },
+  @{ Src = '.cursor\skills\push-learning-log'; Dst = '.cursor\skills\push-learning-log' },
+  @{ Src = 'install-push-log-shortcut.ps1'; Dst = 'install-push-log-shortcut.ps1' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -46,11 +53,13 @@ if (Test-Path -LiteralPath $rulesSrc) {
 Push-Location $dest
 try {
   git add directory/apps/teacher-desk directory/apps/math-grader `
+    directory/202608/20260819-learning-log.html directory/202608/index.html directory/index.html `
+    directory/logs/prompts `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
-    scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
+    scripts/install-desktop-apps.ps1 .cursor/rules .cursor/skills install-push-log-shortcut.ps1 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = '學習日誌：20260819 手機 Cursor 快捷詞（推日誌／連日誌）'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'
