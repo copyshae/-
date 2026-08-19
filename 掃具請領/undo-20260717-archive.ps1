@@ -56,8 +56,20 @@ $plan | Select-Object -First 20 | ForEach-Object {
   Write-Host ("  [{0}] {1}" -f $_.Kind, $_.From)
 }
 
-$ans = Read-Host "確定搬回原位置？請輸入「是」後按 Enter（其他則取消）"
-if ($ans -ne "是") {
+$ans = [string]$env:UNDO_ARCHIVE
+if ([string]::IsNullOrWhiteSpace($ans)) {
+  Write-Host ""
+  Write-Host "若畫面停住：先按 Enter。注音打「是」後通常要按兩次 Enter。"
+  Write-Host "或關掉視窗，改用這行（不必再問）："
+  Write-Host '  $env:UNDO_ARCHIVE="是"; irm https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/掃具請領/undo-20260717-archive.ps1 | iex'
+  try {
+    $ans = [Console]::ReadLine()
+  } catch {
+    $ans = Read-Host "確定搬回原位置？請輸入是後按 Enter"
+  }
+}
+$ans = ([string]$ans).Trim()
+if ($ans -notin @("是", "Y", "y", "yes", "YES")) {
   Write-Host "已取消，沒有搬任何檔案。"
   exit 0
 }
