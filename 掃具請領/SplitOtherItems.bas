@@ -128,7 +128,7 @@ Sub SplitOtherItems()
         arr(names(k)) = CStr(k)
     Next k
 
-    For i = 0 To UBound(arr)
+    For i = UBound(arr) To 0 Step -1
         ws.Columns(insertAt).Insert Shift:=xlToRight
         ws.Cells(1, insertAt).Value = arr(i)
     Next i
