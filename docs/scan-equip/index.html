@@ -1242,6 +1242,7 @@
           return '<option value="' + esc(k) + '"></option>';
         }).join("") + "</datalist>" +
         '<div class="row"><label>導師姓名</label><input id="fTeacher" type="text" maxlength="20" value="' + esc(teacher) + '" placeholder="自動帶出或手填" /></div>' +
+        (isEdit ? '' : '<p class="tips" style="margin-bottom:0.45rem">同班級、同導師的數量會<strong>累加</strong>至既有請領總量</p>') +
         '<div class="qty-section-title">標準品項</div>' +
         '<div class="qty-grid" id="qtyGridStd">' + qtyRowsHtml(qtys, standardItems()) + '</div>' +
         '<div class="qty-section-title other">其他細項種類</div>' +
@@ -1257,6 +1258,7 @@
   }
 
   function bindReqForm(rec) {
+    var isEdit = !!rec;
     document.getElementById("modalX").onclick = closeModal;
 
     document.getElementById("fClass").oninput = function () {
@@ -1327,41 +1329,28 @@
         rec.teacher = tch;
         rec.qtys = newQtys;
         rec.updatedAt = Date.now();
+        var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
+        if (syncStock) {
+          toast("編輯模式不重複扣庫存");
+        }
       } else {
-        rec = {
-          id: uid(),
+        var result = accumulateRequisition({
           date: d,
           className: c,
           teacher: tch,
-          qtys: newQtys,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        state.records.unshift(rec);
-      }
-
-      var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
-      if (syncStock) {
-        state.items.forEach(function (it) {
-          var q = Number(newQtys[it.id]) || 0;
-          if (q > 0) {
-            var dr = deductStock(it.id, q);
-            logStockMove({
-              type: "領用扣庫",
-              itemId: it.id,
-              itemName: it.name,
-              qty: q - dr.shortfall,
-              className: c,
-              recordId: rec.id,
-              note: dr.shortfall ? "手動請領；不足" + dr.shortfall : "手動請領"
-            });
-          }
+          addQtys: newQtys,
+          source: "manual"
         });
+        rec = result.record;
+        var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
+        if (syncStock) {
+          deductStockByDeltas(result.deltas, c, rec.id, "手動請領；");
+        }
       }
 
       saveState();
       closeModal();
-      toast(rec && rec.updatedAt ? "已更新" : "已新增請領");
+      toast(isEdit ? "已更新" : (findAccumRecord(c, tch) && !isEdit ? "已累加請領" : "已新增請領"));
       renderHome();
       renderList();
       renderStats();
@@ -1470,10 +1459,100 @@
       laundry: { new: 8, old: 2, fair: 1 },
       rake: { new: 3, old: 5, fair: 2 },
       squeegee: { new: 2, old: 4, fair: 3 },
-      other_spin_mop: { new: 1, old: 2, fair: 1 }
+      other_spin_mop: { new: 1, old: 2, fair: 1 },
+      other_coconut_mop: { new: 3, old: 6, fair: 4 },
+      bamboo_broom: { new: 15, old: 20, fair: 10 }
     };
     Object.keys(demo).forEach(function (id) {
       state.inventory[id] = demo[id];
+    });
+  }
+
+  function normKey(s) {
+    return String(s || "").trim();
+  }
+
+  function findAccumRecord(className, teacher) {
+    var c = normKey(className);
+    var t = normKey(teacher);
+    if (!c) return null;
+    var matches = state.records.filter(function (r) {
+      return normKey(r.className) === c && normKey(r.teacher) === t;
+    });
+    if (!matches.length) return null;
+    matches.sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+    return matches[0];
+  }
+
+  /** 依班級＋導師累加請領數量；回傳本次增量 deltas */
+  function accumulateRequisition(opts) {
+    var className = normKey(opts.className);
+    var teacher = normKey(opts.teacher);
+    var date = opts.date || todayStr();
+    var addQtys = opts.addQtys || {};
+
+    if (!className) throw new Error("請填班級");
+    if (!teacher && state.classMap[className]) teacher = state.classMap[className];
+    if (teacher) state.classMap[className] = teacher;
+
+    var rec = findAccumRecord(className, teacher);
+    var isNew = !rec;
+
+    if (!rec) {
+      rec = {
+        id: uid(),
+        date: date,
+        className: className,
+        teacher: teacher,
+        qtys: emptyQtys(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        source: opts.source || "manual"
+      };
+      state.records.unshift(rec);
+    } else {
+      rec.date = date;
+      rec.updatedAt = Date.now();
+    }
+
+    var deltas = emptyQtys();
+    state.items.forEach(function (it) {
+      var add = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
+      if (add > 0) {
+        rec.qtys[it.id] = (Number(rec.qtys[it.id]) || 0) + add;
+        deltas[it.id] = add;
+      }
+    });
+
+    return { record: rec, deltas: deltas, isNew: isNew };
+  }
+
+  function parsedItemsToQtys(items) {
+    var qtys = emptyQtys();
+    (items || []).forEach(function (row) {
+      var it = resolveItemByName(row.name);
+      if (it && row.qty > 0) qtys[it.id] = (Number(qtys[it.id]) || 0) + row.qty;
+    });
+    return qtys;
+  }
+
+  function deductStockByDeltas(deltas, className, recordId, notePrefix) {
+    state.items.forEach(function (it) {
+      var q = Number(deltas[it.id]) || 0;
+      if (q <= 0) return;
+      var dr = deductStock(it.id, q);
+      logStockMove({
+        type: "領用扣庫",
+        itemId: it.id,
+        itemName: it.name,
+        qty: q - dr.shortfall,
+        className: className,
+        recordId: recordId,
+        note: (notePrefix || "") + (dr.shortfall ? "；不足" + dr.shortfall : "")
+      });
     });
   }
 
@@ -1664,21 +1743,28 @@
   function buildApplyPreview(parsed) {
     var lines = [];
     var warnings = [];
+    var existing = parsed.action === "領用" ? findAccumRecord(parsed.className, parsed.teacher) : null;
+    var accumHint = existing
+      ? '<p class="tips" style="margin-bottom:0.45rem">將累加至既有紀錄：' +
+        esc(existing.className) + " · " + esc(existing.teacher) + "</p>"
+      : "";
+
     parsed.items.forEach(function (row) {
       var it = resolveItemByName(row.name);
       if (!it) return;
       var e = state.inventory[it.id] || emptyStockEntry();
       var before = stockTotal(e);
       if (parsed.action === "領用") {
+        var prev = existing ? (Number(existing.qtys[it.id]) || 0) : 0;
         var sim = Object.assign(emptyStockEntry(), e);
         state.inventory[it.id] = sim;
         var dr = deductStock(it.id, row.qty);
         state.inventory[it.id] = e;
-        var after = before - row.qty + dr.shortfall;
         var detail = dr.lines.map(function (l) { return condLabel(l.cond) + "−" + l.n; }).join("、");
         lines.push({
           name: it.name, qty: row.qty, before: before, after: Math.max(0, before - row.qty),
-          note: parsed.action + (detail ? "（" + detail + "）" : "")
+          note: (prev > 0 ? "既有 " + prev + "＋本次 " + row.qty + "＝" + (prev + row.qty) + " · " : "") +
+            parsed.action + (detail ? "（" + detail + "）" : "")
         });
         if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
       } else {
@@ -1690,47 +1776,32 @@
         });
       }
     });
-    return { lines: lines, warnings: warnings };
+    return { lines: lines, warnings: warnings, accumHint: accumHint };
   }
 
   function applyParsedScan(parsed, noteExtra) {
     if (!parsed.items.length) throw new Error("無品項");
     var recordId = null;
+    var accumMsg = "";
+
     if (parsed.action === "領用") {
-      var qtys = emptyQtys();
-      parsed.items.forEach(function (row) {
-        var it = resolveItemByName(row.name);
-        if (it) qtys[it.id] = (Number(qtys[it.id]) || 0) + row.qty;
-      });
-      if (parsed.className && parsed.teacher) state.classMap[parsed.className] = parsed.teacher;
-      recordId = uid();
-      state.records.unshift({
-        id: recordId,
-        date: todayStr(),
-        className: parsed.className || "",
-        teacher: parsed.teacher || "",
-        qtys: qtys,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+      var addQtys = parsedItemsToQtys(parsed.items);
+      var result = accumulateRequisition({
+        date: parsed.date || todayStr(),
+        className: parsed.className,
+        teacher: parsed.teacher,
+        addQtys: addQtys,
         source: "photo"
       });
+      recordId = result.record.id;
+      accumMsg = result.isNew ? "已新增請領" : "已累加請領";
+      deductStockByDeltas(result.deltas, parsed.className, recordId, (noteExtra || "拍照") + "；");
     }
 
     parsed.items.forEach(function (row) {
       var it = resolveItemByName(row.name);
       if (!it) return;
-      if (parsed.action === "領用") {
-        var dr = deductStock(it.id, row.qty);
-        logStockMove({
-          type: "領用扣庫",
-          itemId: it.id,
-          itemName: it.name,
-          qty: row.qty - dr.shortfall,
-          className: parsed.className,
-          recordId: recordId,
-          note: (noteExtra || "") + (dr.shortfall ? "；不足" + dr.shortfall : "")
-        });
-      } else {
+      if (parsed.action !== "領用") {
         var cid = parsed.condition || (parsed.action === "進貨" ? "new" : "fair");
         addStockQty(it.id, row.qty, cid);
         logStockMove({
@@ -1745,6 +1816,7 @@
       }
     });
     saveState();
+    return accumMsg || "已更新";
   }
 
   function openInboxDb() {
@@ -1995,6 +2067,7 @@
       { date: "2026-02-25", className: "101", teacher: "陳老師", qtys: { bamboo_broom: 1, broom: 1, mop: 1, dustpan: 1 } },
       { date: "2026-03-13", className: "102", teacher: "林老師", qtys: { mop: 2, trash_bag: 1, other_window_wiper: 2 } },
       { date: "2026-03-20", className: "201", teacher: "黃老師", qtys: { broom: 1, dustpan: 1, detergent: 1, other_bucket: 2 } },
+      { date: todayStr(), className: "101", teacher: "陳老師", qtys: { bamboo_broom: 5, other_coconut_mop: 4 }, source: "photo" },
       { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1, other_soap: 1 } }
     ];
     demos.forEach(function (d) {
