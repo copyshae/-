@@ -392,8 +392,8 @@
         <h2>使用提示</h2>
         <ul class="tips">
           <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
-          <li>請領列表可「修正總量」直接改寫正確數字（可同步調整庫存差額）</li>
-          <li>同班級、同導師的請領數量會累加至既有總量（拍照或手動皆適用）</li>
+          <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
+          <li>每次請領各為一列；同班級可於同天或不同天多次請領，品項不必相同</li>
           <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
           <li>進貨、送還可入庫加總（庫存分頁或拍照辨識）</li>
           <li>設定 Gemini 金鑰可辨識手寫；無金鑰可手動貼文字</li>
@@ -1003,8 +1003,8 @@
   function bindCardActions(container) {
     container.querySelectorAll("[data-act]").forEach(function (btn) {
       btn.onclick = function () {
-        if (btn.dataset.act === "correct") showReqForm(btn.dataset.id, "correct");
-        if (btn.dataset.act === "edit") showReqForm(btn.dataset.id, "correct");
+        if (btn.dataset.act === "correct") showReqForm(btn.dataset.id);
+        if (btn.dataset.act === "edit") showReqForm(btn.dataset.id);
         if (btn.dataset.act === "del") {
           if (!confirm("確定刪除此筆請領？")) return;
           state.records = state.records.filter(function (r) { return r.id !== btn.dataset.id; });
@@ -1314,32 +1314,25 @@
     renderItemDefs();
   }
 
-  function showReqForm(editId, mode) {
+  function showReqForm(editId) {
     var rec = editId ? state.records.find(function (r) { return r.id === editId; }) : null;
-    var formMode = mode || (rec ? "correct" : "add");
     var date = rec ? rec.date : todayStr();
     var className = rec ? rec.className : "";
     var teacher = rec ? rec.teacher : "";
     var qtys = rec ? Object.assign(emptyQtys(), rec.qtys) : emptyQtys();
 
-    function reqFormBody(currentMode, currentQtys) {
-      currentMode = currentMode || formMode;
+    function reqFormBody(currentQtys) {
       currentQtys = currentQtys || qtys;
-      var modeTips = currentMode === "correct"
-        ? '<p class="tips" style="margin-bottom:0.45rem">直接輸入<strong>正確總量</strong>，儲存後覆寫既有數字（非累加）</p>'
-        : '<p class="tips" style="margin-bottom:0.45rem">同班級、同導師的數量會<strong>累加</strong>至既有請領總量</p>';
-      var modeChips = rec ? "" :
-        '<div class="filters" id="reqMode" style="margin-bottom:0.45rem">' +
-        '<button type="button" class="chip' + (currentMode === "add" ? " on" : "") + '" data-mode="add">累加</button>' +
-        '<button type="button" class="chip' + (currentMode === "correct" ? " on" : "") + '" data-mode="correct">修正總量</button>' +
-        "</div>";
-      var title = rec ? "修正請領總量" : (currentMode === "correct" ? "修正請領總量" : "新增請領");
-      var syncLabel = currentMode === "correct"
+      var modeTips = rec
+        ? '<p class="tips" style="margin-bottom:0.45rem">修改此筆請領的各品項數量；可同步調整庫存差額</p>'
+        : '<p class="tips" style="margin-bottom:0.45rem">每次請領各為一列；同班級可多次請領（同天或不同天），品項不必相同</p>';
+      var title = rec ? "修正請領" : "新增請領";
+      var syncLabel = rec
         ? "同步調整庫存（依差額加減，減少還庫至尚可）"
         : "同步扣減庫存（尚可→舊→新）";
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         "<h3>" + title + "</h3>" +
-        modeChips + modeTips +
+        modeTips +
         '<div class="row"><label>領用日期</label><input id="fDate" type="date" value="' + esc(date) + '" /></div>' +
         '<div class="row"><label>領用班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="例：101、暑新一" /></div>' +
         '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
@@ -1352,63 +1345,22 @@
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
         '<input type="checkbox" id="syncStock" checked /> ' + syncLabel + '</label>' +
         '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">' +
-        (currentMode === "correct" ? "儲存修正" : "儲存請領") + '</button>';
+        (rec ? "儲存修正" : "儲存請領") + '</button>';
     }
 
-    openModal(reqFormBody(formMode, qtys));
-    bindReqForm(rec, formMode, reqFormBody);
+    openModal(reqFormBody(qtys));
+    bindReqForm(rec, reqFormBody);
   }
 
-  function bindReqForm(rec, formMode, reqFormBody) {
-    formMode = formMode || (rec ? "correct" : "add");
+  function bindReqForm(rec, reqFormBody) {
     document.getElementById("modalX").onclick = closeModal;
-
-    function loadExistingTotalsIfCorrect() {
-      if (formMode !== "correct" || rec) return;
-      var c = document.getElementById("fClass").value.trim();
-      var t = document.getElementById("fTeacher").value.trim();
-      if (!c) return;
-      if (!t && state.classMap[c]) {
-        t = state.classMap[c];
-        document.getElementById("fTeacher").value = t;
-      }
-      var existing = findAccumRecord(c, t);
-      if (!existing) return;
-      document.querySelectorAll("[data-qty]").forEach(function (inp) {
-        inp.value = Number(existing.qtys[inp.dataset.qty]) || 0;
-      });
-    }
 
     document.getElementById("fClass").oninput = function () {
       var c = document.getElementById("fClass").value.trim();
       if (state.classMap[c] && !document.getElementById("fTeacher").value.trim()) {
         document.getElementById("fTeacher").value = state.classMap[c];
       }
-      loadExistingTotalsIfCorrect();
     };
-    document.getElementById("fTeacher").oninput = loadExistingTotalsIfCorrect;
-
-    var modeEl = document.getElementById("reqMode");
-    if (modeEl) {
-      modeEl.onclick = function (ev) {
-        var chip = ev.target.closest("[data-mode]");
-        if (!chip) return;
-        formMode = chip.dataset.mode;
-        var newQtys = emptyQtys();
-        document.querySelectorAll("[data-qty]").forEach(function (inp) {
-          newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
-        });
-        var d = document.getElementById("fDate").value;
-        var c = document.getElementById("fClass").value;
-        var t = document.getElementById("fTeacher").value;
-        openModal(reqFormBody(formMode, newQtys));
-        bindReqForm(rec, formMode, reqFormBody);
-        document.getElementById("fDate").value = d;
-        document.getElementById("fClass").value = c;
-        document.getElementById("fTeacher").value = t;
-        if (formMode === "correct") loadExistingTotalsIfCorrect();
-      };
-    }
 
     function bindQtyGrid(id) {
       var grid = document.getElementById(id);
@@ -1435,8 +1387,8 @@
         document.querySelectorAll("[data-qty]").forEach(function (inp) {
           newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
         });
-        openModal(reqFormBody(formMode, newQtys));
-        bindReqForm(rec, formMode, reqFormBody);
+        openModal(reqFormBody(newQtys));
+        bindReqForm(rec, reqFormBody);
         document.getElementById("fDate").value = date;
         document.getElementById("fClass").value = className;
         document.getElementById("fTeacher").value = teacher;
@@ -1465,79 +1417,38 @@
       if (tch) state.classMap[c] = tch;
       var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
 
-      if (formMode === "correct") {
-        var existedBefore = !!rec || !!findAccumRecord(c, tch);
-        var target = rec || findAccumRecord(c, tch);
-        if (!target) {
-          target = {
-            id: uid(),
-            date: d,
-            className: c,
-            teacher: tch,
-            qtys: emptyQtys(),
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            source: "manual"
-          };
-          state.records.unshift(target);
-        }
-        var oldQtys = Object.assign(emptyQtys(), target.qtys);
-        target.date = d;
-        target.className = c;
-        target.teacher = tch;
-        target.qtys = newQtys;
-        target.updatedAt = Date.now();
-        if (syncStock) {
-          applyStockCorrection(computeQtyDelta(oldQtys, newQtys), c, target.id);
-        }
-        saveState();
-        closeModal();
-        toast(existedBefore ? "已修正總量" : "已儲存總量");
-        renderHome();
-        renderList();
-        renderStats();
-        renderStock();
-        return;
-      }
-
       if (rec) {
+        var oldQtys = Object.assign(emptyQtys(), rec.qtys);
         rec.date = d;
         rec.className = c;
         rec.teacher = tch;
-        var oldQtys2 = Object.assign(emptyQtys(), rec.qtys);
         rec.qtys = newQtys;
         rec.updatedAt = Date.now();
         if (syncStock) {
-          applyStockCorrection(computeQtyDelta(oldQtys2, newQtys), c, rec.id);
-        }
-      } else {
-        var result = accumulateRequisition({
-          date: d,
-          className: c,
-          teacher: tch,
-          addQtys: newQtys,
-          source: "manual"
-        });
-        rec = result.record;
-        if (syncStock) {
-          deductStockByDeltas(result.deltas, c, rec.id, "手動請領；");
+          applyStockCorrection(computeQtyDelta(oldQtys, newQtys), c, rec.id);
         }
         saveState();
         closeModal();
-        toast(result.isNew ? "已新增請領" : "已累加至既有總量");
-        renderHome();
-        renderList();
-        renderStats();
-        renderStock();
-        return;
+        toast("已修正請領");
+      } else {
+        var result = createRequisition({
+          date: d,
+          className: c,
+          teacher: tch,
+          qtys: newQtys,
+          source: "manual"
+        });
+        if (syncStock) {
+          deductStockByDeltas(result.deltas, c, result.record.id, "手動請領；");
+        }
+        saveState();
+        closeModal();
+        toast("已新增請領");
       }
-
-      saveState();
-      closeModal();
-      toast("已更新");
       renderHome();
       renderList();
       renderStats();
+      renderStock();
     };
   }
 
@@ -1697,62 +1608,39 @@
     return String(s || "").trim();
   }
 
-  function findAccumRecord(className, teacher) {
-    var c = normKey(className);
-    var t = normKey(teacher);
-    if (!c) return null;
-    var matches = state.records.filter(function (r) {
-      return normKey(r.className) === c && normKey(r.teacher) === t;
-    });
-    if (!matches.length) return null;
-    matches.sort(function (a, b) {
-      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-      return (b.updatedAt || 0) - (a.updatedAt || 0);
-    });
-    return matches[0];
-  }
-
-  /** 依班級＋導師累加請領數量；回傳本次增量 deltas */
-  function accumulateRequisition(opts) {
+  /** 新增一筆請領紀錄（每次請領各一列，不合併） */
+  function createRequisition(opts) {
     var className = normKey(opts.className);
     var teacher = normKey(opts.teacher);
     var date = opts.date || todayStr();
-    var addQtys = opts.addQtys || {};
+    var qtys = opts.qtys || {};
 
     if (!className) throw new Error("請填班級");
     if (!teacher && state.classMap[className]) teacher = state.classMap[className];
     if (teacher) state.classMap[className] = teacher;
 
-    var rec = findAccumRecord(className, teacher);
-    var isNew = !rec;
-
-    if (!rec) {
-      rec = {
-        id: uid(),
-        date: date,
-        className: className,
-        teacher: teacher,
-        qtys: emptyQtys(),
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        source: opts.source || "manual"
-      };
-      state.records.unshift(rec);
-    } else {
-      rec.date = date;
-      rec.updatedAt = Date.now();
-    }
+    var rec = {
+      id: uid(),
+      date: date,
+      className: className,
+      teacher: teacher,
+      qtys: emptyQtys(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      source: opts.source || "manual"
+    };
 
     var deltas = emptyQtys();
     state.items.forEach(function (it) {
-      var add = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
-      if (add > 0) {
-        rec.qtys[it.id] = (Number(rec.qtys[it.id]) || 0) + add;
-        deltas[it.id] = add;
+      var q = Math.max(0, parseInt(qtys[it.id], 10) || 0);
+      if (q > 0) {
+        rec.qtys[it.id] = q;
+        deltas[it.id] = q;
       }
     });
 
-    return { record: rec, deltas: deltas, isNew: isNew };
+    state.records.unshift(rec);
+    return { record: rec, deltas: deltas };
   }
 
   function parsedItemsToQtys(items) {
@@ -1968,11 +1856,6 @@
   function buildApplyPreview(parsed) {
     var lines = [];
     var warnings = [];
-    var existing = parsed.action === "領用" ? findAccumRecord(parsed.className, parsed.teacher) : null;
-    var accumHint = existing
-      ? '<p class="tips" style="margin-bottom:0.45rem">將累加至既有紀錄：' +
-        esc(existing.className) + " · " + esc(existing.teacher) + "</p>"
-      : "";
 
     parsed.items.forEach(function (row) {
       var it = resolveItemByName(row.name);
@@ -1980,7 +1863,6 @@
       var e = state.inventory[it.id] || emptyStockEntry();
       var before = stockTotal(e);
       if (parsed.action === "領用") {
-        var prev = existing ? (Number(existing.qtys[it.id]) || 0) : 0;
         var sim = Object.assign(emptyStockEntry(), e);
         state.inventory[it.id] = sim;
         var dr = deductStock(it.id, row.qty);
@@ -1988,8 +1870,7 @@
         var detail = dr.lines.map(function (l) { return condLabel(l.cond) + "−" + l.n; }).join("、");
         lines.push({
           name: it.name, qty: row.qty, before: before, after: Math.max(0, before - row.qty),
-          note: (prev > 0 ? "既有 " + prev + "＋本次 " + row.qty + "＝" + (prev + row.qty) + " · " : "") +
-            parsed.action + (detail ? "（" + detail + "）" : "")
+          note: "新增請領 · " + parsed.action + (detail ? "（" + detail + "）" : "")
         });
         if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
       } else {
@@ -2001,7 +1882,7 @@
         });
       }
     });
-    return { lines: lines, warnings: warnings, accumHint: accumHint };
+    return { lines: lines, warnings: warnings };
   }
 
   function applyParsedScan(parsed, noteExtra) {
@@ -2011,15 +1892,15 @@
 
     if (parsed.action === "領用") {
       var addQtys = parsedItemsToQtys(parsed.items);
-      var result = accumulateRequisition({
+      var result = createRequisition({
         date: parsed.date || todayStr(),
         className: parsed.className,
         teacher: parsed.teacher,
-        addQtys: addQtys,
+        qtys: addQtys,
         source: "photo"
       });
       recordId = result.record.id;
-      accumMsg = result.isNew ? "已新增請領" : "已累加請領";
+      accumMsg = "已新增請領";
       deductStockByDeltas(result.deltas, parsed.className, recordId, (noteExtra || "拍照") + "；");
     }
 
@@ -2147,7 +2028,6 @@
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         '<h3>確認登記</h3>' +
         '<img class="scan-thumb" src="' + url + '" alt="照片" />' +
-        preview.accumHint +
         '<div class="row"><label>類型</label><select id="scanAction" class="grow">' +
         ["領用", "進貨", "送還"].map(function (a) {
           return '<option value="' + a + '"' + (p.action === a ? " selected" : "") + ">" + a + "</option>";
@@ -2164,7 +2044,7 @@
           : "") +
         manualBlock +
         (lines ? '<div style="margin-top:0.55rem">' + lines + warn + "</div>" : "") +
-        '<button class="btn" type="button" id="btnApplyScan" style="margin-top:0.65rem">確認加總並更新庫存</button>';
+        '<button class="btn" type="button" id="btnApplyScan" style="margin-top:0.65rem">確認登記並更新庫存</button>';
     }
 
     openModal(bodyHtml(parsed));
