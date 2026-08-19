@@ -2102,8 +2102,7 @@
         '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增欄位</button>' +
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
         '<input type="checkbox" id="syncStock" checked /> ' + syncLabel + '</label>' +
-        '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">' +
-        (rec ? "全部種類輸入完，前往確認" : "全部種類輸入完，前往確認") + '</button>';
+        '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">全部種類輸入完，前往確認</button>';
     }
 
     openModal(reqFormBody(formQtys));
@@ -2848,8 +2847,16 @@
     var recordId = null;
     var accumMsg = "";
 
+    var addQtys = parsedItemsToQtys(parsed.items);
+
     if (parsed.action === "領用") {
-      var addQtys = parsedItemsToQtys(parsed.items);
+      var undoSnap = captureManualUndoBefore({
+        className: parsed.className,
+        teacher: parsed.teacher,
+        qtys: addQtys,
+        syncStock: true,
+        editRec: null
+      });
       var result = createRequisition({
         date: parsed.date || todayStr(),
         className: parsed.className,
@@ -2860,6 +2867,8 @@
       recordId = result.record.id;
       accumMsg = result.merged ? "已累加請領" : "已新增請領";
       deductStockByDeltas(result.deltas, result.record.className || result.record.teacher, recordId, (noteExtra || "拍照") + "；");
+      undoSnap.createdRecordId = recordId;
+      lastManualUndo = undoSnap;
     }
 
     parsed.items.forEach(function (row) {
@@ -2973,19 +2982,78 @@
 
     var manualBlock = manualInputBlock(errMsg, parsed.items.length > 0);
 
-    function bodyHtml(p) {
-      var preview = buildApplyPreview(p);
-      var lines = preview.lines.map(function (ln) {
-        return '<div class="scan-preview-line"><strong>' + esc(ln.name) + " ×" + ln.qty +
-          '</strong><div class="meta">' + esc(ln.note) + " · 庫存 " + ln.before + "→" + ln.after + "</div></div>";
+    /** 將 AI 辨識 items 對應到所有掃具 id，回傳 {id: qty} */
+    function parsedItemsToScanQtys(items) {
+      var qtys = emptyQtys();
+      (items || []).forEach(function (row) {
+        var it = resolveItemByName(row.name);
+        if (it && row.qty > 0) qtys[it.id] = (Number(qtys[it.id]) || 0) + row.qty;
+      });
+      return qtys;
+    }
+
+    /** 從確認視窗的數量格讀回 qtys，轉成 items 陣列 */
+    function readScanQtyInputs() {
+      var items = [];
+      sortedItems().forEach(function (it) {
+        var inp = document.querySelector('[data-scan-qty="' + it.id + '"]');
+        if (!inp) return;
+        var q = Math.max(0, parseInt(inp.value, 10) || 0);
+        if (q > 0) items.push({ name: it.name, qty: q });
+      });
+      return items;
+    }
+
+    /** 全部種類確認表（可編輯數量）*/
+    function scanQtyTableHtml(action, aiQtys) {
+      var isRequisition = action === "領用";
+      var rows = sortedItems().map(function (it) {
+        var q = Number(aiQtys[it.id]) || 0;
+        var cls = q > 0 ? "row-on" : "row-off";
+        var stock = isRequisition
+          ? (function () {
+              var e = state.inventory[it.id] || emptyStockEntry();
+              return stockTotal(e);
+            })() : "";
+        var stockCell = isRequisition ? "<td>" + stock + "</td>" : "";
+        return '<tr class="' + cls + '"><td>' + esc(it.name) + "</td>" +
+          "<td>" +
+          '<div class="qty-ctrl" style="justify-content:flex-end">' +
+          '<button type="button" data-scan-dec="' + it.id + '">−</button>' +
+          '<input type="number" min="0" data-scan-qty="' + it.id + '" value="' + q + '" inputmode="numeric" style="width:3.2rem" />' +
+          '<button type="button" data-scan-inc="' + it.id + '">＋</button>' +
+          "</div></td>" +
+          stockCell + "</tr>";
       }).join("");
-      var warn = preview.warnings.length
-        ? '<p class="scan-warn">⚠ ' + esc(preview.warnings.join("；")) + "</p>" : "";
+      var head = isRequisition
+        ? "<tr><th>掃具</th><th>數量</th><th>庫存</th></tr>"
+        : "<tr><th>掃具</th><th>數量</th></tr>";
+      return '<p class="tips" style="margin:0.45rem 0 0.25rem">AI 辨識結果已帶入，請逐項核對後修正再確認。</p>' +
+        '<div class="confirm-all-wrap"><table class="confirm-all-table"><thead>' + head +
+        "</thead><tbody>" + rows + "</tbody></table></div>";
+    }
+
+    function bodyHtml(p) {
+      var aiQtys = parsedItemsToScanQtys(p.items);
+      var warn = "";
+      if (p.action === "領用") {
+        var warnings = [];
+        sortedItems().forEach(function (it) {
+          var q = Number(aiQtys[it.id]) || 0;
+          if (q <= 0) return;
+          var orig = Object.assign(emptyStockEntry(), state.inventory[it.id] || emptyStockEntry());
+          state.inventory[it.id] = Object.assign(emptyStockEntry(), orig);
+          var dr = deductStock(it.id, q);
+          state.inventory[it.id] = orig;
+          if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
+        });
+        if (warnings.length) warn = '<p class="scan-warn">⚠ ' + esc(warnings.join("；")) + "</p>";
+      }
 
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         '<h3>確認登記</h3>' +
         '<img class="scan-thumb" src="' + url + '" alt="照片" />' +
-        '<p class="tips" style="margin-bottom:0.45rem">領用人／班級以手寫原文為準，可修改；非班級領用時班級可留空</p>' +
+        '<p class="tips" style="margin-bottom:0.35rem">領用人／班級以手寫原文為準，可修改</p>' +
         '<div class="row"><label>類型</label><select id="scanAction" class="grow">' +
         ["領用", "進貨", "送還"].map(function (a) {
           return '<option value="' + a + '"' + (p.action === a ? " selected" : "") + ">" + a + "</option>";
@@ -2995,7 +3063,10 @@
         '<datalist id="scanTeacherList">' + Object.keys(state.teacherClassMap || {}).map(function (t) {
           return '<option value="' + esc(t) + '"></option>';
         }).join("") + "</datalist>" +
-        '<div class="row"><label>班級</label><input id="scanClass" type="text" value="' + esc(p.className) + '" placeholder="選填" /></div>' +
+        '<div class="row"><label>班級</label><input id="scanClass" type="text" value="' + esc(p.className) + '" list="scanClassList" placeholder="選填" /></div>' +
+        '<datalist id="scanClassList">' + Object.keys(state.classMap).map(function (k) {
+          return '<option value="' + esc(k) + '"></option>';
+        }).join("") + "</datalist>" +
         (p.action !== "領用"
           ? '<div class="row"><label>入庫狀態</label><select id="scanCond" class="grow">' +
             CONDITIONS.map(function (c) {
@@ -3003,26 +3074,16 @@
               return '<option value="' + c.id + '"' + sel + ">" + c.name + "</option>";
             }).join("") + "</select></div>"
           : "") +
+        scanQtyTableHtml(p.action, aiQtys) +
+        warn +
         manualBlock +
-        (lines ? '<div style="margin-top:0.55rem">' + lines + warn + '</div>' : "") +
         '<div class="btn-row" style="margin-top:0.65rem">' +
-        '<button class="btn" type="button" id="btnApplyScan">確認登記並更新庫存</button>' +
+        '<button class="btn secondary" type="button" id="btnManualForm">改用手動表單</button>' +
+        '<button class="btn" type="button" id="btnApplyScan">確認累加並更新庫存</button>' +
         '</div>';
     }
 
     openModal(bodyHtml(parsed));
-
-    function readForm() {
-      var action = document.getElementById("scanAction").value;
-      return {
-        action: action,
-        date: document.getElementById("scanDate").value || todayStr(),
-        className: document.getElementById("scanClass").value.trim(),
-        teacher: document.getElementById("scanTeacher").value.trim(),
-        items: parsed.items.slice(),
-        condition: action === "領用" ? "" : (document.getElementById("scanCond") || {}).value || "new"
-      };
-    }
 
     function bindScanTeacherFill() {
       var teacherEl = document.getElementById("scanTeacher");
@@ -3035,100 +3096,91 @@
         }
       };
     }
-    bindScanTeacherFill();
 
-    document.getElementById("modalX").onclick = function () {
-      URL.revokeObjectURL(url);
-      closeModal();
-    };
-
-    function openManualFormFromScan() {
-      var p = readForm();
-      var manual = document.getElementById("manualNote");
-      if (manual && manual.value.trim()) {
-        var parsedText = parseNoteText(manual.value.trim());
-        p.className = p.className || parsedText.className;
-        p.teacher = p.teacher || parsedText.teacher;
-        if (parsedText.items.length) {
-          URL.revokeObjectURL(url);
-          closeModal();
-          showReqForm(null, {
-            date: p.date,
-            className: p.className,
-            teacher: p.teacher,
-            qtys: parsedItemsToFormQtys(parsedText.items)
-          });
-          toast("已帶入手動表單，請確認後儲存");
-          return;
-        }
-      }
-      URL.revokeObjectURL(url);
-      closeModal();
-      showReqForm(null, {
-        date: p.date,
-        className: p.className,
-        teacher: p.teacher
+    function bindQtyGridScan() {
+      document.querySelectorAll("[data-scan-inc],[data-scan-dec]").forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.dataset.scanInc || btn.dataset.scanDec;
+          var inp = document.querySelector('[data-scan-qty="' + id + '"]');
+          if (!inp) return;
+          var n = Math.max(0, parseInt(inp.value, 10) || 0);
+          inp.value = btn.dataset.scanInc ? n + 1 : Math.max(0, n - 1);
+          inp.closest("tr").className = inp.value > 0 ? "row-on" : "row-off";
+        };
+      });
+      document.querySelectorAll("[data-scan-qty]").forEach(function (inp) {
+        inp.oninput = function () {
+          inp.closest("tr").className = (parseInt(inp.value, 10) || 0) > 0 ? "row-on" : "row-off";
+        };
       });
     }
 
-    function bindConfirm() {
+    function readForm() {
+      var action = document.getElementById("scanAction").value;
+      return {
+        action: action,
+        date: document.getElementById("scanDate").value || todayStr(),
+        className: document.getElementById("scanClass").value.trim(),
+        teacher: document.getElementById("scanTeacher").value.trim(),
+        items: readScanQtyInputs(),
+        condition: action === "領用" ? "" : ((document.getElementById("scanCond") || {}).value || "new")
+      };
+    }
+
+    function rebind() {
       document.getElementById("modalX").onclick = function () {
         URL.revokeObjectURL(url);
         closeModal();
       };
-      document.getElementById("scanAction").onchange = function () {
-        parsed = readForm();
-        openModal(bodyHtml(parsed));
-        bindConfirm();
-      };
-      var refreshPreview = function () {
-        parsed = readForm();
-        if (!parsed.items.length) return;
-        openModal(bodyHtml(parsed));
-        bindConfirm();
-      };
-      var scanClass = document.getElementById("scanClass");
-      var scanTeacher = document.getElementById("scanTeacher");
-      if (scanClass) scanClass.onchange = refreshPreview;
-      if (scanTeacher) scanTeacher.onchange = refreshPreview;
       bindScanTeacherFill();
+      bindQtyGridScan();
+
+      document.getElementById("scanAction").onchange = function () {
+        var p = readForm();
+        parsed = p;
+        openModal(bodyHtml(parsed));
+        rebind();
+      };
 
       var parseBtn = document.getElementById("btnParseText");
       if (parseBtn) {
         parseBtn.onclick = function () {
           var txt = document.getElementById("manualNote").value.trim();
           if (!txt) { toast("請貼上或輸入文字"); return; }
-          parsed = parseNoteText(txt);
-          if (!parsed.items.length) { toast("無法解析品項，請改用手動表單"); return; }
-          parsed.date = document.getElementById("scanDate").value || todayStr();
-          parsed.className = document.getElementById("scanClass").value.trim() || parsed.className;
-          parsed.teacher = document.getElementById("scanTeacher").value.trim() || parsed.teacher;
-          parsed.action = document.getElementById("scanAction").value;
+          var parsedText = parseNoteText(txt);
+          if (!parsedText.items.length) { toast("無法解析品項"); return; }
+          parsed.items = parsedText.items;
+          if (!parsed.className) parsed.className = parsedText.className || "";
+          if (!parsed.teacher) parsed.teacher = parsedText.teacher || "";
           openModal(bodyHtml(parsed));
-          bindConfirm();
+          rebind();
         };
       }
-      var manualFormBtn = document.getElementById("btnManualForm");
-      if (manualFormBtn) manualFormBtn.onclick = openManualFormFromScan;
+
+      document.getElementById("btnManualForm").onclick = function () {
+        var p = readForm();
+        URL.revokeObjectURL(url);
+        closeModal();
+        showReqForm(null, {
+          date: p.date,
+          className: p.className,
+          teacher: p.teacher,
+          qtys: parsedItemsToFormQtys(p.items)
+        });
+        toast("已帶入手動表單，請確認後儲存");
+      };
 
       document.getElementById("btnApplyScan").onclick = function () {
         var p = readForm();
-        var manual = document.getElementById("manualNote");
-        if (manual && manual.value.trim() && !p.items.length) {
-          p = parseNoteText(manual.value.trim());
-          p.date = document.getElementById("scanDate").value || todayStr();
-          p.className = document.getElementById("scanClass").value.trim() || p.className;
-          p.teacher = document.getElementById("scanTeacher").value.trim() || p.teacher;
-          p.action = document.getElementById("scanAction").value;
-          if (p.action !== "領用") p.condition = document.getElementById("scanCond").value;
-        }
-        if (!p.items.length) { toast("請填寫品項"); return; }
         if (p.action === "領用" && !p.className && !p.teacher) { toast("領用請填領用人或班級"); return; }
+        if (!p.items.length) { toast("請至少填一種掃具數量"); return; }
         try {
           var msg = applyParsedScan(p, name || "拍照");
           URL.revokeObjectURL(url);
           closeModal();
-          toast(msg + "並更新庫存");
+          toastWithUndo(msg + "並更新庫存", function () {
+            undoLastManualReq();
+          });
           renderHome();
           renderList();
           renderStats();
@@ -3138,7 +3190,7 @@
         }
       };
     }
-    bindConfirm();
+    rebind();
   }
 
   function showStockMoveForm(kind) {
