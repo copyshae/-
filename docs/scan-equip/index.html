@@ -1648,19 +1648,21 @@
     if (name === "settings") renderSettings();
   }
 
-  /* iOS Safari 用 a.click() 下載會跳離頁面，改用隱藏 iframe 觸發 */
+  /* iOS Safari 下載 Blob 會跳離頁面；改在新分頁開啟，下載後關掉新分頁即可回來 */
   function downloadBlob(blob, filename) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.target = "_blank";
+    a.rel = "noopener";
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
     setTimeout(function () {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    }, 200);
+    }, 300);
   }
 
   function openModal(html) {
