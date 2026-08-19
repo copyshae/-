@@ -1,7 +1,7 @@
 {
   "name": "掃具台｜校園掃具請領",
   "short_name": "掃具台",
-  "description": "繁體中文介面。班級掃具請領登記，對齊 Excel 領用表欄位，可匯出 CSV。",
+  "description": "繁體中文介面。班級掃具請領登記、庫存（新／舊／尚可），可匯出 CSV。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

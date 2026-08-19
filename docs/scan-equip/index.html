@@ -219,6 +219,54 @@
       position: sticky; bottom: 0.5rem; z-index: 5;
       margin-top: 0.75rem;
     }
+    .inv-conds {
+      display: flex; flex-wrap: wrap; gap: 0.35rem;
+      margin-top: 0.45rem;
+    }
+    .inv-cond {
+      font-size: 0.78rem; font-weight: 600;
+      padding: 0.2rem 0.45rem; border-radius: 0.35rem;
+      border: 1px solid var(--line);
+    }
+    .inv-cond.new { background: #dbeafe; color: #1e40af; }
+    .inv-cond.old { background: #fef3c7; color: #92400e; }
+    .inv-cond.fair { background: var(--ok); color: #166534; }
+    .inv-total {
+      font-size: 0.82rem; font-weight: 700; color: var(--accent);
+      white-space: nowrap;
+    }
+    .inv-table-head {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, 1fr) 0.7fr;
+      gap: 0.25rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 0.35rem 0.55rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 0.25rem;
+    }
+    .inv-table-row {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, 1fr) 0.7fr;
+      gap: 0.25rem;
+      align-items: center;
+      font-size: 0.82rem;
+      padding: 0.45rem 0.55rem;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .inv-table-row:last-child { border-bottom: none; }
+    .inv-table-row:active { background: var(--plain); }
+    .inv-table-row .n { text-align: center; font-weight: 600; }
+    .inv-table-row .name { font-weight: 500; }
+    .cond-block { margin-bottom: 0.55rem; }
+    .cond-block .cond-label {
+      font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem;
+    }
+    .cond-block.new .cond-label { color: #1e40af; }
+    .cond-block.old .cond-label { color: #92400e; }
+    .cond-block.fair .cond-label { color: #166534; }
     @keyframes rise {
       from { opacity: 0; transform: translateY(0.55rem); }
       to { opacity: 1; transform: translateY(0); }
@@ -240,6 +288,10 @@
     <div class="view active" id="view-home">
       <div class="stats" id="statsGrid"></div>
       <section>
+        <h2>庫存概況</h2>
+        <div class="card" id="homeInvSummary"></div>
+      </section>
+      <section>
         <h2>今日領用</h2>
         <div id="todayList"></div>
       </section>
@@ -253,6 +305,7 @@
       <section>
         <h2>使用提示</h2>
         <ul class="tips">
+          <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「114 學年掃具請領」表：班級、導師、各品項數量、其他細項</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
           <li>資料存本機；換手機請用「設定 → 匯出備份」</li>
@@ -299,19 +352,25 @@
       </section>
     </div>
 
-    <!-- 品項 -->
-    <div class="view" id="view-items">
+    <!-- 庫存 -->
+    <div class="view" id="view-stock">
       <section>
-        <h2>標準品項</h2>
-        <p class="tips" style="margin-bottom:0.5rem">對應 Excel 欄位；新增請領時會顯示這些項目。</p>
-        <div id="itemDefList"></div>
-        <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.6rem">還原預設品項</button>
+        <div class="stats" id="stockStats"></div>
       </section>
       <section>
-        <h2>班級導師對照</h2>
-        <p class="tips" style="margin-bottom:0.5rem">輸入班級後可自動帶出導師姓名。</p>
-        <div id="classMapList"></div>
-        <button class="btn" type="button" id="btnAddClass" style="margin-top:0.55rem">新增班級對照</button>
+        <div class="row">
+          <input type="search" id="stockSearch" placeholder="搜尋掃具種類…" />
+        </div>
+        <div class="filters" id="stockFilters"></div>
+        <div class="card">
+          <div class="inv-table-head">
+            <span>種類</span><span>新</span><span>舊</span><span>尚可</span><span>計</span>
+          </div>
+          <div id="stockList"></div>
+        </div>
+        <div class="actions" style="margin-top:0.6rem">
+          <button class="btn secondary" type="button" id="btnExportInvCsv">匯出庫存 CSV</button>
+        </div>
       </section>
     </div>
 
@@ -338,9 +397,21 @@
         </div>
       </section>
       <section>
+        <h2>標準品項</h2>
+        <p class="tips" style="margin-bottom:0.5rem">對應 Excel 欄位；庫存與請領共用這些掃具種類。</p>
+        <div id="itemDefList"></div>
+        <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.6rem">還原預設品項</button>
+      </section>
+      <section>
+        <h2>班級導師對照</h2>
+        <p class="tips" style="margin-bottom:0.5rem">輸入班級後可自動帶出導師姓名。</p>
+        <div id="classMapList"></div>
+        <button class="btn" type="button" id="btnAddClass" style="margin-top:0.55rem">新增班級對照</button>
+      </section>
+      <section>
         <h2>示範資料</h2>
-        <p class="tips" style="margin-bottom:0.45rem">載入類似 Excel 表的範例請領紀錄，方便試用。</p>
-        <button class="btn secondary" type="button" id="btnDemo">載入示範請領</button>
+        <p class="tips" style="margin-bottom:0.45rem">載入範例庫存（新／舊／尚可）與請領紀錄。</p>
+        <button class="btn secondary" type="button" id="btnDemo">載入示範資料</button>
       </section>
     </div>
   </div>
@@ -348,8 +419,8 @@
   <nav class="bottom-nav" aria-label="主選單">
     <button class="nav-item on" type="button" data-view="home"><span class="ico">🏠</span>總覽</button>
     <button class="nav-item" type="button" data-view="list"><span class="ico">📋</span>請領</button>
+    <button class="nav-item" type="button" data-view="stock"><span class="ico">📦</span>庫存</button>
     <button class="nav-item" type="button" data-view="stats"><span class="ico">📊</span>統計</button>
-    <button class="nav-item" type="button" data-view="items"><span class="ico">🧹</span>品項</button>
     <button class="nav-item" type="button" data-view="settings"><span class="ico">⚙️</span>設定</button>
   </nav>
 
@@ -362,7 +433,7 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "scan-equip-requisition-v2";
+  var STORAGE_KEY = "scan-equip-requisition-v3";
 
   /** 對齊 Excel「114 學年掃具請領」欄位 */
   var DEFAULT_ITEMS = [
@@ -381,15 +452,66 @@
     { id: "long_brush", name: "長柄刷" }
   ];
 
+  /** 庫存狀態：新、舊、尚可 */
+  var CONDITIONS = [
+    { id: "new", name: "新" },
+    { id: "old", name: "舊" },
+    { id: "fair", name: "尚可" }
+  ];
+
   var state = loadState();
   var toastTimer = null;
   var gradeFilter = "all";
   var listSearch = "";
+  var stockSearch = "";
+  var stockFilter = "all";
+
+  function emptyStockEntry() {
+    return { new: 0, old: 0, fair: 0 };
+  }
+
+  function emptyInventory() {
+    var inv = {};
+    DEFAULT_ITEMS.forEach(function (it) { inv[it.id] = emptyStockEntry(); });
+    return inv;
+  }
+
+  function ensureInventory(inv) {
+    var base = emptyInventory();
+    state.items.forEach(function (it) {
+      if (!base[it.id]) base[it.id] = emptyStockEntry();
+    });
+    Object.keys(base).forEach(function (id) {
+      base[id] = Object.assign(emptyStockEntry(), (inv && inv[id]) || {});
+      CONDITIONS.forEach(function (c) {
+        base[id][c.id] = Math.max(0, parseInt(base[id][c.id], 10) || 0);
+      });
+    });
+    return base;
+  }
+
+  function stockTotal(entry) {
+    if (!entry) return 0;
+    return CONDITIONS.reduce(function (a, c) { return a + (Number(entry[c.id]) || 0); }, 0);
+  }
+
+  function inventoryGrandTotals() {
+    var t = { new: 0, old: 0, fair: 0, total: 0 };
+    state.items.forEach(function (it) {
+      var e = state.inventory[it.id] || emptyStockEntry();
+      CONDITIONS.forEach(function (c) {
+        t[c.id] += Number(e[c.id]) || 0;
+      });
+      t.total += stockTotal(e);
+    });
+    return t;
+  }
 
   function defaultState() {
     return {
       settings: { schoolName: "", schoolYear: "114 學年" },
       items: DEFAULT_ITEMS.map(function (x) { return Object.assign({}, x); }),
+      inventory: emptyInventory(),
       classMap: {},
       records: []
     };
@@ -400,12 +522,14 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
       var p = JSON.parse(raw);
-      return {
+      var s = {
         settings: Object.assign(defaultState().settings, p.settings || {}),
         items: (p.items && p.items.length) ? p.items : defaultState().items,
         classMap: p.classMap || {},
         records: p.records || []
       };
+      s.inventory = ensureInventory(p.inventory);
+      return s;
     } catch (e) {
       return defaultState();
     }
@@ -481,8 +605,8 @@
     });
     if (name === "home") renderHome();
     if (name === "list") renderList();
+    if (name === "stock") renderStock();
     if (name === "stats") renderStats();
-    if (name === "items") renderItems();
     if (name === "settings") renderSettings();
   }
 
@@ -499,21 +623,43 @@
     var sy = state.settings.schoolYear || "";
     var sn = state.settings.schoolName || "";
     document.getElementById("schoolLead").textContent =
-      (sn ? sn + " · " : "") + (sy ? sy + " · " : "") + "掃具請領";
+      (sn ? sn + " · " : "") + (sy ? sy + " · " : "") + "掃具請領與庫存";
 
+    var inv = inventoryGrandTotals();
     var today = todayStr();
     var month = monthStr();
     var todayRecs = state.records.filter(function (r) { return r.date === today; });
     var monthRecs = state.records.filter(function (r) { return r.date.slice(0, 7) === month; });
-    var monthQty = monthRecs.reduce(function (a, r) { return a + sumQty(r.qtys); }, 0);
-    var classes = {};
-    monthRecs.forEach(function (r) { classes[r.className] = true; });
 
     document.getElementById("statsGrid").innerHTML =
-      '<div class="stat"><div class="num">' + todayRecs.length + '</div><div class="lbl">今日請領筆數</div></div>' +
-      '<div class="stat"><div class="num">' + monthRecs.length + '</div><div class="lbl">本月請領筆數</div></div>' +
-      '<div class="stat"><div class="num">' + monthQty + '</div><div class="lbl">本月品項合計</div></div>' +
-      '<div class="stat"><div class="num">' + Object.keys(classes).length + '</div><div class="lbl">本月領用班級</div></div>';
+      '<div class="stat"><div class="num">' + inv.total + '</div><div class="lbl">庫存合計</div></div>' +
+      '<div class="stat"><div class="num">' + inv.new + '</div><div class="lbl">新</div></div>' +
+      '<div class="stat"><div class="num">' + inv.old + '</div><div class="lbl">舊</div></div>' +
+      '<div class="stat"><div class="num">' + inv.fair + '</div><div class="lbl">尚可</div></div>';
+
+    var homeInv = document.getElementById("homeInvSummary");
+    var rows = state.items.map(function (it) {
+      var e = state.inventory[it.id] || emptyStockEntry();
+      return { name: it.name, id: it.id, e: e, total: stockTotal(e) };
+    }).filter(function (x) { return x.total > 0; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 6);
+
+    if (!rows.length) {
+      homeInv.innerHTML = '<div class="empty">尚未登記庫存，請至「庫存」分頁點選種類編輯</div>';
+    } else {
+      homeInv.innerHTML = rows.map(function (x) {
+        return '<div class="inv-table-row" data-stock="' + x.id + '" style="cursor:pointer">' +
+          '<span class="name">' + esc(x.name) + '</span>' +
+          '<span class="n">' + x.e.new + '</span><span class="n">' + x.e.old + '</span>' +
+          '<span class="n">' + x.e.fair + '</span><span class="n">' + x.total + '</span></div>';
+      }).join("") +
+        '<p class="tips" style="margin-top:0.5rem;text-align:center">點列可編輯 · 今日請領 ' + todayRecs.length + ' 筆 · 本月 ' + monthRecs.length + ' 筆</p>';
+      homeInv.querySelectorAll("[data-stock]").forEach(function (row) {
+        row.onclick = function () {
+          switchView("stock");
+          showStockForm(row.dataset.stock);
+        };
+      });
+    }
 
     var el = document.getElementById("todayList");
     if (!todayRecs.length) {
@@ -643,10 +789,149 @@
     }
   }
 
-  function renderItems() {
+  function renderStock() {
+    var inv = inventoryGrandTotals();
+    document.getElementById("stockStats").innerHTML =
+      '<div class="stat"><div class="num">' + inv.total + '</div><div class="lbl">庫存合計</div></div>' +
+      '<div class="stat"><div class="num">' + inv.new + '</div><div class="lbl">新</div></div>' +
+      '<div class="stat"><div class="num">' + inv.old + '</div><div class="lbl">舊</div></div>' +
+      '<div class="stat"><div class="num">' + inv.fair + '</div><div class="lbl">尚可</div></div>';
+
+    var filters = [
+      { k: "all", l: "全部" },
+      { k: "has", l: "有庫存" },
+      { k: "zero", l: "零庫存" },
+      { k: "no_new", l: "無新品" }
+    ];
+    document.getElementById("stockFilters").innerHTML = filters.map(function (f) {
+      return '<button type="button" class="chip' + (stockFilter === f.k ? " on" : "") + '" data-sfilter="' + f.k + '">' + f.l + '</button>';
+    }).join("");
+
+    var q = stockSearch.toLowerCase();
+    var list = state.items.filter(function (it) {
+      if (q && it.name.toLowerCase().indexOf(q) === -1) return false;
+      var e = state.inventory[it.id] || emptyStockEntry();
+      var total = stockTotal(e);
+      if (stockFilter === "has" && total === 0) return false;
+      if (stockFilter === "zero" && total > 0) return false;
+      if (stockFilter === "no_new" && (Number(e.new) || 0) > 0) return false;
+      return true;
+    });
+
+    var el = document.getElementById("stockList");
+    if (!list.length) {
+      el.innerHTML = '<div class="empty">無符合條件的掃具種類</div>';
+      return;
+    }
+    el.innerHTML = list.map(function (it) {
+      var e = state.inventory[it.id] || emptyStockEntry();
+      var total = stockTotal(e);
+      return '<div class="inv-table-row" data-stock="' + it.id + '">' +
+        '<span class="name">' + esc(it.name) + '</span>' +
+        '<span class="n">' + e.new + '</span><span class="n">' + e.old + '</span>' +
+        '<span class="n">' + e.fair + '</span><span class="n">' + total + '</span></div>';
+    }).join("");
+    el.querySelectorAll("[data-stock]").forEach(function (row) {
+      row.onclick = function () { showStockForm(row.dataset.stock); };
+    });
+  }
+
+  function showStockForm(itemId) {
+    var it = state.items.find(function (x) { return x.id === itemId; });
+    if (!it) return;
+    var e = Object.assign(emptyStockEntry(), state.inventory[itemId] || {});
+
+    var blocks = CONDITIONS.map(function (c) {
+      var v = Number(e[c.id]) || 0;
+      return '<div class="cond-block ' + c.id + '">' +
+        '<div class="cond-label">' + c.name + '</div>' +
+        '<div class="qty-ctrl">' +
+        '<button type="button" data-dec="' + c.id + '">−</button>' +
+        '<input type="number" min="0" max="999" data-cond="' + c.id + '" value="' + v + '" />' +
+        '<button type="button" data-inc="' + c.id + '">＋</button>' +
+        '</div></div>';
+    }).join("");
+
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>庫存 · ' + esc(it.name) + '</h3>' +
+      '<p class="tips" style="margin-bottom:0.55rem">依「新、舊、尚可」登記此掃具種類數量</p>' +
+      '<div id="condGrid">' + blocks + '</div>' +
+      '<p class="meta" id="stockSumLine" style="margin:0.5rem 0">合計：' + stockTotal(e) + '</p>' +
+      '<button class="btn" type="button" id="stockSave">儲存庫存</button>' +
+      '<button class="btn secondary" type="button" id="stockZero" style="margin-top:0.45rem">全部歸零</button>'
+    );
+
+    function refreshSum() {
+      var sum = 0;
+      document.querySelectorAll("[data-cond]").forEach(function (inp) {
+        sum += Math.max(0, parseInt(inp.value, 10) || 0);
+      });
+      document.getElementById("stockSumLine").textContent = "合計：" + sum;
+    }
+
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("condGrid").onclick = function (ev) {
+      var t = ev.target;
+      if (t.dataset.inc || t.dataset.dec) {
+        var id = t.dataset.inc || t.dataset.dec;
+        var input = document.querySelector('[data-cond="' + id + '"]');
+        var n = Number(input.value) || 0;
+        input.value = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
+        refreshSum();
+      }
+    };
+    document.querySelectorAll("[data-cond]").forEach(function (inp) {
+      inp.oninput = refreshSum;
+    });
+
+    document.getElementById("stockZero").onclick = function () {
+      if (!confirm("確定將「" + it.name + "」全部歸零？")) return;
+      CONDITIONS.forEach(function (c) {
+        document.querySelector('[data-cond="' + c.id + '"]').value = 0;
+      });
+      refreshSum();
+    };
+
+    document.getElementById("stockSave").onclick = function () {
+      var entry = emptyStockEntry();
+      document.querySelectorAll("[data-cond]").forEach(function (inp) {
+        entry[inp.dataset.cond] = Math.max(0, parseInt(inp.value, 10) || 0);
+      });
+      state.inventory[itemId] = entry;
+      saveState();
+      closeModal();
+      toast("已更新庫存");
+      renderStock();
+      renderHome();
+    };
+  }
+
+  function exportInvCsv() {
+    var headers = ["掃具種類", "新", "舊", "尚可", "合計"];
+    var rows = [headers.join(",")];
+    state.items.forEach(function (it) {
+      var e = state.inventory[it.id] || emptyStockEntry();
+      var cols = [it.name, e.new, e.old, e.fair, stockTotal(e)];
+      rows.push(cols.map(csvEscape).join(","));
+    });
+    var inv = inventoryGrandTotals();
+    rows.push(["合計", inv.new, inv.old, inv.fair, inv.total].map(csvEscape).join(","));
+    var bom = "\uFEFF";
+    var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "掃具庫存_" + todayStr() + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("已匯出庫存 CSV");
+  }
+
+  function renderItemDefs() {
     document.getElementById("itemDefList").innerHTML = state.items.map(function (it, i) {
+      var e = state.inventory[it.id] || emptyStockEntry();
       return '<div class="card"><div class="card-title">' + (i + 1) + ". " + esc(it.name) +
-        '</div><div class="meta">欄位代碼：' + esc(it.id) + "</div></div>";
+        '</div><div class="meta">庫存：新 ' + e.new + ' · 舊 ' + e.old + ' · 尚可 ' + e.fair + '</div></div>';
     }).join("");
 
     var keys = Object.keys(state.classMap).sort();
@@ -663,16 +948,21 @@
         btn.onclick = function () {
           delete state.classMap[btn.dataset.delclass];
           saveState();
-          renderItems();
+          renderSettings();
           toast("已移除");
         };
       });
     }
   }
 
+  function renderItems() {
+    renderItemDefs();
+  }
+
   function renderSettings() {
     document.getElementById("schoolName").value = state.settings.schoolName || "";
     document.getElementById("schoolYear").value = state.settings.schoolYear || "";
+    renderItemDefs();
   }
 
   function showReqForm(editId) {
@@ -790,7 +1080,7 @@
       saveState();
       closeModal();
       toast("已新增");
-      renderItems();
+      renderSettings();
     };
   }
 
@@ -828,8 +1118,29 @@
     toast("已匯出 CSV（" + list.length + " 筆）");
   }
 
+  function loadDemoInventory() {
+    var demo = {
+      bamboo_broom: { new: 8, old: 12, fair: 5 },
+      tongs: { new: 15, old: 6, fair: 4 },
+      broom: { new: 10, old: 18, fair: 7 },
+      mop: { new: 6, old: 14, fair: 9 },
+      dustpan: { new: 12, old: 10, fair: 3 },
+      detergent: { new: 20, old: 0, fair: 2 },
+      trash_can: { new: 4, old: 8, fair: 6 },
+      trash_bag: { new: 30, old: 0, fair: 0 },
+      toilet_brush: { new: 5, old: 7, fair: 4 },
+      laundry: { new: 8, old: 2, fair: 1 },
+      rake: { new: 3, old: 5, fair: 2 },
+      squeegee: { new: 2, old: 4, fair: 3 },
+      long_brush: { new: 4, old: 6, fair: 5 }
+    };
+    Object.keys(demo).forEach(function (id) {
+      state.inventory[id] = demo[id];
+    });
+  }
+
   function loadDemo() {
-    if (state.records.length && !confirm("已有紀錄，仍要追加示範資料？")) return;
+    if ((state.records.length || inventoryGrandTotals().total) && !confirm("已有資料，仍要追加示範？")) return;
     state.classMap["101"] = "陳老師";
     state.classMap["102"] = "林老師";
     state.classMap["201"] = "黃老師";
@@ -854,11 +1165,13 @@
         updatedAt: Date.now()
       });
     });
+    loadDemoInventory();
     saveState();
-    toast("已載入示範請領");
+    toast("已載入示範庫存與請領");
     renderHome();
     renderList();
     renderStats();
+    renderStock();
   }
 
   // Events
@@ -868,6 +1181,18 @@
   document.getElementById("btnNewReq").onclick = function () { showReqForm(null); };
   document.getElementById("btnNewReq2").onclick = function () { showReqForm(null); };
   document.getElementById("btnGoStats").onclick = function () { switchView("stats"); };
+
+  document.getElementById("stockSearch").oninput = function (ev) {
+    stockSearch = ev.target.value;
+    renderStock();
+  };
+  document.getElementById("stockFilters").onclick = function (ev) {
+    var chip = ev.target.closest("[data-sfilter]");
+    if (!chip) return;
+    stockFilter = chip.dataset.sfilter;
+    renderStock();
+  };
+  document.getElementById("btnExportInvCsv").onclick = exportInvCsv;
 
   document.getElementById("listSearch").oninput = function (ev) {
     listSearch = ev.target.value;
@@ -886,11 +1211,14 @@
   document.getElementById("btnExportAllCsv").onclick = function () { exportCsv(false); };
 
   document.getElementById("btnResetItems").onclick = function () {
-    if (!confirm("還原成 Excel 預設 13 項品項？既有紀錄的數量仍依代碼保留。")) return;
+    if (!confirm("還原成 Excel 預設 13 項品項？庫存數字會保留既有代碼。")) return;
     state.items = DEFAULT_ITEMS.map(function (x) { return Object.assign({}, x); });
+    state.inventory = ensureInventory(state.inventory);
     saveState();
     toast("已還原預設品項");
-    renderItems();
+    renderSettings();
+    renderStock();
+    renderHome();
   };
   document.getElementById("btnAddClass").onclick = showClassForm;
 
@@ -927,10 +1255,12 @@
           classMap: data.classMap || {},
           records: data.records || []
         };
+        state.inventory = ensureInventory(data.inventory);
         saveState();
         toast("匯入成功");
         renderSettings();
         renderHome();
+        renderStock();
       } catch (e) {
         toast("匯入失敗");
       }
@@ -950,6 +1280,7 @@
 
   document.getElementById("listMonth").value = monthStr();
   document.getElementById("statsMonth").value = monthStr();
+  state.inventory = ensureInventory(state.inventory);
   renderHome();
 })();
   </script>
