@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e4d8c" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="掃具台" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>掃具台｜校園掃具管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #152238;
+      --paper: #eef3fa;
+      --accent: #1e4d8c;
+      --accent-light: #3d7fd4;
+      --muted: #5a6b82;
+      --line: rgba(30, 77, 140, 0.18);
+      --ok: #d4f0e0;
+      --warn: #fff3cd;
+      --danger: #fde2e2;
+      --plain: #f7f9fc;
+      --nav-h: 3.6rem;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", "PingFang TC", "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        radial-gradient(ellipse 80% 50% at 90% 0%, rgba(61, 127, 212, 0.22), transparent 55%),
+        linear-gradient(160deg, #f8fafd 0%, var(--paper) 50%, #dde8f5 100%);
+    }
+    .wrap {
+      max-width: 28rem;
+      margin: 0 auto;
+      padding: 1rem 1rem calc(var(--nav-h) + var(--safe-b) + 1rem);
+    }
+    .hero { padding: 0.8rem 0 0.5rem; animation: rise 0.6s ease-out both; }
+    .brand {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(2rem, 9vw, 2.6rem);
+      color: var(--accent);
+      font-weight: 400;
+      letter-spacing: 0.03em;
+    }
+    .lead { margin-top: 0.35rem; color: var(--muted); font-size: 0.92rem; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.55rem;
+      margin-top: 1rem;
+    }
+    .stat {
+      background: rgba(255,255,255,0.78);
+      border: 1px solid var(--line);
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.5rem;
+    }
+    .stat .num { font-size: 1.6rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+    .stat .lbl { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+    .stat.warn .num { color: #b45309; }
+    .stat.danger .num { color: #b91c1c; }
+    section { margin-top: 1.25rem; animation: rise 0.65s 0.05s ease-out both; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--accent);
+      margin-bottom: 0.55rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.82);
+      border: 1px solid var(--line);
+      border-radius: 0.55rem;
+      padding: 0.85rem;
+      margin-bottom: 0.55rem;
+    }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+    .card-title { font-weight: 600; font-size: 0.95rem; color: var(--ink); }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.18rem 0.45rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge.ok { background: var(--ok); color: #166534; }
+    .badge.warn { background: var(--warn); color: #92400e; }
+    .badge.danger { background: var(--danger); color: #991b1b; }
+    .badge.muted { background: #e5e7eb; color: #4b5563; }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; align-items: center; }
+    label { font-size: 0.84rem; color: var(--muted); min-width: 3.2rem; }
+    input, select, textarea, button { font: inherit; border: 1px solid var(--line); background: rgba(255,255,255,0.9); color: var(--ink); padding: 0.55rem 0.65rem; border-radius: 0.35rem; }
+    input, select { min-height: 2.45rem; }
+    input[type="text"], input[type="date"], input[type="search"] { flex: 1; min-width: 6rem; }
+    select.grow { flex: 1; min-width: 7rem; }
+    textarea { width: 100%; min-height: 4.5rem; resize: vertical; line-height: 1.45; font-size: 0.9rem; }
+    .filters { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.55rem; }
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.65);
+      padding: 0.32rem 0.55rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--muted);
+      border-radius: 999px;
+    }
+    .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 0.4rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.92rem;
+    }
+    .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .btn.danger { background: #b91c1c; }
+    .btn-row { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+    .btn-row .btn { flex: 1; padding: 0.55rem 0.4rem; font-size: 0.82rem; }
+    .actions { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.55rem; }
+    .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.9rem; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .bottom-nav {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: calc(var(--nav-h) + var(--safe-b));
+      padding-bottom: var(--safe-b);
+      background: rgba(255,255,255,0.95);
+      border-top: 1px solid var(--line);
+      display: flex;
+      z-index: 30;
+      backdrop-filter: blur(8px);
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1rem;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: 0.68rem;
+      cursor: pointer;
+      padding: 0.35rem 0;
+    }
+    .nav-item .ico { font-size: 1.25rem; line-height: 1; }
+    .nav-item.on { color: var(--accent); font-weight: 600; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(var(--nav-h) + var(--safe-b) + 0.8rem);
+      transform: translateX(-50%) translateY(120%);
+      background: var(--ink);
+      color: #fff;
+      padding: 0.65rem 1rem;
+      font-size: 0.86rem;
+      border-radius: 0.45rem;
+      opacity: 0;
+      transition: 0.25s ease;
+      z-index: 40;
+      max-width: 92vw;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .modal-back {
+      position: fixed; inset: 0;
+      background: rgba(21,34,56,0.45);
+      z-index: 50;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: #fff;
+      width: 100%;
+      max-width: 28rem;
+      max-height: 92vh;
+      overflow-y: auto;
+      border-radius: 1rem 1rem 0 0;
+      padding: 1.1rem 1rem calc(1rem + var(--safe-b));
+      animation: slideUp 0.28s ease-out;
+    }
+    .modal h3 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.2rem;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .modal-close {
+      float: right;
+      border: none;
+      background: none;
+      font-size: 1.4rem;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 0.2rem;
+    }
+    .qr-box {
+      display: flex;
+      justify-content: center;
+      padding: 0.75rem;
+      background: var(--plain);
+      border: 1px dashed var(--line);
+      border-radius: 0.45rem;
+      margin: 0.55rem 0;
+    }
+    .qr-box canvas, .qr-box img { max-width: 100%; }
+    #scannerRegion { width: 100%; border-radius: 0.45rem; overflow: hidden; }
+    .log-item { font-size: 0.84rem; padding: 0.55rem 0; border-bottom: 1px solid var(--line); }
+    .log-item:last-child { border-bottom: none; }
+    .log-item .act { font-weight: 600; color: var(--accent); }
+    .overdue { color: #b91c1c; font-weight: 600; }
+    .hidden { display: none !important; }
+    .tips { font-size: 0.84rem; color: var(--muted); }
+    .tips li { margin: 0.2rem 0 0.2rem 1rem; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(0.6rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="brand">掃具台</div>
+      <p class="lead" id="campusLabel">校園掃具管理 · 離線可用</p>
+    </header>
+
+    <!-- 總覽 -->
+    <div class="view active" id="view-home">
+      <div class="stats" id="statsGrid"></div>
+      <section>
+        <h2>逾期待還</h2>
+        <div id="overdueList"></div>
+      </section>
+      <section>
+        <h2>快速操作</h2>
+        <div class="actions">
+          <button class="btn" type="button" id="btnScanQr">掃描器材 QR 借還</button>
+          <button class="btn secondary" type="button" id="btnQuickBorrow">快速借出</button>
+        </div>
+      </section>
+      <section>
+        <h2>使用提示</h2>
+        <ul class="tips">
+          <li>資料存本機，換手機請用「設定 → 匯出備份」</li>
+          <li>每件器材可產生 QR，貼在設備上方便掃描借還</li>
+          <li>掃描王平板、手持掃描器、影印複合機皆可登記</li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- 器材 -->
+    <div class="view" id="view-equip">
+      <section>
+        <div class="row">
+          <input type="search" id="equipSearch" placeholder="搜尋名稱、編號、位置…" />
+        </div>
+        <div class="filters" id="equipFilters"></div>
+        <div id="equipList"></div>
+        <button class="btn" type="button" id="btnAddEquip" style="margin-top:0.6rem">新增器材</button>
+      </section>
+    </div>
+
+    <!-- 借還 -->
+    <div class="view" id="view-loan">
+      <section>
+        <h2>借出中</h2>
+        <div id="activeLoans"></div>
+      </section>
+      <section>
+        <h2>待歸還提醒</h2>
+        <div id="dueSoon"></div>
+      </section>
+    </div>
+
+    <!-- 紀錄 -->
+    <div class="view" id="view-log">
+      <section>
+        <div class="filters" id="logFilters"></div>
+        <div id="logList"></div>
+        <button class="btn secondary" type="button" id="btnClearLog" style="margin-top:0.75rem">清除已歸還紀錄（保留借出中）</button>
+      </section>
+    </div>
+
+    <!-- 設定 -->
+    <div class="view" id="view-settings">
+      <section>
+        <h2>基本設定</h2>
+        <div class="row">
+          <label for="campusName">校名</label>
+          <input id="campusName" type="text" maxlength="40" placeholder="例：○○高中" />
+        </div>
+        <div class="row">
+          <label for="adminName">管理員</label>
+          <input id="adminName" type="text" maxlength="30" placeholder="例：資媒組" />
+        </div>
+        <div class="row">
+          <label for="defaultDays">預設借期</label>
+          <input id="defaultDays" type="number" min="1" max="90" value="7" style="width:4.5rem" />
+          <span class="tips">天</span>
+        </div>
+        <button class="btn" type="button" id="btnSaveSettings" style="margin-top:0.5rem">儲存設定</button>
+      </section>
+      <section>
+        <h2>資料備份</h2>
+        <div class="actions">
+          <button class="btn secondary" type="button" id="btnExport">匯出備份（JSON）</button>
+          <button class="btn secondary" type="button" id="btnImport">匯入備份</button>
+          <input type="file" id="importFile" accept=".json,application/json" class="hidden" />
+        </div>
+      </section>
+      <section>
+        <h2>示範資料</h2>
+        <p class="tips" style="margin-bottom:0.5rem">首次使用可載入範例器材，方便了解操作。</p>
+        <button class="btn secondary" type="button" id="btnDemo">載入示範器材</button>
+      </section>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="主選單">
+    <button class="nav-item on" type="button" data-view="home"><span class="ico">🏠</span>總覽</button>
+    <button class="nav-item" type="button" data-view="equip"><span class="ico">📦</span>器材</button>
+    <button class="nav-item" type="button" data-view="loan"><span class="ico">🔄</span>借還</button>
+    <button class="nav-item" type="button" data-view="log"><span class="ico">📋</span>紀錄</button>
+    <button class="nav-item" type="button" data-view="settings"><span class="ico">⚙️</span>設定</button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- 通用表單 Modal -->
+  <div class="modal-back" id="modalBack">
+    <div class="modal" id="modalBody"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "scan-equip-v1";
+  var CATEGORIES = ["掃描王平板", "手持掃描器", "高速掃描器", "影印複合機", "其他"];
+  var STATUS_LABEL = {
+    available: "可借",
+    borrowed: "借出中",
+    repair: "維修中",
+    retired: "已報廢"
+  };
+  var STATUS_CLASS = {
+    available: "ok",
+    borrowed: "warn",
+    repair: "danger",
+    retired: "muted"
+  };
+
+  var state = loadState();
+  var scanner = null;
+  var toastTimer = null;
+
+  function defaultState() {
+    return {
+      settings: { campusName: "", adminName: "", defaultDays: 7 },
+      equipment: [],
+      loans: [],
+      logs: []
+    };
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed, {
+        settings: Object.assign(defaultState().settings, parsed.settings || {}),
+        equipment: parsed.equipment || [],
+        loans: parsed.loans || [],
+        logs: parsed.logs || []
+      });
+    } catch (e) {
+      return defaultState();
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function uid(prefix) {
+    return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return "—";
+    var d = new Date(ts);
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function fmtDateTime(ts) {
+    if (!ts) return "—";
+    var d = new Date(ts);
+    return fmtDate(ts) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2400);
+  }
+
+  function getEquip(id) {
+    return state.equipment.find(function (e) { return e.id === id; });
+  }
+
+  function activeLoanFor(equipId) {
+    return state.loans.find(function (l) { return l.equipId === equipId && !l.returnAt; });
+  }
+
+  function addLog(type, equipId, detail) {
+    state.logs.unshift({
+      id: uid("log"),
+      type: type,
+      equipId: equipId,
+      detail: detail,
+      at: Date.now()
+    });
+    if (state.logs.length > 500) state.logs.length = 500;
+  }
+
+  function switchView(name) {
+    document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+    document.getElementById("view-" + name).classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(function (n) {
+      n.classList.toggle("on", n.dataset.view === name);
+    });
+    if (name === "home") renderHome();
+    if (name === "equip") renderEquip();
+    if (name === "loan") renderLoans();
+    if (name === "log") renderLogs();
+    if (name === "settings") renderSettings();
+  }
+
+  function renderStats() {
+    var total = state.equipment.filter(function (e) { return e.status !== "retired"; }).length;
+    var avail = state.equipment.filter(function (e) { return e.status === "available"; }).length;
+    var borrowed = state.equipment.filter(function (e) { return e.status === "borrowed"; }).length;
+    var repair = state.equipment.filter(function (e) { return e.status === "repair"; }).length;
+    var overdue = state.loans.filter(function (l) {
+      return !l.returnAt && l.dueAt && l.dueAt < Date.now();
+    }).length;
+
+    document.getElementById("statsGrid").innerHTML =
+      statCard(total, "器材總數") +
+      statCard(avail, "可借", "ok") +
+      statCard(borrowed, "借出中", borrowed ? "warn" : "") +
+      statCard(repair + overdue, repair ? "維修／逾期" : "維修／逾期", (repair + overdue) ? "danger" : "");
+  }
+
+  function statCard(num, lbl, cls) {
+    return '<div class="stat' + (cls ? " " + cls : "") + '"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
+  }
+
+  function renderHome() {
+    renderStats();
+    var campus = state.settings.campusName;
+    document.getElementById("campusLabel").textContent =
+      (campus ? campus + " · " : "") + "校園掃具管理 · 離線可用";
+
+    var overdueEl = document.getElementById("overdueList");
+    var overdue = state.loans.filter(function (l) {
+      return !l.returnAt && l.dueAt && l.dueAt < Date.now();
+    });
+    if (!overdue.length) {
+      overdueEl.innerHTML = '<div class="empty">目前無逾期借出 👍</div>';
+      return;
+    }
+    overdueEl.innerHTML = overdue.map(function (l) {
+      var eq = getEquip(l.equipId);
+      return cardHtml(eq, l, true);
+    }).join("");
+  }
+
+  function cardHtml(eq, loan, isOverdue) {
+    if (!eq) return "";
+    var badge = '<span class="badge ' + STATUS_CLASS[eq.status] + '">' + STATUS_LABEL[eq.status] + '</span>';
+    var meta = eq.assetNo + " · " + eq.category + " · " + eq.location;
+    var loanInfo = "";
+    if (loan) {
+      loanInfo = '<div class="meta' + (isOverdue ? " overdue" : "") + '">借用人：' + esc(loan.borrower) +
+        " · 應還：" + fmtDate(loan.dueAt) + (isOverdue ? "（已逾期）" : "") + "</div>";
+    }
+    return '<div class="card" data-equip="' + eq.id + '">' +
+      '<div class="card-head"><div class="card-title">' + esc(eq.name) + '</div>' + badge + '</div>' +
+      '<div class="meta">' + esc(meta) + '</div>' + loanInfo +
+      '<div class="btn-row">' +
+      '<button class="btn secondary" type="button" data-act="detail" data-id="' + eq.id + '">詳情</button>' +
+      (eq.status === "available" ? '<button class="btn" type="button" data-act="borrow" data-id="' + eq.id + '">借出</button>' :
+        eq.status === "borrowed" ? '<button class="btn" type="button" data-act="return" data-id="' + eq.id + '">歸還</button>' : "") +
+      '</div></div>';
+  }
+
+  var equipFilter = "all";
+  var equipSearch = "";
+
+  function renderEquipFilters() {
+    var chips = [{ k: "all", l: "全部" }];
+    CATEGORIES.forEach(function (c) { chips.push({ k: c, l: c }); });
+    ["available", "borrowed", "repair"].forEach(function (s) {
+      chips.push({ k: "s:" + s, l: STATUS_LABEL[s] });
+    });
+    document.getElementById("equipFilters").innerHTML = chips.map(function (c) {
+      return '<button type="button" class="chip' + (equipFilter === c.k ? " on" : "") + '" data-filter="' + c.k + '">' + c.l + '</button>';
+    }).join("");
+  }
+
+  function renderEquip() {
+    renderEquipFilters();
+    var q = equipSearch.toLowerCase();
+    var list = state.equipment.filter(function (e) {
+      if (equipFilter.startsWith("s:") && e.status !== equipFilter.slice(2)) return false;
+      if (equipFilter !== "all" && !equipFilter.startsWith("s:") && e.category !== equipFilter) return false;
+      if (q) {
+        var hay = (e.name + e.assetNo + e.location + e.notes).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    var el = document.getElementById("equipList");
+    if (!list.length) {
+      el.innerHTML = '<div class="empty">尚無器材，請按「新增器材」</div>';
+      return;
+    }
+    el.innerHTML = list.map(function (e) {
+      var loan = activeLoanFor(e.id);
+      return cardHtml(e, loan, loan && loan.dueAt < Date.now());
+    }).join("");
+    bindCardActions(el);
+  }
+
+  function renderLoans() {
+    var active = state.loans.filter(function (l) { return !l.returnAt; });
+    var activeEl = document.getElementById("activeLoans");
+    if (!active.length) {
+      activeEl.innerHTML = '<div class="empty">目前無借出紀錄</div>';
+    } else {
+      activeEl.innerHTML = active.map(function (l) {
+        return cardHtml(getEquip(l.equipId), l, l.dueAt && l.dueAt < Date.now());
+      }).join("");
+      bindCardActions(activeEl);
+    }
+
+    var soon = active.filter(function (l) {
+      if (!l.dueAt || l.dueAt < Date.now()) return false;
+      return l.dueAt - Date.now() < 2 * 86400000;
+    });
+    var dueEl = document.getElementById("dueSoon");
+    if (!soon.length) {
+      dueEl.innerHTML = '<div class="empty">兩日內無到期項目</div>';
+    } else {
+      dueEl.innerHTML = soon.map(function (l) {
+        return cardHtml(getEquip(l.equipId), l, false);
+      }).join("");
+      bindCardActions(dueEl);
+    }
+  }
+
+  var logFilter = "all";
+
+  function renderLogFilters() {
+    var opts = [
+      { k: "all", l: "全部" },
+      { k: "borrow", l: "借出" },
+      { k: "return", l: "歸還" },
+      { k: "repair", l: "維修" },
+      { k: "edit", l: "編輯" }
+    ];
+    document.getElementById("logFilters").innerHTML = opts.map(function (o) {
+      return '<button type="button" class="chip' + (logFilter === o.k ? " on" : "") + '" data-logfilter="' + o.k + '">' + o.l + '</button>';
+    }).join("");
+  }
+
+  function renderLogs() {
+    renderLogFilters();
+    var logs = state.logs.filter(function (l) {
+      return logFilter === "all" || l.type === logFilter;
+    }).slice(0, 80);
+    var el = document.getElementById("logList");
+    if (!logs.length) {
+      el.innerHTML = '<div class="empty">尚無操作紀錄</div>';
+      return;
+    }
+    el.innerHTML = logs.map(function (l) {
+      var eq = getEquip(l.equipId);
+      var name = eq ? eq.name : "（已刪除）";
+      var actLabel = { borrow: "借出", return: "歸還", repair: "維修", edit: "編輯", add: "新增", retire: "報廢" }[l.type] || l.type;
+      return '<div class="log-item"><span class="act">' + actLabel + '</span> · ' + esc(name) +
+        '<div class="meta">' + esc(l.detail || "") + " · " + fmtDateTime(l.at) + '</div></div>';
+    }).join("");
+  }
+
+  function renderSettings() {
+    document.getElementById("campusName").value = state.settings.campusName || "";
+    document.getElementById("adminName").value = state.settings.adminName || "";
+    document.getElementById("defaultDays").value = state.settings.defaultDays || 7;
+  }
+
+  function esc(s) {
+    if (!s) return "";
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function openModal(html) {
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("modalBack").classList.add("open");
+  }
+
+  function closeModal() {
+    stopScanner();
+    document.getElementById("modalBack").classList.remove("open");
+  }
+
+  function bindCardActions(container) {
+    container.querySelectorAll("[data-act]").forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.dataset.id;
+        var act = btn.dataset.act;
+        if (act === "detail") showEquipDetail(id);
+        if (act === "borrow") showBorrowForm(id);
+        if (act === "return") doReturn(id);
+      };
+    });
+  }
+
+  function showEquipForm(equip) {
+    var isEdit = !!equip;
+    var e = equip || { name: "", assetNo: "", category: CATEGORIES[0], location: "", notes: "", status: "available" };
+    var catOpts = CATEGORIES.map(function (c) {
+      return '<option value="' + c + '"' + (e.category === c ? " selected" : "") + '>' + c + '</option>';
+    }).join("");
+    var statusOpts = ["available", "repair", "retired"].map(function (s) {
+      return '<option value="' + s + '"' + (e.status === s ? " selected" : "") + '>' + STATUS_LABEL[s] + '</option>';
+    }).join("");
+
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>' + (isEdit ? "編輯器材" : "新增器材") + '</h3>' +
+      '<div class="row"><label>名稱</label><input id="fName" type="text" maxlength="60" value="' + esc(e.name) + '" placeholder="例：掃描王平板 A01" /></div>' +
+      '<div class="row"><label>編號</label><input id="fAssetNo" type="text" maxlength="30" value="' + esc(e.assetNo) + '" placeholder="例：SC-001" /></div>' +
+      '<div class="row"><label>類別</label><select id="fCategory" class="grow">' + catOpts + '</select></div>' +
+      '<div class="row"><label>位置</label><input id="fLocation" type="text" maxlength="40" value="' + esc(e.location) + '" placeholder="例：資訊媒體室" /></div>' +
+      (isEdit ? '<div class="row"><label>狀態</label><select id="fStatus" class="grow">' + statusOpts + '</select></div>' : "") +
+      '<div class="row" style="flex-direction:column;align-items:stretch"><label>備註</label><textarea id="fNotes" maxlength="200">' + esc(e.notes) + '</textarea></div>' +
+      '<button class="btn" type="button" id="fSave">' + (isEdit ? "儲存變更" : "新增") + '</button>' +
+      (isEdit ? '<button class="btn secondary" type="button" id="fDelete" style="margin-top:0.45rem">刪除器材</button>' : "")
+    );
+
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("fSave").onclick = function () {
+      var name = document.getElementById("fName").value.trim();
+      var assetNo = document.getElementById("fAssetNo").value.trim();
+      if (!name || !assetNo) { toast("請填寫名稱與編號"); return; }
+      if (isEdit) {
+        e.name = name;
+        e.assetNo = assetNo;
+        e.category = document.getElementById("fCategory").value;
+        e.location = document.getElementById("fLocation").value.trim();
+        e.notes = document.getElementById("fNotes").value.trim();
+        e.status = document.getElementById("fStatus").value;
+        e.updatedAt = Date.now();
+        addLog("edit", e.id, "更新器材資料");
+      } else {
+        var rec = {
+          id: uid("eq"),
+          name: name,
+          assetNo: assetNo,
+          category: document.getElementById("fCategory").value,
+          location: document.getElementById("fLocation").value.trim(),
+          notes: document.getElementById("fNotes").value.trim(),
+          status: "available",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+        state.equipment.unshift(rec);
+        addLog("add", rec.id, "新增器材");
+      }
+      saveState();
+      closeModal();
+      toast(isEdit ? "已更新" : "已新增");
+      renderEquip();
+      renderHome();
+    };
+    if (isEdit) {
+      document.getElementById("fDelete").onclick = function () {
+        if (!confirm("確定刪除此器材？相關借出紀錄仍會保留。")) return;
+        state.equipment = state.equipment.filter(function (x) { return x.id !== e.id; });
+        addLog("edit", e.id, "刪除器材");
+        saveState();
+        closeModal();
+        toast("已刪除");
+        renderEquip();
+        renderHome();
+      };
+    }
+  }
+
+  function showEquipDetail(id) {
+    var e = getEquip(id);
+    if (!e) return;
+    var loan = activeLoanFor(id);
+    var loanHtml = loan
+      ? '<div class="meta">借用人：' + esc(loan.borrower) + ' · 借出：' + fmtDate(loan.borrowAt) + ' · 應還：' + fmtDate(loan.dueAt) + '</div>'
+      : "";
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>' + esc(e.name) + '</h3>' +
+      '<div class="meta">' + esc(e.assetNo) + ' · ' + esc(e.category) + ' · ' + esc(e.location) + '</div>' +
+      '<div style="margin:0.4rem 0"><span class="badge ' + STATUS_CLASS[e.status] + '">' + STATUS_LABEL[e.status] + '</span></div>' +
+      (e.notes ? '<div class="meta">備註：' + esc(e.notes) + '</div>' : "") +
+      loanHtml +
+      '<div class="qr-box" id="qrTarget"></div>' +
+      '<p class="tips" style="text-align:center;margin-bottom:0.5rem">掃描 QR 可快速開啟此器材</p>' +
+      '<div class="btn-row">' +
+      '<button class="btn secondary" type="button" id="btnEditEquip">編輯</button>' +
+      (e.status === "available" ? '<button class="btn" type="button" id="btnDetailBorrow">借出</button>' :
+        e.status === "borrowed" ? '<button class="btn" type="button" id="btnDetailReturn">歸還</button>' :
+        e.status === "repair" ? '<button class="btn" type="button" id="btnDetailFixed">完成維修</button>' : "") +
+      '</div>'
+    );
+    document.getElementById("modalX").onclick = closeModal;
+    QRCode.toCanvas(document.getElementById("qrTarget"), "scan-equip:" + e.id, { width: 180, margin: 1 }, function () {});
+    document.getElementById("btnEditEquip").onclick = function () { closeModal(); showEquipForm(e); };
+    var bb = document.getElementById("btnDetailBorrow");
+    if (bb) bb.onclick = function () { closeModal(); showBorrowForm(id); };
+    var br = document.getElementById("btnDetailReturn");
+    if (br) br.onclick = function () { closeModal(); doReturn(id); };
+    var bf = document.getElementById("btnDetailFixed");
+    if (bf) bf.onclick = function () {
+      e.status = "available";
+      e.updatedAt = Date.now();
+      addLog("repair", id, "完成維修，恢復可借");
+      saveState();
+      closeModal();
+      toast("已恢復可借");
+      renderEquip();
+      renderHome();
+    };
+  }
+
+  function showBorrowForm(equipId) {
+    var e = getEquip(equipId);
+    if (!e || e.status !== "available") { toast("此器材目前不可借"); return; }
+    var days = state.settings.defaultDays || 7;
+    var due = new Date();
+    due.setDate(due.getDate() + days);
+    var dueStr = due.getFullYear() + "-" + pad(due.getMonth() + 1) + "-" + pad(due.getDate());
+
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>借出 · ' + esc(e.name) + '</h3>' +
+      '<div class="row"><label>借用人</label><input id="bBorrower" type="text" maxlength="30" placeholder="姓名或單位" /></div>' +
+      '<div class="row"><label>用途</label><input id="bPurpose" type="text" maxlength="60" placeholder="例：期末試卷掃描" /></div>' +
+      '<div class="row"><label>應還日</label><input id="bDue" type="date" value="' + dueStr + '" /></div>' +
+      '<button class="btn" type="button" id="bConfirm">確認借出</button>'
+    );
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("bConfirm").onclick = function () {
+      var borrower = document.getElementById("bBorrower").value.trim();
+      if (!borrower) { toast("請填寫借用人"); return; }
+      var dueVal = document.getElementById("bDue").value;
+      var dueAt = dueVal ? new Date(dueVal + "T23:59:59").getTime() : Date.now() + days * 86400000;
+      var purpose = document.getElementById("bPurpose").value.trim();
+      var loan = {
+        id: uid("loan"),
+        equipId: equipId,
+        borrower: borrower,
+        purpose: purpose,
+        borrowAt: Date.now(),
+        dueAt: dueAt,
+        returnAt: null,
+        notes: ""
+      };
+      state.loans.unshift(loan);
+      e.status = "borrowed";
+      e.updatedAt = Date.now();
+      addLog("borrow", equipId, borrower + (purpose ? " · " + purpose : ""));
+      saveState();
+      closeModal();
+      toast("借出成功");
+      renderEquip();
+      renderLoans();
+      renderHome();
+      renderLogs();
+    };
+  }
+
+  function doReturn(equipId) {
+    var e = getEquip(equipId);
+    var loan = activeLoanFor(equipId);
+    if (!e || !loan) { toast("找不到借出紀錄"); return; }
+
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>歸還 · ' + esc(e.name) + '</h3>' +
+      '<div class="meta">借用人：' + esc(loan.borrower) + '</div>' +
+      '<div class="row" style="flex-direction:column;align-items:stretch;margin-top:0.6rem"><label>歸還備註</label><textarea id="rNotes" maxlength="120" placeholder="例：外觀正常、電量充足"></textarea></div>' +
+      '<div class="row"><label>狀態</label><select id="rStatus" class="grow"><option value="available">恢復可借</option><option value="repair">送修</option></select></div>' +
+      '<button class="btn" type="button" id="rConfirm">確認歸還</button>'
+    );
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("rConfirm").onclick = function () {
+      loan.returnAt = Date.now();
+      loan.notes = document.getElementById("rNotes").value.trim();
+      e.status = document.getElementById("rStatus").value;
+      e.updatedAt = Date.now();
+      addLog("return", equipId, loan.borrower + (loan.notes ? " · " + loan.notes : ""));
+      if (e.status === "repair") addLog("repair", equipId, "歸還後送修");
+      saveState();
+      closeModal();
+      toast("已歸還");
+      renderEquip();
+      renderLoans();
+      renderHome();
+      renderLogs();
+    };
+  }
+
+  function showScanner() {
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>掃描器材 QR</h3>' +
+      '<p class="tips" style="margin-bottom:0.5rem">對準器材上的 QR 條碼</p>' +
+      '<div id="scannerRegion"></div>' +
+      '<button class="btn secondary" type="button" id="btnStopScan" style="margin-top:0.6rem">關閉掃描</button>'
+    );
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("btnStopScan").onclick = closeModal;
+
+    scanner = new Html5Qrcode("scannerRegion");
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      function (decoded) {
+        if (!decoded.startsWith("scan-equip:")) { toast("非本系統 QR"); return; }
+        var id = decoded.slice("scan-equip:".length);
+        stopScanner();
+        closeModal();
+        var e = getEquip(id);
+        if (!e) { toast("找不到此器材"); return; }
+        if (e.status === "available") showBorrowForm(id);
+        else if (e.status === "borrowed") doReturn(id);
+        else showEquipDetail(id);
+      },
+      function () {}
+    ).catch(function () {
+      toast("無法開啟相機，請確認權限");
+    });
+  }
+
+  function stopScanner() {
+    if (!scanner) return;
+    var s = scanner;
+    scanner = null;
+    s.stop().catch(function () {}).finally(function () {
+      try { s.clear(); } catch (e) {}
+    });
+  }
+
+  function loadDemo() {
+    if (state.equipment.length && !confirm("已有器材資料，仍要追加示範資料？")) return;
+    var demos = [
+      { name: "掃描王平板 A01", assetNo: "SC-001", category: "掃描王平板", location: "資訊媒體室" },
+      { name: "掃描王平板 A02", assetNo: "SC-002", category: "掃描王平板", location: "教務處" },
+      { name: "手持掃描器 B01", assetNo: "SC-003", category: "手持掃描器", location: "圖書館" },
+      { name: "影印複合機 C01", assetNo: "SC-004", category: "影印複合機", location: "行政大樓一樓" },
+      { name: "高速掃描器 D01", assetNo: "SC-005", category: "高速掃描器", location: "試務組" }
+    ];
+    demos.forEach(function (d) {
+      state.equipment.push({
+        id: uid("eq"),
+        name: d.name,
+        assetNo: d.assetNo,
+        category: d.category,
+        location: d.location,
+        notes: "",
+        status: "available",
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    });
+    saveState();
+    toast("已載入 " + demos.length + " 件示範器材");
+    renderEquip();
+    renderHome();
+  }
+
+  function exportData() {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "掃具台備份_" + fmtDate(Date.now()) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("已匯出備份");
+  }
+
+  function importData(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        if (!data.equipment) throw new Error("格式錯誤");
+        state = Object.assign(defaultState(), data, {
+          settings: Object.assign(defaultState().settings, data.settings || {})
+        });
+        saveState();
+        toast("匯入成功");
+        renderSettings();
+        renderHome();
+        renderEquip();
+      } catch (e) {
+        toast("匯入失敗：" + e.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Events
+  document.querySelectorAll(".nav-item").forEach(function (btn) {
+    btn.onclick = function () { switchView(btn.dataset.view); };
+  });
+
+  document.getElementById("btnScanQr").onclick = showScanner;
+  document.getElementById("btnQuickBorrow").onclick = function () {
+    switchView("equip");
+    toast("請選擇要借出的器材");
+  };
+  document.getElementById("btnAddEquip").onclick = function () { showEquipForm(null); };
+
+  document.getElementById("equipSearch").oninput = function (ev) {
+    equipSearch = ev.target.value;
+    renderEquip();
+  };
+
+  document.getElementById("equipFilters").onclick = function (ev) {
+    var chip = ev.target.closest("[data-filter]");
+    if (!chip) return;
+    equipFilter = chip.dataset.filter;
+    renderEquip();
+  };
+
+  document.getElementById("logFilters").onclick = function (ev) {
+    var chip = ev.target.closest("[data-logfilter]");
+    if (!chip) return;
+    logFilter = chip.dataset.logfilter;
+    renderLogs();
+  };
+
+  document.getElementById("btnSaveSettings").onclick = function () {
+    state.settings.campusName = document.getElementById("campusName").value.trim();
+    state.settings.adminName = document.getElementById("adminName").value.trim();
+    state.settings.defaultDays = Math.max(1, parseInt(document.getElementById("defaultDays").value, 10) || 7);
+    saveState();
+    toast("設定已儲存");
+    renderHome();
+  };
+
+  document.getElementById("btnExport").onclick = exportData;
+  document.getElementById("btnImport").onclick = function () { document.getElementById("importFile").click(); };
+  document.getElementById("importFile").onchange = function (ev) {
+    if (ev.target.files[0]) importData(ev.target.files[0]);
+    ev.target.value = "";
+  };
+  document.getElementById("btnDemo").onclick = loadDemo;
+  document.getElementById("btnClearLog").onclick = function () {
+    if (!confirm("清除已歸還相關的舊紀錄？借出中紀錄不受影響。")) return;
+    var activeEquipIds = {};
+    state.loans.filter(function (l) { return !l.returnAt; }).forEach(function (l) { activeEquipIds[l.equipId] = true; });
+    state.logs = state.logs.filter(function (l) {
+      return l.type === "borrow" && activeEquipIds[l.equipId];
+    });
+    state.loans = state.loans.filter(function (l) { return !l.returnAt; });
+    saveState();
+    toast("已清除");
+    renderLogs();
+  };
+
+  document.getElementById("modalBack").onclick = function (ev) {
+    if (ev.target === document.getElementById("modalBack")) closeModal();
+  };
+
+  // Deep link from QR on same device (optional)
+  var params = new URLSearchParams(location.search);
+  if (params.get("eq")) {
+    setTimeout(function () { showEquipDetail(params.get("eq")); }, 300);
+  }
+
+  // Service worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  }
+
+  // Init
+  renderHome();
+  renderEquip();
+})();
+  </script>
+</body>
+</html>

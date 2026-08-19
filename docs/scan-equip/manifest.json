@@ -1,0 +1,26 @@
+{
+  "name": "掃具台｜校園掃具管理",
+  "short_name": "掃具台",
+  "description": "繁體中文介面。管理校園掃描器材借還、維修與 QR 掃描，離線可用。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3fa",
+  "theme_color": "#1e4d8c",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
