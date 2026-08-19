@@ -1374,9 +1374,9 @@
         var delta = after - prev;
         lines.push({ name: it.name, prev: prev, delta: delta, after: after, thisTime: delta, active: delta !== 0 || after > 0 });
       } else {
-        var add = Math.max(0, Number(newQtys[it.id]) || 0);
+        var add = Number(newQtys[it.id]) || 0;
         var p = Number(prevQtys[it.id]) || 0;
-        lines.push({ name: it.name, prev: p, delta: add, after: p + add, thisTime: add, active: add > 0 });
+        lines.push({ name: it.name, prev: p, delta: add, after: p + add, thisTime: add, active: add !== 0 });
       }
     });
     return {
@@ -1529,8 +1529,8 @@
   function showManualReqConfirmModal(payload, onRestore) {
     var preview = buildManualReqPreview(payload);
     var isEdit = !!payload.editRec;
-    if (!isEdit && !preview.lines.some(function (ln) { return ln.thisTime > 0; })) {
-      toast("請至少填一項本次數量");
+    if (!isEdit && !preview.lines.some(function (ln) { return ln.thisTime !== 0; })) {
+      toast("請至少填一項數量（可為負數，代表扣回）");
       return;
     }
     if (isEdit && !preview.hasChange) {
