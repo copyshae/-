@@ -1189,7 +1189,7 @@
     state.items.forEach(function (it) {
       base[it.id] = Object.assign(emptyStockEntry(), (inv && inv[it.id]) || {});
       CONDITIONS.forEach(function (c) {
-        base[it.id][c.id] = Math.max(0, parseFloat(base[it.id][c.id]) || 0);
+        base[it.id][c.id] = parseFloat(base[it.id][c.id]) || 0;
       });
     });
     return base;
@@ -1369,7 +1369,7 @@
     var lines = [];
     sortedItems().forEach(function (it) {
       if (editRec) {
-        var after = Math.max(0, Number(newQtys[it.id]) || 0);
+        var after = Number(newQtys[it.id]) || 0;
         var prev = Number(prevQtys[it.id]) || 0;
         var delta = after - prev;
         lines.push({ name: it.name, prev: prev, delta: delta, after: after, thisTime: delta, active: delta !== 0 || after > 0 });
@@ -1927,7 +1927,7 @@
         '<div class="cond-label">' + c.name + '</div>' +
         '<div class="qty-ctrl">' +
         '<button type="button" data-dec="' + c.id + '">−</button>' +
-        '<input type="number" min="0" max="9999" step="any" data-cond="' + c.id + '" value="' + v + '" />' +
+        '<input type="number" step="any" data-cond="' + c.id + '" value="' + v + '" />' +
         '<button type="button" data-inc="' + c.id + '">＋</button>' +
         '</div></div>';
     }).join("");
@@ -1946,7 +1946,7 @@
     function refreshSum() {
       var sum = 0;
       document.querySelectorAll("[data-cond]").forEach(function (inp) {
-        sum += Math.max(0, parseFloat(inp.value) || 0);
+        sum += parseFloat(inp.value) || 0;
       });
       document.getElementById("stockSumLine").textContent = "合計：" + sum;
     }
@@ -1958,7 +1958,7 @@
         var id = t.dataset.inc || t.dataset.dec;
         var input = document.querySelector('[data-cond="' + id + '"]');
         var n = Number(input.value) || 0;
-        input.value = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
+        input.value = t.dataset.inc ? n + 1 : n - 1;
         refreshSum();
       }
     };
@@ -1977,7 +1977,7 @@
     document.getElementById("stockSave").onclick = function () {
       var entry = emptyStockEntry();
       document.querySelectorAll("[data-cond]").forEach(function (inp) {
-        entry[inp.dataset.cond] = Math.max(0, parseFloat(inp.value) || 0);
+        entry[inp.dataset.cond] = parseFloat(inp.value) || 0;
       });
       state.inventory[itemId] = entry;
       saveState();
@@ -2758,7 +2758,7 @@
   }
 
   function deductStock(itemId, qty) {
-    qty = Math.max(0, parseFloat(qty) || 0);
+    qty = parseFloat(qty) || 0;
     if (!qty) return { ok: true, shortfall: 0, lines: [] };
     var e = state.inventory[itemId] || emptyStockEntry();
     var order = ["fair", "old", "new"];
@@ -2779,7 +2779,7 @@
   }
 
   function addStockQty(itemId, qty, condition) {
-    qty = Math.max(0, parseFloat(qty) || 0);
+    qty = parseFloat(qty) || 0;
     if (!qty) return;
     var cid = condition || "new";
     if (CONDITIONS.every(function (c) { return c.id !== cid; })) cid = "new";
@@ -2960,7 +2960,7 @@
     }
 
     var items = (raw.items || []).map(function (x) {
-      return { name: String(x.name || "").trim(), qty: Math.max(0, parseFloat(x.qty) || 0) };
+      return { name: String(x.name || "").trim(), qty: parseFloat(x.qty) || 0 };
     }).filter(function (x) { return x.name && x.qty > 0; });
 
     return {
@@ -2988,7 +2988,7 @@
         state.inventory[it.id] = e;
         var detail = dr.lines.map(function (l) { return condLabel(l.cond) + "−" + l.n; }).join("、");
         lines.push({
-          name: it.name, qty: row.qty, before: before, after: Math.max(0, before - row.qty),
+          name: it.name, qty: row.qty, before: before, after: before - row.qty,
           note: "新增請領 · " + parsed.action + (detail ? "（" + detail + "）" : "")
         });
         if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
@@ -3160,8 +3160,8 @@
       sortedItems().forEach(function (it) {
         var inp = document.querySelector('[data-scan-qty="' + it.id + '"]');
         if (!inp) return;
-        var q = Math.max(0, parseFloat(inp.value) || 0);
-        if (q > 0) items.push({ name: it.name, qty: q });
+          var q = parseFloat(inp.value) || 0;
+          if (q !== 0) items.push({ name: it.name, qty: q });
       });
       return items;
     }
@@ -3182,7 +3182,7 @@
           "<td>" +
           '<div class="qty-ctrl" style="justify-content:flex-end">' +
           '<button type="button" data-scan-dec="' + it.id + '">−</button>' +
-          '<input type="number" min="0" step="any" data-scan-qty="' + it.id + '" value="' + q + '" inputmode="decimal" style="width:3.2rem" />' +
+          '<input type="number" step="any" data-scan-qty="' + it.id + '" value="' + q + '" inputmode="decimal" style="width:3.2rem" />' +
           '<button type="button" data-scan-inc="' + it.id + '">＋</button>' +
           "</div></td>" +
           stockCell + "</tr>";
@@ -3265,8 +3265,8 @@
           var id = btn.dataset.scanInc || btn.dataset.scanDec;
           var inp = document.querySelector('[data-scan-qty="' + id + '"]');
           if (!inp) return;
-          var n = Math.max(0, parseFloat(inp.value) || 0);
-          inp.value = btn.dataset.scanInc ? n + 1 : Math.max(0, n - 1);
+          var n = parseFloat(inp.value) || 0;
+          inp.value = btn.dataset.scanInc ? n + 1 : n - 1;
           inp.closest("tr").className = inp.value > 0 ? "row-on" : "row-off";
         };
       });
