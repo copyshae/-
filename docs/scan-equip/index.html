@@ -1663,6 +1663,20 @@
     document.getElementById("modalBack").classList.remove("open");
   }
 
+  /* 自訂確認框，取代 confirm()（iOS PWA 模式下 confirm() 會被略過） */
+  function confirmModal(msg, onOk) {
+    openModal(
+      '<h3>請確認</h3>' +
+      '<p style="color:var(--muted);font-size:0.92rem;margin-bottom:1.1rem;white-space:pre-wrap">' + msg + '</p>' +
+      '<div style="display:flex;gap:0.5rem">' +
+        '<button type="button" class="btn secondary" style="flex:1" id="confirmNo">取消</button>' +
+        '<button type="button" class="btn" style="flex:1" id="confirmOk">確定匯出</button>' +
+      '</div>'
+    );
+    document.getElementById("confirmOk").onclick = function () { closeModal(); onOk(); };
+    document.getElementById("confirmNo").onclick = closeModal;
+  }
+
   function renderHome() {
     var sy = state.settings.schoolYear || "";
     var sn = state.settings.schoolName || "";
@@ -2339,26 +2353,29 @@
     });
     if (monthOnly) list = list.filter(function (r) { return r.date.slice(0, 7) === month; });
 
+    function doExportCsv() {
+      list.forEach(function (r) {
+        var cols = [r.date, r.className, r.teacher]
+          .concat(items.map(function (it) { return Number(r.qtys[it.id]) || 0; }));
+        rows.push(cols.map(csvEscape).join(","));
+      });
+      var bom = "\uFEFF";
+      var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (monthOnly ? "掃具請領_" + month : "掃具請領_全部") + ".csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("已匯出 CSV（" + list.length + " 筆）");
+    }
+
     /* 沒有任何紀錄時先確認，避免空白 CSV 日後誤匯入蓋掉真實資料 */
     if (list.length === 0) {
       var label = monthOnly ? ("本月（" + month + "）") : "全部";
-      if (!confirm(label + "尚無請領紀錄，確定要匯出空白 CSV 嗎？")) return;
+      confirmModal(label + " 尚無請領紀錄。\n確定要匯出空白 CSV 嗎？", doExportCsv);
+    } else {
+      doExportCsv();
     }
-
-    list.forEach(function (r) {
-      var cols = [r.date, r.className, r.teacher]
-        .concat(items.map(function (it) { return Number(r.qtys[it.id]) || 0; }));
-      rows.push(cols.map(csvEscape).join(","));
-    });
-
-    var bom = "\uFEFF";
-    var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = (monthOnly ? "掃具請領_" + month : "掃具請領_全部") + ".csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("已匯出 CSV（" + list.length + " 筆）");
   }
 
   function parseCsvRows(text) {
@@ -3523,19 +3540,23 @@
     renderHome();
   };
   document.getElementById("btnExportJson").onclick = function () {
-    /* 若無任何請領紀錄且庫存全為零，可能是初始空白狀態，先確認 */
     var hasRecords = state.records && state.records.length > 0;
     var hasStock = inventoryGrandTotals().total > 0;
-    if (!hasRecords && !hasStock) {
-      if (!confirm("目前沒有任何請領紀錄，庫存也全為零。\n\n確定要匯出這份空白備份嗎？\n若您有真實資料，請確認頁面已正確載入後再匯出。")) return;
+    function doExportJson() {
+      var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "掃具台備份_" + todayStr() + ".json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("已匯出備份");
     }
-    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "掃具台備份_" + todayStr() + ".json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("已匯出備份");
+    /* 若無任何請領紀錄且庫存全為零，可能是初始空白狀態，先確認 */
+    if (!hasRecords && !hasStock) {
+      confirmModal("目前沒有任何請領紀錄，庫存也全為零。\n確定要匯出這份空白備份嗎？\n\n若您有真實資料，請確認頁面已正確載入後再匯出。", doExportJson);
+    } else {
+      doExportJson();
+    }
   };
   document.getElementById("btnImportJson").onclick = function () {
     document.getElementById("importFile").click();
