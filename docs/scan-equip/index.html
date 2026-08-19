@@ -577,6 +577,11 @@
         <p class="tips" style="margin-bottom:0.45rem">載入範例庫存（新／舊／尚可）與請領紀錄。</p>
         <button class="btn secondary" type="button" id="btnDemo">載入示範資料</button>
       </section>
+      <section>
+        <h2>應用程式更新</h2>
+        <p class="tips" style="margin-bottom:0.45rem">若資料顯示異常或版本未更新，點下方按鈕清除快取並重新載入（<strong>不會</strong>刪除已儲存的請領與庫存資料）。</p>
+        <button class="btn secondary" type="button" id="btnClearCache">清除快取並重新載入</button>
+      </section>
     </div>
   </div>
 
@@ -3458,6 +3463,23 @@
     ev.target.value = "";
   };
   document.getElementById("btnDemo").onclick = loadDemo;
+
+  document.getElementById("btnClearCache").onclick = function () {
+    if (!confirm("確定要清除快取並重新載入嗎？\n（請領與庫存資料不會刪除）")) return;
+    if ("serviceWorker" in navigator && "caches" in window) {
+      caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }).then(function () {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+            window.location.reload(true);
+          });
+        });
+      });
+    } else {
+      window.location.reload(true);
+    }
+  };
 
   document.getElementById("modalBack").onclick = function (ev) {
     if (ev.target === document.getElementById("modalBack")) closeModal();
