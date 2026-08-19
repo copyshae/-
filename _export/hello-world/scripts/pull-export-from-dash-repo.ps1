@@ -3,6 +3,9 @@
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
 $branch = "main"
+if ($env:DASH_EXPORT_BRANCH -and $env:DASH_EXPORT_BRANCH.Trim()) {
+  $branch = $env:DASH_EXPORT_BRANCH.Trim()
+}
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -50,6 +53,9 @@ function Save-RemoteFile([string]$Rel) {
 }
 
 $files = @(
+  "directory/index.html",
+  "directory/202608/index.html",
+  "directory/202608/20260819-learning-log.html",
   "scripts/install-desktop-apps.ps1",
   "scripts/install-math-homework-grader.ps1",
   "scripts/math-homework-grader-app.ps1",
@@ -139,16 +145,18 @@ try {
   try { & git pull origin $pagesBranch 2>$null | Out-Null } catch {}
 
   git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
+    directory/202608/20260819-learning-log.html directory/202608/index.html directory/index.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "掃具台：匯入負數修正＋同步至 hello-world（2026-08-19）"
+    git commit -m "Add 20260819 learning log: scan-equip live and CSV negative import."
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
-    Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
+    Write-Host "https://copyshae.github.io/hello-world/directory/apps/scan-equip/"
+    Write-Host "https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html"
   } else {
     Write-Host "No git changes to push."
   }
