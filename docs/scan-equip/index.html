@@ -721,7 +721,7 @@
     { id: "fair", name: "尚可" }
   ];
 
-  var state = loadState();
+  var state = defaultState();
   var toastTimer = null;
   var undoToastTimer = null;
   var lastManualUndo = null;
@@ -1253,8 +1253,47 @@
     }
   }
 
+  var IDB_DB_NAME = "scan-equip-idb";
+  var IDB_STORE   = "kv";
+  var IDB_KEY     = STORAGE_KEY;
+
+  function idbOpen(cb) {
+    try {
+      var req = indexedDB.open(IDB_DB_NAME, 1);
+      req.onupgradeneeded = function (ev) {
+        ev.target.result.createObjectStore(IDB_STORE);
+      };
+      req.onsuccess = function (ev) { cb(null, ev.target.result); };
+      req.onerror   = function ()   { cb(new Error("idb open failed"), null); };
+    } catch (e) { cb(e, null); }
+  }
+
+  function idbSave(json) {
+    idbOpen(function (err, db) {
+      if (err || !db) return;
+      try {
+        var tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put(json, IDB_KEY);
+      } catch (e) {}
+    });
+  }
+
+  function idbLoad(cb) {
+    idbOpen(function (err, db) {
+      if (err || !db) { cb(null); return; }
+      try {
+        var tx  = db.transaction(IDB_STORE, "readonly");
+        var req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+        req.onsuccess = function () { cb(req.result || null); };
+        req.onerror   = function () { cb(null); };
+      } catch (e) { cb(null); }
+    });
+  }
+
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    var json = JSON.stringify(state);
+    localStorage.setItem(STORAGE_KEY, json);
+    idbSave(json);
   }
 
   function uid() {
@@ -3489,17 +3528,52 @@
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   }
 
-  document.getElementById("statsMonth").value = monthStr();
-  state.settings = migrateSettings(state.settings);
-  state.inventory = ensureInventory(state.inventory);
-  if (!state.stockLogs) state.stockLogs = [];
-  ensure115TeacherClassPreset();
-  if (sync115TeacherPreset()) {
-    toast("已套用115學年度官方導師名單");
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") saveState();
+  });
+
+  function initApp(raw) {
+    if (raw) {
+      try {
+        var p = JSON.parse(raw);
+        state = migrateState(p);
+        state.inventory = ensureInventory(state.inventory || p.inventory);
+        if (!state.removedItemIds) state.removedItemIds = p.removedItemIds || [];
+      } catch (e) {
+        state = loadState();
+      }
+    } else {
+      state = loadState();
+    }
+    document.getElementById("statsMonth").value = monthStr();
+    state.settings = migrateSettings(state.settings);
+    state.inventory = ensureInventory(state.inventory);
+    if (!state.stockLogs) state.stockLogs = [];
+    ensure115TeacherClassPreset();
+    if (sync115TeacherPreset()) {
+      toast("已套用115學年度官方導師名單");
+    }
+    ensureClassRequisitionRows();
+    renderHome();
+    handleInboxOnLoad();
   }
-  ensureClassRequisitionRows();
-  renderHome();
-  handleInboxOnLoad();
+
+  idbLoad(function (idbRaw) {
+    if (idbRaw) {
+      initApp(idbRaw);
+    } else {
+      var lsRaw = null;
+      try { lsRaw = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+      if (!lsRaw) {
+        try {
+          var legacy = localStorage.getItem("scan-equip-requisition-v4") ||
+            localStorage.getItem("scan-equip-requisition-v3");
+          if (legacy) lsRaw = legacy;
+        } catch (e) {}
+      }
+      initApp(lsRaw);
+    }
+  });
 })();
   </script>
 </body>
