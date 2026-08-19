@@ -2339,6 +2339,12 @@
     });
     if (monthOnly) list = list.filter(function (r) { return r.date.slice(0, 7) === month; });
 
+    /* 沒有任何紀錄時先確認，避免空白 CSV 日後誤匯入蓋掉真實資料 */
+    if (list.length === 0) {
+      var label = monthOnly ? ("本月（" + month + "）") : "全部";
+      if (!confirm(label + "尚無請領紀錄，確定要匯出空白 CSV 嗎？")) return;
+    }
+
     list.forEach(function (r) {
       var cols = [r.date, r.className, r.teacher]
         .concat(items.map(function (it) { return Number(r.qtys[it.id]) || 0; }));
