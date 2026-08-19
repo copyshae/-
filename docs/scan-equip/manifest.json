@@ -1,7 +1,7 @@
 {
   "name": "掃具台｜校園掃具請領",
   "short_name": "掃具台",
-  "description": "繁體中文介面。班級掃具請領登記、庫存（新／舊／尚可），可匯出 CSV。",
+  "description": "繁體中文介面。拍照登記領用／進貨／送還，連動庫存與請領統計。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -22,5 +22,30 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./share.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "photos",
+          "accept": [
+            "image/*",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".webp",
+            ".heic",
+            ".heif"
+          ]
+        }
+      ]
+    }
+  }
 }
