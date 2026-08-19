@@ -123,6 +123,21 @@ Write-Host ""
 Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
 Push-Location $root
 try {
+  # GitHub Pages 使用的預設分支為 master；避免推到 main 導致仍是 404
+  $pagesBranch = 'master'
+  try { & git fetch origin $pagesBranch 2>$null | Out-Null } catch {}
+  $curBranch = (& git branch --show-current 2>$null).Trim()
+  if ($curBranch -ne $pagesBranch) {
+    try { & git checkout $pagesBranch 2>$null | Out-Null } catch {
+      try { & git checkout -B $pagesBranch origin/$pagesBranch 2>$null | Out-Null } catch {}
+    }
+  }
+  $curBranch2 = (& git branch --show-current 2>$null).Trim()
+  if ($curBranch2 -ne $pagesBranch) {
+    throw ("無法切換到 $pagesBranch（目前為：$curBranch2），已停止以避免推錯分支。")
+  }
+  try { & git pull origin $pagesBranch 2>$null | Out-Null } catch {}
+
   git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
