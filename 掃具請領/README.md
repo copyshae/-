@@ -8,7 +8,17 @@ https://github.com/copyshae/-/raw/cursor/launch-efficiency-459a/掃具請領/114
 ## CSV（用 Excel 開）
 https://github.com/copyshae/-/raw/cursor/launch-efficiency-459a/掃具請領/114學年掃具請領_已整理.csv
 
-## 處理桌面 test 裡的掃具請領（結果留在同一資料夾）
+## 你現在檔已開著：用 Excel 巨集（最快）
+
+1. 在 Excel 按 **Alt+F11**
+2. 功能表 **插入 → 模組**
+3. 打開 GitHub 這頁，全選複製貼上：  
+   https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/掃具請領/SplitOtherItems.bas
+4. 按 **F5** 執行 `SplitOtherItems`
+
+會在**同一個 test 資料夾**產生 `114學年掃具請領_已整理.xlsx`（原檔不動）。
+
+會拆出例如：氣窗擦、小垃圾桶、廁所小刷、鹽酸、肥皂、水桶、拖把桶、鋼絲絨、菜瓜布、小刷、短刷子、旋轉拖把桶，並在總計列加總。
 
 在本機 PowerShell 貼上（不要搬到大容量碟）：
 
