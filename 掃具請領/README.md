@@ -10,12 +10,12 @@ https://github.com/copyshae/-/raw/cursor/launch-efficiency-459a/掃具請領/114
 
 下載後放到 `F:\test`，若要蓋原檔，改名為 `114學年掃具請領.xlsx`。
 
-## 本機一鍵存回 F:（學習日誌 20260717 復原）
+## 復原 20260717（把歸檔搬回桌面／下載／文件／圖片）
 
-在 **Windows PowerShell**（不是 Cursor 雲端）貼上：
+當天是把檔案搬到大容量碟的「桌面歸檔／下載歸檔／文件歸檔／圖片歸檔」。若要**復原這個結果**（搬回系統原資料夾），在本機 PowerShell：
 
 ```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/掃具請領/restore-20260717-to-F.ps1 | iex
+irm https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/掃具請領/undo-20260717-archive.ps1 | iex
 ```
 
-會建立 `F:\桌面歸檔` 等資料夾，並把已整理 Excel 下載到 `F:\test`。
+會先列出要搬的項目，輸入「是」才真正搬移。不會動 `私人` 資料夾。
