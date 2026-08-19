@@ -295,6 +295,26 @@
     }
     .scan-preview-line:last-child { border-bottom: none; }
     .scan-warn { color: #b45309; font-size: 0.82rem; margin-top: 0.4rem; }
+    .manual-confirm-line {
+      font-size: 0.86rem; padding: 0.35rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .manual-confirm-line:last-child { border-bottom: none; }
+    .toast.with-action {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;
+      justify-content: center;
+    }
+    .toast .toast-action {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.38);
+      color: #fff;
+      padding: 0.22rem 0.55rem;
+      border-radius: 0.3rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
     .log-move { font-size: 0.84rem; padding: 0.45rem 0; border-bottom: 1px solid var(--line); }
     .log-move:last-child { border-bottom: none; }
     .log-move .act-in { color: #1e40af; font-weight: 600; }
@@ -398,7 +418,7 @@
           <li>掃具欄位可隨時新增或刪除（設定、庫存、請領表單皆可）</li>
           <li>領用人（導師／處室）可直接輸入；非班級領用時班級可留空</li>
           <li>AI 辨識為選用；辨識不清或無法使用時，改<strong>手動貼文字</strong>或<strong>手動新增請領</strong></li>
-          <li>手動請領：填班級與本次數量，會累加至該班累計</li>
+          <li>手動請領：填寫後會<strong>跳出確認視窗</strong>再累加；發現可能錯誤可按「恢復」返回修改，或累加後短時間內恢復</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「115 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
@@ -670,6 +690,8 @@
 
   var state = loadState();
   var toastTimer = null;
+  var undoToastTimer = null;
+  var lastManualUndo = null;
   var gradeFilter = "all";
   var listSearch = "";
   var stockSearch = "";
@@ -1237,10 +1259,265 @@
 
   function toast(msg) {
     var el = document.getElementById("toast");
+    el.className = "toast";
     el.textContent = msg;
     el.classList.add("show");
     clearTimeout(toastTimer);
+    clearTimeout(undoToastTimer);
     toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2300);
+  }
+
+  function toastWithUndo(msg, onUndo) {
+    var el = document.getElementById("toast");
+    el.className = "toast with-action";
+    el.innerHTML = esc(msg) + ' <button type="button" class="toast-action" id="toastUndoBtn">恢復</button>';
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    clearTimeout(undoToastTimer);
+    document.getElementById("toastUndoBtn").onclick = function () {
+      el.classList.remove("show");
+      clearTimeout(undoToastTimer);
+      if (onUndo) onUndo();
+    };
+    undoToastTimer = setTimeout(function () {
+      el.classList.remove("show");
+      lastManualUndo = null;
+    }, 60000);
+  }
+
+  function detectManualReqWarnings(className, teacher, qtys, editRec) {
+    var warnings = [];
+    className = normKey(className);
+    teacher = normKey(teacher);
+    if (className && isPresetClass(className)) {
+      var official = PRESET_CLASS_NAMES[className];
+      if (teacher && official && teacher !== official) {
+        warnings.push("班級 " + className + " 官方導師為「" + official + "」，目前為「" + teacher + "」");
+      }
+    }
+    if (teacher && state.teacherClassMap[teacher]) {
+      var mapped = state.teacherClassMap[teacher];
+      if (className && mapped !== className) {
+        warnings.push("導師「" + teacher + "」對照班級為「" + mapped + "」，目前班級為「" + className + "」");
+      }
+    }
+    var existing = editRec || findRecordByClass(className, teacher);
+    var prevQtys = existing ? Object.assign(emptyQtys(), existing.qtys) : emptyQtys();
+    state.items.forEach(function (it) {
+      var n = Math.max(0, Number(qtys[it.id]) || 0);
+      if (!editRec && n > 50) warnings.push(it.name + " 本次 " + n + " 件，數量偏多");
+      if (editRec) {
+        var after = Number(qtys[it.id]) || 0;
+        var prev = Number(prevQtys[it.id]) || 0;
+        if (after - prev > 50) warnings.push(it.name + " 增加 " + (after - prev) + " 件，增量偏多");
+      }
+    });
+    if (!editRec) {
+      state.items.forEach(function (it) {
+        var n = Math.max(0, Number(qtys[it.id]) || 0);
+        if (n <= 0) return;
+        var orig = Object.assign(emptyStockEntry(), state.inventory[it.id] || emptyStockEntry());
+        state.inventory[it.id] = Object.assign(emptyStockEntry(), orig);
+        var dr = deductStock(it.id, n);
+        state.inventory[it.id] = orig;
+        if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
+      });
+    }
+    return warnings;
+  }
+
+  function buildManualReqPreview(payload) {
+    var editRec = payload.editRec;
+    var newQtys = payload.qtys;
+    var existing = editRec || findRecordByClass(payload.className, payload.teacher);
+    var prevQtys = existing ? Object.assign(emptyQtys(), existing.qtys) : emptyQtys();
+    var lines = [];
+    state.items.forEach(function (it) {
+      if (editRec) {
+        var after = Math.max(0, Number(newQtys[it.id]) || 0);
+        var prev = Number(prevQtys[it.id]) || 0;
+        var delta = after - prev;
+        if (delta !== 0 || after > 0) {
+          lines.push({ name: it.name, prev: prev, delta: delta, after: after, thisTime: delta });
+        }
+      } else {
+        var add = Math.max(0, Number(newQtys[it.id]) || 0);
+        if (add > 0) {
+          var p = Number(prevQtys[it.id]) || 0;
+          lines.push({ name: it.name, prev: p, delta: add, after: p + add, thisTime: add });
+        }
+      }
+    });
+    return {
+      lines: lines,
+      warnings: detectManualReqWarnings(payload.className, payload.teacher, newQtys, editRec),
+      merged: !!existing && !editRec
+    };
+  }
+
+  function captureManualUndoBefore(payload) {
+    var rec = payload.editRec;
+    var existing = rec || findRecordByClass(payload.className, payload.teacher);
+    var snap = {
+      kind: rec ? "edit" : "add",
+      prevRecord: existing ? {
+        id: existing.id,
+        date: existing.date,
+        className: existing.className,
+        teacher: existing.teacher,
+        qtys: Object.assign(emptyQtys(), existing.qtys),
+        updatedAt: existing.updatedAt,
+        source: existing.source
+      } : null,
+      prevInv: {},
+      prevLogLen: (state.stockLogs || []).length,
+      syncStock: payload.syncStock,
+      createdRecordId: null
+    };
+    if (payload.syncStock) {
+      state.items.forEach(function (it) {
+        var d = 0;
+        if (rec) {
+          d = (Number(payload.qtys[it.id]) || 0) - (Number(snap.prevRecord.qtys[it.id]) || 0);
+        } else {
+          d = Math.max(0, Number(payload.qtys[it.id]) || 0);
+        }
+        if (d !== 0) {
+          snap.prevInv[it.id] = Object.assign(emptyStockEntry(), state.inventory[it.id] || emptyStockEntry());
+        }
+      });
+    }
+    return snap;
+  }
+
+  function undoLastManualReq() {
+    var u = lastManualUndo;
+    if (!u) { toast("無可恢復的操作"); return false; }
+    if (u.kind === "add") {
+      if (!u.prevRecord && u.createdRecordId) {
+        state.records = state.records.filter(function (r) { return r.id !== u.createdRecordId; });
+      } else if (u.prevRecord) {
+        var rec = state.records.find(function (r) { return r.id === u.prevRecord.id; });
+        if (rec) {
+          rec.qtys = Object.assign(emptyQtys(), u.prevRecord.qtys);
+          rec.date = u.prevRecord.date;
+          rec.className = u.prevRecord.className;
+          rec.teacher = u.prevRecord.teacher;
+          rec.updatedAt = u.prevRecord.updatedAt;
+        }
+      }
+    } else if (u.kind === "edit" && u.prevRecord) {
+      var editRec = state.records.find(function (r) { return r.id === u.prevRecord.id; });
+      if (editRec) {
+        editRec.date = u.prevRecord.date;
+        editRec.className = u.prevRecord.className;
+        editRec.teacher = u.prevRecord.teacher;
+        editRec.qtys = Object.assign(emptyQtys(), u.prevRecord.qtys);
+        editRec.updatedAt = u.prevRecord.updatedAt;
+      }
+    }
+    Object.keys(u.prevInv || {}).forEach(function (id) {
+      state.inventory[id] = Object.assign(emptyStockEntry(), u.prevInv[id]);
+    });
+    if (state.stockLogs && u.prevLogLen != null) {
+      state.stockLogs = state.stockLogs.slice(0, u.prevLogLen);
+    }
+    saveState();
+    lastManualUndo = null;
+    toast("已恢復手動請領");
+    renderHome();
+    renderList();
+    renderStats();
+    renderStock();
+    return true;
+  }
+
+  function commitManualReq(payload) {
+    var undoSnap = captureManualUndoBefore(payload);
+    var rec = payload.editRec;
+
+    if (rec) {
+      var oldQtys = Object.assign(emptyQtys(), rec.qtys);
+      rec.date = payload.date;
+      rec.className = payload.className;
+      rec.teacher = payload.teacher;
+      rec.qtys = Object.assign(emptyQtys(), payload.qtys);
+      rec.updatedAt = Date.now();
+      if (payload.syncStock) {
+        applyStockCorrection(computeQtyDelta(oldQtys, payload.qtys), payload.className, rec.id);
+      }
+      undoSnap.createdRecordId = rec.id;
+      saveState();
+      lastManualUndo = undoSnap;
+      closeModal();
+      toastWithUndo("已更新累計", undoLastManualReq);
+    } else {
+      var result = createRequisition({
+        date: payload.date,
+        className: payload.className,
+        teacher: payload.teacher,
+        qtys: payload.qtys,
+        source: "manual"
+      });
+      if (payload.syncStock) {
+        deductStockByDeltas(result.deltas, payload.className || payload.teacher, result.record.id, "手動請領；");
+      }
+      undoSnap.createdRecordId = result.record.id;
+      saveState();
+      lastManualUndo = undoSnap;
+      closeModal();
+      toastWithUndo(result.merged ? "已累加至班級累計" : "已新增請領", undoLastManualReq);
+    }
+    renderHome();
+    renderList();
+    renderStats();
+    renderStock();
+  }
+
+  function showManualReqConfirmModal(payload, onRestore) {
+    var preview = buildManualReqPreview(payload);
+    if (!preview.lines.length) {
+      toast("請至少填一項數量");
+      return;
+    }
+    var isEdit = !!payload.editRec;
+    var title = isEdit ? "確認修正累計" : "確認累加請領";
+    var linesHtml = preview.lines.map(function (ln) {
+      var deltaStr = ln.delta > 0 ? "+" + ln.delta : String(ln.delta);
+      return '<div class="manual-confirm-line"><strong>' + esc(ln.name) + '</strong>' +
+        '<div class="meta">' +
+        (isEdit
+          ? "累計 " + ln.prev + " → " + ln.after + "（" + deltaStr + "）"
+          : "本次 +" + ln.thisTime + " · 累計 " + ln.prev + " → " + ln.after) +
+        "</div></div>";
+    }).join("");
+    var warnHtml = preview.warnings.length
+      ? '<p class="scan-warn">⚠ 可能錯誤：' + esc(preview.warnings.join("；")) +
+        "。請按「恢復」返回修改。</p>" : "";
+    var party = payload.className
+      ? esc(payload.className) + (payload.teacher ? " · " + esc(payload.teacher) : "")
+      : esc(payload.teacher || "（未填）");
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      "<h3>" + title + "</h3>" +
+      '<p class="tips" style="margin-bottom:0.45rem">' + esc(payload.date) + " · " + party +
+      (preview.merged && !isEdit ? " · 將累加至既有紀錄" : "") + "</p>" +
+      linesHtml +
+      warnHtml +
+      '<div class="btn-row" style="margin-top:0.75rem">' +
+      '<button class="btn secondary" type="button" id="btnManualRestore">恢復</button>' +
+      '<button class="btn" type="button" id="btnManualConfirm">' + (isEdit ? "確認儲存" : "確認累加") + "</button>" +
+      "</div>"
+    );
+    document.getElementById("modalX").onclick = function () {
+      if (onRestore) onRestore();
+    };
+    document.getElementById("btnManualRestore").onclick = function () {
+      if (onRestore) onRestore();
+    };
+    document.getElementById("btnManualConfirm").onclick = function () {
+      commitManualReq(payload);
+    };
   }
 
   function emptyQtys() {
@@ -1864,39 +2141,24 @@
         return;
       }
       var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
-
-      if (rec) {
-        var oldQtys = Object.assign(emptyQtys(), rec.qtys);
-        rec.date = d;
-        rec.className = c;
-        rec.teacher = tch;
-        rec.qtys = newQtys;
-        rec.updatedAt = Date.now();
-        if (syncStock) {
-          applyStockCorrection(computeQtyDelta(oldQtys, newQtys), c, rec.id);
+      var payload = {
+        date: d,
+        className: c,
+        teacher: tch,
+        qtys: newQtys,
+        syncStock: syncStock,
+        editRec: rec
+      };
+      showManualReqConfirmModal(payload, function () {
+        openModal(reqFormBody(newQtys));
+        bindReqForm(rec, reqFormBody);
+        document.getElementById("fDate").value = d;
+        document.getElementById("fClass").value = c;
+        document.getElementById("fTeacher").value = tch;
+        if (document.getElementById("syncStock")) {
+          document.getElementById("syncStock").checked = syncStock;
         }
-        saveState();
-        closeModal();
-        toast("已更新累計");
-      } else {
-        var result = createRequisition({
-          date: d,
-          className: c,
-          teacher: tch,
-          qtys: newQtys,
-          source: "manual"
-        });
-        if (syncStock) {
-          deductStockByDeltas(result.deltas, c || tch, result.record.id, "手動請領；");
-        }
-        saveState();
-        closeModal();
-        toast(result.merged ? "已累加至班級累計" : "已新增請領");
-      }
-      renderHome();
-      renderList();
-      renderStats();
-      renderStock();
+      });
     };
   }
 
