@@ -183,15 +183,21 @@
       line-height: 1; padding: 0 0.2rem;
     }
     .qty-grid { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.4rem 0 0.7rem; }
+    .qty-block {
+      padding: 0.45rem 0.55rem;
+      background: var(--plain);
+      border: 1px solid var(--line);
+      border-radius: 0.4rem;
+    }
     .qty-row {
       display: grid;
       grid-template-columns: 1fr auto;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.45rem 0.55rem;
-      background: var(--plain);
-      border: 1px solid var(--line);
-      border-radius: 0.4rem;
+      padding: 0;
+      background: none;
+      border: none;
+      border-radius: 0;
     }
     .qty-row .name { font-size: 0.88rem; font-weight: 500; }
     .qty-ctrl { display: flex; align-items: center; gap: 0.25rem; }
@@ -204,6 +210,19 @@
     .qty-ctrl input {
       width: 2.6rem; text-align: center; min-height: 2.1rem;
       padding: 0.2rem; font-weight: 600;
+    }
+    .qty-pills {
+      display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.35rem;
+    }
+    .qty-pill {
+      min-width: 1.65rem; height: 1.65rem; padding: 0 0.25rem;
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid var(--line); background: #fff;
+      color: var(--muted); border-radius: 0.3rem; cursor: pointer;
+    }
+    .qty-pill.on {
+      background: var(--accent-soft); color: var(--accent);
+      border-color: var(--accent); font-weight: 700;
     }
     .rank-item {
       display: flex; justify-content: space-between; align-items: center;
@@ -393,6 +412,7 @@
         <ul class="tips">
           <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
           <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
+          <li>手動請領：先選導師，再點選各掃具數量 0～10</li>
           <li>導師姓名較可靠；手寫班級若仍寫舊年級，會依「導師現任班級」自動更正</li>
           <li>每次請領各為一列；同班級可於同天或不同天多次請領，品項不必相同</li>
           <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
@@ -547,6 +567,7 @@
   "use strict";
 
   var STORAGE_KEY = "scan-equip-requisition-v5";
+  var REQ_QTY_MAX = 10;
 
   /** 對齊 Excel「114 學年掃具請領」標準欄位 */
   var DEFAULT_ITEMS = [
@@ -684,15 +705,52 @@
     return true;
   }
 
+  function clampReqQty(n) {
+    n = parseInt(n, 10);
+    if (isNaN(n)) n = 0;
+    return Math.max(0, Math.min(REQ_QTY_MAX, n));
+  }
+
+  function teacherSelectHtml(selected) {
+    var teachers = Object.keys(state.teacherClassMap || {}).sort();
+    var sel = normKey(selected);
+    var inList = sel && teachers.indexOf(sel) >= 0;
+    var html = '<option value="">— 選擇導師 —</option>';
+    teachers.forEach(function (t) {
+      html += '<option value="' + esc(t) + '"' + (t === sel && inList ? " selected" : "") + ">" + esc(t) + "</option>";
+    });
+    if (sel && !inList) {
+      html += '<option value="__manual__" selected>手動輸入…</option>';
+    } else {
+      html += '<option value="__manual__">手動輸入…</option>';
+    }
+    return html;
+  }
+
+  function getFormTeacher() {
+    var selEl = document.getElementById("fTeacherSel");
+    if (!selEl) return normKey((document.getElementById("fTeacher") || {}).value);
+    var sel = selEl.value;
+    if (sel === "__manual__") return normKey(document.getElementById("fTeacherManual").value);
+    return normKey(sel);
+  }
+
   function qtyRowsHtml(qtys, list) {
     return list.map(function (it) {
-      var v = Number(qtys[it.id]) || 0;
-      return '<div class="qty-row"><div class="name">' + esc(it.name) + "</div>" +
+      var v = clampReqQty(qtys[it.id]);
+      var pills = "";
+      for (var i = 0; i <= REQ_QTY_MAX; i++) {
+        pills += '<button type="button" class="qty-pill' + (v === i ? " on" : "") +
+          '" data-pick="' + it.id + '" data-n="' + i + '">' + i + "</button>";
+      }
+      return '<div class="qty-block" data-item="' + it.id + '">' +
+        '<div class="qty-row"><div class="name">' + esc(it.name) + "</div>" +
         '<div class="qty-ctrl">' +
         '<button type="button" data-dec="' + it.id + '">−</button>' +
-        '<input type="number" min="0" max="99" data-qty="' + it.id + '" value="' + v + '" />' +
+        '<input type="number" min="0" max="' + REQ_QTY_MAX + '" data-qty="' + it.id + '" value="' + v + '" inputmode="numeric" />' +
         '<button type="button" data-inc="' + it.id + '">＋</button>' +
-        "</div></div>";
+        "</div></div>" +
+        '<div class="qty-pills">' + pills + "</div></div>";
     }).join("");
   }
 
@@ -1435,24 +1493,24 @@
       currentQtys = currentQtys || qtys;
       var modeTips = rec
         ? '<p class="tips" style="margin-bottom:0.45rem">修改此筆請領的各品項數量；可同步調整庫存差額</p>'
-        : '<p class="tips" style="margin-bottom:0.45rem">先填導師較準；班級若仍寫舊年級，儲存時依現任班級自動更正</p>';
+        : '<p class="tips" style="margin-bottom:0.45rem">先<strong>選導師</strong>（可略），再點選各掃具數量 <strong>0～' + REQ_QTY_MAX + '</strong></p>';
       var title = rec ? "修正請領" : "新增請領";
       var syncLabel = rec
         ? "同步調整庫存（依差額加減，減少還庫至尚可）"
         : "同步扣減庫存（尚可→舊→新）";
+      var showManual = teacher && Object.keys(state.teacherClassMap || {}).indexOf(teacher) < 0 && !!teacher;
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         "<h3>" + title + "</h3>" +
         modeTips +
         '<div class="row"><label>領用日期</label><input id="fDate" type="date" value="' + esc(date) + '" /></div>' +
-        '<div class="row"><label>導師姓名</label><input id="fTeacher" type="text" maxlength="20" list="teacherList" value="' + esc(teacher) + '" placeholder="建議先填；較不易寫錯" /></div>' +
-        '<datalist id="teacherList">' + Object.keys(state.teacherClassMap || {}).map(function (t) {
-          return '<option value="' + esc(t) + '"></option>';
-        }).join("") + "</datalist>" +
+        '<div class="row"><label>導師</label><select id="fTeacherSel" class="grow">' + teacherSelectHtml(teacher) + "</select></div>" +
+        '<div class="row" id="fTeacherManualRow" style="display:' + (showManual ? "flex" : "none") + '">' +
+        '<label>手動導師</label><input id="fTeacherManual" type="text" maxlength="20" value="' + esc(showManual ? teacher : "") + '" placeholder="不在清單時輸入" /></div>' +
         '<div class="row"><label>領用班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="依導師帶出現任班級" /></div>' +
         '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
           return '<option value="' + esc(k) + '"></option>';
         }).join("") + "</datalist>" +
-        '<div class="qty-section-title">掃具種類（每種獨立一欄）</div>' +
+        '<div class="qty-section-title">各掃具數量（0～' + REQ_QTY_MAX + '）</div>' +
         '<div class="qty-grid" id="qtyGridAll">' + qtyRowsHtml(currentQtys, sortedItems()) + '</div>' +
         '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增掃具種類</button>' +
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
@@ -1469,17 +1527,48 @@
     document.getElementById("modalX").onclick = closeModal;
 
     function fillClassFromTeacher() {
-      var t = document.getElementById("fTeacher").value.trim();
+      var t = getFormTeacher();
       if (t && state.teacherClassMap[t]) {
         document.getElementById("fClass").value = state.teacherClassMap[t];
       }
     }
 
-    document.getElementById("fTeacher").oninput = fillClassFromTeacher;
+    function syncQtyPills(itemId, n) {
+      n = clampReqQty(n);
+      var grid = document.getElementById("qtyGridAll");
+      if (!grid) return;
+      var input = grid.querySelector('[data-qty="' + itemId + '"]');
+      if (input) input.value = n;
+      grid.querySelectorAll('[data-pick="' + itemId + '"]').forEach(function (btn) {
+        btn.classList.toggle("on", Number(btn.dataset.n) === n);
+      });
+    }
+
+    var teacherSel = document.getElementById("fTeacherSel");
+    var manualRow = document.getElementById("fTeacherManualRow");
+    teacherSel.onchange = function () {
+      if (teacherSel.value === "__manual__") {
+        manualRow.style.display = "flex";
+        document.getElementById("fTeacherManual").focus();
+      } else {
+        manualRow.style.display = "none";
+        fillClassFromTeacher();
+      }
+    };
+    var manualInp = document.getElementById("fTeacherManual");
+    if (manualInp) manualInp.oninput = fillClassFromTeacher;
+
     document.getElementById("fClass").oninput = function () {
       var c = document.getElementById("fClass").value.trim();
-      if (state.classMap[c] && !document.getElementById("fTeacher").value.trim()) {
-        document.getElementById("fTeacher").value = state.classMap[c];
+      if (state.classMap[c] && !getFormTeacher()) {
+        var t = state.classMap[c];
+        var opt = Array.prototype.find.call(teacherSel.options, function (o) { return o.value === t; });
+        if (opt) teacherSel.value = t;
+        else {
+          teacherSel.value = "__manual__";
+          manualRow.style.display = "flex";
+          manualInp.value = t;
+        }
       }
     };
     fillClassFromTeacher();
@@ -1489,13 +1578,22 @@
       if (!grid) return;
       grid.onclick = function (ev) {
         var t = ev.target;
+        if (t.dataset.pick) {
+          syncQtyPills(t.dataset.pick, t.dataset.n);
+          return;
+        }
         if (t.dataset.inc || t.dataset.dec) {
           var itemId = t.dataset.inc || t.dataset.dec;
           var input = grid.querySelector('[data-qty="' + itemId + '"]');
-          var n = Number(input.value) || 0;
-          input.value = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
+          var n = clampReqQty(input.value);
+          syncQtyPills(itemId, t.dataset.inc ? n + 1 : n - 1);
         }
       };
+      grid.querySelectorAll("[data-qty]").forEach(function (inp) {
+        inp.oninput = function () {
+          syncQtyPills(inp.dataset.qty, inp.value);
+        };
+      });
     }
     bindQtyGrid("qtyGridAll");
 
@@ -1504,16 +1602,26 @@
         if (!it) return;
         var date = document.getElementById("fDate").value;
         var className = document.getElementById("fClass").value;
-        var teacher = document.getElementById("fTeacher").value;
+        var teacher = getFormTeacher();
         var newQtys = emptyQtys();
         document.querySelectorAll("[data-qty]").forEach(function (inp) {
-          newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
+          newQtys[inp.dataset.qty] = clampReqQty(inp.value);
         });
         openModal(reqFormBody(newQtys));
         bindReqForm(rec, reqFormBody);
         document.getElementById("fDate").value = date;
         document.getElementById("fClass").value = className;
-        document.getElementById("fTeacher").value = teacher;
+        if (teacher) {
+          var opt = Array.prototype.find.call(document.getElementById("fTeacherSel").options, function (o) {
+            return o.value === teacher;
+          });
+          if (opt) document.getElementById("fTeacherSel").value = teacher;
+          else {
+            document.getElementById("fTeacherSel").value = "__manual__";
+            document.getElementById("fTeacherManualRow").style.display = "flex";
+            document.getElementById("fTeacherManual").value = teacher;
+          }
+        }
         document.querySelectorAll("[data-qty]").forEach(function (inp) {
           if (newQtys[inp.dataset.qty]) inp.value = newQtys[inp.dataset.qty];
         });
@@ -1526,7 +1634,7 @@
     document.getElementById("fSave").onclick = function () {
       var d = document.getElementById("fDate").value;
       var c = document.getElementById("fClass").value.trim();
-      var tch = document.getElementById("fTeacher").value.trim();
+      var tch = getFormTeacher();
       var resolved = resolveClassTeacher(c, tch);
       c = resolved.className;
       tch = resolved.teacher;
@@ -1534,7 +1642,7 @@
       if (!c) { toast("請填寫班級，或至設定新增此導師的現任班級"); return; }
       var newQtys = emptyQtys();
       document.querySelectorAll("[data-qty]").forEach(function (inp) {
-        newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
+        newQtys[inp.dataset.qty] = clampReqQty(inp.value);
       });
       if (sumQty(newQtys) === 0) {
         toast("請至少填一項數量");
