@@ -393,7 +393,7 @@
         <ul class="tips">
           <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
           <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
-          <li>導師姓名較可靠；手寫班級若仍寫舊年段，會依「導師現任班級」自動更正</li>
+          <li>導師姓名較可靠；手寫班級若仍寫舊年級，會依「導師現任班級」自動更正</li>
           <li>每次請領各為一列；同班級可於同天或不同天多次請領，品項不必相同</li>
           <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
           <li>進貨、送還可入庫加總（庫存分頁或拍照辨識）</li>
@@ -517,7 +517,7 @@
       </section>
       <section>
         <h2>導師現任班級</h2>
-        <p class="tips" style="margin-bottom:0.5rem">導師姓名較不會寫錯；升年段後手寫單可能仍填舊班級，系統依導師帶出並更正為現任班級。</p>
+        <p class="tips" style="margin-bottom:0.5rem">導師姓名較不會寫錯；升年級後手寫單可能仍填舊班級，系統依導師帶出並更正為現任班級。</p>
         <div id="classMapList"></div>
         <button class="btn" type="button" id="btnAddClass" style="margin-top:0.55rem">新增導師現任班級</button>
       </section>
@@ -792,7 +792,7 @@
     };
   }
 
-  /** 班級排序權重（年段高者優先，供導師對多班級時取現任班級） */
+  /** 班級排序權重（年級高者優先，供導師對多班級時取現任班級） */
   function gradeRank(cls) {
     var s = String(cls || "");
     if (/^暑/.test(s)) return 1000;
@@ -826,7 +826,7 @@
     if (cls && normKey(state.classMap[cls]) === teacher) delete state.classMap[cls];
   }
 
-  /** 導師優先：已知導師則班級以現任班級為準（修正舊年段手寫） */
+  /** 導師優先：已知導師則班級以現任班級為準（修正舊年級手寫） */
   function resolveClassTeacher(className, teacher) {
     className = normKey(className);
     teacher = normKey(teacher);
@@ -1435,7 +1435,7 @@
       currentQtys = currentQtys || qtys;
       var modeTips = rec
         ? '<p class="tips" style="margin-bottom:0.45rem">修改此筆請領的各品項數量；可同步調整庫存差額</p>'
-        : '<p class="tips" style="margin-bottom:0.45rem">先填導師較準；班級若仍寫舊年段，儲存時依現任班級自動更正</p>';
+        : '<p class="tips" style="margin-bottom:0.45rem">先填導師較準；班級若仍寫舊年級，儲存時依現任班級自動更正</p>';
       var title = rec ? "修正請領" : "新增請領";
       var syncLabel = rec
         ? "同步調整庫存（依差額加減，減少還庫至尚可）"
@@ -1617,7 +1617,7 @@
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
       "<h3>新增導師現任班級</h3>" +
-      '<p class="tips" style="margin-bottom:0.5rem">升年段後請更新現任班級；手寫單若仍填舊班級，系統依導師自動更正。</p>' +
+      '<p class="tips" style="margin-bottom:0.5rem">升年級後請更新現任班級；手寫單若仍填舊班級，系統依導師自動更正。</p>' +
       '<div class="row"><label>導師姓名</label><input id="cTeacher" type="text" maxlength="20" placeholder="例：王小明" /></div>' +
       '<div class="row"><label>現任班級</label><input id="cClass" type="text" maxlength="20" placeholder="例：201" /></div>' +
       '<button class="btn" type="button" id="cSave">儲存</button>'
@@ -1925,7 +1925,7 @@
     var names = state.items.map(function (it) { return it.name; }).join("、");
     var prompt =
       "這是校園掃具手寫單照片（繁體中文）。已知掃具種類：" + names +
-      "。導師姓名較可靠；班級若仍寫舊年段也請盡量辨識導師。若手寫「椰鬃拖把」請對應「椰鬃掃把」（屬掃把非拖把）。若出現未列出的種類，name 照實填寫。判斷是「領用」「進貨」或「送還」。" +
+      "。導師姓名較可靠；班級若仍寫舊年級也請盡量辨識導師。若手寫「椰鬃拖把」請對應「椰鬃掃把」（屬掃把非拖把）。若出現未列出的種類，name 照實填寫。判斷是「領用」「進貨」或「送還」。" +
       "只回 JSON，不要 markdown：{\"action\":\"領用|進貨|送還\",\"className\":\"班級如101\",\"teacher\":\"\",\"items\":[{\"name\":\"竹掃把\",\"qty\":5}],\"condition\":\"新|舊|尚可\"}。" +
       "進貨預設 condition 新；送還預設 尚可；領用 omit condition。";
 
