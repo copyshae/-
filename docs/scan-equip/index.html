@@ -266,7 +266,24 @@
     }
     .cond-block.new .cond-label { color: #1e40af; }
     .cond-block.old .cond-label { color: #92400e; }
-    .cond-block.fair .cond-label { color: #166534; }
+    .inv-table-row .name .tag-other {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: #7c3aed;
+      background: #ede9fe;
+      padding: 0.05rem 0.3rem;
+      border-radius: 0.2rem;
+      margin-left: 0.25rem;
+      vertical-align: middle;
+    }
+    .qty-section-title {
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 0.65rem 0 0.35rem;
+    }
+    .qty-section-title.other { color: #6d28d9; }
     @keyframes rise {
       from { opacity: 0; transform: translateY(0.55rem); }
       to { opacity: 1; transform: translateY(0); }
@@ -305,6 +322,7 @@
       <section>
         <h2>使用提示</h2>
         <ul class="tips">
+          <li>其他細項（氣窗擦、水桶等）也各自獨立一類，可新增種類並登記庫存</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「114 學年掃具請領」表：班級、導師、各品項數量、其他細項</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
@@ -397,10 +415,14 @@
         </div>
       </section>
       <section>
-        <h2>標準品項</h2>
-        <p class="tips" style="margin-bottom:0.5rem">對應 Excel 欄位；庫存與請領共用這些掃具種類。</p>
+        <h2>掃具種類</h2>
+        <p class="tips" style="margin-bottom:0.5rem">標準 13 項 + 其他細項各自獨立一類；庫存與請領共用。</p>
+        <h3 class="qty-section-title">標準品項</h3>
         <div id="itemDefList"></div>
-        <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.6rem">還原預設品項</button>
+        <h3 class="qty-section-title other" style="margin-top:0.85rem">其他細項種類</h3>
+        <div id="otherItemList"></div>
+        <button class="btn" type="button" id="btnAddOtherItem" style="margin-top:0.55rem">新增其他細項種類</button>
+        <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.45rem">還原預設種類</button>
       </section>
       <section>
         <h2>班級導師對照</h2>
@@ -433,23 +455,34 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "scan-equip-requisition-v3";
+  var STORAGE_KEY = "scan-equip-requisition-v4";
 
-  /** 對齊 Excel「114 學年掃具請領」欄位 */
+  /** 對齊 Excel「114 學年掃具請領」標準欄位 */
   var DEFAULT_ITEMS = [
-    { id: "bamboo_broom", name: "竹掃把" },
-    { id: "tongs", name: "夾子" },
-    { id: "broom", name: "掃把" },
-    { id: "mop", name: "拖把" },
-    { id: "dustpan", name: "畚斗" },
-    { id: "detergent", name: "清潔劑" },
-    { id: "trash_can", name: "垃圾桶" },
-    { id: "trash_bag", name: "垃圾袋" },
-    { id: "toilet_brush", name: "馬桶刷" },
-    { id: "laundry", name: "洗衣粉" },
-    { id: "rake", name: "耙子" },
-    { id: "squeegee", name: "趕水器" },
-    { id: "long_brush", name: "長柄刷" }
+    { id: "bamboo_broom", name: "竹掃把", kind: "standard" },
+    { id: "tongs", name: "夾子", kind: "standard" },
+    { id: "broom", name: "掃把", kind: "standard" },
+    { id: "mop", name: "拖把", kind: "standard" },
+    { id: "dustpan", name: "畚斗", kind: "standard" },
+    { id: "detergent", name: "清潔劑", kind: "standard" },
+    { id: "trash_can", name: "垃圾桶", kind: "standard" },
+    { id: "trash_bag", name: "垃圾袋", kind: "standard" },
+    { id: "toilet_brush", name: "馬桶刷", kind: "standard" },
+    { id: "laundry", name: "洗衣粉", kind: "standard" },
+    { id: "rake", name: "耙子", kind: "standard" },
+    { id: "squeegee", name: "趕水器", kind: "standard" },
+    { id: "long_brush", name: "長柄刷", kind: "standard" }
+  ];
+
+  /** 其他細項：各為獨立掃具種類（對齊 Excel 其他細項常見項目） */
+  var DEFAULT_OTHER_ITEMS = [
+    { id: "other_window_wiper", name: "氣窗擦", kind: "other" },
+    { id: "other_small_trash", name: "小垃圾桶", kind: "other" },
+    { id: "other_hcl", name: "鹽酸", kind: "other" },
+    { id: "other_soap", name: "肥皂", kind: "other" },
+    { id: "other_bucket", name: "水桶", kind: "other" },
+    { id: "other_short_brush", name: "短刷子", kind: "other" },
+    { id: "other_spin_mop", name: "旋轉拖把桶", kind: "other" }
   ];
 
   /** 庫存狀態：新、舊、尚可 */
@@ -466,25 +499,158 @@
   var stockSearch = "";
   var stockFilter = "all";
 
+  function allDefaultItems() {
+    return DEFAULT_ITEMS.concat(DEFAULT_OTHER_ITEMS).map(function (x) {
+      return Object.assign({}, x);
+    });
+  }
+
+  function isOtherItem(it) {
+    return it && it.kind === "other";
+  }
+
+  function standardItems() {
+    return state.items.filter(function (it) { return !isOtherItem(it); });
+  }
+
+  function otherItems() {
+    return state.items.filter(function (it) { return isOtherItem(it); });
+  }
+
+  function itemByName(name) {
+    var n = String(name || "").trim();
+    return state.items.find(function (it) { return it.name === n; });
+  }
+
+  function itemUsedCount(itemId) {
+    var n = 0;
+    state.records.forEach(function (r) {
+      if ((Number(r.qtys[itemId]) || 0) > 0) n++;
+    });
+    return n;
+  }
+
+  function addOtherItem(name) {
+    name = String(name || "").trim();
+    if (!name) return null;
+    if (itemByName(name)) {
+      toast("已有此種類：" + name);
+      return itemByName(name);
+    }
+    var it = { id: slugOtherId(name), name: name, kind: "other" };
+    state.items.push(it);
+    state.inventory[it.id] = emptyStockEntry();
+    saveState();
+    return it;
+  }
+
+  function removeOtherItem(itemId) {
+    var it = state.items.find(function (x) { return x.id === itemId; });
+    if (!it || !isOtherItem(it)) return false;
+    if (stockTotal(state.inventory[itemId]) > 0) {
+      toast("尚有庫存，無法刪除");
+      return false;
+    }
+    if (itemUsedCount(itemId) > 0) {
+      toast("請領紀錄使用中，無法刪除");
+      return false;
+    }
+    state.items = state.items.filter(function (x) { return x.id !== itemId; });
+    delete state.inventory[itemId];
+    saveState();
+    return true;
+  }
+
+  function qtyRowsHtml(qtys, list) {
+    return list.map(function (it) {
+      var v = Number(qtys[it.id]) || 0;
+      return '<div class="qty-row"><div class="name">' + esc(it.name) + "</div>" +
+        '<div class="qty-ctrl">' +
+        '<button type="button" data-dec="' + it.id + '">−</button>' +
+        '<input type="number" min="0" max="99" data-qty="' + it.id + '" value="' + v + '" />' +
+        '<button type="button" data-inc="' + it.id + '">＋</button>' +
+        "</div></div>";
+    }).join("");
+  }
+
+  function slugOtherId(name) {
+    return "other_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 5);
+  }
+
+  function parseOtherText(text, items) {
+    var result = {};
+    if (!text) return result;
+    var parts = String(text).split(/[、,，;；\n]+/);
+    parts.forEach(function (part) {
+      var s = part.trim();
+      if (!s) return;
+      var m = s.match(/^(.+?)[x\*×]?(\d+)?/);
+      if (!m) return;
+      var name = m[1].replace(/[盒個支把組]/g, "").trim();
+      var qty = parseInt(m[2], 10) || 1;
+      if (!name) return;
+      var it = items.find(function (x) { return x.name === name; });
+      if (!it) {
+        it = { id: slugOtherId(name), name: name, kind: "other" };
+        items.push(it);
+      }
+      result[it.id] = (result[it.id] || 0) + qty;
+    });
+    return result;
+  }
+
+  function migrateState(p) {
+    var items = (p.items && p.items.length) ? p.items.slice() : allDefaultItems();
+    items = items.map(function (it) {
+      var kind = it.kind || (DEFAULT_ITEMS.some(function (d) { return d.id === it.id; }) ? "standard" : "other");
+      return Object.assign({ kind: kind }, it);
+    });
+    var have = {};
+    items.forEach(function (it) { have[it.id] = true; });
+    DEFAULT_ITEMS.forEach(function (it) {
+      if (!have[it.id]) items.unshift(Object.assign({}, it));
+    });
+    DEFAULT_OTHER_ITEMS.forEach(function (it) {
+      if (!have[it.id]) items.push(Object.assign({}, it));
+    });
+
+    var records = (p.records || []).map(function (r) {
+      var qtys = Object.assign({}, r.qtys || {});
+      if (r.other) {
+        var parsed = parseOtherText(r.other, items);
+        Object.keys(parsed).forEach(function (id) {
+          qtys[id] = (Number(qtys[id]) || 0) + parsed[id];
+        });
+      }
+      var copy = Object.assign({}, r, { qtys: qtys });
+      delete copy.other;
+      return copy;
+    });
+
+    return {
+      settings: Object.assign(defaultState().settings, p.settings || {}),
+      items: items,
+      classMap: p.classMap || {},
+      records: records
+    };
+  }
+
   function emptyStockEntry() {
     return { new: 0, old: 0, fair: 0 };
   }
 
   function emptyInventory() {
     var inv = {};
-    DEFAULT_ITEMS.forEach(function (it) { inv[it.id] = emptyStockEntry(); });
+    allDefaultItems().forEach(function (it) { inv[it.id] = emptyStockEntry(); });
     return inv;
   }
 
   function ensureInventory(inv) {
-    var base = emptyInventory();
+    var base = {};
     state.items.forEach(function (it) {
-      if (!base[it.id]) base[it.id] = emptyStockEntry();
-    });
-    Object.keys(base).forEach(function (id) {
-      base[id] = Object.assign(emptyStockEntry(), (inv && inv[id]) || {});
+      base[it.id] = Object.assign(emptyStockEntry(), (inv && inv[it.id]) || {});
       CONDITIONS.forEach(function (c) {
-        base[id][c.id] = Math.max(0, parseInt(base[id][c.id], 10) || 0);
+        base[it.id][c.id] = Math.max(0, parseInt(base[it.id][c.id], 10) || 0);
       });
     });
     return base;
@@ -510,7 +676,7 @@
   function defaultState() {
     return {
       settings: { schoolName: "", schoolYear: "114 學年" },
-      items: DEFAULT_ITEMS.map(function (x) { return Object.assign({}, x); }),
+      items: allDefaultItems(),
       inventory: emptyInventory(),
       classMap: {},
       records: []
@@ -520,14 +686,13 @@
   function loadState() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        var legacy = localStorage.getItem("scan-equip-requisition-v3");
+        if (legacy) raw = legacy;
+      }
       if (!raw) return defaultState();
       var p = JSON.parse(raw);
-      var s = {
-        settings: Object.assign(defaultState().settings, p.settings || {}),
-        items: (p.items && p.items.length) ? p.items : defaultState().items,
-        classMap: p.classMap || {},
-        records: p.records || []
-      };
+      var s = migrateState(p);
       s.inventory = ensureInventory(p.inventory);
       return s;
     } catch (e) {
@@ -586,8 +751,12 @@
       var n = Number(rec.qtys[it.id]) || 0;
       if (n > 0) parts.push(it.name + "×" + n);
     });
-    if (rec.other) parts.push(rec.other);
     return parts;
+  }
+
+  function recordSearchHay(r) {
+    var names = itemsSummary(r).join(" ");
+    return (r.className + " " + r.teacher + " " + names).toLowerCase();
   }
 
   function gradeOf(klass) {
@@ -717,8 +886,7 @@
       if (r.date.slice(0, 7) !== month) return false;
       if (gradeFilter !== "all" && gradeOf(r.className) !== gradeFilter) return false;
       if (q) {
-        var hay = (r.className + " " + r.teacher + " " + (r.other || "")).toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
+        if (recordSearchHay(r).indexOf(q) === -1) return false;
       }
       return true;
     }).sort(function (a, b) {
@@ -799,6 +967,8 @@
 
     var filters = [
       { k: "all", l: "全部" },
+      { k: "standard", l: "標準" },
+      { k: "other", l: "其他細項" },
       { k: "has", l: "有庫存" },
       { k: "zero", l: "零庫存" },
       { k: "no_new", l: "無新品" }
@@ -810,6 +980,8 @@
     var q = stockSearch.toLowerCase();
     var list = state.items.filter(function (it) {
       if (q && it.name.toLowerCase().indexOf(q) === -1) return false;
+      if (stockFilter === "standard" && isOtherItem(it)) return false;
+      if (stockFilter === "other" && !isOtherItem(it)) return false;
       var e = state.inventory[it.id] || emptyStockEntry();
       var total = stockTotal(e);
       if (stockFilter === "has" && total === 0) return false;
@@ -827,7 +999,8 @@
       var e = state.inventory[it.id] || emptyStockEntry();
       var total = stockTotal(e);
       return '<div class="inv-table-row" data-stock="' + it.id + '">' +
-        '<span class="name">' + esc(it.name) + '</span>' +
+        '<span class="name">' + esc(it.name) +
+        (isOtherItem(it) ? '<span class="tag-other">其他</span>' : '') + '</span>' +
         '<span class="n">' + e.new + '</span><span class="n">' + e.old + '</span>' +
         '<span class="n">' + e.fair + '</span><span class="n">' + total + '</span></div>';
     }).join("");
@@ -927,12 +1100,39 @@
     toast("已匯出庫存 CSV");
   }
 
+  function renderItemCard(it, i) {
+    var e = state.inventory[it.id] || emptyStockEntry();
+    var delBtn = isOtherItem(it)
+      ? '<div class="btn-row"><button class="btn secondary" type="button" data-delitem="' + it.id + '">刪除種類</button></div>'
+      : "";
+    return '<div class="card"><div class="card-title">' + (i + 1) + ". " + esc(it.name) +
+      (isOtherItem(it) ? ' <span class="tag-other">其他</span>' : '') +
+      '</div><div class="meta">庫存：新 ' + e.new + ' · 舊 ' + e.old + ' · 尚可 ' + e.fair + '</div>' +
+      delBtn + '</div>';
+  }
+
   function renderItemDefs() {
-    document.getElementById("itemDefList").innerHTML = state.items.map(function (it, i) {
-      var e = state.inventory[it.id] || emptyStockEntry();
-      return '<div class="card"><div class="card-title">' + (i + 1) + ". " + esc(it.name) +
-        '</div><div class="meta">庫存：新 ' + e.new + ' · 舊 ' + e.old + ' · 尚可 ' + e.fair + '</div></div>';
-    }).join("");
+    var std = standardItems();
+    var oth = otherItems();
+    document.getElementById("itemDefList").innerHTML = std.length
+      ? std.map(function (it, i) { return renderItemCard(it, i); }).join("")
+      : '<div class="empty">無標準品項</div>';
+    document.getElementById("otherItemList").innerHTML = oth.length
+      ? oth.map(function (it, i) { return renderItemCard(it, i); }).join("")
+      : '<div class="empty">尚無其他細項種類，請按下方新增</div>';
+
+    document.querySelectorAll("[data-delitem]").forEach(function (btn) {
+      btn.onclick = function () {
+        var it = state.items.find(function (x) { return x.id === btn.dataset.delitem; });
+        if (!it || !confirm("確定刪除種類「" + it.name + "」？")) return;
+        if (removeOtherItem(btn.dataset.delitem)) {
+          toast("已刪除種類");
+          renderSettings();
+          renderStock();
+          renderHome();
+        }
+      };
+    });
 
     var keys = Object.keys(state.classMap).sort();
     var mapEl = document.getElementById("classMapList");
@@ -971,34 +1171,29 @@
     var className = rec ? rec.className : "";
     var teacher = rec ? rec.teacher : "";
     var qtys = rec ? Object.assign(emptyQtys(), rec.qtys) : emptyQtys();
-    var other = rec ? (rec.other || "") : "";
 
-    var qtyRows = state.items.map(function (it) {
-      var v = Number(qtys[it.id]) || 0;
-      return '<div class="qty-row"><div class="name">' + esc(it.name) + "</div>" +
-        '<div class="qty-ctrl">' +
-        '<button type="button" data-dec="' + it.id + '">−</button>' +
-        '<input type="number" min="0" max="99" data-qty="' + it.id + '" value="' + v + '" />' +
-        '<button type="button" data-inc="' + it.id + '">＋</button>' +
-        "</div></div>";
-    }).join("");
+    function reqFormBody() {
+      return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+        "<h3>" + (rec ? "編輯請領" : "新增請領") + "</h3>" +
+        '<div class="row"><label>領用日期</label><input id="fDate" type="date" value="' + esc(date) + '" /></div>' +
+        '<div class="row"><label>領用班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="例：101、暑新一" /></div>' +
+        '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
+          return '<option value="' + esc(k) + '"></option>';
+        }).join("") + "</datalist>" +
+        '<div class="row"><label>導師姓名</label><input id="fTeacher" type="text" maxlength="20" value="' + esc(teacher) + '" placeholder="自動帶出或手填" /></div>' +
+        '<div class="qty-section-title">標準品項</div>' +
+        '<div class="qty-grid" id="qtyGridStd">' + qtyRowsHtml(qtys, standardItems()) + '</div>' +
+        '<div class="qty-section-title other">其他細項種類</div>' +
+        '<div class="qty-grid" id="qtyGridOther">' + qtyRowsHtml(qtys, otherItems()) + '</div>' +
+        '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增其他細項種類</button>' +
+        '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">儲存請領</button>';
+    }
 
-    openModal(
-      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      "<h3>" + (rec ? "編輯請領" : "新增請領") + "</h3>" +
-      '<div class="row"><label>領用日期</label><input id="fDate" type="date" value="' + esc(date) + '" /></div>' +
-      '<div class="row"><label>領用班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="例：101、暑新一" /></div>' +
-      '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
-        return '<option value="' + esc(k) + '"></option>';
-      }).join("") + "</datalist>" +
-      '<div class="row"><label>導師姓名</label><input id="fTeacher" type="text" maxlength="20" value="' + esc(teacher) + '" placeholder="自動帶出或手填" /></div>' +
-      "<h3 style=\"font-size:1.05rem;margin-top:0.3rem\">品項數量</h3>" +
-      '<div class="qty-grid" id="qtyGrid">' + qtyRows + "</div>" +
-      '<div class="row" style="flex-direction:column;align-items:stretch"><label>其他細項</label>' +
-      '<textarea id="fOther" maxlength="200" placeholder="例：氣窗擦x2、水桶*2、肥皂x1盒">' + esc(other) + "</textarea></div>" +
-      '<button class="btn" type="button" id="fSave">儲存請領</button>'
-    );
+    openModal(reqFormBody());
+    bindReqForm(rec);
+  }
 
+  function bindReqForm(rec) {
     document.getElementById("modalX").onclick = closeModal;
 
     document.getElementById("fClass").oninput = function () {
@@ -1008,15 +1203,44 @@
       }
     };
 
-    document.getElementById("qtyGrid").onclick = function (ev) {
-      var t = ev.target;
-      if (t.dataset.inc || t.dataset.dec) {
-        var id = t.dataset.inc || t.dataset.dec;
-        var input = document.querySelector('[data-qty="' + id + '"]');
-        var n = Number(input.value) || 0;
-        n = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
-        input.value = n;
-      }
+    function bindQtyGrid(id) {
+      var grid = document.getElementById(id);
+      if (!grid) return;
+      grid.onclick = function (ev) {
+        var t = ev.target;
+        if (t.dataset.inc || t.dataset.dec) {
+          var itemId = t.dataset.inc || t.dataset.dec;
+          var input = grid.querySelector('[data-qty="' + itemId + '"]');
+          var n = Number(input.value) || 0;
+          input.value = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
+        }
+      };
+    }
+    bindQtyGrid("qtyGridStd");
+    bindQtyGrid("qtyGridOther");
+
+    document.getElementById("btnAddOtherInForm").onclick = function () {
+      showAddOtherItemForm(function (it) {
+        if (!it) return;
+        var date = document.getElementById("fDate").value;
+        var className = document.getElementById("fClass").value;
+        var teacher = document.getElementById("fTeacher").value;
+        var newQtys = emptyQtys();
+        document.querySelectorAll("[data-qty]").forEach(function (inp) {
+          newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
+        });
+        openModal(reqFormBody());
+        bindReqForm(rec);
+        document.getElementById("fDate").value = date;
+        document.getElementById("fClass").value = className;
+        document.getElementById("fTeacher").value = teacher;
+        document.querySelectorAll("[data-qty]").forEach(function (inp) {
+          if (newQtys[inp.dataset.qty]) inp.value = newQtys[inp.dataset.qty];
+        });
+        var newInput = document.querySelector('[data-qty="' + it.id + '"]');
+        if (newInput) newInput.value = 1;
+        toast("已新增種類：" + it.name);
+      });
     };
 
     document.getElementById("fSave").onclick = function () {
@@ -1028,9 +1252,8 @@
       document.querySelectorAll("[data-qty]").forEach(function (inp) {
         newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
       });
-      var oth = document.getElementById("fOther").value.trim();
-      if (sumQty(newQtys) === 0 && !oth) {
-        toast("請至少填一項數量或其他細項");
+      if (sumQty(newQtys) === 0) {
+        toast("請至少填一項數量");
         return;
       }
       if (tch) state.classMap[c] = tch;
@@ -1040,7 +1263,6 @@
         rec.className = c;
         rec.teacher = tch;
         rec.qtys = newQtys;
-        rec.other = oth;
         rec.updatedAt = Date.now();
       } else {
         state.records.unshift({
@@ -1049,7 +1271,6 @@
           className: c,
           teacher: tch,
           qtys: newQtys,
-          other: oth,
           createdAt: Date.now(),
           updatedAt: Date.now()
         });
@@ -1060,6 +1281,41 @@
       renderHome();
       renderList();
       renderStats();
+    };
+  }
+
+  function showAddOtherItemForm(onDone) {
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      "<h3>新增其他細項種類</h3>" +
+      '<p class="tips" style="margin-bottom:0.5rem">每種其他細項獨立一類，可登記庫存（新／舊／尚可）與請領數量。</p>' +
+      '<div class="row"><label>種類名稱</label><input id="oName" type="text" maxlength="30" placeholder="例：延長線、漂白水" list="otherNames" /></div>' +
+      '<datalist id="otherNames">' + DEFAULT_OTHER_ITEMS.map(function (it) {
+        return '<option value="' + esc(it.name) + '"></option>';
+      }).join("") + "</datalist>" +
+      '<button class="btn" type="button" id="oSave">新增</button>'
+    );
+    document.getElementById("modalX").onclick = function () {
+      closeModal();
+      if (onDone) onDone(null);
+    };
+    document.getElementById("oSave").onclick = function () {
+      var name = document.getElementById("oName").value.trim();
+      if (!name) { toast("請填寫種類名稱"); return; }
+      var existing = itemByName(name);
+      if (existing) {
+        closeModal();
+        if (onDone) onDone(existing);
+        return;
+      }
+      var it = addOtherItem(name);
+      closeModal();
+      toast("已新增種類");
+      if (onDone) onDone(it);
+      else {
+        renderSettings();
+        renderStock();
+      }
     };
   }
 
@@ -1092,8 +1348,7 @@
 
   function exportCsv(monthOnly) {
     var headers = ["領用日期", "領用班級", "導師姓名"]
-      .concat(state.items.map(function (it) { return it.name; }))
-      .concat(["其他細項"]);
+      .concat(state.items.map(function (it) { return it.name; }));
     var rows = [headers.join(",")];
     var month = document.getElementById("statsMonth").value || monthStr();
     var list = state.records.slice().sort(function (a, b) {
@@ -1103,8 +1358,7 @@
 
     list.forEach(function (r) {
       var cols = [r.date, r.className, r.teacher]
-        .concat(state.items.map(function (it) { return Number(r.qtys[it.id]) || 0; }))
-        .concat([r.other || ""]);
+        .concat(state.items.map(function (it) { return Number(r.qtys[it.id]) || 0; }));
       rows.push(cols.map(csvEscape).join(","));
     });
 
@@ -1132,7 +1386,7 @@
       laundry: { new: 8, old: 2, fair: 1 },
       rake: { new: 3, old: 5, fair: 2 },
       squeegee: { new: 2, old: 4, fair: 3 },
-      long_brush: { new: 4, old: 6, fair: 5 }
+      other_spin_mop: { new: 1, old: 2, fair: 1 }
     };
     Object.keys(demo).forEach(function (id) {
       state.inventory[id] = demo[id];
@@ -1146,10 +1400,10 @@
     state.classMap["201"] = "黃老師";
     state.classMap["暑新一"] = "吳老師";
     var demos = [
-      { date: "2026-02-25", className: "101", teacher: "陳老師", qtys: { bamboo_broom: 1, tongs: 0, broom: 1, mop: 1, dustpan: 1 }, other: "" },
-      { date: "2026-03-13", className: "102", teacher: "林老師", qtys: { mop: 2, trash_bag: 1 }, other: "氣窗擦x2" },
-      { date: "2026-03-20", className: "201", teacher: "黃老師", qtys: { broom: 1, dustpan: 1, detergent: 1 }, other: "水桶*2" },
-      { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1 }, other: "肥皂x1盒" }
+      { date: "2026-02-25", className: "101", teacher: "陳老師", qtys: { bamboo_broom: 1, broom: 1, mop: 1, dustpan: 1 } },
+      { date: "2026-03-13", className: "102", teacher: "林老師", qtys: { mop: 2, trash_bag: 1, other_window_wiper: 2 } },
+      { date: "2026-03-20", className: "201", teacher: "黃老師", qtys: { broom: 1, dustpan: 1, detergent: 1, other_bucket: 2 } },
+      { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1, other_soap: 1 } }
     ];
     demos.forEach(function (d) {
       var q = emptyQtys();
@@ -1160,7 +1414,6 @@
         className: d.className,
         teacher: d.teacher,
         qtys: q,
-        other: d.other,
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
@@ -1211,14 +1464,20 @@
   document.getElementById("btnExportAllCsv").onclick = function () { exportCsv(false); };
 
   document.getElementById("btnResetItems").onclick = function () {
-    if (!confirm("還原成 Excel 預設 13 項品項？庫存數字會保留既有代碼。")) return;
-    state.items = DEFAULT_ITEMS.map(function (x) { return Object.assign({}, x); });
+    if (!confirm("還原成預設掃具種類（標準 13 項 + 7 項其他細項）？自訂其他種類與庫存數字會保留同名項目。")) return;
+    var customOther = otherItems().filter(function (it) {
+      return !DEFAULT_OTHER_ITEMS.some(function (d) { return d.id === it.id; });
+    });
+    state.items = allDefaultItems().concat(customOther);
     state.inventory = ensureInventory(state.inventory);
     saveState();
-    toast("已還原預設品項");
+    toast("已還原預設種類");
     renderSettings();
     renderStock();
     renderHome();
+  };
+  document.getElementById("btnAddOtherItem").onclick = function () {
+    showAddOtherItemForm(null);
   };
   document.getElementById("btnAddClass").onclick = showClassForm;
 
@@ -1249,12 +1508,7 @@
       try {
         var data = JSON.parse(reader.result);
         if (!data.records) throw new Error("格式錯誤");
-        state = {
-          settings: Object.assign(defaultState().settings, data.settings || {}),
-          items: (data.items && data.items.length) ? data.items : defaultState().items,
-          classMap: data.classMap || {},
-          records: data.records || []
-        };
+        state = migrateState(data);
         state.inventory = ensureInventory(data.inventory);
         saveState();
         toast("匯入成功");
