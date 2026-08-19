@@ -1597,7 +1597,7 @@
     var body = records.map(function (r) {
       var cells = items.map(function (it) {
         var n = Number(r.qtys[it.id]) || 0;
-        return '<td class="' + (n > 0 ? "num-on" : "num-off") + '">' + (n > 0 ? n : "0") + '</td>';
+        return '<td class="' + (n !== 0 ? "num-on" : "num-off") + '">' + (n !== 0 ? n : "0") + '</td>';
       }).join("");
       var acts = showActions
         ? '<td class="act-cell">' +
@@ -1824,7 +1824,7 @@
 
     var itemSorted = state.items.map(function (it) {
       return { name: it.name, n: itemTotals[it.id] };
-    }).filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; });
+    }).filter(function (x) { return x.n !== 0; }).sort(function (a, b) { return b.n - a.n; });
 
     var maxItem = itemSorted.length ? itemSorted[0].n : 1;
     var itemEl = document.getElementById("itemRank");
