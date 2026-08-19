@@ -411,7 +411,7 @@
     <div class="view" id="view-list">
       <section>
         <div class="row">
-          <input type="search" id="listSearch" placeholder="搜尋班級、導師、其他細項…" />
+          <input type="search" id="listSearch" placeholder="搜尋班級、領用人、品項…" />
         </div>
         <div class="row">
           <label for="listMonth">月份</label>
@@ -976,7 +976,7 @@
       return '<div class="empty">尚無請領紀錄</div>';
     }
     var head = '<tr><th class="sticky-col">日期</th><th class="sticky-col sticky-col-2">班級</th>' +
-      '<th class="sticky-col sticky-col-3">導師</th>' +
+      '<th class="sticky-col sticky-col-3">領用人</th>' +
       items.map(function (it) {
         return '<th title="' + esc(it.name) + '">' + esc(it.name) + '</th>';
       }).join("") +
@@ -1608,7 +1608,7 @@
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
       "<h3>新增導師現任班級</h3>" +
-      '<p class="tips" style="margin-bottom:0.5rem">升年級後請更新現任班級；手寫單若仍填舊班級，系統依導師自動更正。</p>' +
+      '<p class="tips" style="margin-bottom:0.5rem">僅供班級導師對照；選取時可帶出班級，不會覆寫手動輸入。</p>' +
       '<div class="row"><label>導師姓名</label><input id="cTeacher" type="text" maxlength="20" placeholder="例：王小明" /></div>' +
       '<div class="row"><label>現任班級</label><input id="cClass" type="text" maxlength="20" placeholder="例：201" /></div>' +
       '<button class="btn" type="button" id="cSave">儲存</button>'
