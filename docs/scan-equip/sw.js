@@ -1,5 +1,5 @@
 /* 掃具台：離線快取 + 接收分享照片 */
-const CACHE = "scan-equip-v11";
+const CACHE = "scan-equip-v12";
 const ASSETS = [
   "./",
   "./index.html",

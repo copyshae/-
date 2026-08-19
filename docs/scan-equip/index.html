@@ -1666,6 +1666,7 @@
   /* 自訂確認框，取代 confirm()（iOS PWA 模式下 confirm() 會被略過） */
   function confirmModal(msg, onOk) {
     openModal(
+      '<button class="modal-close" id="modalX" aria-label="關閉">×</button>' +
       '<h3>請確認</h3>' +
       '<p style="color:var(--muted);font-size:0.92rem;margin-bottom:1.1rem;white-space:pre-wrap">' + msg + '</p>' +
       '<div style="display:flex;gap:0.5rem">' +
@@ -1673,6 +1674,7 @@
         '<button type="button" class="btn" style="flex:1" id="confirmOk">確定匯出</button>' +
       '</div>'
     );
+    document.getElementById("modalX").onclick = closeModal;
     document.getElementById("confirmOk").onclick = function () { closeModal(); onOk(); };
     document.getElementById("confirmNo").onclick = closeModal;
   }
