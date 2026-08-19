@@ -300,6 +300,34 @@
       border-bottom: 1px solid var(--line);
     }
     .manual-confirm-line:last-child { border-bottom: none; }
+    .confirm-all-wrap {
+      max-height: 14rem;
+      overflow: auto;
+      margin: 0.45rem 0 0.2rem;
+      border: 1px solid var(--line);
+      border-radius: 0.4rem;
+    }
+    .confirm-all-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .confirm-all-table th, .confirm-all-table td {
+      padding: 0.35rem 0.45rem;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .confirm-all-table th:first-child,
+    .confirm-all-table td:first-child { text-align: left; min-width: 5.5rem; }
+    .confirm-all-table th {
+      position: sticky; top: 0;
+      background: var(--plain);
+      font-weight: 600;
+      z-index: 1;
+    }
+    .confirm-all-table tr.row-on td { font-weight: 700; color: var(--accent); }
+    .confirm-all-table tr.row-off td { color: #94a3b8; }
     .toast.with-action {
       pointer-events: auto;
       display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;
@@ -418,7 +446,7 @@
           <li>掃具欄位可隨時新增或刪除（設定、庫存、請領表單皆可）</li>
           <li>領用人（導師／處室）可直接輸入；非班級領用時班級可留空</li>
           <li>AI 辨識為選用；辨識不清或無法使用時，改<strong>手動貼文字</strong>或<strong>手動新增請領</strong></li>
-          <li>手動請領：填寫後會<strong>跳出確認視窗</strong>再累加；發現可能錯誤可按「恢復」返回修改，或累加後短時間內恢復</li>
+          <li>手動請領：<strong>全部種類輸入完</strong>後按「前往確認」，確認視窗顯示完整一列再累加；可按「恢復」返回修改</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「115 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
@@ -1289,6 +1317,8 @@
     var warnings = [];
     className = normKey(className);
     teacher = normKey(teacher);
+    var existing = editRec || findRecordByClass(className, teacher);
+    var prevQtys = existing ? Object.assign(emptyQtys(), existing.qtys) : emptyQtys();
     if (className && isPresetClass(className)) {
       var official = PRESET_CLASS_NAMES[className];
       if (teacher && official && teacher !== official) {
@@ -1301,8 +1331,6 @@
         warnings.push("導師「" + teacher + "」對照班級為「" + mapped + "」，目前班級為「" + className + "」");
       }
     }
-    var existing = editRec || findRecordByClass(className, teacher);
-    var prevQtys = existing ? Object.assign(emptyQtys(), existing.qtys) : emptyQtys();
     state.items.forEach(function (it) {
       var n = Math.max(0, Number(qtys[it.id]) || 0);
       if (!editRec && n > 50) warnings.push(it.name + " 本次 " + n + " 件，數量偏多");
@@ -1312,17 +1340,20 @@
         if (after - prev > 50) warnings.push(it.name + " 增加 " + (after - prev) + " 件，增量偏多");
       }
     });
-    if (!editRec) {
-      state.items.forEach(function (it) {
-        var n = Math.max(0, Number(qtys[it.id]) || 0);
-        if (n <= 0) return;
-        var orig = Object.assign(emptyStockEntry(), state.inventory[it.id] || emptyStockEntry());
-        state.inventory[it.id] = Object.assign(emptyStockEntry(), orig);
-        var dr = deductStock(it.id, n);
-        state.inventory[it.id] = orig;
-        if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
-      });
-    }
+    state.items.forEach(function (it) {
+      var deductQty = 0;
+      if (editRec) {
+        deductQty = Math.max(0, (Number(qtys[it.id]) || 0) - (Number(prevQtys[it.id]) || 0));
+      } else {
+        deductQty = Math.max(0, Number(qtys[it.id]) || 0);
+      }
+      if (deductQty <= 0) return;
+      var orig = Object.assign(emptyStockEntry(), state.inventory[it.id] || emptyStockEntry());
+      state.inventory[it.id] = Object.assign(emptyStockEntry(), orig);
+      var dr = deductStock(it.id, deductQty);
+      state.inventory[it.id] = orig;
+      if (dr.shortfall > 0) warnings.push(it.name + " 庫存不足 " + dr.shortfall + " 件");
+    });
     return warnings;
   }
 
@@ -1332,27 +1363,42 @@
     var existing = editRec || findRecordByClass(payload.className, payload.teacher);
     var prevQtys = existing ? Object.assign(emptyQtys(), existing.qtys) : emptyQtys();
     var lines = [];
-    state.items.forEach(function (it) {
+    sortedItems().forEach(function (it) {
       if (editRec) {
         var after = Math.max(0, Number(newQtys[it.id]) || 0);
         var prev = Number(prevQtys[it.id]) || 0;
         var delta = after - prev;
-        if (delta !== 0 || after > 0) {
-          lines.push({ name: it.name, prev: prev, delta: delta, after: after, thisTime: delta });
-        }
+        lines.push({ name: it.name, prev: prev, delta: delta, after: after, thisTime: delta, active: delta !== 0 || after > 0 });
       } else {
         var add = Math.max(0, Number(newQtys[it.id]) || 0);
-        if (add > 0) {
-          var p = Number(prevQtys[it.id]) || 0;
-          lines.push({ name: it.name, prev: p, delta: add, after: p + add, thisTime: add });
-        }
+        var p = Number(prevQtys[it.id]) || 0;
+        lines.push({ name: it.name, prev: p, delta: add, after: p + add, thisTime: add, active: add > 0 });
       }
     });
     return {
       lines: lines,
       warnings: detectManualReqWarnings(payload.className, payload.teacher, newQtys, editRec),
-      merged: !!existing && !editRec
+      merged: !!existing && !editRec,
+      hasChange: lines.some(function (ln) { return ln.thisTime !== 0; })
     };
+  }
+
+  function manualConfirmTableHtml(lines, isEdit) {
+    var head = isEdit
+      ? "<tr><th>掃具</th><th>原累計</th><th>新累計</th><th>差額</th></tr>"
+      : "<tr><th>掃具</th><th>本次</th><th>原累計</th><th>累加後</th></tr>";
+    var body = lines.map(function (ln) {
+      var cls = ln.active ? "row-on" : "row-off";
+      var deltaStr = ln.delta > 0 ? "+" + ln.delta : String(ln.delta);
+      if (isEdit) {
+        return '<tr class="' + cls + '"><td>' + esc(ln.name) + "</td><td>" + ln.prev +
+          "</td><td>" + ln.after + "</td><td>" + deltaStr + "</td></tr>";
+      }
+      return '<tr class="' + cls + '"><td>' + esc(ln.name) + "</td><td>" + ln.thisTime +
+        "</td><td>" + ln.prev + "</td><td>" + ln.after + "</td></tr>";
+    }).join("");
+    return '<div class="confirm-all-wrap"><table class="confirm-all-table"><thead>' + head +
+      "</thead><tbody>" + body + "</tbody></table></div>";
   }
 
   function captureManualUndoBefore(payload) {
@@ -1476,21 +1522,17 @@
 
   function showManualReqConfirmModal(payload, onRestore) {
     var preview = buildManualReqPreview(payload);
-    if (!preview.lines.length) {
-      toast("請至少填一項數量");
+    var isEdit = !!payload.editRec;
+    if (!isEdit && !preview.lines.some(function (ln) { return ln.thisTime > 0; })) {
+      toast("請至少填一項本次數量");
       return;
     }
-    var isEdit = !!payload.editRec;
-    var title = isEdit ? "確認修正累計" : "確認累加請領";
-    var linesHtml = preview.lines.map(function (ln) {
-      var deltaStr = ln.delta > 0 ? "+" + ln.delta : String(ln.delta);
-      return '<div class="manual-confirm-line"><strong>' + esc(ln.name) + '</strong>' +
-        '<div class="meta">' +
-        (isEdit
-          ? "累計 " + ln.prev + " → " + ln.after + "（" + deltaStr + "）"
-          : "本次 +" + ln.thisTime + " · 累計 " + ln.prev + " → " + ln.after) +
-        "</div></div>";
-    }).join("");
+    if (isEdit && !preview.hasChange) {
+      toast("數量未變更");
+      return;
+    }
+    var title = isEdit ? "全部種類確認（修正累計）" : "全部種類確認（累加請領）";
+    var tableHtml = manualConfirmTableHtml(preview.lines, isEdit);
     var warnHtml = preview.warnings.length
       ? '<p class="scan-warn">⚠ 可能錯誤：' + esc(preview.warnings.join("；")) +
         "。請按「恢復」返回修改。</p>" : "";
@@ -1500,9 +1542,11 @@
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
       "<h3>" + title + "</h3>" +
-      '<p class="tips" style="margin-bottom:0.45rem">' + esc(payload.date) + " · " + party +
-      (preview.merged && !isEdit ? " · 將累加至既有紀錄" : "") + "</p>" +
-      linesHtml +
+      '<p class="tips" style="margin-bottom:0.35rem">' + esc(payload.date) + " · " + party +
+      (preview.merged && !isEdit ? " · 將累加至既有紀錄" : "") +
+      " · 共 " + preview.lines.length + " 種</p>" +
+      '<p class="tips" style="margin-bottom:0.35rem">以下為<strong>全部掃具種類</strong>，請逐項核對後確認。</p>' +
+      tableHtml +
       warnHtml +
       '<div class="btn-row" style="margin-top:0.75rem">' +
       '<button class="btn secondary" type="button" id="btnManualRestore">恢復</button>' +
@@ -2033,8 +2077,8 @@
         tch = document.getElementById("fTeacher").value.trim();
       } catch (e) { /* modal 初開 */ }
       var modeTips = rec
-        ? '<p class="tips" style="margin-bottom:0.45rem">直接改寫該班各品項<strong>累計總量</strong>；可同步調整庫存差額</p>'
-        : '<p class="tips" style="margin-bottom:0.45rem">輸入<strong>本次</strong>各品項數量，將累加至該班累計（起始 0）</p>' +
+        ? '<p class="tips" style="margin-bottom:0.45rem">逐項填寫該班<strong>全部掃具</strong>累計總量（0 也要確認），全部輸入完後按「前往確認」</p>'
+        : '<p class="tips" style="margin-bottom:0.45rem">逐項填寫<strong>全部掃具</strong>本次數量（未領填 0），全部輸入完後按「前往確認」再累加</p>' +
           cumulativeHintHtml(cls, tch);
       var title = rec ? "修正累計" : "請領登記（累加）";
       var qtyTitle = rec ? "各掃具累計數量" : "本次請領數量";
@@ -2059,7 +2103,7 @@
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
         '<input type="checkbox" id="syncStock" checked /> ' + syncLabel + '</label>' +
         '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">' +
-        (rec ? "儲存累計" : "累加請領") + '</button>';
+        (rec ? "全部種類輸入完，前往確認" : "全部種類輸入完，前往確認") + '</button>';
     }
 
     openModal(reqFormBody(formQtys));
@@ -2136,9 +2180,19 @@
       document.querySelectorAll("[data-qty]").forEach(function (inp) {
         newQtys[inp.dataset.qty] = parseReqQty(inp.value);
       });
-      if (sumQty(newQtys) === 0) {
-        toast("請至少填一項數量");
+      if (!rec && sumQty(newQtys) === 0) {
+        toast("請至少填一項本次數量（其餘可填 0）");
         return;
+      }
+      if (rec) {
+        var prevQtys = Object.assign(emptyQtys(), rec.qtys);
+        var changed = state.items.some(function (it) {
+          return parseReqQty(newQtys[it.id]) !== parseReqQty(prevQtys[it.id]);
+        });
+        if (!changed) {
+          toast("數量未變更，請修改後再確認");
+          return;
+        }
       }
       var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
       var payload = {
