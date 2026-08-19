@@ -299,6 +299,59 @@
     .log-move:last-child { border-bottom: none; }
     .log-move .act-in { color: #1e40af; font-weight: 600; }
     .log-move .act-out { color: #b45309; font-weight: 600; }
+    .req-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -0.15rem;
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+      background: rgba(255,255,255,0.88);
+    }
+    .req-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+    .req-table th, .req-table td {
+      border: 1px solid var(--line);
+      padding: 0.38rem 0.45rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .req-table th {
+      background: var(--plain);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .req-table th.sticky-col, .req-table td.sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #fff;
+      text-align: left;
+      min-width: 4.5rem;
+    }
+    .req-table th.sticky-col-2, .req-table td.sticky-col-2 { left: 4.5rem; min-width: 3rem; }
+    .req-table th.sticky-col-3, .req-table td.sticky-col-3 { left: 7.5rem; min-width: 3.2rem; }
+    .req-table td.num-on { font-weight: 700; color: var(--accent); }
+    .req-table td.num-off { color: #cbd5e1; }
+    .req-table .act-cell { min-width: 4.2rem; }
+    .req-table .act-cell button {
+      font-size: 0.72rem;
+      padding: 0.25rem 0.35rem;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--accent);
+      border-radius: 0.25rem;
+      cursor: pointer;
+      margin: 0.05rem;
+    }
+    @keyframes rise {
       from { opacity: 0; transform: translateY(0.55rem); }
       to { opacity: 1; transform: translateY(0); }
     }
@@ -338,13 +391,14 @@
       <section>
         <h2>使用提示</h2>
         <ul class="tips">
+          <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
           <li>請領列表可「修正總量」直接改寫正確數字（可同步調整庫存差額）</li>
           <li>同班級、同導師的請領數量會累加至既有總量（拍照或手動皆適用）</li>
           <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
           <li>進貨、送還可入庫加總（庫存分頁或拍照辨識）</li>
           <li>設定 Gemini 金鑰可辨識手寫；無金鑰可手動貼文字</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
-          <li>欄位對齊「114 學年掃具請領」表：班級、導師、各品項數量、其他細項</li>
+          <li>欄位對齊「114 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
           <li>資料存本機；換手機請用「設定 → 匯出備份」</li>
         </ul>
@@ -362,6 +416,7 @@
           <input type="month" id="listMonth" />
         </div>
         <div class="filters" id="gradeFilters"></div>
+        <p class="tips" style="margin-bottom:0.45rem">每種掃具獨立一欄，左右滑動可查看全部品項（對齊 Excel）。</p>
         <div id="reqList"></div>
         <button class="btn fab" type="button" id="btnNewReq2">新增請領</button>
       </section>
@@ -454,12 +509,9 @@
       </section>
       <section>
         <h2>掃具種類</h2>
-        <p class="tips" style="margin-bottom:0.5rem">標準 13 項 + 其他細項各自獨立一類；庫存與請領共用。</p>
-        <h3 class="qty-section-title">標準品項</h3>
+        <p class="tips" style="margin-bottom:0.5rem">每種掃具獨立一欄；請領表、CSV 匯出與庫存共用同一套種類。</p>
         <div id="itemDefList"></div>
-        <h3 class="qty-section-title other" style="margin-top:0.85rem">其他細項種類</h3>
-        <div id="otherItemList"></div>
-        <button class="btn" type="button" id="btnAddOtherItem" style="margin-top:0.55rem">新增其他細項種類</button>
+        <button class="btn" type="button" id="btnAddOtherItem" style="margin-top:0.55rem">新增掃具種類</button>
         <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.45rem">還原預設種類</button>
       </section>
       <section>
@@ -559,6 +611,22 @@
 
   function otherItems() {
     return state.items.filter(function (it) { return isOtherItem(it); });
+  }
+
+  /** 欄位順序：標準 13 項 → 預設其他 → 自訂種類（與 CSV／Excel 一致） */
+  function sortedItems() {
+    var order = [];
+    DEFAULT_ITEMS.forEach(function (d) { order.push(d.id); });
+    DEFAULT_OTHER_ITEMS.forEach(function (d) { order.push(d.id); });
+    var sorted = [];
+    order.forEach(function (id) {
+      var it = state.items.find(function (x) { return x.id === id; });
+      if (it) sorted.push(it);
+    });
+    state.items.forEach(function (it) {
+      if (!sorted.some(function (s) { return s.id === it.id; })) sorted.push(it);
+    });
+    return sorted;
   }
 
   function itemByName(name) {
@@ -804,9 +872,41 @@
     return n;
   }
 
+  function reqTableHtml(records, showActions) {
+    var items = sortedItems();
+    if (!records.length) {
+      return '<div class="empty">尚無請領紀錄</div>';
+    }
+    var head = '<tr><th class="sticky-col">日期</th><th class="sticky-col sticky-col-2">班級</th>' +
+      '<th class="sticky-col sticky-col-3">導師</th>' +
+      items.map(function (it) {
+        return '<th title="' + esc(it.name) + '">' + esc(it.name) + '</th>';
+      }).join("") +
+      (showActions ? '<th class="act-cell">操作</th>' : '') + '</tr>';
+
+    var body = records.map(function (r) {
+      var cells = items.map(function (it) {
+        var n = Number(r.qtys[it.id]) || 0;
+        return '<td class="' + (n > 0 ? "num-on" : "num-off") + '">' + (n > 0 ? n : "0") + '</td>';
+      }).join("");
+      var acts = showActions
+        ? '<td class="act-cell">' +
+          '<button type="button" data-act="correct" data-id="' + r.id + '">修正</button>' +
+          '<button type="button" data-act="del" data-id="' + r.id + '">刪</button></td>'
+        : "";
+      return '<tr><td class="sticky-col">' + esc(r.date) + '</td>' +
+        '<td class="sticky-col sticky-col-2">' + esc(r.className) + '</td>' +
+        '<td class="sticky-col sticky-col-3">' + esc(r.teacher) + '</td>' +
+        cells + acts + '</tr>';
+    }).join("");
+
+    return '<div class="req-table-wrap"><table class="req-table"><thead>' + head +
+      '</thead><tbody>' + body + '</tbody></table></div>';
+  }
+
   function itemsSummary(rec) {
     var parts = [];
-    state.items.forEach(function (it) {
+    sortedItems().forEach(function (it) {
       var n = Number(rec.qtys[it.id]) || 0;
       if (n > 0) parts.push(it.name + "×" + n);
     });
@@ -895,24 +995,9 @@
     if (!todayRecs.length) {
       el.innerHTML = '<div class="empty">今日尚無請領紀錄</div>';
     } else {
-      el.innerHTML = todayRecs.map(cardHtml).join("");
+      el.innerHTML = reqTableHtml(todayRecs, true);
       bindCardActions(el);
     }
-  }
-
-  function cardHtml(r) {
-    var chips = itemsSummary(r).map(function (t) {
-      return "<span>" + esc(t) + "</span>";
-    }).join("");
-    if (!chips) chips = "<span>未填數量</span>";
-    return '<div class="card">' +
-      '<div class="card-head"><div class="card-title">' + esc(r.className) + " · " + esc(r.teacher) + "</div>" +
-      '<div class="meta">' + esc(r.date) + "</div></div>" +
-      '<div class="items-line">' + chips + "</div>" +
-      '<div class="btn-row">' +
-      '<button class="btn secondary" type="button" data-act="correct" data-id="' + r.id + '">修正總量</button>' +
-      '<button class="btn secondary" type="button" data-act="del" data-id="' + r.id + '">刪除</button>' +
-      "</div></div>";
   }
 
   function bindCardActions(container) {
@@ -967,7 +1052,7 @@
       el.innerHTML = '<div class="empty">此條件尚無請領紀錄</div>';
       return;
     }
-    el.innerHTML = list.map(cardHtml).join("");
+    el.innerHTML = reqTableHtml(list, true);
     bindCardActions(el);
   }
 
@@ -1050,6 +1135,9 @@
       if (stockFilter === "zero" && total > 0) return false;
       if (stockFilter === "no_new" && (Number(e.new) || 0) > 0) return false;
       return true;
+    });
+    list = sortedItems().filter(function (it) {
+      return list.some(function (x) { return x.id === it.id; });
     });
 
     var el = document.getElementById("stockList");
@@ -1144,9 +1232,10 @@
   }
 
   function exportInvCsv() {
+    var items = sortedItems();
     var headers = ["掃具種類", "新", "舊", "尚可", "合計"];
     var rows = [headers.join(",")];
-    state.items.forEach(function (it) {
+    items.forEach(function (it) {
       var e = state.inventory[it.id] || emptyStockEntry();
       var cols = [it.name, e.new, e.old, e.fair, stockTotal(e)];
       rows.push(cols.map(csvEscape).join(","));
@@ -1175,14 +1264,10 @@
   }
 
   function renderItemDefs() {
-    var std = standardItems();
-    var oth = otherItems();
-    document.getElementById("itemDefList").innerHTML = std.length
-      ? std.map(function (it, i) { return renderItemCard(it, i); }).join("")
-      : '<div class="empty">無標準品項</div>';
-    document.getElementById("otherItemList").innerHTML = oth.length
-      ? oth.map(function (it, i) { return renderItemCard(it, i); }).join("")
-      : '<div class="empty">尚無其他細項種類，請按下方新增</div>';
+    var items = sortedItems();
+    document.getElementById("itemDefList").innerHTML = items.length
+      ? items.map(function (it, i) { return renderItemCard(it, i); }).join("")
+      : '<div class="empty">尚無掃具種類</div>';
 
     document.querySelectorAll("[data-delitem]").forEach(function (btn) {
       btn.onclick = function () {
@@ -1261,11 +1346,9 @@
           return '<option value="' + esc(k) + '"></option>';
         }).join("") + "</datalist>" +
         '<div class="row"><label>導師姓名</label><input id="fTeacher" type="text" maxlength="20" value="' + esc(teacher) + '" placeholder="自動帶出或手填" /></div>' +
-        '<div class="qty-section-title">標準品項</div>' +
-        '<div class="qty-grid" id="qtyGridStd">' + qtyRowsHtml(currentQtys, standardItems()) + '</div>' +
-        '<div class="qty-section-title other">其他細項種類</div>' +
-        '<div class="qty-grid" id="qtyGridOther">' + qtyRowsHtml(currentQtys, otherItems()) + '</div>' +
-        '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增其他細項種類</button>' +
+        '<div class="qty-section-title">掃具種類（每種獨立一欄）</div>' +
+        '<div class="qty-grid" id="qtyGridAll">' + qtyRowsHtml(currentQtys, sortedItems()) + '</div>' +
+        '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增掃具種類</button>' +
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
         '<input type="checkbox" id="syncStock" checked /> ' + syncLabel + '</label>' +
         '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">' +
@@ -1340,8 +1423,7 @@
         }
       };
     }
-    bindQtyGrid("qtyGridStd");
-    bindQtyGrid("qtyGridOther");
+    bindQtyGrid("qtyGridAll");
 
     document.getElementById("btnAddOtherInForm").onclick = function () {
       showAddOtherItemForm(function (it) {
@@ -1522,8 +1604,9 @@
   }
 
   function exportCsv(monthOnly) {
+    var items = sortedItems();
     var headers = ["領用日期", "領用班級", "導師姓名"]
-      .concat(state.items.map(function (it) { return it.name; }));
+      .concat(items.map(function (it) { return it.name; }));
     var rows = [headers.join(",")];
     var month = document.getElementById("statsMonth").value || monthStr();
     var list = state.records.slice().sort(function (a, b) {
@@ -1533,7 +1616,7 @@
 
     list.forEach(function (r) {
       var cols = [r.date, r.className, r.teacher]
-        .concat(state.items.map(function (it) { return Number(r.qtys[it.id]) || 0; }));
+        .concat(items.map(function (it) { return Number(r.qtys[it.id]) || 0; }));
       rows.push(cols.map(csvEscape).join(","));
     });
 
@@ -1562,9 +1645,9 @@
       rake: { new: 3, old: 5, fair: 2 },
       squeegee: { new: 2, old: 4, fair: 3 },
       other_spin_mop: { new: 1, old: 2, fair: 1 },
-      other_coconut_mop: { new: 3, old: 6, fair: 4 },
-      bamboo_broom: { new: 15, old: 20, fair: 10 }
+      other_coconut_mop: { new: 3, old: 6, fair: 4 }
     };
+    demo.bamboo_broom = { new: 15, old: 20, fair: 10 };
     Object.keys(demo).forEach(function (id) {
       state.inventory[id] = demo[id];
     });
