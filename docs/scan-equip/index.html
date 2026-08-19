@@ -591,25 +591,44 @@
   };
 
   /** 115 學年度導師名單版本（更新時遞增，自動覆寫舊對照） */
-  var TEACHER_PRESET_ID = "cajh-115-v2";
+  var TEACHER_PRESET_ID = "cajh-115-v3";
 
-  /**
-   * 彰化縣立彰安國民中學 115 學年度班級導師名單（僅含已確認者）
-   * 來源：115 學年度班級導師名單；其餘班級請「匯入導師名單」補齊
-   */
+  /** 彰化縣立彰安國民中學 115 學年度班級導師名單（完整） */
   var TEACHER_CLASS_PRESET_CAJH_115 = [
     { className: "101", teacher: "施奕廷" },
     { className: "102", teacher: "呂慧君" },
-    { className: "103", teacher: "蕭秀綿" },
+    { className: "103", teacher: "蕭秀碧" },
     { className: "104", teacher: "張燕妮" },
+    { className: "105", teacher: "洪銘謙" },
+    { className: "106", teacher: "黃雅冠" },
+    { className: "107", teacher: "洪志寬" },
+    { className: "108", teacher: "李姿葶" },
+    { className: "109", teacher: "吳姍珊" },
+    { className: "110", teacher: "蕭家盈" },
+    { className: "111", teacher: "劉雅菁" },
     { className: "201", teacher: "徐詩媛" },
     { className: "202", teacher: "林志賢" },
     { className: "203", teacher: "洪美麗" },
     { className: "204", teacher: "許珮瑜" },
+    { className: "205", teacher: "周齊恩" },
+    { className: "206", teacher: "陳怡儒" },
+    { className: "207", teacher: "施惠芳" },
+    { className: "208", teacher: "黃齡儀" },
+    { className: "209", teacher: "楊宜蓁" },
+    { className: "210", teacher: "張信忠" },
+    { className: "211", teacher: "黃敏華" },
+    { className: "212", teacher: "陳映慈" },
     { className: "301", teacher: "施榮鍾" },
     { className: "302", teacher: "孫聖提" },
     { className: "303", teacher: "莊于慧" },
-    { className: "304", teacher: "陳梅婷" }
+    { className: "304", teacher: "陳梅婷" },
+    { className: "305", teacher: "凌惠菁" },
+    { className: "306", teacher: "鄭漪珮" },
+    { className: "307", teacher: "鄭雅霽" },
+    { className: "308", teacher: "洪敏甄" },
+    { className: "309", teacher: "郭梅琪" },
+    { className: "310", teacher: "林惠蘭" },
+    { className: "311", teacher: "蔡佩悌" }
   ];
 
   var GEMINI_KEY_STORAGE = "scan-equip-gemini-key";
@@ -951,9 +970,19 @@
     loadTeacherClassPreset(TEACHER_CLASS_PRESET_CAJH_115, true);
   }
 
+  function syncRecordTeachersFromMap() {
+    state.records.forEach(function (r) {
+      var cls = normKey(r.className);
+      if (cls && state.classMap[cls]) {
+        r.teacher = normKey(state.classMap[cls]);
+      }
+    });
+  }
+
   function loadTeacherClassPreset(preset, replace) {
     preset = preset || TEACHER_CLASS_PRESET_CAJH_115;
     var n = applyTeacherClassRows(preset.slice(), replace);
+    syncRecordTeachersFromMap();
     pruneOrphanClassRows();
     ensureClassRequisitionRows();
     state.settings.schoolName = state.settings.schoolName || "彰化縣立彰安國民中學";
