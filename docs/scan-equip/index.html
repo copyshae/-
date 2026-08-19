@@ -1519,9 +1519,6 @@
       var d = document.getElementById("fDate").value;
       var c = document.getElementById("fClass").value.trim();
       var tch = document.getElementById("fTeacher").value.trim();
-      var norm = normalizeRequisitionParty(c, tch);
-      c = norm.className;
-      tch = norm.teacher;
       if (!d) { toast("請填寫日期"); return; }
       if (!c && !tch) { toast("請填領用人或班級"); return; }
       var newQtys = emptyQtys();
@@ -1728,9 +1725,8 @@
 
   /** 新增一筆請領紀錄（每次請領各一列，不合併） */
   function createRequisition(opts) {
-    var norm = normalizeRequisitionParty(opts.className, opts.teacher);
-    var className = norm.className;
-    var teacher = norm.teacher;
+    var className = normKey(opts.className);
+    var teacher = normKey(opts.teacher);
     var date = opts.date || todayStr();
     var qtys = opts.qtys || {};
 
