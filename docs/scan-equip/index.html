@@ -2079,7 +2079,7 @@
     var formQtys = rec
       ? Object.assign(emptyQtys(), rec.qtys)
       : Object.assign(emptyQtys(), draft ? draft.qtys : (initial.qtys || {}));
-    if (draft) _reqDraft = null;
+    if (draft) { _reqDraft = null; setTimeout(function () { toast("已恢復上次未送出的草稿"); }, 150); }
 
     function cumulativeHintHtml(cls, tch) {
       if (rec) return "";
