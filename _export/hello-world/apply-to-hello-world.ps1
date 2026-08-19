@@ -10,6 +10,14 @@ if (-not (Test-Path -LiteralPath $dest)) {
 $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
+  @{ Src = 'directory\apps\scan-equip'; Dst = 'directory\apps\scan-equip' },
+  @{ Src = 'directory\202608\20260819-learning-log.html'; Dst = 'directory\202608\20260819-learning-log.html' },
+  @{ Src = 'directory\202608\20260818-learning-log.html'; Dst = 'directory\202608\20260818-learning-log.html' },
+  @{ Src = 'directory\202608\20260818-push-logs.html'; Dst = 'directory\202608\20260818-push-logs.html' },
+  @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
+  @{ Src = 'directory\index.html'; Dst = 'directory\index.html' },
+  @{ Src = 'directory\learning-log.html'; Dst = 'directory\learning-log.html' },
+  @{ Src = 'directory\logs\20260819-learning-log.html'; Dst = 'directory\logs\20260819-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -45,12 +53,14 @@ if (Test-Path -LiteralPath $rulesSrc) {
 
 Push-Location $dest
 try {
-  git add directory/apps/teacher-desk directory/apps/math-grader `
+  git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/scan-equip `
+    directory/202608/20260819-learning-log.html directory/202608/20260818-learning-log.html directory/202608/20260818-push-logs.html directory/202608/index.html directory/index.html `
+    directory/learning-log.html directory/logs/20260819-learning-log.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = 'Add 20260819 learning log: scan-equip live and CSV negative import.'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'

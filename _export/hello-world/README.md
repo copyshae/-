@@ -10,15 +10,18 @@
 | 手機習作台 | 同步程度、掃描王匯入、群發文 |
 | **手機掃具台** | **新增同步**：CSV 匯入負數修正、iOS 分享、確認框、請領負數扣回 |
 
-> Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
+> Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址、學習日誌與本機捷徑。
+
+合併前若要先套用本分支，設 `$env:DASH_EXPORT_BRANCH = 'cursor/scan-equip-learning-log-c862'`。
 
 ## 一鍵套用（PowerShell 整段貼上）
 
 ```powershell
 cd $env:USERPROFILE\Desktop\hello-world
+$env:DASH_EXPORT_BRANCH = 'cursor/scan-equip-learning-log-c862'
 $dir = Join-Path $PWD 'scripts'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
-$url = 'https://raw.githubusercontent.com/copyshae/-/main/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
+$url = "https://raw.githubusercontent.com/copyshae/-/$env:DASH_EXPORT_BRANCH/_export/hello-world/scripts/pull-export-from-dash-repo.ps1"
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
 ```
@@ -31,6 +34,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
    - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
    - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
    - https://copyshae.github.io/hello-world/directory/apps/scan-equip/  
+   - https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html  
 
 ## 規格依據
 
