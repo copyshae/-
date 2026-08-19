@@ -384,6 +384,7 @@
         <div class="actions">
           <button class="btn" type="button" id="btnPhotoScan">拍照／相簿登記</button>
           <button class="btn secondary" type="button" id="btnNewReq">手動新增請領</button>
+          <button class="btn secondary" type="button" id="btnManualPaste">手動貼文字</button>
           <button class="btn secondary" type="button" id="btnGoStats">本月統計</button>
         </div>
         <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden" />
@@ -395,11 +396,8 @@
           <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
           <li>掃具欄位可隨時新增或刪除（設定、庫存、請領表單皆可）</li>
           <li>領用人（導師／處室）可直接輸入；非班級領用時班級可留空</li>
+          <li>AI 辨識為選用；辨識不清或無法使用時，改<strong>手動貼文字</strong>或<strong>手動新增請領</strong></li>
           <li>手動請領：填領用人或班級，再輸入各掃具數量</li>
-          <li>每次請領各為一列；同班級可於同天或不同天多次請領，品項不必相同</li>
-          <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
-          <li>進貨、送還可入庫加總（庫存分頁或拍照辨識）</li>
-          <li>設定 Gemini 金鑰可辨識手寫；無金鑰可手動貼文字</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「114 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
@@ -492,8 +490,8 @@
         <button class="btn" type="button" id="btnSaveSettings" style="margin-top:0.45rem">儲存設定</button>
       </section>
       <section>
-        <h2>拍照辨識（Gemini）</h2>
-        <p class="tips" style="margin-bottom:0.5rem">貼上 AI Studio API 金鑰可辨識手寫領用單；無金鑰時可手動貼文字。</p>
+        <h2>拍照辨識（Gemini，選用）</h2>
+        <p class="tips" style="margin-bottom:0.5rem">有金鑰可嘗試辨識手寫；<strong>無金鑰或辨識失敗時請改手動輸入</strong>（手動貼文字／手動新增請領）。</p>
         <div class="row">
           <label for="geminiKey">Gemini 金鑰</label>
           <input id="geminiKey" type="password" autocomplete="off" placeholder="選填" />
@@ -1452,12 +1450,13 @@
     renderItemDefs();
   }
 
-  function showReqForm(editId) {
+  function showReqForm(editId, initial) {
+    initial = initial || {};
     var rec = editId ? state.records.find(function (r) { return r.id === editId; }) : null;
-    var date = rec ? rec.date : todayStr();
-    var className = rec ? rec.className : "";
-    var teacher = rec ? rec.teacher : "";
-    var qtys = rec ? Object.assign(emptyQtys(), rec.qtys) : emptyQtys();
+    var date = rec ? rec.date : (initial.date || todayStr());
+    var className = rec ? rec.className : (initial.className || "");
+    var teacher = rec ? rec.teacher : (initial.teacher || "");
+    var qtys = rec ? Object.assign(emptyQtys(), rec.qtys) : Object.assign(emptyQtys(), initial.qtys || {});
 
     function reqFormBody(currentQtys) {
       currentQtys = currentQtys || qtys;
@@ -1911,7 +1910,62 @@
       if (!nm || nm.length < 2) continue;
       items.push({ name: nm, qty: parseInt(m[2], 10) || 1 });
     }
-    return { action: action, className: className, teacher: "", items: items, condition: condition };
+    return { action: action, className: className, teacher: teacher, items: items, condition: condition };
+  }
+
+  function parsedItemsToFormQtys(items) {
+    var qtys = emptyQtys();
+    (items || []).forEach(function (row) {
+      var it = resolveItemByName(row.name);
+      if (it && row.qty > 0) qtys[it.id] = (Number(qtys[it.id]) || 0) + row.qty;
+    });
+    return qtys;
+  }
+
+  function manualInputBlock(errMsg, aiOk) {
+    var hint = errMsg
+      ? '<p class="scan-warn">' + esc(errMsg) + '</p>'
+      : (aiOk
+        ? '<p class="tips" style="margin-top:0.35rem">辨識結果不符？可改用手動輸入</p>'
+        : '<p class="tips" style="margin-top:0.35rem">請直接手動輸入（不必等 AI）</p>');
+    return hint +
+      '<label style="font-size:0.86rem;font-weight:600;margin-top:0.45rem;display:block">手動貼上文字</label>' +
+      '<textarea id="manualNote" placeholder="例：101 陳老師 竹掃把x5 椰鬃掃把x4 (領用)&#10;總務處 垃圾袋x10 (領用)"></textarea>' +
+      '<div class="btn-row" style="margin-top:0.45rem">' +
+      '<button class="btn secondary" type="button" id="btnParseText">解析文字</button>' +
+      '<button class="btn secondary" type="button" id="btnManualForm">改用手動表單</button>' +
+      '</div>';
+  }
+
+  function showManualPasteModal() {
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      '<h3>手動貼文字</h3>' +
+      '<p class="tips" style="margin-bottom:0.45rem">AI 無法使用或辨識不清時，直接貼上或輸入文字；也可改用手動表單逐項填寫。</p>' +
+      manualInputBlock("", false) +
+      '<button class="btn" type="button" id="btnPasteToForm" style="margin-top:0.65rem">解析並開啟手動表單</button>'
+    );
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("btnParseText").onclick = function () {
+      var txt = document.getElementById("manualNote").value.trim();
+      if (!txt) { toast("請貼上或輸入文字"); return; }
+      var p = parseNoteText(txt);
+      if (!p.items.length) { toast("無法解析品項，請改用手動表單"); return; }
+      closeModal();
+      showReqForm(null, {
+        className: p.className,
+        teacher: p.teacher,
+        qtys: parsedItemsToFormQtys(p.items)
+      });
+      toast("已解析，請確認後儲存");
+    };
+    document.getElementById("btnManualForm").onclick = function () {
+      closeModal();
+      showReqForm(null);
+    };
+    document.getElementById("btnPasteToForm").onclick = function () {
+      document.getElementById("btnParseText").click();
+    };
   }
 
   function blobToBase64(blob) {
@@ -2134,6 +2188,11 @@
   }
 
   async function processPhotoBlob(blob, mime, name) {
+    if (!getGeminiKey()) {
+      showScanConfirmModal(blob, mime, null, "未設定 AI 金鑰，請直接手動輸入", name);
+      return;
+    }
+
     var url = URL.createObjectURL(blob);
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
@@ -2149,9 +2208,12 @@
     var parsed = null;
     var errMsg = "";
     try {
-      if (getGeminiKey()) parsed = await parsePhotoWithGemini(blob, mime);
+      parsed = await parsePhotoWithGemini(blob, mime);
+      if (!parsed || !parsed.items || !parsed.items.length) {
+        errMsg = "未能辨識品項，請改用手動輸入";
+      }
     } catch (e) {
-      errMsg = e.message || "辨識失敗";
+      errMsg = (e.message || "辨識失敗") + "，請改用手動輸入";
     }
     URL.revokeObjectURL(url);
     showScanConfirmModal(blob, mime, parsed, errMsg, name);
@@ -2161,13 +2223,7 @@
     var url = URL.createObjectURL(blob);
     parsed = parsed || { action: "領用", className: "", teacher: "", items: [], condition: "" };
 
-    var manualBlock = "";
-    if (!parsed.items.length) {
-      manualBlock =
-        '<p class="scan-warn">' + esc(errMsg || "未能自動辨識，請貼上或輸入文字") + '</p>' +
-        '<textarea id="manualNote" placeholder="例：101 竹掃把x5 椰鬃掃把x4 (領用)"></textarea>' +
-        '<button class="btn secondary" type="button" id="btnParseText" style="margin-top:0.45rem">解析文字</button>';
-    }
+    var manualBlock = manualInputBlock(errMsg, parsed.items.length > 0);
 
     function bodyHtml(p) {
       var preview = buildApplyPreview(p);
@@ -2200,8 +2256,10 @@
             }).join("") + "</select></div>"
           : "") +
         manualBlock +
-        (lines ? '<div style="margin-top:0.55rem">' + lines + warn + "</div>" : "") +
-        '<button class="btn" type="button" id="btnApplyScan" style="margin-top:0.65rem">確認登記並更新庫存</button>';
+        (lines ? '<div style="margin-top:0.55rem">' + lines + warn + '</div>' : "") +
+        '<div class="btn-row" style="margin-top:0.65rem">' +
+        '<button class="btn" type="button" id="btnApplyScan">確認登記並更新庫存</button>' +
+        '</div>';
     }
 
     openModal(bodyHtml(parsed));
@@ -2236,14 +2294,55 @@
       closeModal();
     };
 
+    function openManualFormFromScan() {
+      var p = readForm();
+      var manual = document.getElementById("manualNote");
+      if (manual && manual.value.trim()) {
+        var parsedText = parseNoteText(manual.value.trim());
+        p.className = p.className || parsedText.className;
+        p.teacher = p.teacher || parsedText.teacher;
+        if (parsedText.items.length) {
+          URL.revokeObjectURL(url);
+          closeModal();
+          showReqForm(null, {
+            date: p.date,
+            className: p.className,
+            teacher: p.teacher,
+            qtys: parsedItemsToFormQtys(parsedText.items)
+          });
+          toast("已帶入手動表單，請確認後儲存");
+          return;
+        }
+      }
+      URL.revokeObjectURL(url);
+      closeModal();
+      showReqForm(null, {
+        date: p.date,
+        className: p.className,
+        teacher: p.teacher
+      });
+    }
+
     var parseBtn = document.getElementById("btnParseText");
     if (parseBtn) {
       parseBtn.onclick = function () {
-        var txt = document.getElementById("manualNote").value;
+        var txt = document.getElementById("manualNote").value.trim();
+        if (!txt) { toast("請貼上或輸入文字"); return; }
         parsed = parseNoteText(txt);
-        if (!parsed.items.length) { toast("無法解析品項"); return; }
+        if (!parsed.items.length) { toast("無法解析品項，請改用手動表單"); return; }
+        parsed.date = document.getElementById("scanDate").value || todayStr();
+        parsed.className = document.getElementById("scanClass").value.trim() || parsed.className;
+        parsed.teacher = document.getElementById("scanTeacher").value.trim() || parsed.teacher;
+        parsed.action = document.getElementById("scanAction").value;
         openModal(bodyHtml(parsed));
         bindConfirm();
+      };
+    }
+
+    var manualFormBtn = document.getElementById("btnManualForm");
+    if (manualFormBtn) {
+      manualFormBtn.onclick = function () {
+        openManualFormFromScan();
       };
     }
 
@@ -2419,6 +2518,7 @@
 
   document.getElementById("btnNewReq").onclick = function () { showReqForm(null); };
   document.getElementById("btnNewReq2").onclick = function () { showReqForm(null); };
+  document.getElementById("btnManualPaste").onclick = showManualPasteModal;
   document.getElementById("btnGoStats").onclick = function () { switchView("stats"); };
 
   document.getElementById("stockSearch").oninput = function (ev) {
