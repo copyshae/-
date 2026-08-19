@@ -1,48 +1,62 @@
 #Requires -Version 5.1
-# 檢查桌面紅 X：OneDrive 同步／捷徑失效
-# 不會把檔案搬到大容量碟歸檔夾
+# 修復「0717 歸檔復原後桌面大量紅 X」
+# 原因：當日原位置留了「捷徑回指」歸檔夾；只把檔搬回桌面、沒刪失效捷徑，OneDrive／圖示快取也會整桌打 X
+# 不會把檔案再搬到大容量碟
 $ErrorActionPreference = "Continue"
 $desk = [Environment]::GetFolderPath("Desktop")
 Write-Host "桌面：$desk"
-Write-Host ""
 
-$od = Get-Process -Name OneDrive -ErrorAction SilentlyContinue
-if ($od) {
-  Write-Host "OneDrive 正在執行。"
-} else {
-  Write-Host "OneDrive 沒有在執行（學習日誌 0717：雲端檔案提供者未執行 → 圖示常打紅 X）"
-  $exe = Join-Path $env:LOCALAPPDATA "Microsoft\OneDrive\OneDrive.exe"
-  if (Test-Path -LiteralPath $exe) {
-    Write-Host "正在啟動 OneDrive..."
-    Start-Process $exe
-    Start-Sleep -Seconds 3
-  } else {
-    Write-Host "找不到 OneDrive.exe。請從開始功能表開啟 OneDrive。"
-  }
+function Get-LnkTarget([string]$path) {
+  try {
+    $sh = New-Object -ComObject WScript.Shell
+    return [string]$sh.CreateShortcut($path).TargetPath
+  } catch { return "" }
 }
 
-Write-Host ""
-Write-Host "=== 失效捷徑（目標不存在）==="
-$broken = 0
+# 1) 刪除指回歸檔夾、但桌面已有實體的失效捷徑
+$archiveRoots = @("D:\桌面歸檔", "F:\桌面歸檔", "D:\下載歸檔", "F:\下載歸檔")
+$removed = 0
 Get-ChildItem -LiteralPath $desk -Force -ErrorAction SilentlyContinue |
   Where-Object { $_.Extension -eq ".lnk" } |
   ForEach-Object {
-    try {
-      $sh = New-Object -ComObject WScript.Shell
-      $t = $sh.CreateShortcut($_.FullName).TargetPath
-      if ($t -and -not (Test-Path -LiteralPath $t)) {
-        Write-Host ("  {0} → {1}" -f $_.Name, $t)
-        $broken++
-      }
-    } catch {}
+    $t = Get-LnkTarget $_.FullName
+    if (-not $t) { return }
+    $hit = $false
+    foreach ($root in $archiveRoots) {
+      if ($t.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) { $hit = $true }
+    }
+    $gone = -not (Test-Path -LiteralPath $t)
+    $localTwin = Join-Path $desk ([IO.Path]::GetFileNameWithoutExtension($_.Name))
+    if ($hit -and ($gone -or (Test-Path -LiteralPath $localTwin))) {
+      Remove-Item -LiteralPath $_.FullName -Force
+      Write-Host ("已刪失效回指捷徑：" + $_.Name)
+      $removed++
+    }
   }
-if ($broken -eq 0) { Write-Host "  沒有掃到失效捷徑（或桌面主要是資料夾／vbs）" }
+Write-Host ("刪除回指捷徑：{0}" -f $removed)
 
-Write-Host ""
-Write-Host "請再做："
-Write-Host "1. 工作列雲朵圖示：若有紅 X／驚嘆號，點開看錯誤"
-Write-Host "2. 桌面空白處右鍵 → 重新整理（F5）"
-Write-Host "3. 若圖示仍紅 X：對資料夾右鍵 → 一律保留在此裝置上"
-Write-Host "4. 不要再跑 restore／undo 歸檔腳本"
-Write-Host ""
-Write-Host "Excel 拆欄請只用桌面 test 那份，關閉時若不想改原檔請選「不要儲存」。"
+# 2) 啟動 OneDrive（雲端未執行時整桌會紅 X）
+$od = Get-Process -Name OneDrive -ErrorAction SilentlyContinue
+if (-not $od) {
+  $exe = Join-Path $env:LOCALAPPDATA "Microsoft\OneDrive\OneDrive.exe"
+  if (Test-Path -LiteralPath $exe) {
+    Write-Host "啟動 OneDrive..."
+    Start-Process $exe
+    Start-Sleep -Seconds 4
+  } else {
+    Write-Host "找不到 OneDrive，請從開始功能表打開。"
+  }
+}
+
+# 3) 清圖示快取並重啟 Explorer（比只按 F5 有效）
+Write-Host "重整桌面圖示..."
+Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+$cache = Join-Path $env:LOCALAPPDATA "IconCache.db"
+if (Test-Path -LiteralPath $cache) {
+  Remove-Item -LiteralPath $cache -Force -ErrorAction SilentlyContinue
+}
+Start-Process explorer.exe
+Start-Sleep -Seconds 2
+Write-Host "請再看桌面：紅 X 應會少很多。若還有，對該圖示右鍵 → 一律保留在此裝置上。"
+Write-Host "不要再跑 undo-20260717-archive.ps1。"
