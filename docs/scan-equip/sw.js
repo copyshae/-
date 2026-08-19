@@ -1,5 +1,5 @@
 /* 掃具台：離線快取 + 接收分享照片 */
-const CACHE = "scan-equip-v7";
+const CACHE = "scan-equip-v8";
 const ASSETS = [
   "./",
   "./index.html",
@@ -84,16 +84,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.method !== "GET") return;
+  // 網路優先：先嘗試從網路取得最新版本，離線時才回退到快取
   event.respondWith(
-    caches.match(event.request).then((hit) => {
-      const net = fetch(event.request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(event.request, copy));
-          return res;
-        })
-        .catch(() => hit);
-      return hit || net;
-    })
+    fetch(event.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(event.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

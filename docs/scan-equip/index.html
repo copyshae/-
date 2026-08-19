@@ -931,7 +931,7 @@
       delete copy.other;
       return copy;
     });
-    var records = consolidateRecordsByClass(rawRecords, items);
+    var records = rawRecords;
 
     return {
       settings: migrateSettings(Object.assign(defaultState().settings, p.settings || {})),
