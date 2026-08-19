@@ -3517,6 +3517,12 @@
     renderHome();
   };
   document.getElementById("btnExportJson").onclick = function () {
+    /* 若無任何請領紀錄且庫存全為零，可能是初始空白狀態，先確認 */
+    var hasRecords = state.records && state.records.length > 0;
+    var hasStock = inventoryGrandTotals().total > 0;
+    if (!hasRecords && !hasStock) {
+      if (!confirm("目前沒有任何請領紀錄，庫存也全為零。\n\n確定要匯出這份空白備份嗎？\n若您有真實資料，請確認頁面已正確載入後再匯出。")) return;
+    }
     var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
