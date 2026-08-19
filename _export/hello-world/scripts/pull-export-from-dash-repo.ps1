@@ -70,7 +70,17 @@ $files = @(
   "directory/apps/teacher-desk/share.html",
   "directory/apps/teacher-desk/icon-180.png",
   "directory/apps/teacher-desk/icon-192.png",
-  "directory/apps/teacher-desk/icon-512.png"
+  "directory/apps/teacher-desk/icon-512.png",
+  "directory/apps/scan-equip/index.html",
+  "directory/apps/scan-equip/sw.js",
+  "directory/apps/scan-equip/manifest.json",
+  "directory/apps/scan-equip/share.html",
+  "directory/apps/scan-equip/icon-180.png",
+  "directory/apps/scan-equip/icon-192.png",
+  "directory/apps/scan-equip/icon-512.png",
+  "scripts/install-scan-equip.ps1",
+  "scripts/scan-equip-app.ps1",
+  "scripts/README-scan-equip.md"
 )
 
 foreach ($f in $files) {
@@ -113,13 +123,14 @@ Write-Host ""
 Write-Host "Push hello-world GitHub Pages (math-grader / teacher-desk)..."
 Push-Location $root
 try {
-  git add directory/apps/math-grader directory/apps/teacher-desk `
+  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
-    scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 2>$null
+    scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
+    scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "手機習作批改：補批完後續（自產練習／發放／回傳循環）"
+    git commit -m "掃具台：匯入負數修正＋同步至 hello-world（2026-08-19）"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"

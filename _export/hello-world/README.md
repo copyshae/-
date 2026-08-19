@@ -1,4 +1,4 @@
-# 匯出最終包｜與電腦版同步＋今日合併（2026-08-16）
+# 匯出最終包｜與電腦版同步＋今日合併（2026-08-19）
 
 本包把 **hello-world 電腦完整版** 與今日討論一併合併：
 
@@ -8,6 +8,7 @@
 | 電腦習作台 | 完整版（篩選／管道／匯入匯出）＋處理掃描匯入 |
 | 手機習作批改 | **批完後續**（練習模板／發放訊息／寫入習作台／回傳循環／歷程） |
 | 手機習作台 | 同步程度、掃描王匯入、群發文 |
+| **手機掃具台** | **新增同步**：CSV 匯入負數修正、iOS 分享、確認框、請領負數扣回 |
 
 > Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
 
@@ -29,6 +30,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 3. 手機強制重新整理：  
    - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
    - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
+   - https://copyshae.github.io/hello-world/directory/apps/scan-equip/  
 
 ## 規格依據
 
