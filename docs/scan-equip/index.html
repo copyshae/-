@@ -393,11 +393,12 @@
         <h2>使用提示</h2>
         <ul class="tips">
           <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
-          <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
+          <li>請領表依<strong>班級</strong>累加各掃具數量，起始為 0；同班再次請領會加總</li>
+          <li>請領列表「修正」可改寫該班累計總量（可同步調整庫存差額）</li>
           <li>掃具欄位可隨時新增或刪除（設定、庫存、請領表單皆可）</li>
           <li>領用人（導師／處室）可直接輸入；非班級領用時班級可留空</li>
           <li>AI 辨識為選用；辨識不清或無法使用時，改<strong>手動貼文字</strong>或<strong>手動新增請領</strong></li>
-          <li>手動請領：填領用人或班級，再輸入各掃具數量</li>
+          <li>手動請領：填班級與本次數量，會累加至該班累計</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「115 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
@@ -412,12 +413,8 @@
         <div class="row">
           <input type="search" id="listSearch" placeholder="搜尋班級、領用人、品項…" />
         </div>
-        <div class="row">
-          <label for="listMonth">月份</label>
-          <input type="month" id="listMonth" />
-        </div>
         <div class="filters" id="gradeFilters"></div>
-        <p class="tips" style="margin-bottom:0.45rem">每種掃具獨立一欄，左右滑動可查看全部品項（對齊 Excel）。</p>
+        <p class="tips" style="margin-bottom:0.45rem">每班一列、各掃具累計數量（起始 0）；左右滑動可查看全部品項。</p>
         <div id="reqList"></div>
         <button class="btn fab" type="button" id="btnNewReq2">新增請領</button>
       </section>
@@ -434,7 +431,7 @@
         <div class="card" id="itemRank"></div>
       </section>
       <section>
-        <h2>班級請領次數</h2>
+        <h2>班級累計品項</h2>
         <div class="card" id="classRank"></div>
       </section>
       <section>
@@ -826,7 +823,7 @@
       delete inventory[oldId];
     });
 
-    var records = (p.records || []).map(function (r) {
+    var rawRecords = (p.records || []).map(function (r) {
       var qtys = Object.assign({}, r.qtys || {});
       Object.keys(RENAMED_ITEM_IDS).forEach(function (oldId) {
         var newId = RENAMED_ITEM_IDS[oldId];
@@ -845,6 +842,7 @@
       delete copy.other;
       return copy;
     });
+    var records = consolidateRecordsByClass(rawRecords, items);
 
     return {
       settings: migrateSettings(Object.assign(defaultState().settings, p.settings || {})),
@@ -883,6 +881,7 @@
     if (!teacher || !className) return;
     state.teacherClassMap[teacher] = className;
     state.classMap[className] = teacher;
+    ensureClassRequisitionRows();
   }
 
   function removeTeacherClass(teacher) {
@@ -945,6 +944,7 @@
   function loadTeacherClassPreset(preset, replace) {
     preset = preset || TEACHER_CLASS_PRESET_CAJH_115;
     var n = applyTeacherClassRows(preset.slice(), replace);
+    ensureClassRequisitionRows();
     state.settings.schoolName = state.settings.schoolName || "彰化縣立彰安國民中學";
     state.settings.schoolYear = "115 學年";
     saveState();
@@ -1147,7 +1147,7 @@
     if (!records.length) {
       return '<div class="empty">尚無請領紀錄</div>';
     }
-    var head = '<tr><th class="sticky-col">日期</th><th class="sticky-col sticky-col-2">班級</th>' +
+    var head = '<tr><th class="sticky-col">最後請領</th><th class="sticky-col sticky-col-2">班級</th>' +
       '<th class="sticky-col sticky-col-3">領用人</th>' +
       items.map(function (it) {
         return '<th title="' + esc(it.name) + '">' + esc(it.name) + '</th>';
@@ -1277,7 +1277,7 @@
         if (btn.dataset.act === "correct") showReqForm(btn.dataset.id);
         if (btn.dataset.act === "edit") showReqForm(btn.dataset.id);
         if (btn.dataset.act === "del") {
-          if (!confirm("確定刪除此筆請領？")) return;
+          if (!confirm("確定刪除此班／單位的累計紀錄？")) return;
           state.records = state.records.filter(function (r) { return r.id !== btn.dataset.id; });
           saveState();
           toast("已刪除");
@@ -1298,24 +1298,19 @@
   }
 
   function filteredRecords() {
-    var month = document.getElementById("listMonth").value || monthStr();
+    ensureClassRequisitionRows();
     var q = listSearch.toLowerCase();
     return state.records.filter(function (r) {
-      if (r.date.slice(0, 7) !== month) return false;
+      if (!normKey(r.className) && !normKey(r.teacher)) return false;
       if (gradeFilter !== "all" && gradeOf(r.className) !== gradeFilter) return false;
       if (q) {
         if (recordSearchHay(r).indexOf(q) === -1) return false;
       }
       return true;
-    }).sort(function (a, b) {
-      return a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
     });
   }
 
   function renderList() {
-    if (!document.getElementById("listMonth").value) {
-      document.getElementById("listMonth").value = monthStr();
-    }
     renderGradeFilters();
     var list = filteredRecords();
     var el = document.getElementById("reqList");
@@ -1335,13 +1330,10 @@
 
     var itemTotals = {};
     state.items.forEach(function (it) { itemTotals[it.id] = 0; });
-    var classCount = {};
     recs.forEach(function (r) {
       state.items.forEach(function (it) {
         itemTotals[it.id] += Number(r.qtys[it.id]) || 0;
       });
-      var ck = r.className || r.teacher || "其他";
-      classCount[ck] = (classCount[ck] || 0) + 1;
     });
 
     var itemSorted = state.items.map(function (it) {
@@ -1360,18 +1352,24 @@
       }).join("");
     }
 
-    var classSorted = Object.keys(classCount).map(function (k) {
-      return { name: k, n: classCount[k] };
-    }).sort(function (a, b) { return b.n - a.n; });
+    var classQty = {};
+    recs.forEach(function (r) {
+      var ck = r.className || r.teacher || "其他";
+      classQty[ck] = (classQty[ck] || 0) + sumQty(r.qtys);
+    });
+
+    var classSorted = Object.keys(classQty).map(function (k) {
+      return { name: k, n: classQty[k] };
+    }).filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; });
     var maxC = classSorted.length ? classSorted[0].n : 1;
     var classEl = document.getElementById("classRank");
     if (!classSorted.length) {
-      classEl.innerHTML = '<div class="empty">本月尚無班級請領</div>';
+      classEl.innerHTML = '<div class="empty">本月尚無班級累計</div>';
     } else {
       classEl.innerHTML = classSorted.slice(0, 20).map(function (x) {
         return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
           '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(x.n / maxC * 100) + '%"></div></div>' +
-          "<strong>" + x.n + " 次</strong></div>";
+          "<strong>" + x.n + " 件</strong></div>";
       }).join("");
     }
   }
@@ -1599,17 +1597,38 @@
     var date = rec ? rec.date : (initial.date || todayStr());
     var className = rec ? rec.className : (initial.className || "");
     var teacher = rec ? rec.teacher : (initial.teacher || "");
-    var qtys = rec ? Object.assign(emptyQtys(), rec.qtys) : Object.assign(emptyQtys(), initial.qtys || {});
+    var formQtys = rec
+      ? Object.assign(emptyQtys(), rec.qtys)
+      : Object.assign(emptyQtys(), initial.qtys || {});
+
+    function cumulativeHintHtml(cls, tch) {
+      if (rec) return "";
+      var ex = findRecordByClass(cls, tch);
+      if (!ex) return "";
+      var parts = itemsSummary(ex);
+      if (!parts.length) {
+        return '<p class="tips" style="margin-bottom:0.35rem">該班累計目前皆為 <strong>0</strong></p>';
+      }
+      return '<p class="tips" style="margin-bottom:0.35rem">該班目前累計：' + esc(parts.join("、")) + "</p>";
+    }
 
     function reqFormBody(currentQtys) {
-      currentQtys = currentQtys || qtys;
+      currentQtys = currentQtys || formQtys;
+      var cls = className;
+      var tch = teacher;
+      try {
+        cls = document.getElementById("fClass").value.trim();
+        tch = document.getElementById("fTeacher").value.trim();
+      } catch (e) { /* modal 初開 */ }
       var modeTips = rec
-        ? '<p class="tips" style="margin-bottom:0.45rem">修改此筆請領的各品項數量；可同步調整庫存差額</p>'
-        : '<p class="tips" style="margin-bottom:0.45rem">領用人（導師／處室）<strong>直接輸入</strong>；非班級領用時班級可留空</p>';
-      var title = rec ? "修正請領" : "新增請領";
+        ? '<p class="tips" style="margin-bottom:0.45rem">直接改寫該班各品項<strong>累計總量</strong>；可同步調整庫存差額</p>'
+        : '<p class="tips" style="margin-bottom:0.45rem">輸入<strong>本次</strong>各品項數量，將累加至該班累計（起始 0）</p>' +
+          cumulativeHintHtml(cls, tch);
+      var title = rec ? "修正累計" : "請領登記（累加）";
+      var qtyTitle = rec ? "各掃具累計數量" : "本次請領數量";
       var syncLabel = rec
         ? "同步調整庫存（依差額加減，減少還庫至尚可）"
-        : "同步扣減庫存（尚可→舊→新）";
+        : "同步扣減庫存（僅扣本次增量；尚可→舊→新）";
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         "<h3>" + title + "</h3>" +
         modeTips +
@@ -1618,20 +1637,20 @@
         '<datalist id="teacherList">' + Object.keys(state.teacherClassMap || {}).map(function (t) {
           return '<option value="' + esc(t) + '"></option>';
         }).join("") + "</datalist>" +
-        '<div class="row"><label>班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="選填；非班級領用可留空" /></div>' +
+        '<div class="row"><label>班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="有班級者必填以累加" /></div>' +
         '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
           return '<option value="' + esc(k) + '"></option>';
         }).join("") + "</datalist>" +
-        '<div class="qty-section-title">各掃具數量</div>' +
+        '<div class="qty-section-title">' + qtyTitle + '</div>' +
         '<div class="qty-grid" id="qtyGridAll">' + qtyRowsHtml(currentQtys, sortedItems()) + '</div>' +
         '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增欄位</button>' +
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
         '<input type="checkbox" id="syncStock" checked /> ' + syncLabel + '</label>' +
         '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">' +
-        (rec ? "儲存修正" : "儲存請領") + '</button>';
+        (rec ? "儲存累計" : "累加請領") + '</button>';
     }
 
-    openModal(reqFormBody(qtys));
+    openModal(reqFormBody(formQtys));
     bindReqForm(rec, reqFormBody);
   }
 
@@ -1723,7 +1742,7 @@
         }
         saveState();
         closeModal();
-        toast("已修正請領");
+        toast("已更新累計");
       } else {
         var result = createRequisition({
           date: d,
@@ -1733,11 +1752,11 @@
           source: "manual"
         });
         if (syncStock) {
-          deductStockByDeltas(result.deltas, c, result.record.id, "手動請領；");
+          deductStockByDeltas(result.deltas, c || tch, result.record.id, "手動請領；");
         }
         saveState();
         closeModal();
-        toast("已新增請領");
+        toast(result.merged ? "已累加至班級累計" : "已新增請領");
       }
       renderHome();
       renderList();
@@ -1816,7 +1835,9 @@
     var rows = [headers.join(",")];
     var month = document.getElementById("statsMonth").value || monthStr();
     var list = state.records.slice().sort(function (a, b) {
-      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+      var ga = gradeRank(a.className) - gradeRank(b.className);
+      if (ga) return ga;
+      return normKey(a.className).localeCompare(normKey(b.className), "zh-Hant");
     });
     if (monthOnly) list = list.filter(function (r) { return r.date.slice(0, 7) === month; });
 
@@ -1903,14 +1924,135 @@
     return String(s || "").trim();
   }
 
-  /** 新增一筆請領紀錄（每次請領各一列，不合併） */
+  /** 依班級（或非班級依領用人）合併舊版多筆紀錄為累計一列 */
+  function consolidateRecordsByClass(records, items) {
+    var byClass = {};
+    var byTeacher = {};
+    (records || []).forEach(function (r) {
+      var qtys = Object.assign(emptyQtys(), r.qtys || {});
+      var cls = normKey(r.className);
+      var teacher = normKey(r.teacher);
+      if (cls) {
+        if (!byClass[cls]) {
+          byClass[cls] = {
+            id: r.id || uid(),
+            date: r.date || todayStr(),
+            className: cls,
+            teacher: teacher,
+            qtys: Object.assign(emptyQtys(), qtys),
+            createdAt: r.createdAt || Date.now(),
+            updatedAt: r.updatedAt || Date.now(),
+            source: r.source || "manual"
+          };
+        } else {
+          var m = byClass[cls];
+          items.forEach(function (it) {
+            m.qtys[it.id] = (Number(m.qtys[it.id]) || 0) + (Number(qtys[it.id]) || 0);
+          });
+          if ((r.date || "") >= (m.date || "")) m.date = r.date;
+          if ((r.updatedAt || 0) >= (m.updatedAt || 0)) m.updatedAt = r.updatedAt;
+          if (teacher) m.teacher = teacher;
+        }
+        return;
+      }
+      if (!teacher) return;
+      if (!byTeacher[teacher]) {
+        byTeacher[teacher] = {
+          id: r.id || uid(),
+          date: r.date || todayStr(),
+          className: "",
+          teacher: teacher,
+          qtys: Object.assign(emptyQtys(), qtys),
+          createdAt: r.createdAt || Date.now(),
+          updatedAt: r.updatedAt || Date.now(),
+          source: r.source || "manual"
+        };
+      } else {
+        var t = byTeacher[teacher];
+        items.forEach(function (it) {
+          t.qtys[it.id] = (Number(t.qtys[it.id]) || 0) + (Number(qtys[it.id]) || 0);
+        });
+        if ((r.date || "") >= (t.date || "")) t.date = r.date;
+        if ((r.updatedAt || 0) >= (t.updatedAt || 0)) t.updatedAt = r.updatedAt;
+      }
+    });
+    return Object.keys(byClass).map(function (k) { return byClass[k]; })
+      .concat(Object.keys(byTeacher).map(function (k) { return byTeacher[k]; }));
+  }
+
+  function findRecordByClass(className, teacher) {
+    className = normKey(className);
+    teacher = normKey(teacher);
+    if (className) {
+      return state.records.find(function (r) { return normKey(r.className) === className; }) || null;
+    }
+    if (teacher) {
+      return state.records.find(function (r) {
+        return !normKey(r.className) && normKey(r.teacher) === teacher;
+      }) || null;
+    }
+    return null;
+  }
+
+  function sortRecordsByClass() {
+    state.records.sort(function (a, b) {
+      var ga = gradeRank(a.className);
+      var gb = gradeRank(b.className);
+      if (ga !== gb) return ga - gb;
+      return normKey(a.className).localeCompare(normKey(b.className), "zh-Hant") ||
+        normKey(a.teacher).localeCompare(normKey(b.teacher), "zh-Hant");
+    });
+  }
+
+  /** 導師名單上的各班建立累計列，各品項起始 0 */
+  function ensureClassRequisitionRows() {
+    var touched = false;
+    Object.keys(state.classMap || {}).forEach(function (cls) {
+      cls = normKey(cls);
+      if (!cls || findRecordByClass(cls, "")) return;
+      state.records.push({
+        id: uid(),
+        date: todayStr(),
+        className: cls,
+        teacher: normKey(state.classMap[cls]) || "",
+        qtys: emptyQtys(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        source: "init"
+      });
+      touched = true;
+    });
+    if (touched) sortRecordsByClass();
+    return touched;
+  }
+
+  /** 新增或累加請領：同班級（或非班級同領用人）合併數量，庫存只扣增量 */
   function createRequisition(opts) {
     var className = normKey(opts.className);
     var teacher = normKey(opts.teacher);
     var date = opts.date || todayStr();
-    var qtys = opts.qtys || {};
+    var addQtys = opts.qtys || {};
 
     if (!className && !teacher) throw new Error("請填領用人或班級");
+
+    var existing = findRecordByClass(className, teacher);
+    var deltas = emptyQtys();
+
+    if (existing) {
+      state.items.forEach(function (it) {
+        var add = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
+        if (add > 0) {
+          existing.qtys[it.id] = (Number(existing.qtys[it.id]) || 0) + add;
+          deltas[it.id] = add;
+        }
+      });
+      existing.date = date;
+      if (teacher) existing.teacher = teacher;
+      if (className) existing.className = className;
+      existing.updatedAt = Date.now();
+      sortRecordsByClass();
+      return { record: existing, deltas: deltas, merged: true };
+    }
 
     var rec = {
       id: uid(),
@@ -1923,17 +2065,17 @@
       source: opts.source || "manual"
     };
 
-    var deltas = emptyQtys();
     state.items.forEach(function (it) {
-      var q = Math.max(0, parseInt(qtys[it.id], 10) || 0);
+      var q = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
       if (q > 0) {
         rec.qtys[it.id] = q;
         deltas[it.id] = q;
       }
     });
 
-    state.records.unshift(rec);
-    return { record: rec, deltas: deltas };
+    state.records.push(rec);
+    sortRecordsByClass();
+    return { record: rec, deltas: deltas, merged: false };
   }
 
   function parsedItemsToQtys(items) {
@@ -2261,7 +2403,7 @@
         source: "photo"
       });
       recordId = result.record.id;
-      accumMsg = "已新增請領";
+      accumMsg = result.merged ? "已累加請領" : "已新增請領";
       deductStockByDeltas(result.deltas, result.record.className || result.record.teacher, recordId, (noteExtra || "拍照") + "；");
     }
 
@@ -2596,11 +2738,13 @@
   }
 
   function loadDemo() {
-    if ((state.records.length || inventoryGrandTotals().total) && !confirm("已有資料，仍要追加示範？")) return;
-    syncClassMapsFromTeacher("陳老師", "201");
+    if ((state.records.some(function (r) { return sumQty(r.qtys) > 0; }) || inventoryGrandTotals().total) &&
+        !confirm("已有資料，仍要追加示範？")) return;
+    syncClassMapsFromTeacher("陳老師", "101");
     syncClassMapsFromTeacher("林老師", "102");
     syncClassMapsFromTeacher("黃老師", "201");
     syncClassMapsFromTeacher("吳老師", "暑新一");
+    ensureClassRequisitionRows();
     var demos = [
       { date: "2026-02-25", className: "101", teacher: "陳老師", qtys: { bamboo_broom: 1, broom: 1, mop: 1, dustpan: 1 } },
       { date: "2026-03-13", className: "102", teacher: "林老師", qtys: { mop: 2, trash_bag: 1, other_window_wiper: 2 } },
@@ -2611,16 +2755,11 @@
       { date: todayStr(), className: "", teacher: "總務處", qtys: { trash_bag: 5, detergent: 2 }, source: "manual" }
     ];
     demos.forEach(function (d) {
-      var q = emptyQtys();
-      Object.keys(d.qtys).forEach(function (k) { q[k] = d.qtys[k]; });
-      state.records.unshift({
-        id: uid(),
+      createRequisition({
         date: d.date,
-        className: d.className || "",
-        teacher: d.teacher || "",
-        qtys: q,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        className: d.className,
+        teacher: d.teacher,
+        qtys: d.qtys,
         source: d.source || "demo"
       });
     });
@@ -2683,7 +2822,6 @@
     listSearch = ev.target.value;
     renderList();
   };
-  document.getElementById("listMonth").onchange = renderList;
   document.getElementById("gradeFilters").onclick = function (ev) {
     var chip = ev.target.closest("[data-grade]");
     if (!chip) return;
@@ -2785,12 +2923,12 @@
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   }
 
-  document.getElementById("listMonth").value = monthStr();
   document.getElementById("statsMonth").value = monthStr();
   state.settings = migrateSettings(state.settings);
   state.inventory = ensureInventory(state.inventory);
   if (!state.stockLogs) state.stockLogs = [];
   ensure115TeacherClassPreset();
+  ensureClassRequisitionRows();
   renderHome();
   handleInboxOnLoad();
 })();
