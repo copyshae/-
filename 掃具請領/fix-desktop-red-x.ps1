@@ -1,54 +1,36 @@
 #Requires -Version 5.1
-# 修整桌紅 X／白 X（OneDrive 同步錯誤疊圖）
-# 不會把檔案搬到大容量碟
+# 說明並處理桌面綠勾／紅 X（OneDrive 疊圖）
+# 綠勾＝已同步到這台（正常）。紅 X＝這項同步失敗。
+# 不會把檔案搬到大容量碟。
 $ErrorActionPreference = "Continue"
 $desk = [Environment]::GetFolderPath("Desktop")
-Write-Host "桌面路徑：$desk"
-if ($desk -match "OneDrive") {
-  Write-Host "桌面在 OneDrive 底下。同步失敗時，連捷徑／回收筒都會打 X。"
-} else {
-  Write-Host "桌面不在 OneDrive 路徑；仍可能被 OneDrive 圖示疊加影響。"
-}
+Write-Host "桌面：$desk"
+Write-Host ""
+Write-Host "綠勾：OneDrive 表示「檔案已在這台電腦」。上一支腳本把桌面標成保留在此裝置，所以會出現綠勾。"
+Write-Host "紅 X：這個捷徑／資料夾同步失敗。常因捷徑指到已搬走的程式，或桌面被 OneDrive 備份。"
+Write-Host ""
 
-Write-Host "關閉 Explorer 與 OneDrive..."
-Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-Get-Process -Name OneDrive -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
-
-$local = $env:LOCALAPPDATA
-@(
-  (Join-Path $local "IconCache.db"),
-  (Join-Path $local "Microsoft\Windows\Explorer\iconcache_*.db"),
-  (Join-Path $local "Microsoft\Windows\Explorer\thumbcache_*.db")
-) | ForEach-Object {
-  Get-Item -Path $_ -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-}
-Write-Host "已清圖示／縮圖快取"
-
-$ie4 = Join-Path $env:SystemRoot "System32\ie4uinit.exe"
-if (Test-Path -LiteralPath $ie4) {
-  Start-Process $ie4 -ArgumentList "-show" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
-}
-
-$od = Join-Path $local "Microsoft\OneDrive\OneDrive.exe"
-if (Test-Path -LiteralPath $od) {
-  Write-Host "重設並啟動 OneDrive..."
-  Start-Process $od -ArgumentList "/reset" -WindowStyle Hidden
-  Start-Sleep -Seconds 6
-  Start-Process $od
-} else {
-  Write-Host "找不到 OneDrive.exe。請從開始功能表手動打開 OneDrive。"
-}
-
-Start-Process explorer.exe
-Start-Sleep -Seconds 3
-
-if ($desk -match "OneDrive") {
-  Write-Host "把桌面標成「保留在此裝置」（可能要幾分鐘）..."
-  cmd /c "attrib +P /S /D `"$desk`"" | Out-Null
-}
+Write-Host "=== 紅 X 常見：捷徑目標不存在 ==="
+Get-ChildItem -LiteralPath $desk -Force -ErrorAction SilentlyContinue |
+  Where-Object { $_.Extension -eq ".lnk" } |
+  ForEach-Object {
+    try {
+      $sh = New-Object -ComObject WScript.Shell
+      $t = [string]$sh.CreateShortcut($_.FullName).TargetPath
+      if ($t -and -not (Test-Path -LiteralPath $t)) {
+        Write-Host ("  " + $_.Name + " → 找不到：" + $t)
+      }
+    } catch {}
+  }
 
 Write-Host ""
-Write-Host "完成。請等 1～2 分鐘看桌面 X 是否消失。"
-Write-Host "若還在：點工作列雲朵 → 查看同步問題 → 有錯誤就選重試。"
-Write-Host "不要再跑 split-desktop-test 或 undo-20260717。"
+Write-Host "若要桌面都不要勾、也不要 X：關掉 OneDrive「備份桌面」。"
+Write-Host "正在打開 OneDrive 設定。請選：同步和備份 → 管理備份 → 桌面 → 停止備份。"
+Write-Host "停止後檔案仍在桌面，只是不再由雲端管圖示。"
+$od = Join-Path $env:LOCALAPPDATA "Microsoft\OneDrive\OneDrive.exe"
+if (Test-Path -LiteralPath $od) {
+  Start-Process $od
+}
+Start-Process "https://www.microsoft.com/zh-tw/microsoft-365/onedrive/desktop-app"
+Write-Host ""
+Write-Host "快捷：工作列雲朵 右鍵 → 設定 → 同步和備份 → 管理備份 → 關閉「桌面」。"
