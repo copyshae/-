@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1e4d8c" />
+  <meta name="theme-color" content="#1a5c45" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -11,22 +11,21 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
-  <title>掃具台｜校園掃具管理</title>
+  <title>掃具台｜校園掃具請領</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --ink: #152238;
-      --paper: #eef3fa;
-      --accent: #1e4d8c;
-      --accent-light: #3d7fd4;
-      --muted: #5a6b82;
-      --line: rgba(30, 77, 140, 0.18);
+      --ink: #1a2e24;
+      --paper: #eaf4ee;
+      --accent: #1a5c45;
+      --accent-soft: #2d8a66;
+      --muted: #4f6a5c;
+      --line: rgba(26, 92, 69, 0.2);
       --ok: #d4f0e0;
       --warn: #fff3cd;
-      --danger: #fde2e2;
-      --plain: #f7f9fc;
+      --plain: #f5faf7;
       --nav-h: 3.6rem;
       --safe-b: env(safe-area-inset-bottom, 0px);
     }
@@ -37,207 +36,191 @@
       color: var(--ink);
       line-height: 1.55;
       background:
-        radial-gradient(ellipse 80% 50% at 90% 0%, rgba(61, 127, 212, 0.22), transparent 55%),
-        linear-gradient(160deg, #f8fafd 0%, var(--paper) 50%, #dde8f5 100%);
+        radial-gradient(ellipse 75% 45% at 8% 0%, rgba(45, 138, 102, 0.22), transparent 55%),
+        linear-gradient(160deg, #f7fcf9 0%, var(--paper) 50%, #d5e8dc 100%);
     }
     .wrap {
       max-width: 28rem;
       margin: 0 auto;
       padding: 1rem 1rem calc(var(--nav-h) + var(--safe-b) + 1rem);
     }
-    .hero { padding: 0.8rem 0 0.5rem; animation: rise 0.6s ease-out both; }
+    .hero { padding: 0.75rem 0 0.4rem; animation: rise 0.55s ease-out both; }
     .brand {
       font-family: "Instrument Serif", Georgia, serif;
-      font-size: clamp(2rem, 9vw, 2.6rem);
+      font-size: clamp(2rem, 9vw, 2.55rem);
       color: var(--accent);
-      font-weight: 400;
       letter-spacing: 0.03em;
     }
-    .lead { margin-top: 0.35rem; color: var(--muted); font-size: 0.92rem; }
+    .lead { margin-top: 0.3rem; color: var(--muted); font-size: 0.9rem; }
     .stats {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 0.55rem;
-      margin-top: 1rem;
+      gap: 0.5rem;
+      margin-top: 0.9rem;
     }
     .stat {
-      background: rgba(255,255,255,0.78);
+      background: rgba(255,255,255,0.8);
       border: 1px solid var(--line);
-      padding: 0.75rem 0.85rem;
+      padding: 0.7rem 0.8rem;
       border-radius: 0.5rem;
     }
-    .stat .num { font-size: 1.6rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
-    .stat .lbl { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
-    .stat.warn .num { color: #b45309; }
-    .stat.danger .num { color: #b91c1c; }
-    section { margin-top: 1.25rem; animation: rise 0.65s 0.05s ease-out both; }
+    .stat .num { font-size: 1.55rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+    .stat .lbl { font-size: 0.76rem; color: var(--muted); margin-top: 0.12rem; }
+    section { margin-top: 1.15rem; animation: rise 0.6s 0.05s ease-out both; }
     h2 {
       font-family: "Instrument Serif", Georgia, serif;
-      font-size: 1.25rem;
+      font-size: 1.22rem;
       font-weight: 400;
       color: var(--accent);
-      margin-bottom: 0.55rem;
+      margin-bottom: 0.5rem;
     }
     .card {
-      background: rgba(255,255,255,0.82);
+      background: rgba(255,255,255,0.84);
       border: 1px solid var(--line);
       border-radius: 0.55rem;
-      padding: 0.85rem;
-      margin-bottom: 0.55rem;
+      padding: 0.8rem;
+      margin-bottom: 0.5rem;
     }
-    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-    .card-title { font-weight: 600; font-size: 0.95rem; color: var(--ink); }
-    .badge {
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.4rem; }
+    .card-title { font-weight: 600; font-size: 0.95rem; }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+    .items-line { font-size: 0.84rem; margin-top: 0.4rem; color: var(--ink); }
+    .items-line span {
       display: inline-block;
-      font-size: 0.72rem;
+      background: var(--ok);
+      color: #166534;
+      font-size: 0.74rem;
       font-weight: 600;
-      padding: 0.18rem 0.45rem;
+      padding: 0.12rem 0.4rem;
       border-radius: 999px;
-      white-space: nowrap;
+      margin: 0.15rem 0.2rem 0 0;
     }
-    .badge.ok { background: var(--ok); color: #166534; }
-    .badge.warn { background: var(--warn); color: #92400e; }
-    .badge.danger { background: var(--danger); color: #991b1b; }
-    .badge.muted { background: #e5e7eb; color: #4b5563; }
-    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
     .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; align-items: center; }
-    label { font-size: 0.84rem; color: var(--muted); min-width: 3.2rem; }
-    input, select, textarea, button { font: inherit; border: 1px solid var(--line); background: rgba(255,255,255,0.9); color: var(--ink); padding: 0.55rem 0.65rem; border-radius: 0.35rem; }
+    label { font-size: 0.84rem; color: var(--muted); min-width: 3.4rem; }
+    input, select, textarea, button {
+      font: inherit; border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92); color: var(--ink);
+      padding: 0.55rem 0.65rem; border-radius: 0.35rem;
+    }
     input, select { min-height: 2.45rem; }
-    input[type="text"], input[type="date"], input[type="search"] { flex: 1; min-width: 6rem; }
+    input[type="text"], input[type="date"], input[type="search"], input[type="month"] { flex: 1; min-width: 6rem; }
     select.grow { flex: 1; min-width: 7rem; }
-    textarea { width: 100%; min-height: 4.5rem; resize: vertical; line-height: 1.45; font-size: 0.9rem; }
-    .filters { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.55rem; }
+    textarea { width: 100%; min-height: 3.8rem; resize: vertical; line-height: 1.45; font-size: 0.9rem; }
+    .filters { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
     .chip {
       border: 1px solid var(--line);
       background: rgba(255,255,255,0.65);
-      padding: 0.32rem 0.55rem;
-      font-size: 0.78rem;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.76rem;
       cursor: pointer;
       color: var(--muted);
       border-radius: 999px;
     }
     .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
     .btn {
-      display: block;
-      width: 100%;
-      text-align: center;
-      padding: 0.75rem 1rem;
-      border: none;
-      border-radius: 0.4rem;
-      background: var(--accent);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.92rem;
+      display: block; width: 100%; text-align: center;
+      padding: 0.75rem 1rem; border: none; border-radius: 0.4rem;
+      background: var(--accent); color: #fff; font-weight: 600;
+      cursor: pointer; font-size: 0.92rem;
     }
     .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
     .btn.danger { background: #b91c1c; }
     .btn-row { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
-    .btn-row .btn { flex: 1; padding: 0.55rem 0.4rem; font-size: 0.82rem; }
-    .actions { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.55rem; }
-    .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.9rem; }
+    .btn-row .btn { flex: 1; padding: 0.5rem 0.35rem; font-size: 0.8rem; }
+    .actions { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.5rem; }
+    .empty { text-align: center; padding: 1.8rem 1rem; color: var(--muted); font-size: 0.9rem; }
     .view { display: none; }
     .view.active { display: block; }
     .bottom-nav {
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
+      position: fixed; left: 0; right: 0; bottom: 0;
       height: calc(var(--nav-h) + var(--safe-b));
       padding-bottom: var(--safe-b);
       background: rgba(255,255,255,0.95);
       border-top: 1px solid var(--line);
-      display: flex;
-      z-index: 30;
+      display: flex; z-index: 30;
       backdrop-filter: blur(8px);
     }
     .nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.1rem;
-      border: none;
-      background: none;
-      color: var(--muted);
-      font-size: 0.68rem;
-      cursor: pointer;
-      padding: 0.35rem 0;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0.08rem;
+      border: none; background: none; color: var(--muted);
+      font-size: 0.66rem; cursor: pointer; padding: 0.3rem 0;
     }
-    .nav-item .ico { font-size: 1.25rem; line-height: 1; }
+    .nav-item .ico { font-size: 1.2rem; line-height: 1; }
     .nav-item.on { color: var(--accent); font-weight: 600; }
     .toast {
-      position: fixed;
-      left: 50%;
+      position: fixed; left: 50%;
       bottom: calc(var(--nav-h) + var(--safe-b) + 0.8rem);
       transform: translateX(-50%) translateY(120%);
-      background: var(--ink);
-      color: #fff;
-      padding: 0.65rem 1rem;
-      font-size: 0.86rem;
-      border-radius: 0.45rem;
-      opacity: 0;
-      transition: 0.25s ease;
-      z-index: 40;
-      max-width: 92vw;
-      pointer-events: none;
+      background: var(--ink); color: #fff;
+      padding: 0.65rem 1rem; font-size: 0.86rem;
+      border-radius: 0.45rem; opacity: 0;
+      transition: 0.25s ease; z-index: 40;
+      max-width: 92vw; pointer-events: none;
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     .modal-back {
       position: fixed; inset: 0;
-      background: rgba(21,34,56,0.45);
-      z-index: 50;
-      display: none;
-      align-items: flex-end;
-      justify-content: center;
+      background: rgba(26, 46, 36, 0.45);
+      z-index: 50; display: none;
+      align-items: flex-end; justify-content: center;
     }
     .modal-back.open { display: flex; }
     .modal {
-      background: #fff;
-      width: 100%;
-      max-width: 28rem;
-      max-height: 92vh;
-      overflow-y: auto;
+      background: #fff; width: 100%; max-width: 28rem;
+      max-height: 92vh; overflow-y: auto;
       border-radius: 1rem 1rem 0 0;
-      padding: 1.1rem 1rem calc(1rem + var(--safe-b));
+      padding: 1.05rem 1rem calc(1rem + var(--safe-b));
       animation: slideUp 0.28s ease-out;
     }
     .modal h3 {
       font-family: "Instrument Serif", Georgia, serif;
-      font-size: 1.2rem;
-      color: var(--accent);
-      margin-bottom: 0.75rem;
+      font-size: 1.18rem; color: var(--accent); margin-bottom: 0.7rem;
     }
     .modal-close {
-      float: right;
-      border: none;
-      background: none;
-      font-size: 1.4rem;
-      color: var(--muted);
-      cursor: pointer;
-      line-height: 1;
-      padding: 0 0.2rem;
+      float: right; border: none; background: none;
+      font-size: 1.4rem; color: var(--muted); cursor: pointer;
+      line-height: 1; padding: 0 0.2rem;
     }
-    .qr-box {
-      display: flex;
-      justify-content: center;
-      padding: 0.75rem;
+    .qty-grid { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.4rem 0 0.7rem; }
+    .qty-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.55rem;
       background: var(--plain);
-      border: 1px dashed var(--line);
-      border-radius: 0.45rem;
-      margin: 0.55rem 0;
+      border: 1px solid var(--line);
+      border-radius: 0.4rem;
     }
-    .qr-box canvas, .qr-box img { max-width: 100%; }
-    #scannerRegion { width: 100%; border-radius: 0.45rem; overflow: hidden; }
-    .log-item { font-size: 0.84rem; padding: 0.55rem 0; border-bottom: 1px solid var(--line); }
-    .log-item:last-child { border-bottom: none; }
-    .log-item .act { font-weight: 600; color: var(--accent); }
-    .overdue { color: #b91c1c; font-weight: 600; }
-    .hidden { display: none !important; }
+    .qty-row .name { font-size: 0.88rem; font-weight: 500; }
+    .qty-ctrl { display: flex; align-items: center; gap: 0.25rem; }
+    .qty-ctrl button {
+      width: 2.1rem; height: 2.1rem; padding: 0;
+      font-size: 1.15rem; font-weight: 700;
+      border: 1px solid var(--line); background: #fff;
+      color: var(--accent); cursor: pointer; border-radius: 0.35rem;
+    }
+    .qty-ctrl input {
+      width: 2.6rem; text-align: center; min-height: 2.1rem;
+      padding: 0.2rem; font-weight: 600;
+    }
+    .rank-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0; border-bottom: 1px solid var(--line); font-size: 0.88rem;
+    }
+    .rank-item:last-child { border-bottom: none; }
+    .rank-item .bar-wrap { flex: 1; margin: 0 0.6rem; height: 0.4rem; background: #e2ebe6; border-radius: 99px; overflow: hidden; }
+    .rank-item .bar { height: 100%; background: var(--accent-soft); border-radius: 99px; }
     .tips { font-size: 0.84rem; color: var(--muted); }
-    .tips li { margin: 0.2rem 0 0.2rem 1rem; }
+    .tips li { margin: 0.18rem 0 0.18rem 1rem; }
+    .hidden { display: none !important; }
+    .fab {
+      position: sticky; bottom: 0.5rem; z-index: 5;
+      margin-top: 0.75rem;
+    }
     @keyframes rise {
-      from { opacity: 0; transform: translateY(0.6rem); }
+      from { opacity: 0; transform: translateY(0.55rem); }
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes slideUp {
@@ -250,63 +233,85 @@
   <div class="wrap">
     <header class="hero">
       <div class="brand">掃具台</div>
-      <p class="lead" id="campusLabel">校園掃具管理 · 離線可用</p>
+      <p class="lead" id="schoolLead">校園掃具請領 · 對齊 Excel 領用表</p>
     </header>
 
     <!-- 總覽 -->
     <div class="view active" id="view-home">
       <div class="stats" id="statsGrid"></div>
       <section>
-        <h2>逾期待還</h2>
-        <div id="overdueList"></div>
+        <h2>今日領用</h2>
+        <div id="todayList"></div>
       </section>
       <section>
         <h2>快速操作</h2>
         <div class="actions">
-          <button class="btn" type="button" id="btnScanQr">掃描器材 QR 借還</button>
-          <button class="btn secondary" type="button" id="btnQuickBorrow">快速借出</button>
+          <button class="btn" type="button" id="btnNewReq">新增請領</button>
+          <button class="btn secondary" type="button" id="btnGoStats">本月統計</button>
         </div>
       </section>
       <section>
         <h2>使用提示</h2>
         <ul class="tips">
-          <li>資料存本機，換手機請用「設定 → 匯出備份」</li>
-          <li>每件器材可產生 QR，貼在設備上方便掃描借還</li>
-          <li>掃描王平板、手持掃描器、影印複合機皆可登記</li>
+          <li>欄位對齊「114 學年掃具請領」表：班級、導師、各品項數量、其他細項</li>
+          <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
+          <li>資料存本機；換手機請用「設定 → 匯出備份」</li>
         </ul>
       </section>
     </div>
 
-    <!-- 器材 -->
-    <div class="view" id="view-equip">
+    <!-- 請領紀錄 -->
+    <div class="view" id="view-list">
       <section>
         <div class="row">
-          <input type="search" id="equipSearch" placeholder="搜尋名稱、編號、位置…" />
+          <input type="search" id="listSearch" placeholder="搜尋班級、導師、其他細項…" />
         </div>
-        <div class="filters" id="equipFilters"></div>
-        <div id="equipList"></div>
-        <button class="btn" type="button" id="btnAddEquip" style="margin-top:0.6rem">新增器材</button>
+        <div class="row">
+          <label for="listMonth">月份</label>
+          <input type="month" id="listMonth" />
+        </div>
+        <div class="filters" id="gradeFilters"></div>
+        <div id="reqList"></div>
+        <button class="btn fab" type="button" id="btnNewReq2">新增請領</button>
       </section>
     </div>
 
-    <!-- 借還 -->
-    <div class="view" id="view-loan">
+    <!-- 統計 -->
+    <div class="view" id="view-stats">
       <section>
-        <h2>借出中</h2>
-        <div id="activeLoans"></div>
+        <div class="row">
+          <label for="statsMonth">月份</label>
+          <input type="month" id="statsMonth" />
+        </div>
+        <h2>品項領用排行</h2>
+        <div class="card" id="itemRank"></div>
       </section>
       <section>
-        <h2>待歸還提醒</h2>
-        <div id="dueSoon"></div>
+        <h2>班級請領次數</h2>
+        <div class="card" id="classRank"></div>
+      </section>
+      <section>
+        <h2>匯出</h2>
+        <div class="actions">
+          <button class="btn secondary" type="button" id="btnExportCsv">匯出本月 CSV（Excel 可用）</button>
+          <button class="btn secondary" type="button" id="btnExportAllCsv">匯出全部 CSV</button>
+        </div>
       </section>
     </div>
 
-    <!-- 紀錄 -->
-    <div class="view" id="view-log">
+    <!-- 品項 -->
+    <div class="view" id="view-items">
       <section>
-        <div class="filters" id="logFilters"></div>
-        <div id="logList"></div>
-        <button class="btn secondary" type="button" id="btnClearLog" style="margin-top:0.75rem">清除已歸還紀錄（保留借出中）</button>
+        <h2>標準品項</h2>
+        <p class="tips" style="margin-bottom:0.5rem">對應 Excel 欄位；新增請領時會顯示這些項目。</p>
+        <div id="itemDefList"></div>
+        <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.6rem">還原預設品項</button>
+      </section>
+      <section>
+        <h2>班級導師對照</h2>
+        <p class="tips" style="margin-bottom:0.5rem">輸入班級後可自動帶出導師姓名。</p>
+        <div id="classMapList"></div>
+        <button class="btn" type="button" id="btnAddClass" style="margin-top:0.55rem">新增班級對照</button>
       </section>
     </div>
 
@@ -315,82 +320,78 @@
       <section>
         <h2>基本設定</h2>
         <div class="row">
-          <label for="campusName">校名</label>
-          <input id="campusName" type="text" maxlength="40" placeholder="例：○○高中" />
+          <label for="schoolName">校名</label>
+          <input id="schoolName" type="text" maxlength="40" placeholder="例：○○國中" />
         </div>
         <div class="row">
-          <label for="adminName">管理員</label>
-          <input id="adminName" type="text" maxlength="30" placeholder="例：資媒組" />
+          <label for="schoolYear">學年</label>
+          <input id="schoolYear" type="text" maxlength="20" placeholder="例：114 學年" />
         </div>
-        <div class="row">
-          <label for="defaultDays">預設借期</label>
-          <input id="defaultDays" type="number" min="1" max="90" value="7" style="width:4.5rem" />
-          <span class="tips">天</span>
-        </div>
-        <button class="btn" type="button" id="btnSaveSettings" style="margin-top:0.5rem">儲存設定</button>
+        <button class="btn" type="button" id="btnSaveSettings" style="margin-top:0.45rem">儲存設定</button>
       </section>
       <section>
         <h2>資料備份</h2>
         <div class="actions">
-          <button class="btn secondary" type="button" id="btnExport">匯出備份（JSON）</button>
-          <button class="btn secondary" type="button" id="btnImport">匯入備份</button>
+          <button class="btn secondary" type="button" id="btnExportJson">匯出備份（JSON）</button>
+          <button class="btn secondary" type="button" id="btnImportJson">匯入備份</button>
           <input type="file" id="importFile" accept=".json,application/json" class="hidden" />
         </div>
       </section>
       <section>
         <h2>示範資料</h2>
-        <p class="tips" style="margin-bottom:0.5rem">首次使用可載入範例器材，方便了解操作。</p>
-        <button class="btn secondary" type="button" id="btnDemo">載入示範器材</button>
+        <p class="tips" style="margin-bottom:0.45rem">載入類似 Excel 表的範例請領紀錄，方便試用。</p>
+        <button class="btn secondary" type="button" id="btnDemo">載入示範請領</button>
       </section>
     </div>
   </div>
 
   <nav class="bottom-nav" aria-label="主選單">
     <button class="nav-item on" type="button" data-view="home"><span class="ico">🏠</span>總覽</button>
-    <button class="nav-item" type="button" data-view="equip"><span class="ico">📦</span>器材</button>
-    <button class="nav-item" type="button" data-view="loan"><span class="ico">🔄</span>借還</button>
-    <button class="nav-item" type="button" data-view="log"><span class="ico">📋</span>紀錄</button>
+    <button class="nav-item" type="button" data-view="list"><span class="ico">📋</span>請領</button>
+    <button class="nav-item" type="button" data-view="stats"><span class="ico">📊</span>統計</button>
+    <button class="nav-item" type="button" data-view="items"><span class="ico">🧹</span>品項</button>
     <button class="nav-item" type="button" data-view="settings"><span class="ico">⚙️</span>設定</button>
   </nav>
 
   <div class="toast" id="toast"></div>
-
-  <!-- 通用表單 Modal -->
   <div class="modal-back" id="modalBack">
     <div class="modal" id="modalBody"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "scan-equip-v1";
-  var CATEGORIES = ["掃描王平板", "手持掃描器", "高速掃描器", "影印複合機", "其他"];
-  var STATUS_LABEL = {
-    available: "可借",
-    borrowed: "借出中",
-    repair: "維修中",
-    retired: "已報廢"
-  };
-  var STATUS_CLASS = {
-    available: "ok",
-    borrowed: "warn",
-    repair: "danger",
-    retired: "muted"
-  };
+  var STORAGE_KEY = "scan-equip-requisition-v2";
+
+  /** 對齊 Excel「114 學年掃具請領」欄位 */
+  var DEFAULT_ITEMS = [
+    { id: "bamboo_broom", name: "竹掃把" },
+    { id: "tongs", name: "夾子" },
+    { id: "broom", name: "掃把" },
+    { id: "mop", name: "拖把" },
+    { id: "dustpan", name: "畚斗" },
+    { id: "detergent", name: "清潔劑" },
+    { id: "trash_can", name: "垃圾桶" },
+    { id: "trash_bag", name: "垃圾袋" },
+    { id: "toilet_brush", name: "馬桶刷" },
+    { id: "laundry", name: "洗衣粉" },
+    { id: "rake", name: "耙子" },
+    { id: "squeegee", name: "趕水器" },
+    { id: "long_brush", name: "長柄刷" }
+  ];
 
   var state = loadState();
-  var scanner = null;
   var toastTimer = null;
+  var gradeFilter = "all";
+  var listSearch = "";
 
   function defaultState() {
     return {
-      settings: { campusName: "", adminName: "", defaultDays: 7 },
-      equipment: [],
-      loans: [],
-      logs: []
+      settings: { schoolName: "", schoolYear: "114 學年" },
+      items: DEFAULT_ITEMS.map(function (x) { return Object.assign({}, x); }),
+      classMap: {},
+      records: []
     };
   }
 
@@ -398,13 +399,13 @@
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
-      var parsed = JSON.parse(raw);
-      return Object.assign(defaultState(), parsed, {
-        settings: Object.assign(defaultState().settings, parsed.settings || {}),
-        equipment: parsed.equipment || [],
-        loans: parsed.loans || [],
-        logs: parsed.logs || []
-      });
+      var p = JSON.parse(raw);
+      return {
+        settings: Object.assign(defaultState().settings, p.settings || {}),
+        items: (p.items && p.items.length) ? p.items : defaultState().items,
+        classMap: p.classMap || {},
+        records: p.records || []
+      };
     } catch (e) {
       return defaultState();
     }
@@ -414,49 +415,62 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  function uid(prefix) {
-    return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
-  }
-
-  function fmtDate(ts) {
-    if (!ts) return "—";
-    var d = new Date(ts);
-    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-  }
-
-  function fmtDateTime(ts) {
-    if (!ts) return "—";
-    var d = new Date(ts);
-    return fmtDate(ts) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  function uid() {
+    return "r-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
   }
 
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function monthStr(d) {
+    d = d || new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1);
+  }
+
+  function esc(s) {
+    if (!s) return "";
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
 
   function toast(msg) {
     var el = document.getElementById("toast");
     el.textContent = msg;
     el.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2400);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2300);
   }
 
-  function getEquip(id) {
-    return state.equipment.find(function (e) { return e.id === id; });
+  function emptyQtys() {
+    var q = {};
+    state.items.forEach(function (it) { q[it.id] = 0; });
+    return q;
   }
 
-  function activeLoanFor(equipId) {
-    return state.loans.find(function (l) { return l.equipId === equipId && !l.returnAt; });
+  function sumQty(qtys) {
+    var n = 0;
+    Object.keys(qtys || {}).forEach(function (k) { n += Number(qtys[k]) || 0; });
+    return n;
   }
 
-  function addLog(type, equipId, detail) {
-    state.logs.unshift({
-      id: uid("log"),
-      type: type,
-      equipId: equipId,
-      detail: detail,
-      at: Date.now()
+  function itemsSummary(rec) {
+    var parts = [];
+    state.items.forEach(function (it) {
+      var n = Number(rec.qtys[it.id]) || 0;
+      if (n > 0) parts.push(it.name + "×" + n);
     });
-    if (state.logs.length > 500) state.logs.length = 500;
+    if (rec.other) parts.push(rec.other);
+    return parts;
+  }
+
+  function gradeOf(klass) {
+    var s = String(klass || "");
+    if (/^暑/.test(s)) return "暑期";
+    var m = s.match(/^(\d)/);
+    return m ? m[1] + "年級" : "其他";
   }
 
   function switchView(name) {
@@ -466,179 +480,10 @@
       n.classList.toggle("on", n.dataset.view === name);
     });
     if (name === "home") renderHome();
-    if (name === "equip") renderEquip();
-    if (name === "loan") renderLoans();
-    if (name === "log") renderLogs();
+    if (name === "list") renderList();
+    if (name === "stats") renderStats();
+    if (name === "items") renderItems();
     if (name === "settings") renderSettings();
-  }
-
-  function renderStats() {
-    var total = state.equipment.filter(function (e) { return e.status !== "retired"; }).length;
-    var avail = state.equipment.filter(function (e) { return e.status === "available"; }).length;
-    var borrowed = state.equipment.filter(function (e) { return e.status === "borrowed"; }).length;
-    var repair = state.equipment.filter(function (e) { return e.status === "repair"; }).length;
-    var overdue = state.loans.filter(function (l) {
-      return !l.returnAt && l.dueAt && l.dueAt < Date.now();
-    }).length;
-
-    document.getElementById("statsGrid").innerHTML =
-      statCard(total, "器材總數") +
-      statCard(avail, "可借", "ok") +
-      statCard(borrowed, "借出中", borrowed ? "warn" : "") +
-      statCard(repair + overdue, repair ? "維修／逾期" : "維修／逾期", (repair + overdue) ? "danger" : "");
-  }
-
-  function statCard(num, lbl, cls) {
-    return '<div class="stat' + (cls ? " " + cls : "") + '"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
-  }
-
-  function renderHome() {
-    renderStats();
-    var campus = state.settings.campusName;
-    document.getElementById("campusLabel").textContent =
-      (campus ? campus + " · " : "") + "校園掃具管理 · 離線可用";
-
-    var overdueEl = document.getElementById("overdueList");
-    var overdue = state.loans.filter(function (l) {
-      return !l.returnAt && l.dueAt && l.dueAt < Date.now();
-    });
-    if (!overdue.length) {
-      overdueEl.innerHTML = '<div class="empty">目前無逾期借出 👍</div>';
-      return;
-    }
-    overdueEl.innerHTML = overdue.map(function (l) {
-      var eq = getEquip(l.equipId);
-      return cardHtml(eq, l, true);
-    }).join("");
-  }
-
-  function cardHtml(eq, loan, isOverdue) {
-    if (!eq) return "";
-    var badge = '<span class="badge ' + STATUS_CLASS[eq.status] + '">' + STATUS_LABEL[eq.status] + '</span>';
-    var meta = eq.assetNo + " · " + eq.category + " · " + eq.location;
-    var loanInfo = "";
-    if (loan) {
-      loanInfo = '<div class="meta' + (isOverdue ? " overdue" : "") + '">借用人：' + esc(loan.borrower) +
-        " · 應還：" + fmtDate(loan.dueAt) + (isOverdue ? "（已逾期）" : "") + "</div>";
-    }
-    return '<div class="card" data-equip="' + eq.id + '">' +
-      '<div class="card-head"><div class="card-title">' + esc(eq.name) + '</div>' + badge + '</div>' +
-      '<div class="meta">' + esc(meta) + '</div>' + loanInfo +
-      '<div class="btn-row">' +
-      '<button class="btn secondary" type="button" data-act="detail" data-id="' + eq.id + '">詳情</button>' +
-      (eq.status === "available" ? '<button class="btn" type="button" data-act="borrow" data-id="' + eq.id + '">借出</button>' :
-        eq.status === "borrowed" ? '<button class="btn" type="button" data-act="return" data-id="' + eq.id + '">歸還</button>' : "") +
-      '</div></div>';
-  }
-
-  var equipFilter = "all";
-  var equipSearch = "";
-
-  function renderEquipFilters() {
-    var chips = [{ k: "all", l: "全部" }];
-    CATEGORIES.forEach(function (c) { chips.push({ k: c, l: c }); });
-    ["available", "borrowed", "repair"].forEach(function (s) {
-      chips.push({ k: "s:" + s, l: STATUS_LABEL[s] });
-    });
-    document.getElementById("equipFilters").innerHTML = chips.map(function (c) {
-      return '<button type="button" class="chip' + (equipFilter === c.k ? " on" : "") + '" data-filter="' + c.k + '">' + c.l + '</button>';
-    }).join("");
-  }
-
-  function renderEquip() {
-    renderEquipFilters();
-    var q = equipSearch.toLowerCase();
-    var list = state.equipment.filter(function (e) {
-      if (equipFilter.startsWith("s:") && e.status !== equipFilter.slice(2)) return false;
-      if (equipFilter !== "all" && !equipFilter.startsWith("s:") && e.category !== equipFilter) return false;
-      if (q) {
-        var hay = (e.name + e.assetNo + e.location + e.notes).toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
-      }
-      return true;
-    });
-    var el = document.getElementById("equipList");
-    if (!list.length) {
-      el.innerHTML = '<div class="empty">尚無器材，請按「新增器材」</div>';
-      return;
-    }
-    el.innerHTML = list.map(function (e) {
-      var loan = activeLoanFor(e.id);
-      return cardHtml(e, loan, loan && loan.dueAt < Date.now());
-    }).join("");
-    bindCardActions(el);
-  }
-
-  function renderLoans() {
-    var active = state.loans.filter(function (l) { return !l.returnAt; });
-    var activeEl = document.getElementById("activeLoans");
-    if (!active.length) {
-      activeEl.innerHTML = '<div class="empty">目前無借出紀錄</div>';
-    } else {
-      activeEl.innerHTML = active.map(function (l) {
-        return cardHtml(getEquip(l.equipId), l, l.dueAt && l.dueAt < Date.now());
-      }).join("");
-      bindCardActions(activeEl);
-    }
-
-    var soon = active.filter(function (l) {
-      if (!l.dueAt || l.dueAt < Date.now()) return false;
-      return l.dueAt - Date.now() < 2 * 86400000;
-    });
-    var dueEl = document.getElementById("dueSoon");
-    if (!soon.length) {
-      dueEl.innerHTML = '<div class="empty">兩日內無到期項目</div>';
-    } else {
-      dueEl.innerHTML = soon.map(function (l) {
-        return cardHtml(getEquip(l.equipId), l, false);
-      }).join("");
-      bindCardActions(dueEl);
-    }
-  }
-
-  var logFilter = "all";
-
-  function renderLogFilters() {
-    var opts = [
-      { k: "all", l: "全部" },
-      { k: "borrow", l: "借出" },
-      { k: "return", l: "歸還" },
-      { k: "repair", l: "維修" },
-      { k: "edit", l: "編輯" }
-    ];
-    document.getElementById("logFilters").innerHTML = opts.map(function (o) {
-      return '<button type="button" class="chip' + (logFilter === o.k ? " on" : "") + '" data-logfilter="' + o.k + '">' + o.l + '</button>';
-    }).join("");
-  }
-
-  function renderLogs() {
-    renderLogFilters();
-    var logs = state.logs.filter(function (l) {
-      return logFilter === "all" || l.type === logFilter;
-    }).slice(0, 80);
-    var el = document.getElementById("logList");
-    if (!logs.length) {
-      el.innerHTML = '<div class="empty">尚無操作紀錄</div>';
-      return;
-    }
-    el.innerHTML = logs.map(function (l) {
-      var eq = getEquip(l.equipId);
-      var name = eq ? eq.name : "（已刪除）";
-      var actLabel = { borrow: "借出", return: "歸還", repair: "維修", edit: "編輯", add: "新增", retire: "報廢" }[l.type] || l.type;
-      return '<div class="log-item"><span class="act">' + actLabel + '</span> · ' + esc(name) +
-        '<div class="meta">' + esc(l.detail || "") + " · " + fmtDateTime(l.at) + '</div></div>';
-    }).join("");
-  }
-
-  function renderSettings() {
-    document.getElementById("campusName").value = state.settings.campusName || "";
-    document.getElementById("adminName").value = state.settings.adminName || "";
-    document.getElementById("defaultDays").value = state.settings.defaultDays || 7;
-  }
-
-  function esc(s) {
-    if (!s) return "";
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   function openModal(html) {
@@ -647,393 +492,465 @@
   }
 
   function closeModal() {
-    stopScanner();
     document.getElementById("modalBack").classList.remove("open");
+  }
+
+  function renderHome() {
+    var sy = state.settings.schoolYear || "";
+    var sn = state.settings.schoolName || "";
+    document.getElementById("schoolLead").textContent =
+      (sn ? sn + " · " : "") + (sy ? sy + " · " : "") + "掃具請領";
+
+    var today = todayStr();
+    var month = monthStr();
+    var todayRecs = state.records.filter(function (r) { return r.date === today; });
+    var monthRecs = state.records.filter(function (r) { return r.date.slice(0, 7) === month; });
+    var monthQty = monthRecs.reduce(function (a, r) { return a + sumQty(r.qtys); }, 0);
+    var classes = {};
+    monthRecs.forEach(function (r) { classes[r.className] = true; });
+
+    document.getElementById("statsGrid").innerHTML =
+      '<div class="stat"><div class="num">' + todayRecs.length + '</div><div class="lbl">今日請領筆數</div></div>' +
+      '<div class="stat"><div class="num">' + monthRecs.length + '</div><div class="lbl">本月請領筆數</div></div>' +
+      '<div class="stat"><div class="num">' + monthQty + '</div><div class="lbl">本月品項合計</div></div>' +
+      '<div class="stat"><div class="num">' + Object.keys(classes).length + '</div><div class="lbl">本月領用班級</div></div>';
+
+    var el = document.getElementById("todayList");
+    if (!todayRecs.length) {
+      el.innerHTML = '<div class="empty">今日尚無請領紀錄</div>';
+    } else {
+      el.innerHTML = todayRecs.map(cardHtml).join("");
+      bindCardActions(el);
+    }
+  }
+
+  function cardHtml(r) {
+    var chips = itemsSummary(r).map(function (t) {
+      return "<span>" + esc(t) + "</span>";
+    }).join("");
+    if (!chips) chips = "<span>僅其他／未填數量</span>";
+    return '<div class="card">' +
+      '<div class="card-head"><div class="card-title">' + esc(r.className) + " · " + esc(r.teacher) + "</div>" +
+      '<div class="meta">' + esc(r.date) + "</div></div>" +
+      '<div class="items-line">' + chips + "</div>" +
+      '<div class="btn-row">' +
+      '<button class="btn secondary" type="button" data-act="edit" data-id="' + r.id + '">編輯</button>' +
+      '<button class="btn secondary" type="button" data-act="del" data-id="' + r.id + '">刪除</button>' +
+      "</div></div>";
   }
 
   function bindCardActions(container) {
     container.querySelectorAll("[data-act]").forEach(function (btn) {
       btn.onclick = function () {
-        var id = btn.dataset.id;
-        var act = btn.dataset.act;
-        if (act === "detail") showEquipDetail(id);
-        if (act === "borrow") showBorrowForm(id);
-        if (act === "return") doReturn(id);
+        if (btn.dataset.act === "edit") showReqForm(btn.dataset.id);
+        if (btn.dataset.act === "del") {
+          if (!confirm("確定刪除此筆請領？")) return;
+          state.records = state.records.filter(function (r) { return r.id !== btn.dataset.id; });
+          saveState();
+          toast("已刪除");
+          renderHome();
+          renderList();
+          renderStats();
+        }
       };
     });
   }
 
-  function showEquipForm(equip) {
-    var isEdit = !!equip;
-    var e = equip || { name: "", assetNo: "", category: CATEGORIES[0], location: "", notes: "", status: "available" };
-    var catOpts = CATEGORIES.map(function (c) {
-      return '<option value="' + c + '"' + (e.category === c ? " selected" : "") + '>' + c + '</option>';
+  function renderGradeFilters() {
+    var grades = ["all", "1年級", "2年級", "3年級", "暑期", "其他"];
+    document.getElementById("gradeFilters").innerHTML = grades.map(function (g) {
+      var label = g === "all" ? "全部" : g;
+      return '<button type="button" class="chip' + (gradeFilter === g ? " on" : "") + '" data-grade="' + g + '">' + label + "</button>";
     }).join("");
-    var statusOpts = ["available", "repair", "retired"].map(function (s) {
-      return '<option value="' + s + '"' + (e.status === s ? " selected" : "") + '>' + STATUS_LABEL[s] + '</option>';
-    }).join("");
+  }
 
-    openModal(
-      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      '<h3>' + (isEdit ? "編輯器材" : "新增器材") + '</h3>' +
-      '<div class="row"><label>名稱</label><input id="fName" type="text" maxlength="60" value="' + esc(e.name) + '" placeholder="例：掃描王平板 A01" /></div>' +
-      '<div class="row"><label>編號</label><input id="fAssetNo" type="text" maxlength="30" value="' + esc(e.assetNo) + '" placeholder="例：SC-001" /></div>' +
-      '<div class="row"><label>類別</label><select id="fCategory" class="grow">' + catOpts + '</select></div>' +
-      '<div class="row"><label>位置</label><input id="fLocation" type="text" maxlength="40" value="' + esc(e.location) + '" placeholder="例：資訊媒體室" /></div>' +
-      (isEdit ? '<div class="row"><label>狀態</label><select id="fStatus" class="grow">' + statusOpts + '</select></div>' : "") +
-      '<div class="row" style="flex-direction:column;align-items:stretch"><label>備註</label><textarea id="fNotes" maxlength="200">' + esc(e.notes) + '</textarea></div>' +
-      '<button class="btn" type="button" id="fSave">' + (isEdit ? "儲存變更" : "新增") + '</button>' +
-      (isEdit ? '<button class="btn secondary" type="button" id="fDelete" style="margin-top:0.45rem">刪除器材</button>' : "")
-    );
-
-    document.getElementById("modalX").onclick = closeModal;
-    document.getElementById("fSave").onclick = function () {
-      var name = document.getElementById("fName").value.trim();
-      var assetNo = document.getElementById("fAssetNo").value.trim();
-      if (!name || !assetNo) { toast("請填寫名稱與編號"); return; }
-      if (isEdit) {
-        e.name = name;
-        e.assetNo = assetNo;
-        e.category = document.getElementById("fCategory").value;
-        e.location = document.getElementById("fLocation").value.trim();
-        e.notes = document.getElementById("fNotes").value.trim();
-        e.status = document.getElementById("fStatus").value;
-        e.updatedAt = Date.now();
-        addLog("edit", e.id, "更新器材資料");
-      } else {
-        var rec = {
-          id: uid("eq"),
-          name: name,
-          assetNo: assetNo,
-          category: document.getElementById("fCategory").value,
-          location: document.getElementById("fLocation").value.trim(),
-          notes: document.getElementById("fNotes").value.trim(),
-          status: "available",
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        state.equipment.unshift(rec);
-        addLog("add", rec.id, "新增器材");
+  function filteredRecords() {
+    var month = document.getElementById("listMonth").value || monthStr();
+    var q = listSearch.toLowerCase();
+    return state.records.filter(function (r) {
+      if (r.date.slice(0, 7) !== month) return false;
+      if (gradeFilter !== "all" && gradeOf(r.className) !== gradeFilter) return false;
+      if (q) {
+        var hay = (r.className + " " + r.teacher + " " + (r.other || "")).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
       }
-      saveState();
-      closeModal();
-      toast(isEdit ? "已更新" : "已新增");
-      renderEquip();
-      renderHome();
-    };
-    if (isEdit) {
-      document.getElementById("fDelete").onclick = function () {
-        if (!confirm("確定刪除此器材？相關借出紀錄仍會保留。")) return;
-        state.equipment = state.equipment.filter(function (x) { return x.id !== e.id; });
-        addLog("edit", e.id, "刪除器材");
-        saveState();
-        closeModal();
-        toast("已刪除");
-        renderEquip();
-        renderHome();
-      };
+      return true;
+    }).sort(function (a, b) {
+      return a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
+    });
+  }
+
+  function renderList() {
+    if (!document.getElementById("listMonth").value) {
+      document.getElementById("listMonth").value = monthStr();
+    }
+    renderGradeFilters();
+    var list = filteredRecords();
+    var el = document.getElementById("reqList");
+    if (!list.length) {
+      el.innerHTML = '<div class="empty">此條件尚無請領紀錄</div>';
+      return;
+    }
+    el.innerHTML = list.map(cardHtml).join("");
+    bindCardActions(el);
+  }
+
+  function renderStats() {
+    var input = document.getElementById("statsMonth");
+    if (!input.value) input.value = monthStr();
+    var month = input.value;
+    var recs = state.records.filter(function (r) { return r.date.slice(0, 7) === month; });
+
+    var itemTotals = {};
+    state.items.forEach(function (it) { itemTotals[it.id] = 0; });
+    var classCount = {};
+    recs.forEach(function (r) {
+      state.items.forEach(function (it) {
+        itemTotals[it.id] += Number(r.qtys[it.id]) || 0;
+      });
+      classCount[r.className] = (classCount[r.className] || 0) + 1;
+    });
+
+    var itemSorted = state.items.map(function (it) {
+      return { name: it.name, n: itemTotals[it.id] };
+    }).filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; });
+
+    var maxItem = itemSorted.length ? itemSorted[0].n : 1;
+    var itemEl = document.getElementById("itemRank");
+    if (!itemSorted.length) {
+      itemEl.innerHTML = '<div class="empty">本月尚無品項數量</div>';
+    } else {
+      itemEl.innerHTML = itemSorted.map(function (x) {
+        return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
+          '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(x.n / maxItem * 100) + '%"></div></div>' +
+          "<strong>" + x.n + "</strong></div>";
+      }).join("");
+    }
+
+    var classSorted = Object.keys(classCount).map(function (k) {
+      return { name: k, n: classCount[k] };
+    }).sort(function (a, b) { return b.n - a.n; });
+    var maxC = classSorted.length ? classSorted[0].n : 1;
+    var classEl = document.getElementById("classRank");
+    if (!classSorted.length) {
+      classEl.innerHTML = '<div class="empty">本月尚無班級請領</div>';
+    } else {
+      classEl.innerHTML = classSorted.slice(0, 20).map(function (x) {
+        return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
+          '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(x.n / maxC * 100) + '%"></div></div>' +
+          "<strong>" + x.n + " 次</strong></div>";
+      }).join("");
     }
   }
 
-  function showEquipDetail(id) {
-    var e = getEquip(id);
-    if (!e) return;
-    var loan = activeLoanFor(id);
-    var loanHtml = loan
-      ? '<div class="meta">借用人：' + esc(loan.borrower) + ' · 借出：' + fmtDate(loan.borrowAt) + ' · 應還：' + fmtDate(loan.dueAt) + '</div>'
-      : "";
+  function renderItems() {
+    document.getElementById("itemDefList").innerHTML = state.items.map(function (it, i) {
+      return '<div class="card"><div class="card-title">' + (i + 1) + ". " + esc(it.name) +
+        '</div><div class="meta">欄位代碼：' + esc(it.id) + "</div></div>";
+    }).join("");
+
+    var keys = Object.keys(state.classMap).sort();
+    var mapEl = document.getElementById("classMapList");
+    if (!keys.length) {
+      mapEl.innerHTML = '<div class="empty">尚無班級對照，新增請領時輸入會自動記住</div>';
+    } else {
+      mapEl.innerHTML = keys.map(function (k) {
+        return '<div class="card"><div class="card-head"><div class="card-title">' + esc(k) +
+          '</div><div class="meta">' + esc(state.classMap[k]) + "</div></div>" +
+          '<div class="btn-row"><button class="btn secondary" type="button" data-delclass="' + esc(k) + '">移除</button></div></div>';
+      }).join("");
+      mapEl.querySelectorAll("[data-delclass]").forEach(function (btn) {
+        btn.onclick = function () {
+          delete state.classMap[btn.dataset.delclass];
+          saveState();
+          renderItems();
+          toast("已移除");
+        };
+      });
+    }
+  }
+
+  function renderSettings() {
+    document.getElementById("schoolName").value = state.settings.schoolName || "";
+    document.getElementById("schoolYear").value = state.settings.schoolYear || "";
+  }
+
+  function showReqForm(editId) {
+    var rec = editId ? state.records.find(function (r) { return r.id === editId; }) : null;
+    var date = rec ? rec.date : todayStr();
+    var className = rec ? rec.className : "";
+    var teacher = rec ? rec.teacher : "";
+    var qtys = rec ? Object.assign(emptyQtys(), rec.qtys) : emptyQtys();
+    var other = rec ? (rec.other || "") : "";
+
+    var qtyRows = state.items.map(function (it) {
+      var v = Number(qtys[it.id]) || 0;
+      return '<div class="qty-row"><div class="name">' + esc(it.name) + "</div>" +
+        '<div class="qty-ctrl">' +
+        '<button type="button" data-dec="' + it.id + '">−</button>' +
+        '<input type="number" min="0" max="99" data-qty="' + it.id + '" value="' + v + '" />' +
+        '<button type="button" data-inc="' + it.id + '">＋</button>' +
+        "</div></div>";
+    }).join("");
+
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      '<h3>' + esc(e.name) + '</h3>' +
-      '<div class="meta">' + esc(e.assetNo) + ' · ' + esc(e.category) + ' · ' + esc(e.location) + '</div>' +
-      '<div style="margin:0.4rem 0"><span class="badge ' + STATUS_CLASS[e.status] + '">' + STATUS_LABEL[e.status] + '</span></div>' +
-      (e.notes ? '<div class="meta">備註：' + esc(e.notes) + '</div>' : "") +
-      loanHtml +
-      '<div class="qr-box" id="qrTarget"></div>' +
-      '<p class="tips" style="text-align:center;margin-bottom:0.5rem">掃描 QR 可快速開啟此器材</p>' +
-      '<div class="btn-row">' +
-      '<button class="btn secondary" type="button" id="btnEditEquip">編輯</button>' +
-      (e.status === "available" ? '<button class="btn" type="button" id="btnDetailBorrow">借出</button>' :
-        e.status === "borrowed" ? '<button class="btn" type="button" id="btnDetailReturn">歸還</button>' :
-        e.status === "repair" ? '<button class="btn" type="button" id="btnDetailFixed">完成維修</button>' : "") +
-      '</div>'
+      "<h3>" + (rec ? "編輯請領" : "新增請領") + "</h3>" +
+      '<div class="row"><label>領用日期</label><input id="fDate" type="date" value="' + esc(date) + '" /></div>' +
+      '<div class="row"><label>領用班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="例：101、暑新一" /></div>' +
+      '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
+        return '<option value="' + esc(k) + '"></option>';
+      }).join("") + "</datalist>" +
+      '<div class="row"><label>導師姓名</label><input id="fTeacher" type="text" maxlength="20" value="' + esc(teacher) + '" placeholder="自動帶出或手填" /></div>' +
+      "<h3 style=\"font-size:1.05rem;margin-top:0.3rem\">品項數量</h3>" +
+      '<div class="qty-grid" id="qtyGrid">' + qtyRows + "</div>" +
+      '<div class="row" style="flex-direction:column;align-items:stretch"><label>其他細項</label>' +
+      '<textarea id="fOther" maxlength="200" placeholder="例：氣窗擦x2、水桶*2、肥皂x1盒">' + esc(other) + "</textarea></div>" +
+      '<button class="btn" type="button" id="fSave">儲存請領</button>'
     );
+
     document.getElementById("modalX").onclick = closeModal;
-    QRCode.toCanvas(document.getElementById("qrTarget"), "scan-equip:" + e.id, { width: 180, margin: 1 }, function () {});
-    document.getElementById("btnEditEquip").onclick = function () { closeModal(); showEquipForm(e); };
-    var bb = document.getElementById("btnDetailBorrow");
-    if (bb) bb.onclick = function () { closeModal(); showBorrowForm(id); };
-    var br = document.getElementById("btnDetailReturn");
-    if (br) br.onclick = function () { closeModal(); doReturn(id); };
-    var bf = document.getElementById("btnDetailFixed");
-    if (bf) bf.onclick = function () {
-      e.status = "available";
-      e.updatedAt = Date.now();
-      addLog("repair", id, "完成維修，恢復可借");
+
+    document.getElementById("fClass").oninput = function () {
+      var c = document.getElementById("fClass").value.trim();
+      if (state.classMap[c] && !document.getElementById("fTeacher").value.trim()) {
+        document.getElementById("fTeacher").value = state.classMap[c];
+      }
+    };
+
+    document.getElementById("qtyGrid").onclick = function (ev) {
+      var t = ev.target;
+      if (t.dataset.inc || t.dataset.dec) {
+        var id = t.dataset.inc || t.dataset.dec;
+        var input = document.querySelector('[data-qty="' + id + '"]');
+        var n = Number(input.value) || 0;
+        n = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
+        input.value = n;
+      }
+    };
+
+    document.getElementById("fSave").onclick = function () {
+      var d = document.getElementById("fDate").value;
+      var c = document.getElementById("fClass").value.trim();
+      var tch = document.getElementById("fTeacher").value.trim();
+      if (!d || !c) { toast("請填寫日期與班級"); return; }
+      var newQtys = emptyQtys();
+      document.querySelectorAll("[data-qty]").forEach(function (inp) {
+        newQtys[inp.dataset.qty] = Math.max(0, parseInt(inp.value, 10) || 0);
+      });
+      var oth = document.getElementById("fOther").value.trim();
+      if (sumQty(newQtys) === 0 && !oth) {
+        toast("請至少填一項數量或其他細項");
+        return;
+      }
+      if (tch) state.classMap[c] = tch;
+
+      if (rec) {
+        rec.date = d;
+        rec.className = c;
+        rec.teacher = tch;
+        rec.qtys = newQtys;
+        rec.other = oth;
+        rec.updatedAt = Date.now();
+      } else {
+        state.records.unshift({
+          id: uid(),
+          date: d,
+          className: c,
+          teacher: tch,
+          qtys: newQtys,
+          other: oth,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+      }
       saveState();
       closeModal();
-      toast("已恢復可借");
-      renderEquip();
+      toast(rec ? "已更新" : "已新增請領");
       renderHome();
+      renderList();
+      renderStats();
     };
   }
 
-  function showBorrowForm(equipId) {
-    var e = getEquip(equipId);
-    if (!e || e.status !== "available") { toast("此器材目前不可借"); return; }
-    var days = state.settings.defaultDays || 7;
-    var due = new Date();
-    due.setDate(due.getDate() + days);
-    var dueStr = due.getFullYear() + "-" + pad(due.getMonth() + 1) + "-" + pad(due.getDate());
-
+  function showClassForm() {
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      '<h3>借出 · ' + esc(e.name) + '</h3>' +
-      '<div class="row"><label>借用人</label><input id="bBorrower" type="text" maxlength="30" placeholder="姓名或單位" /></div>' +
-      '<div class="row"><label>用途</label><input id="bPurpose" type="text" maxlength="60" placeholder="例：期末試卷掃描" /></div>' +
-      '<div class="row"><label>應還日</label><input id="bDue" type="date" value="' + dueStr + '" /></div>' +
-      '<button class="btn" type="button" id="bConfirm">確認借出</button>'
+      "<h3>新增班級對照</h3>" +
+      '<div class="row"><label>班級</label><input id="cClass" type="text" maxlength="20" placeholder="例：101" /></div>' +
+      '<div class="row"><label>導師</label><input id="cTeacher" type="text" maxlength="20" placeholder="例：王小明" /></div>' +
+      '<button class="btn" type="button" id="cSave">儲存</button>'
     );
     document.getElementById("modalX").onclick = closeModal;
-    document.getElementById("bConfirm").onclick = function () {
-      var borrower = document.getElementById("bBorrower").value.trim();
-      if (!borrower) { toast("請填寫借用人"); return; }
-      var dueVal = document.getElementById("bDue").value;
-      var dueAt = dueVal ? new Date(dueVal + "T23:59:59").getTime() : Date.now() + days * 86400000;
-      var purpose = document.getElementById("bPurpose").value.trim();
-      var loan = {
-        id: uid("loan"),
-        equipId: equipId,
-        borrower: borrower,
-        purpose: purpose,
-        borrowAt: Date.now(),
-        dueAt: dueAt,
-        returnAt: null,
-        notes: ""
-      };
-      state.loans.unshift(loan);
-      e.status = "borrowed";
-      e.updatedAt = Date.now();
-      addLog("borrow", equipId, borrower + (purpose ? " · " + purpose : ""));
+    document.getElementById("cSave").onclick = function () {
+      var c = document.getElementById("cClass").value.trim();
+      var t = document.getElementById("cTeacher").value.trim();
+      if (!c || !t) { toast("請填寫班級與導師"); return; }
+      state.classMap[c] = t;
       saveState();
       closeModal();
-      toast("借出成功");
-      renderEquip();
-      renderLoans();
-      renderHome();
-      renderLogs();
+      toast("已新增");
+      renderItems();
     };
   }
 
-  function doReturn(equipId) {
-    var e = getEquip(equipId);
-    var loan = activeLoanFor(equipId);
-    if (!e || !loan) { toast("找不到借出紀錄"); return; }
-
-    openModal(
-      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      '<h3>歸還 · ' + esc(e.name) + '</h3>' +
-      '<div class="meta">借用人：' + esc(loan.borrower) + '</div>' +
-      '<div class="row" style="flex-direction:column;align-items:stretch;margin-top:0.6rem"><label>歸還備註</label><textarea id="rNotes" maxlength="120" placeholder="例：外觀正常、電量充足"></textarea></div>' +
-      '<div class="row"><label>狀態</label><select id="rStatus" class="grow"><option value="available">恢復可借</option><option value="repair">送修</option></select></div>' +
-      '<button class="btn" type="button" id="rConfirm">確認歸還</button>'
-    );
-    document.getElementById("modalX").onclick = closeModal;
-    document.getElementById("rConfirm").onclick = function () {
-      loan.returnAt = Date.now();
-      loan.notes = document.getElementById("rNotes").value.trim();
-      e.status = document.getElementById("rStatus").value;
-      e.updatedAt = Date.now();
-      addLog("return", equipId, loan.borrower + (loan.notes ? " · " + loan.notes : ""));
-      if (e.status === "repair") addLog("repair", equipId, "歸還後送修");
-      saveState();
-      closeModal();
-      toast("已歸還");
-      renderEquip();
-      renderLoans();
-      renderHome();
-      renderLogs();
-    };
+  function csvEscape(s) {
+    s = String(s == null ? "" : s);
+    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
   }
 
-  function showScanner() {
-    openModal(
-      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      '<h3>掃描器材 QR</h3>' +
-      '<p class="tips" style="margin-bottom:0.5rem">對準器材上的 QR 條碼</p>' +
-      '<div id="scannerRegion"></div>' +
-      '<button class="btn secondary" type="button" id="btnStopScan" style="margin-top:0.6rem">關閉掃描</button>'
-    );
-    document.getElementById("modalX").onclick = closeModal;
-    document.getElementById("btnStopScan").onclick = closeModal;
-
-    scanner = new Html5Qrcode("scannerRegion");
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      function (decoded) {
-        if (!decoded.startsWith("scan-equip:")) { toast("非本系統 QR"); return; }
-        var id = decoded.slice("scan-equip:".length);
-        stopScanner();
-        closeModal();
-        var e = getEquip(id);
-        if (!e) { toast("找不到此器材"); return; }
-        if (e.status === "available") showBorrowForm(id);
-        else if (e.status === "borrowed") doReturn(id);
-        else showEquipDetail(id);
-      },
-      function () {}
-    ).catch(function () {
-      toast("無法開啟相機，請確認權限");
+  function exportCsv(monthOnly) {
+    var headers = ["領用日期", "領用班級", "導師姓名"]
+      .concat(state.items.map(function (it) { return it.name; }))
+      .concat(["其他細項"]);
+    var rows = [headers.join(",")];
+    var month = document.getElementById("statsMonth").value || monthStr();
+    var list = state.records.slice().sort(function (a, b) {
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
     });
-  }
+    if (monthOnly) list = list.filter(function (r) { return r.date.slice(0, 7) === month; });
 
-  function stopScanner() {
-    if (!scanner) return;
-    var s = scanner;
-    scanner = null;
-    s.stop().catch(function () {}).finally(function () {
-      try { s.clear(); } catch (e) {}
+    list.forEach(function (r) {
+      var cols = [r.date, r.className, r.teacher]
+        .concat(state.items.map(function (it) { return Number(r.qtys[it.id]) || 0; }))
+        .concat([r.other || ""]);
+      rows.push(cols.map(csvEscape).join(","));
     });
+
+    var bom = "\uFEFF";
+    var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (monthOnly ? "掃具請領_" + month : "掃具請領_全部") + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("已匯出 CSV（" + list.length + " 筆）");
   }
 
   function loadDemo() {
-    if (state.equipment.length && !confirm("已有器材資料，仍要追加示範資料？")) return;
+    if (state.records.length && !confirm("已有紀錄，仍要追加示範資料？")) return;
+    state.classMap["101"] = "陳老師";
+    state.classMap["102"] = "林老師";
+    state.classMap["201"] = "黃老師";
+    state.classMap["暑新一"] = "吳老師";
     var demos = [
-      { name: "掃描王平板 A01", assetNo: "SC-001", category: "掃描王平板", location: "資訊媒體室" },
-      { name: "掃描王平板 A02", assetNo: "SC-002", category: "掃描王平板", location: "教務處" },
-      { name: "手持掃描器 B01", assetNo: "SC-003", category: "手持掃描器", location: "圖書館" },
-      { name: "影印複合機 C01", assetNo: "SC-004", category: "影印複合機", location: "行政大樓一樓" },
-      { name: "高速掃描器 D01", assetNo: "SC-005", category: "高速掃描器", location: "試務組" }
+      { date: "2026-02-25", className: "101", teacher: "陳老師", qtys: { bamboo_broom: 1, tongs: 0, broom: 1, mop: 1, dustpan: 1 }, other: "" },
+      { date: "2026-03-13", className: "102", teacher: "林老師", qtys: { mop: 2, trash_bag: 1 }, other: "氣窗擦x2" },
+      { date: "2026-03-20", className: "201", teacher: "黃老師", qtys: { broom: 1, dustpan: 1, detergent: 1 }, other: "水桶*2" },
+      { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1 }, other: "肥皂x1盒" }
     ];
     demos.forEach(function (d) {
-      state.equipment.push({
-        id: uid("eq"),
-        name: d.name,
-        assetNo: d.assetNo,
-        category: d.category,
-        location: d.location,
-        notes: "",
-        status: "available",
+      var q = emptyQtys();
+      Object.keys(d.qtys).forEach(function (k) { q[k] = d.qtys[k]; });
+      state.records.unshift({
+        id: uid(),
+        date: d.date,
+        className: d.className,
+        teacher: d.teacher,
+        qtys: q,
+        other: d.other,
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
     });
     saveState();
-    toast("已載入 " + demos.length + " 件示範器材");
-    renderEquip();
+    toast("已載入示範請領");
     renderHome();
-  }
-
-  function exportData() {
-    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "掃具台備份_" + fmtDate(Date.now()) + ".json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("已匯出備份");
-  }
-
-  function importData(file) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var data = JSON.parse(reader.result);
-        if (!data.equipment) throw new Error("格式錯誤");
-        state = Object.assign(defaultState(), data, {
-          settings: Object.assign(defaultState().settings, data.settings || {})
-        });
-        saveState();
-        toast("匯入成功");
-        renderSettings();
-        renderHome();
-        renderEquip();
-      } catch (e) {
-        toast("匯入失敗：" + e.message);
-      }
-    };
-    reader.readAsText(file);
+    renderList();
+    renderStats();
   }
 
   // Events
   document.querySelectorAll(".nav-item").forEach(function (btn) {
     btn.onclick = function () { switchView(btn.dataset.view); };
   });
+  document.getElementById("btnNewReq").onclick = function () { showReqForm(null); };
+  document.getElementById("btnNewReq2").onclick = function () { showReqForm(null); };
+  document.getElementById("btnGoStats").onclick = function () { switchView("stats"); };
 
-  document.getElementById("btnScanQr").onclick = showScanner;
-  document.getElementById("btnQuickBorrow").onclick = function () {
-    switchView("equip");
-    toast("請選擇要借出的器材");
+  document.getElementById("listSearch").oninput = function (ev) {
+    listSearch = ev.target.value;
+    renderList();
   };
-  document.getElementById("btnAddEquip").onclick = function () { showEquipForm(null); };
-
-  document.getElementById("equipSearch").oninput = function (ev) {
-    equipSearch = ev.target.value;
-    renderEquip();
-  };
-
-  document.getElementById("equipFilters").onclick = function (ev) {
-    var chip = ev.target.closest("[data-filter]");
+  document.getElementById("listMonth").onchange = renderList;
+  document.getElementById("gradeFilters").onclick = function (ev) {
+    var chip = ev.target.closest("[data-grade]");
     if (!chip) return;
-    equipFilter = chip.dataset.filter;
-    renderEquip();
+    gradeFilter = chip.dataset.grade;
+    renderList();
   };
 
-  document.getElementById("logFilters").onclick = function (ev) {
-    var chip = ev.target.closest("[data-logfilter]");
-    if (!chip) return;
-    logFilter = chip.dataset.logfilter;
-    renderLogs();
+  document.getElementById("statsMonth").onchange = renderStats;
+  document.getElementById("btnExportCsv").onclick = function () { exportCsv(true); };
+  document.getElementById("btnExportAllCsv").onclick = function () { exportCsv(false); };
+
+  document.getElementById("btnResetItems").onclick = function () {
+    if (!confirm("還原成 Excel 預設 13 項品項？既有紀錄的數量仍依代碼保留。")) return;
+    state.items = DEFAULT_ITEMS.map(function (x) { return Object.assign({}, x); });
+    saveState();
+    toast("已還原預設品項");
+    renderItems();
   };
+  document.getElementById("btnAddClass").onclick = showClassForm;
 
   document.getElementById("btnSaveSettings").onclick = function () {
-    state.settings.campusName = document.getElementById("campusName").value.trim();
-    state.settings.adminName = document.getElementById("adminName").value.trim();
-    state.settings.defaultDays = Math.max(1, parseInt(document.getElementById("defaultDays").value, 10) || 7);
+    state.settings.schoolName = document.getElementById("schoolName").value.trim();
+    state.settings.schoolYear = document.getElementById("schoolYear").value.trim();
     saveState();
     toast("設定已儲存");
     renderHome();
   };
-
-  document.getElementById("btnExport").onclick = exportData;
-  document.getElementById("btnImport").onclick = function () { document.getElementById("importFile").click(); };
+  document.getElementById("btnExportJson").onclick = function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "掃具台備份_" + todayStr() + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("已匯出備份");
+  };
+  document.getElementById("btnImportJson").onclick = function () {
+    document.getElementById("importFile").click();
+  };
   document.getElementById("importFile").onchange = function (ev) {
-    if (ev.target.files[0]) importData(ev.target.files[0]);
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        if (!data.records) throw new Error("格式錯誤");
+        state = {
+          settings: Object.assign(defaultState().settings, data.settings || {}),
+          items: (data.items && data.items.length) ? data.items : defaultState().items,
+          classMap: data.classMap || {},
+          records: data.records || []
+        };
+        saveState();
+        toast("匯入成功");
+        renderSettings();
+        renderHome();
+      } catch (e) {
+        toast("匯入失敗");
+      }
+    };
+    reader.readAsText(file);
     ev.target.value = "";
   };
   document.getElementById("btnDemo").onclick = loadDemo;
-  document.getElementById("btnClearLog").onclick = function () {
-    if (!confirm("清除已歸還相關的舊紀錄？借出中紀錄不受影響。")) return;
-    var activeEquipIds = {};
-    state.loans.filter(function (l) { return !l.returnAt; }).forEach(function (l) { activeEquipIds[l.equipId] = true; });
-    state.logs = state.logs.filter(function (l) {
-      return l.type === "borrow" && activeEquipIds[l.equipId];
-    });
-    state.loans = state.loans.filter(function (l) { return !l.returnAt; });
-    saveState();
-    toast("已清除");
-    renderLogs();
-  };
 
   document.getElementById("modalBack").onclick = function (ev) {
     if (ev.target === document.getElementById("modalBack")) closeModal();
   };
 
-  // Deep link from QR on same device (optional)
-  var params = new URLSearchParams(location.search);
-  if (params.get("eq")) {
-    setTimeout(function () { showEquipDetail(params.get("eq")); }, 300);
-  }
-
-  // Service worker
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   }
 
-  // Init
+  document.getElementById("listMonth").value = monthStr();
+  document.getElementById("statsMonth").value = monthStr();
   renderHome();
-  renderEquip();
 })();
   </script>
 </body>

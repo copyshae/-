@@ -1,13 +1,13 @@
 {
-  "name": "掃具台｜校園掃具管理",
+  "name": "掃具台｜校園掃具請領",
   "short_name": "掃具台",
-  "description": "繁體中文介面。管理校園掃描器材借還、維修與 QR 掃描，離線可用。",
+  "description": "繁體中文介面。班級掃具請領登記，對齊 Excel 領用表欄位，可匯出 CSV。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#eef3fa",
-  "theme_color": "#1e4d8c",
+  "background_color": "#eaf4ee",
+  "theme_color": "#1a5c45",
   "lang": "zh-Hant",
   "icons": [
     {
