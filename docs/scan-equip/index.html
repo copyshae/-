@@ -837,7 +837,7 @@
 
   function parseReqQty(n) {
     n = parseInt(n, 10);
-    if (isNaN(n) || n < 0) return 0;
+    if (isNaN(n)) return 0;
     return n;
   }
 
@@ -847,7 +847,7 @@
       return '<div class="qty-row"><div class="name">' + esc(it.name) + "</div>" +
         '<div class="qty-ctrl">' +
         '<button type="button" data-dec="' + it.id + '">−</button>' +
-        '<input type="number" min="0" data-qty="' + it.id + '" value="' + v + '" inputmode="numeric" />' +
+        '<input type="number" min="-999" data-qty="' + it.id + '" value="' + v + '" inputmode="numeric" />' +
         '<button type="button" data-inc="' + it.id + '">＋</button>' +
         "</div></div>";
     }).join("");
@@ -1335,7 +1335,8 @@
       }
     }
     state.items.forEach(function (it) {
-      var n = Math.max(0, Number(qtys[it.id]) || 0);
+      var n = Number(qtys[it.id]) || 0;
+      if (!editRec && n < 0) warnings.push(it.name + " 為負數（" + n + "），將從累計中扣回");
       if (!editRec && n > 50) warnings.push(it.name + " 本次 " + n + " 件，數量偏多");
       if (editRec) {
         var after = Number(qtys[it.id]) || 0;
@@ -2219,7 +2220,7 @@
           var itemId = t.dataset.inc || t.dataset.dec;
           var input = grid.querySelector('[data-qty="' + itemId + '"]');
           var n = parseReqQty(input.value);
-          input.value = t.dataset.inc ? n + 1 : Math.max(0, n - 1);
+          input.value = t.dataset.inc ? n + 1 : n - 1;
         }
       };
     }
@@ -2259,8 +2260,9 @@
       document.querySelectorAll("[data-qty]").forEach(function (inp) {
         newQtys[inp.dataset.qty] = parseReqQty(inp.value);
       });
-      if (!rec && sumQty(newQtys) === 0) {
-        toast("請至少填一項本次數量（其餘可填 0）");
+      var hasAnyQty = Object.keys(newQtys).some(function (k) { return (Number(newQtys[k]) || 0) !== 0; });
+      if (!rec && !hasAnyQty) {
+        toast("請至少填一項數量（可為負數，代表扣回）");
         return;
       }
       if (rec) {
