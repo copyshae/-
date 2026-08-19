@@ -2653,8 +2653,8 @@
 
     if (existing) {
       state.items.forEach(function (it) {
-        var add = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
-        if (add > 0) {
+        var add = parseInt(addQtys[it.id], 10) || 0;
+        if (add !== 0) {
           existing.qtys[it.id] = (Number(existing.qtys[it.id]) || 0) + add;
           deltas[it.id] = add;
         }
@@ -2679,8 +2679,8 @@
     };
 
     state.items.forEach(function (it) {
-      var q = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
-      if (q > 0) {
+      var q = parseInt(addQtys[it.id], 10) || 0;
+      if (q !== 0) {
         rec.qtys[it.id] = q;
         deltas[it.id] = q;
       }
