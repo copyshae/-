@@ -9,6 +9,10 @@ $desk = [Environment]::GetFolderPath('Desktop')
 $appDir = Join-Path $desk 'MathGradingApp'
 New-Item -ItemType Directory -Force -Path $appDir | Out-Null
 Copy-Item -LiteralPath $src -Destination (Join-Path $appDir 'math-homework-grader-app.ps1') -Force
+$launchSrc = Join-Path $here 'launch-grader.ps1'
+if (Test-Path -LiteralPath $launchSrc) {
+  Copy-Item -LiteralPath $launchSrc -Destination (Join-Path $appDir 'launch-grader.ps1') -Force
+}
 if (Test-Path -LiteralPath $py) {
   Copy-Item -LiteralPath $py -Destination (Join-Path $appDir 'math_grade_make_note_pdf.py') -Force
 }
@@ -29,14 +33,15 @@ if (-not (Test-Path -LiteralPath $printList)) {
 $vbs = @"
 Set sh = CreateObject("WScript.Shell")
 desk = sh.SpecialFolders("Desktop")
-ps1 = desk & "\MathGradingApp\math-homework-grader-app.ps1"
-cmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & ps1 & """ -WorkDir """ & desk & "\MathGrading"""
+ps1 = desk & "\MathGradingApp\launch-grader.ps1"
+cmd = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File """ & ps1 & """ -WorkDir """ & desk & "\MathGrading"""
 sh.Run cmd, 0, False
 "@
-Set-Content -LiteralPath (Join-Path $appDir 'launch.vbs') -Value $vbs -Encoding ASCII
-Set-Content -LiteralPath (Join-Path $desk '習作批改.vbs') -Value $vbs -Encoding ASCII
+$utf16 = New-Object System.Text.UnicodeEncoding $false, $true
+[System.IO.File]::WriteAllText((Join-Path $appDir 'launch.vbs'), $vbs, $utf16)
+[System.IO.File]::WriteAllText((Join-Path $desk '習作批改.vbs'), $vbs, $utf16)
 
 Write-Host "已安裝程式資料夾：$appDir"
 Write-Host "已建立工作資料夾：$work（請把每位學生一檔放進「輸入」）"
-Write-Host "桌面捷徑：習作批改.vbs"
+Write-Host "桌面捷徑：習作批改.vbs（會先顯示「正在啟動…」）"
 Write-Host "產出 PDF 需安裝 Python，並執行：pip install pypdf reportlab"

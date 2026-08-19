@@ -75,6 +75,7 @@
     .seat.lv-略落後 { background: var(--mild); }
     .seat.lv-明顯落後 { background: var(--behind); }
     .seat.lv-需補先備 { background: var(--prep); }
+    .seat.lv-待判定 { background: #f1e8d8; }
     .seat.active { outline: 2px solid rgba(45,106,79,0.4); border-color: var(--accent); }
     .seat.dim { opacity: 0.28; }
     .panel { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
@@ -129,14 +130,14 @@
 </head>
 <body>
     <div class="preview-banner" style="background:#2d6a4f;color:#fff;padding:0.65rem 0.8rem;font-size:0.92rem;font-weight:600;text-align:center;">
-      這是繁體中文新版預覽（正式站尚未更新）
+      習作台｜與習作批改同步程度｜批閱預設 ChatPlayground AI
     </div>
 
   <div class="wrap">
     <header class="hero">
       <div class="brand">習作台</div>
-      <p class="lead">掌握程度、發送狀態、群發文案；可從「習作批改」一鍵同步程度。</p>
-      <p class="install">請用預覽網址開啟（正式 hello-world 可能是舊版）。掃描王 → 分享 → 儲存到檔案 → 匯入掃描檔。</p>
+      <p class="lead">掌握程度、發送狀態、群發文案；習作批改預設用 ChatPlayground AI 批閱後，可一鍵同步程度到此。發放文案採國中課本一～四步驟。</p>
+      <p class="install">掃描王 → 分享 → 儲存到檔案 → 匯入掃描檔。正式 hello-world 站請本機套用匯出後更新。</p>
       <p class="summary" id="summary">—</p>
     </header>
 
@@ -189,7 +190,7 @@
         <div class="row">
           <label for="level">程度</label>
           <select id="level" class="grow">
-            <option>未標</option><option>跟上</option><option>略落後</option><option>明顯落後</option><option>需補先備</option>
+            <option>未標</option><option>跟上</option><option>略落後</option><option>明顯落後</option><option>需補先備</option><option>待判定</option>
           </select>
         </div>
         <div class="row">
@@ -215,18 +216,19 @@
       <div class="actions">
         <button type="button" class="btn" id="btnCopySend">複製群發文</button>
         <button type="button" class="btn secondary" id="btnCopyRet">複製回傳說明</button>
+        <button type="button" class="btn secondary" id="btnCopyPrintList">複製需列印座號</button>
         <button type="button" class="btn secondary" id="btnMarkSent">將「未發」全部標為已發</button>
         <button type="button" class="btn secondary" id="btnMarkPending">將「已發」改為待回</button>
       </div>
     </section>
 
     <section>
-      <h2>今日流程（與電腦批改銜接）</h2>
+      <h2>今日流程（與習作批改銜接｜0803 延伸）</h2>
       <ul class="tips">
-        <li>「習作批改」：載入答案 → 批閱 → <strong>批完後續</strong>（自產練習／發放訊息／練習回傳循環）。</li>
-        <li>手機／電腦「習作台」：從習作批改同步或寫入程度 → 複製群發文 → 貼到班級群組。</li>
-        <li>學生個別回傳 → 標待回／已回；需補先備採多次少題。</li>
-        <li>沒裝置者才走列印包；有手機仍用數位。正式 PDF／整班數位練習包可用電腦版。</li>
+        <li>「習作批改」：ChatPlayground AI 自動批閱（終身 Unlimited）→ 國中課本形式 → 練習模板／發放／寫入習作台／回傳循環。</li>
+        <li>「習作台」：同步程度 → 複製群發文（一～四）→ 貼班級群組；沒裝置用「需列印座號」。</li>
+        <li>練習回傳／手寫：匯入後「回傳進循環」；多次少題補齊。</li>
+        <li>正式 PDF／整班列印包可用電腦「習作批改」。</li>
       </ul>
     </section>
 
@@ -248,19 +250,26 @@
     </section>
 
     <section>
-      <h2>同步更新</h2>
-      <p class="tips">習作批改與習作台資料分開存放。若已在「習作批改」批完，按下方可把程度同步過來。</p>
+      <h2>兩台電腦＋手機同步</h2>
+      <p class="tips">沒有自動雲端。請用 <strong>OneDrive／Google 雲端</strong> 放兩個 JSON，或同一台瀏覽器才用「本機同步」。</p>
+      <ul class="tips" style="margin:0.4rem 0 0.8rem 1.1rem">
+        <li>習作批改：匯出 <code>習作批改進度.json</code> → 另一台手機／電腦「匯入」</li>
+        <li>習作台：匯出 <code>班級狀態.json</code> → 另一台「匯入班級資料」</li>
+        <li>電腦↔電腦：桌面 <code>MathGrading</code>、<code>習作台資料</code> 整夾放 OneDrive 同步</li>
+      </ul>
       <div class="actions">
-        <button type="button" class="btn" id="btnSyncGrader">從習作批改同步程度</button>
+        <button type="button" class="btn" id="btnSyncGrader">本機：從習作批改同步</button>
+        <button type="button" class="btn" id="btnImportGrader">匯入批改進度.json</button>
         <button type="button" class="btn secondary" id="btnExport">匯出班級資料</button>
         <button type="button" class="btn secondary" id="btnImport">匯入班級資料（覆蓋）</button>
         <input class="hidden-file" id="fileImport" type="file" accept="application/json,.json" />
+        <input class="hidden-file" id="fileGrader" type="file" accept="application/json,.json" />
       </div>
     </section>
 
     <p class="nav">
       <a href="../math-grader/">習作批改</a> ·
-      請用此預覽網址；正式 hello-world 站可能仍是舊版
+      <a href="../../apps/desktop-install.html">兩台電腦安裝</a>
     </p>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -331,13 +340,13 @@
         if (filter === "待回") return s.send === "待回" || s.send === "已發";
         if (filter === "先備") return s.level === "需補先備";
         if (filter === "關注") {
-          return s.level === "略落後" || s.level === "明顯落後" || s.level === "需補先備" || s.send === "未發" || s.send === "待回";
+          return s.level === "略落後" || s.level === "明顯落後" || s.level === "需補先備" || s.level === "待判定" || s.send === "未發" || s.send === "待回";
         }
         return true;
       }
 
       function summary() {
-        var c = { 跟上: 0, 略落後: 0, 明顯落後: 0, 需補先備: 0, 未發: 0, 待回: 0 };
+        var c = { 跟上: 0, 略落後: 0, 明顯落後: 0, 需補先備: 0, 待判定: 0, 未發: 0, 待回: 0 };
         Object.keys(state.seats).forEach(function (k) {
           var s = state.seats[k];
           if (c[s.level] != null) c[s.level]++;
@@ -346,7 +355,8 @@
         });
         document.getElementById("summary").textContent =
           "跟上" + c["跟上"] + " 略落後" + c["略落後"] + " 明顯" + c["明顯落後"] +
-          " 先備" + c["需補先備"] + "｜未發" + c["未發"] + " 待回" + c["待回"];
+          " 先備" + c["需補先備"] + " 待判" + c["待判定"] +
+          "｜未發" + c["未發"] + " 待回" + c["待回"];
       }
 
       function channelTip() {
@@ -418,11 +428,28 @@
             var s = state.seats[k];
             return s.send !== "已回" && (
               s.send === "已發" || s.send === "待回" ||
-              s.level === "略落後" || s.level === "明顯落後" || s.level === "需補先備"
+              s.level === "略落後" || s.level === "明顯落後" || s.level === "需補先備" || s.level === "待判定"
             );
           });
         }
         return unsent;
+      }
+
+      function buildPrintList() {
+        var ids = Object.keys(state.seats).sort().filter(function (id) {
+          if (id === "00") return false;
+          var s = state.seats[id];
+          if (!s) return false;
+          if (state.sendChannel === "print") return s.send === "未發" || s.send === "已發" || s.send === "待回";
+          if (/列印|無裝置/.test(s.note || "")) return true;
+          return s.level === "明顯落後" || s.level === "需補先備" || s.level === "待判定";
+        });
+        return (
+          "【需列印座號】\n" +
+          "班級：" + (state.classLabel || "") + "\n" +
+          "座號：" + (ids.length ? ids.join("、") : "（目前無）") + "\n" +
+          "說明：有手機仍發數位；這份給沒裝置者。練習請依一～四步驟完成。\n"
+        );
       }
 
       function buildSend() {
@@ -430,11 +457,15 @@
         var seats = list.length ? list.join("、") : "（請先把要發的座號標成「未發」）";
         return (
           "【" + state.classLabel + "｜今日練習】\n" +
-          "請座號：" + seats + "\n" +
-          "1. 依老師發的檔／連結完成練習（含指導與影片）\n" +
-          "2. 完成後請「個別傳給老師」，不要傳班級群組\n" +
-          "3. 截止：" + state.deadline + "\n" +
-          "有問題先看指導；仍不懂再私下詢問老師。"
+          "請座號：" + seats + "\n\n" +
+          "請依序完成（國中課本形式）：\n" +
+          "一、先看這裡（口訣／注意）\n" +
+          "二、看影片\n" +
+          "三、做練習（全部做完再看解答）\n" +
+          "四、解答最後才看\n\n" +
+          "完成後請「個別傳給老師」，不要傳班級群組。\n" +
+          "截止：" + state.deadline + "\n" +
+          "有問題先看「一、先看這裡」；仍不懂再私下詢問老師。"
         );
       }
 
@@ -443,7 +474,8 @@
           "【" + state.classLabel + "｜回傳方式】\n" +
           "請用「個別傳給老師」交練習圖／PDF。\n" +
           "檔名建議：座號-次數，例如 05-R01.jpg\n" +
-          "不要傳進班級群組，方便老師對座號批改。"
+          "不要傳進班級群組，方便老師對座號批改。\n" +
+          "練習記得：先看一、二，再做三；全部做完才看四、解答。"
         );
       }
 
@@ -501,6 +533,13 @@
         copyText(msg, "已複製回傳說明");
       });
 
+      document.getElementById("btnCopyPrintList").addEventListener("click", function () {
+        persistHeader();
+        var msg = buildPrintList();
+        document.getElementById("preview").value = msg;
+        copyText(msg, "已複製需列印座號");
+      });
+
       document.getElementById("btnMarkSent").addEventListener("click", function () {
         persistHeader();
         Object.keys(state.seats).forEach(function (k) {
@@ -521,33 +560,8 @@
         toast("已發 → 待回");
       });
 
-      document.getElementById("btnExport").addEventListener("click", function () {
-        persistHeader();
-        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "班級狀態.json";
-        a.click();
-        URL.revokeObjectURL(a.href);
-        toast("已匯出，可傳到電腦習作台匯入");
-      });
-
-      document.getElementById("btnSyncGrader").addEventListener("click", function () {
-        var raw = null;
-        try { raw = localStorage.getItem("math-grader-v1"); } catch (e) {}
-        if (!raw) {
-          toast("找不到習作批改資料。請先用同一個預覽網址打開「習作批改」並批過");
-          return;
-        }
-        var g = null;
-        try { g = JSON.parse(raw); } catch (e) {
-          toast("習作批改資料讀取失敗");
-          return;
-        }
-        if (!g || !g.seats) {
-          toast("習作批改尚無座號資料");
-          return;
-        }
+      function mergeGraderIntoDesk(g) {
+        if (!g || !g.seats) return -1;
         persistHeader();
         var n = 0;
         Object.keys(g.seats).forEach(function (id) {
@@ -559,17 +573,20 @@
             } else return;
           }
           var lv = src.level || "";
-          if (lv && lv !== "未標" && lv !== "待判定") {
+          if (lv && lv !== "未標") {
             state.seats[id].level = lv;
             n++;
-          } else if (lv === "待判定") {
-            state.seats[id].level = "需補先備";
-            n++;
           }
-          if (src.status === "已批" || src.status === "待認知") {
-            if (src.note) state.seats[id].note = String(src.note).slice(0, 40);
+          if (src.status === "已批" || src.status === "待認知" || src.status === "待重謄") {
+            var noteBits = [];
+            if (src.note) noteBits.push(String(src.note).slice(0, 24));
+            if (src.lastModel) noteBits.push(String(src.lastModel).slice(0, 16));
+            if (src.status === "待認知") noteBits.push("待認知");
+            if (noteBits.length) state.seats[id].note = noteBits.join("｜").slice(0, 80);
           }
-          if (src.status === "待認知") state.seats[id].level = state.seats[id].level || "需補先備";
+          if (src.status === "待認知" && (!state.seats[id].level || state.seats[id].level === "未標")) {
+            state.seats[id].level = "待判定";
+          }
         });
         if (g.classLabel) state.classLabel = g.classLabel;
         if (g.seatCount) state.seatCount = g.seatCount;
@@ -578,7 +595,63 @@
         syncForm();
         renderGrid();
         fillSeatSelect();
+        return n;
+      }
+
+      document.getElementById("btnExport").addEventListener("click", function () {
+        persistHeader();
+        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "班級狀態.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("已匯出，可傳到 OneDrive／另一台匯入");
+      });
+
+      document.getElementById("btnSyncGrader").addEventListener("click", function () {
+        var raw = null;
+        try { raw = localStorage.getItem("math-grader-v1"); } catch (e) {}
+        if (!raw) {
+          toast("找不到習作批改資料。請先用同一個網址打開「習作批改」並批過，或改匯入 JSON");
+          return;
+        }
+        var g = null;
+        try { g = JSON.parse(raw); } catch (e) {
+          toast("習作批改資料讀取失敗");
+          return;
+        }
+        var n = mergeGraderIntoDesk(g);
+        if (n < 0) {
+          toast("習作批改尚無座號資料");
+          return;
+        }
         toast(n ? ("已同步 " + n + " 個座號程度") : "沒有可同步的程度（請先在習作批改完成自動批）");
+      });
+
+      document.getElementById("btnImportGrader").addEventListener("click", function () {
+        document.getElementById("fileGrader").click();
+      });
+
+      document.getElementById("fileGrader").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var g = JSON.parse(reader.result);
+            var n = mergeGraderIntoDesk(g);
+            if (n < 0) {
+              toast("檔案不是有效的批改進度");
+              return;
+            }
+            toast(n ? ("已從檔案同步 " + n + " 個座號程度") : "檔案裡沒有可同步的程度");
+          } catch (err) {
+            toast("匯入批改進度失敗");
+          }
+        };
+        reader.readAsText(f);
       });
 
       document.getElementById("btnImport").addEventListener("click", function () {
@@ -911,10 +984,16 @@
       }
 
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").then(function () {
-          // 分享進來後 SW 寫入 DB，頁面再刷新列表
+        navigator.serviceWorker.register("./sw.js").then(function (reg) {
+          try { reg.update(); } catch (e) {}
           setTimeout(function () { renderScans(); }, 400);
         }).catch(function () {});
+        var reloaded = false;
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+          if (reloaded) return;
+          reloaded = true;
+          location.reload();
+        });
       }
     })();
   </script>

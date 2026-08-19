@@ -1,0 +1,17 @@
+---
+description: 連日誌＝公開學習日誌下一則（目錄最晚日期隔天）
+alwaysApply: true
+---
+
+# 連日誌／開日誌
+
+使用者說「連日誌」「開日誌」時：
+
+1. 看 hello-world 的 `directory/YYYYMM/`（線上 Pages 或 `_export/hello-world/directory/202608/`），找出 `YYYYMMDD-learning-log.html` **已經存在的最晚日期**。
+2. 新頁日期 = 該日期的**隔天**（例如 0817 → **0818**）。
+3. **不要**用日曆明天；也**不要**只從 0803 電腦版系列往後加一天。若該月目錄最晚已是 0817，下一則就是 0818。
+4. 若使用者寫「連日誌 0818」則用該指定日期。
+
+內容：把 `工作日誌.md` 對應期間的重點寫成公開學習日誌（繁體中文、只用座號、不寫金鑰／姓名）。檔案放 `_export/hello-world/directory/YYYYMM/`，並更新該月 `index.html`（由新到舊）。套用腳本（`apply-to-hello-world.ps1`、`pull-export-from-dash-repo.ps1`）要列入新頁與 `index.html`。
+
+寫完後 commit、push。正式站需本機把 `_export` 套到 `copyshae/hello-world`。

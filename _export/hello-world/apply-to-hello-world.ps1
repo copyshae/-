@@ -10,6 +10,9 @@ if (-not (Test-Path -LiteralPath $dest)) {
 $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
+  @{ Src = 'directory\apps\index.html'; Dst = 'directory\apps\index.html' },
+  @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
+  @{ Src = 'directory\202608\20260818-learning-log.html'; Dst = 'directory\202608\20260818-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -45,17 +48,19 @@ if (Test-Path -LiteralPath $rulesSrc) {
 
 Push-Location $dest
 try {
-  git add directory/apps/teacher-desk directory/apps/math-grader `
+  git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/index.html `
+    directory/202608/index.html directory/202608/20260818-learning-log.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = '手機習作批改／習作台：ChatPlayground AI 預設批閱＋國中課本形式'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'
   Write-Host '請再跑：powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1'
-  Write-Host '習作批改：Gemini金鑰 →「Gemini自動批」或「連續自動批」（答案可選）。'
+  Write-Host '桌面捷徑：習作批改.vbs、習作台.vbs'
+  Write-Host '習作批改：ChatPlayground AI 自動批閱（Gemini 金鑰可留空）。'
 } finally {
   Pop-Location
 }

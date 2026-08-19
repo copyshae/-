@@ -1,3 +1,24 @@
+#!/usr/bin/env bash
+# 從 _export/hello-world/directory/apps 同步到 docs/（習作批改 mg、習作台 td）
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+SRC="$ROOT/_export/hello-world/directory/apps"
+DOCS="$ROOT/docs"
+
+sync_app() {
+  local name="$1"
+  local src="$SRC/$name"
+  for dest in "$DOCS/$name" "$DOCS/$([ "$name" = "math-grader" ] && echo mg || echo td)"; do
+    mkdir -p "$dest"
+    cp -a "$src"/. "$dest"/
+    echo "已同步 $name → $dest"
+  done
+}
+
+sync_app math-grader
+sync_app teacher-desk
+
+cat > "$DOCS/index.html" <<'HTML'
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -39,3 +60,6 @@
   </div>
 </body>
 </html>
+HTML
+
+echo "已更新 docs/index.html"

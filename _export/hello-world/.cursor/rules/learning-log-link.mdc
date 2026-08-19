@@ -1,0 +1,8 @@
+---
+description: 連日誌＝公開學習日誌下一則（目錄最晚日期隔天）
+alwaysApply: false
+---
+
+# 連日誌／開日誌
+
+公開學習日誌在 `directory/YYYYMM/`。新頁日期 = 該月目錄已有最晚 `YYYYMMDD-learning-log.html` 的隔天（0817 → 0818），不要用日曆明天，也不要只從 0803 往後加。檔案由 dash `_export/hello-world/` 套用進來。
