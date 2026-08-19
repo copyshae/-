@@ -1048,7 +1048,7 @@
 
   function migrateSettings(settings) {
     var s = Object.assign({}, settings || {});
-    if (!s.schoolYear || s.schoolYear === "114 學年") s.schoolYear = "115 學年";
+    if (!/115/.test(String(s.schoolYear || ""))) s.schoolYear = "115 學年";
     if (!s.schoolName) s.schoolName = "彰化縣立彰安國民中學";
     return s;
   }
