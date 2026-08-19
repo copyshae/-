@@ -816,8 +816,10 @@
       homeInv.innerHTML = '<div class="empty">尚未登記庫存，請至「庫存」分頁點選種類編輯</div>';
     } else {
       homeInv.innerHTML = rows.map(function (x) {
+        var it = state.items.find(function (i) { return i.id === x.id; });
         return '<div class="inv-table-row" data-stock="' + x.id + '" style="cursor:pointer">' +
-          '<span class="name">' + esc(x.name) + '</span>' +
+          '<span class="name">' + esc(x.name) +
+          (it && isOtherItem(it) ? '<span class="tag-other">其他</span>' : '') + '</span>' +
           '<span class="n">' + x.e.new + '</span><span class="n">' + x.e.old + '</span>' +
           '<span class="n">' + x.e.fair + '</span><span class="n">' + x.total + '</span></div>';
       }).join("") +
@@ -843,7 +845,7 @@
     var chips = itemsSummary(r).map(function (t) {
       return "<span>" + esc(t) + "</span>";
     }).join("");
-    if (!chips) chips = "<span>僅其他／未填數量</span>";
+    if (!chips) chips = "<span>未填數量</span>";
     return '<div class="card">' +
       '<div class="card-head"><div class="card-title">' + esc(r.className) + " · " + esc(r.teacher) + "</div>" +
       '<div class="meta">' + esc(r.date) + "</div></div>" +
