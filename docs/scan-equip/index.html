@@ -518,9 +518,14 @@
       </section>
       <section>
         <h2>導師現任班級</h2>
-        <p class="tips" style="margin-bottom:0.5rem">僅供<strong>班級導師</strong>對照；非班級領用（處室等）不必設定，領用人直接輸入即可。</p>
+        <p class="tips" style="margin-bottom:0.5rem">僅供<strong>班級導師</strong>對照；非班級領用（處室等）不必設定，領用人直接輸入即可。可按「載入115學年度名單」或貼上完整表格匯入。</p>
         <div id="classMapList"></div>
-        <button class="btn" type="button" id="btnAddClass" style="margin-top:0.55rem">新增導師現任班級</button>
+        <div class="btn-row" style="margin-top:0.55rem">
+          <button class="btn" type="button" id="btnLoadTeacherPreset">載入115學年度名單</button>
+          <button class="btn secondary" type="button" id="btnImportTeacherClass">匯入導師名單</button>
+          <button class="btn secondary" type="button" id="btnExportTeacherClass">匯出導師名單</button>
+        </div>
+        <button class="btn secondary" type="button" id="btnAddClass" style="margin-top:0.45rem">新增導師現任班級</button>
       </section>
       <section>
         <h2>示範資料</h2>
@@ -587,6 +592,34 @@
   var RENAMED_ITEM_IDS = {
     other_coconut_mop: "other_coconut_broom"
   };
+
+  /**
+   * 彰化縣立彰安國民中學 115 學年度班級導師（已確認部分）
+   * 來源：115 學年度班級導師名單、114 學年新生班導師 PDF（升二年級對照）
+   * 105–112、305–312 等若需補齊，請用「匯入導師名單」貼上完整表格
+   */
+  var TEACHER_CLASS_PRESET_CAJH_115 = [
+    { className: "101", teacher: "施奕廷" },
+    { className: "102", teacher: "呂慧君" },
+    { className: "103", teacher: "蕭秀綿" },
+    { className: "104", teacher: "張燕妮" },
+    { className: "201", teacher: "徐詩媛" },
+    { className: "202", teacher: "林志賢" },
+    { className: "203", teacher: "洪美麗" },
+    { className: "204", teacher: "許珮瑜" },
+    { className: "205", teacher: "周齊恩" },
+    { className: "206", teacher: "陳怡儒" },
+    { className: "207", teacher: "施惠芳" },
+    { className: "208", teacher: "黃齡儀" },
+    { className: "209", teacher: "楊宜蓁" },
+    { className: "210", teacher: "張信忠" },
+    { className: "211", teacher: "黃敏華" },
+    { className: "212", teacher: "陳映慈" },
+    { className: "301", teacher: "施榮鍾" },
+    { className: "302", teacher: "孫聖提" },
+    { className: "303", teacher: "莊于慧" },
+    { className: "304", teacher: "陳梅婷" }
+  ];
 
   var GEMINI_KEY_STORAGE = "scan-equip-gemini-key";
   var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
@@ -858,6 +891,105 @@
     var cls = state.teacherClassMap[teacher];
     delete state.teacherClassMap[teacher];
     if (cls && normKey(state.classMap[cls]) === teacher) delete state.classMap[cls];
+  }
+
+  function normalizeTeacherName(name) {
+    return String(name || "").trim().replace(/老師$|師$/g, "");
+  }
+
+  function parseTeacherClassText(text) {
+    var rows = [];
+    var seen = {};
+    String(text || "").split(/\n+/).forEach(function (line) {
+      line = line.trim();
+      if (!line || /^班級/.test(line) || /^導師/.test(line) || /^分機/.test(line)) return;
+      var parts = line.split(/[\t,，;；|]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      if (parts.length >= 2 && /^\d{3}$|^特教\d$|^樂學班$|^暑/.test(parts[0])) {
+        var t0 = normalizeTeacherName(parts[1]);
+        if (t0 && !seen[parts[0] + "\t" + t0]) {
+          seen[parts[0] + "\t" + t0] = true;
+          rows.push({ className: parts[0], teacher: t0 });
+        }
+        return;
+      }
+      var re = /(?:^|[\s(（])(\d{3}|特教\d|樂學班|暑[\u4e00-\u9fff\d]+)\s*[,，:\s]+([\u4e00-\u9fff]{2,4})(?:老師|師)?/g;
+      var m;
+      while ((m = re.exec(line)) !== null) {
+        var cls = m[1];
+        var tch = normalizeTeacherName(m[2]);
+        if (!tch || seen[cls + "\t" + tch]) continue;
+        seen[cls + "\t" + tch] = true;
+        rows.push({ className: cls, teacher: tch });
+      }
+    });
+    return rows;
+  }
+
+  function applyTeacherClassRows(rows, replace) {
+    if (!rows.length) return 0;
+    if (replace) {
+      state.teacherClassMap = {};
+      state.classMap = {};
+    }
+    rows.forEach(function (r) {
+      syncClassMapsFromTeacher(r.teacher, r.className);
+    });
+    saveState();
+    return rows.length;
+  }
+
+  function loadTeacherClassPreset(preset, replace) {
+    preset = preset || TEACHER_CLASS_PRESET_CAJH_115;
+    var n = applyTeacherClassRows(preset.slice(), replace);
+    state.settings.schoolName = state.settings.schoolName || "彰化縣立彰安國民中學";
+    state.settings.schoolYear = "115 學年";
+    saveState();
+    return n;
+  }
+
+  function exportTeacherClassJson() {
+    var rows = Object.keys(state.teacherClassMap || {}).sort().map(function (t) {
+      return { className: state.teacherClassMap[t], teacher: t };
+    }).sort(function (a, b) {
+      return gradeRank(a.className) - gradeRank(b.className) || a.className.localeCompare(b.className);
+    });
+    var blob = new Blob([JSON.stringify({
+      schoolName: state.settings.schoolName || "",
+      schoolYear: state.settings.schoolYear || "",
+      teacherClass: rows
+    }, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "導師名單_" + todayStr() + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("已匯出導師名單（" + rows.length + " 筆）");
+  }
+
+  function showImportTeacherClassModal() {
+    openModal(
+      '<button class="modal-close" type="button" id="modalX">&times;</button>' +
+      "<h3>匯入導師名單</h3>" +
+      '<p class="tips" style="margin-bottom:0.45rem">每行一筆，格式：<strong>班級 導師</strong>（例：301 施榮鍾）。可從 Excel 複製多欄，或貼上整張表格文字。</p>' +
+      '<textarea id="teacherImportText" placeholder="101 施奕廷&#10;102 呂慧君&#10;201 徐詩媛&#10;301 施榮鍾&#10;特教2 〇〇&#10;樂學班 〇〇" style="min-height:9rem"></textarea>' +
+      '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
+      '<input type="checkbox" id="teacherImportReplace" checked /> 覆寫既有對照（取消則合併更新）</label>' +
+      '<button class="btn" type="button" id="teacherImportSave" style="margin-top:0.65rem">匯入</button>'
+    );
+    document.getElementById("modalX").onclick = closeModal;
+    document.getElementById("teacherImportSave").onclick = function () {
+      var txt = document.getElementById("teacherImportText").value.trim();
+      if (!txt) { toast("請貼上名單"); return; }
+      var rows = parseTeacherClassText(txt);
+      if (!rows.length) { toast("無法解析，請確認格式"); return; }
+      var replace = document.getElementById("teacherImportReplace").checked;
+      if (replace && Object.keys(state.teacherClassMap || {}).length &&
+          !confirm("將覆寫現有 " + Object.keys(state.teacherClassMap).length + " 筆對照，確定？")) return;
+      applyTeacherClassRows(rows, replace);
+      closeModal();
+      toast("已匯入 " + rows.length + " 筆導師對照");
+      renderSettings();
+    };
   }
 
   /** 領用人／班級：保留輸入原文；僅在另一欄空白且完全吻合對照表時帶出建議 */
@@ -2576,6 +2708,19 @@
     });
   };
   document.getElementById("btnAddClass").onclick = showClassForm;
+  document.getElementById("btnLoadTeacherPreset").onclick = function () {
+    var has = Object.keys(state.teacherClassMap || {}).length;
+    var msg = has
+      ? "將以115學年度已確認名單覆寫現有 " + has + " 筆對照，並設定校名／學年。確定？"
+      : "載入彰安國中115學年度導師名單（已確認部分）？";
+    if (!confirm(msg)) return;
+    var n = loadTeacherClassPreset(TEACHER_CLASS_PRESET_CAJH_115, true);
+    toast("已載入 " + n + " 筆；缺漏班級可用「匯入導師名單」補齊");
+    renderSettings();
+    renderHome();
+  };
+  document.getElementById("btnImportTeacherClass").onclick = showImportTeacherClassModal;
+  document.getElementById("btnExportTeacherClass").onclick = exportTeacherClassJson;
 
   document.getElementById("btnSaveSettings").onclick = function () {
     state.settings.schoolName = document.getElementById("schoolName").value.trim();
