@@ -1430,7 +1430,7 @@
         if (rec) {
           d = (Number(payload.qtys[it.id]) || 0) - (Number(snap.prevRecord.qtys[it.id]) || 0);
         } else {
-          d = Math.max(0, Number(payload.qtys[it.id]) || 0);
+          d = Number(payload.qtys[it.id]) || 0;
         }
         if (d !== 0) {
           snap.prevInv[it.id] = Object.assign(emptyStockEntry(), state.inventory[it.id] || emptyStockEntry());
@@ -2653,8 +2653,8 @@
 
     if (existing) {
       state.items.forEach(function (it) {
-        var add = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
-        if (add > 0) {
+        var add = parseInt(addQtys[it.id], 10) || 0;
+        if (add !== 0) {
           existing.qtys[it.id] = (Number(existing.qtys[it.id]) || 0) + add;
           deltas[it.id] = add;
         }
@@ -2679,8 +2679,8 @@
     };
 
     state.items.forEach(function (it) {
-      var q = Math.max(0, parseInt(addQtys[it.id], 10) || 0);
-      if (q > 0) {
+      var q = parseInt(addQtys[it.id], 10) || 0;
+      if (q !== 0) {
         rec.qtys[it.id] = q;
         deltas[it.id] = q;
       }
