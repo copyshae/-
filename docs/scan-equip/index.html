@@ -393,6 +393,7 @@
         <ul class="tips">
           <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
           <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
+          <li>掃具欄位可隨時新增或刪除（設定、庫存、請領表單皆可）</li>
           <li>領用人（導師／處室）可直接輸入；非班級領用時班級可留空</li>
           <li>手動請領：填領用人或班級，再輸入各掃具數量</li>
           <li>每次請領各為一列；同班級可於同天或不同天多次請領，品項不必相同</li>
@@ -467,6 +468,7 @@
           <button class="btn" type="button" id="btnStockIn">進貨入庫</button>
           <button class="btn secondary" type="button" id="btnStockReturn">送還入庫</button>
           <button class="btn secondary" type="button" id="btnPhotoScanStock">拍照登記</button>
+          <button class="btn secondary" type="button" id="btnAddItemStock">新增欄位</button>
           <button class="btn secondary" type="button" id="btnExportInvCsv">匯出庫存 CSV</button>
         </div>
       </section>
@@ -510,10 +512,10 @@
         </div>
       </section>
       <section>
-        <h2>掃具種類</h2>
-        <p class="tips" style="margin-bottom:0.5rem">每種掃具獨立一欄；請領表、CSV 匯出與庫存共用同一套種類。</p>
+        <h2>掃具欄位</h2>
+        <p class="tips" style="margin-bottom:0.5rem">每種掃具獨立一欄，可<strong>隨時新增或刪除</strong>；請領表、CSV 與庫存同步更新。</p>
         <div id="itemDefList"></div>
-        <button class="btn" type="button" id="btnAddOtherItem" style="margin-top:0.55rem">新增掃具種類</button>
+        <button class="btn" type="button" id="btnAddOtherItem" style="margin-top:0.55rem">新增欄位</button>
         <button class="btn secondary" type="button" id="btnResetItems" style="margin-top:0.45rem">還原預設種類</button>
       </section>
       <section>
@@ -654,7 +656,16 @@
     return n;
   }
 
-  function addOtherItem(name) {
+  function isDefaultItemId(itemId) {
+    return DEFAULT_ITEMS.some(function (d) { return d.id === itemId; }) ||
+      DEFAULT_OTHER_ITEMS.some(function (d) { return d.id === itemId; });
+  }
+
+  function ensureRemovedIds() {
+    if (!state.removedItemIds) state.removedItemIds = [];
+  }
+
+  function addItem(name) {
     name = String(name || "").trim();
     if (!name) return null;
     if (itemByName(name)) {
@@ -668,21 +679,37 @@
     return it;
   }
 
-  function removeOtherItem(itemId) {
+  function addOtherItem(name) { return addItem(name); }
+
+  function removeItem(itemId) {
     var it = state.items.find(function (x) { return x.id === itemId; });
-    if (!it || !isOtherItem(it)) return false;
-    if (stockTotal(state.inventory[itemId]) > 0) {
-      toast("尚有庫存，無法刪除");
-      return false;
-    }
-    if (itemUsedCount(itemId) > 0) {
-      toast("請領紀錄使用中，無法刪除");
-      return false;
-    }
-    state.items = state.items.filter(function (x) { return x.id !== itemId; });
+    if (!it) return false;
+    var hasStock = stockTotal(state.inventory[itemId]) > 0;
+    var used = itemUsedCount(itemId) > 0;
+    var warn = "";
+    if (hasStock && used) warn = "尚有庫存且請領紀錄含此欄位";
+    else if (hasStock) warn = "尚有庫存";
+    else if (used) warn = "請領紀錄含此欄位";
+    var msg = warn
+      ? "「" + it.name + "」" + warn + "，確定刪除此欄位？相關數量將一併清除。"
+      : "確定刪除欄位「" + it.name + "」？";
+    if (!confirm(msg)) return false;
+
+    state.records.forEach(function (r) {
+      if (r.qtys && r.qtys[itemId] != null) delete r.qtys[itemId];
+    });
     delete state.inventory[itemId];
+    state.items = state.items.filter(function (x) { return x.id !== itemId; });
+    if (isDefaultItemId(itemId)) {
+      ensureRemovedIds();
+      if (state.removedItemIds.indexOf(itemId) < 0) state.removedItemIds.push(itemId);
+    }
     saveState();
     return true;
+  }
+
+  function removeOtherItem(itemId) {
+    return removeItem(itemId);
   }
 
   function parseReqQty(n) {
@@ -735,13 +762,14 @@
       var kind = it.kind || (DEFAULT_ITEMS.some(function (d) { return d.id === it.id; }) ? "standard" : "other");
       return Object.assign({ kind: kind }, it);
     });
+    var removed = p.removedItemIds || [];
     var have = {};
     items.forEach(function (it) { have[it.id] = true; });
     DEFAULT_ITEMS.forEach(function (it) {
-      if (!have[it.id]) items.unshift(Object.assign({}, it));
+      if (!have[it.id] && removed.indexOf(it.id) < 0) items.unshift(Object.assign({}, it));
     });
     DEFAULT_OTHER_ITEMS.forEach(function (it) {
-      if (!have[it.id]) items.push(Object.assign({}, it));
+      if (!have[it.id] && removed.indexOf(it.id) < 0) items.push(Object.assign({}, it));
     });
 
     items = items.map(function (it) {
@@ -795,7 +823,8 @@
       teacherClassMap: migrateTeacherClassMap(p.classMap || {}, p.teacherClassMap || {}),
       records: records,
       stockLogs: p.stockLogs || [],
-      inventory: inventory
+      inventory: inventory,
+      removedItemIds: removed
     };
   }
 
@@ -891,7 +920,8 @@
       classMap: {},
       teacherClassMap: {},
       records: [],
-      stockLogs: []
+      stockLogs: [],
+      removedItemIds: []
     };
   }
 
@@ -907,6 +937,7 @@
       var p = JSON.parse(raw);
       var s = migrateState(p);
       s.inventory = ensureInventory(s.inventory || p.inventory);
+      if (!s.removedItemIds) s.removedItemIds = p.removedItemIds || [];
       return s;
     } catch (e) {
       return defaultState();
@@ -1283,6 +1314,7 @@
       '<div id="condGrid">' + blocks + '</div>' +
       '<p class="meta" id="stockSumLine" style="margin:0.5rem 0">合計：' + stockTotal(e) + '</p>' +
       '<button class="btn" type="button" id="stockSave">儲存庫存</button>' +
+      '<button class="btn secondary" type="button" id="stockDelete" style="margin-top:0.45rem">刪除此欄位</button>' +
       '<button class="btn secondary" type="button" id="stockZero" style="margin-top:0.45rem">全部歸零</button>'
     );
 
@@ -1329,6 +1361,16 @@
       renderStock();
       renderHome();
     };
+
+    document.getElementById("stockDelete").onclick = function () {
+      if (!removeItem(itemId)) return;
+      closeModal();
+      toast("已刪除欄位");
+      renderSettings();
+      renderStock();
+      renderHome();
+      renderList();
+    };
   }
 
   function exportInvCsv() {
@@ -1354,13 +1396,11 @@
 
   function renderItemCard(it, i) {
     var e = state.inventory[it.id] || emptyStockEntry();
-    var delBtn = isOtherItem(it)
-      ? '<div class="btn-row"><button class="btn secondary" type="button" data-delitem="' + it.id + '">刪除種類</button></div>'
-      : "";
     return '<div class="card"><div class="card-title">' + (i + 1) + ". " + esc(it.name) +
-      (isOtherItem(it) ? ' <span class="tag-other">其他</span>' : '') +
+      (isOtherItem(it) ? ' <span class="tag-other">自訂</span>' : '') +
       '</div><div class="meta">庫存：新 ' + e.new + ' · 舊 ' + e.old + ' · 尚可 ' + e.fair + '</div>' +
-      delBtn + '</div>';
+      '<div class="btn-row">' +
+      '<button class="btn secondary" type="button" data-delitem="' + it.id + '">刪除欄位</button></div></div>';
   }
 
   function renderItemDefs() {
@@ -1371,14 +1411,12 @@
 
     document.querySelectorAll("[data-delitem]").forEach(function (btn) {
       btn.onclick = function () {
-        var it = state.items.find(function (x) { return x.id === btn.dataset.delitem; });
-        if (!it || !confirm("確定刪除種類「" + it.name + "」？")) return;
-        if (removeOtherItem(btn.dataset.delitem)) {
-          toast("已刪除種類");
-          renderSettings();
-          renderStock();
-          renderHome();
-        }
+        if (!removeItem(btn.dataset.delitem)) return;
+        toast("已刪除欄位");
+        renderSettings();
+        renderStock();
+        renderHome();
+        renderList();
       };
     });
 
@@ -1444,7 +1482,7 @@
         }).join("") + "</datalist>" +
         '<div class="qty-section-title">各掃具數量</div>' +
         '<div class="qty-grid" id="qtyGridAll">' + qtyRowsHtml(currentQtys, sortedItems()) + '</div>' +
-        '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增掃具種類</button>' +
+        '<button class="btn secondary" type="button" id="btnAddOtherInForm" style="margin-top:0.35rem">新增欄位</button>' +
         '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
         '<input type="checkbox" id="syncStock" checked /> ' + syncLabel + '</label>' +
         '<button class="btn" type="button" id="fSave" style="margin-top:0.65rem">' +
@@ -1511,7 +1549,7 @@
         });
         var newInput = document.querySelector('[data-qty="' + it.id + '"]');
         if (newInput) newInput.value = 1;
-        toast("已新增種類：" + it.name);
+        toast("已新增欄位：" + it.name);
       });
     };
 
@@ -1569,8 +1607,8 @@
   function showAddOtherItemForm(onDone) {
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      "<h3>新增其他細項種類</h3>" +
-      '<p class="tips" style="margin-bottom:0.5rem">每種其他細項獨立一類，可登記庫存（新／舊／尚可）與請領數量。</p>' +
+      "<h3>新增掃具欄位</h3>" +
+      '<p class="tips" style="margin-bottom:0.5rem">新增後請領表、CSV 與庫存會多一欄。</p>' +
       '<div class="row"><label>種類名稱</label><input id="oName" type="text" maxlength="30" placeholder="例：延長線、漂白水" list="otherNames" /></div>' +
       '<datalist id="otherNames">' + DEFAULT_OTHER_ITEMS.map(function (it) {
         return '<option value="' + esc(it.name) + '"></option>';
@@ -1590,9 +1628,9 @@
         if (onDone) onDone(existing);
         return;
       }
-      var it = addOtherItem(name);
+      var it = addItem(name);
       closeModal();
-      toast("已新增種類");
+      toast("已新增欄位");
       if (onDone) onDone(it);
       else {
         renderSettings();
@@ -2417,6 +2455,7 @@
       return !DEFAULT_OTHER_ITEMS.some(function (d) { return d.id === it.id; });
     });
     state.items = allDefaultItems().concat(customOther);
+    state.removedItemIds = [];
     state.inventory = ensureInventory(state.inventory);
     saveState();
     toast("已還原預設種類");
@@ -2426,6 +2465,12 @@
   };
   document.getElementById("btnAddOtherItem").onclick = function () {
     showAddOtherItemForm(null);
+  };
+  document.getElementById("btnAddItemStock").onclick = function () {
+    showAddOtherItemForm(function () {
+      renderStock();
+      renderHome();
+    });
   };
   document.getElementById("btnAddClass").onclick = showClassForm;
 
