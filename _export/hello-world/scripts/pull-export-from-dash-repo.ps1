@@ -54,8 +54,10 @@ function Save-RemoteFile([string]$Rel) {
 
 $files = @(
   "directory/index.html",
+  "directory/learning-log.html",
   "directory/202608/index.html",
   "directory/202608/20260819-learning-log.html",
+  "directory/logs/20260819-learning-log.html",
   "scripts/install-desktop-apps.ps1",
   "scripts/install-math-homework-grader.ps1",
   "scripts/math-homework-grader-app.ps1",
@@ -146,6 +148,7 @@ try {
 
   git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
     directory/202608/20260819-learning-log.html directory/202608/index.html directory/index.html `
+    directory/learning-log.html directory/logs/20260819-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
