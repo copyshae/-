@@ -2375,7 +2375,7 @@
         var data = JSON.parse(reader.result);
         if (!data.records) throw new Error("格式錯誤");
         state = migrateState(data);
-        state.inventory = ensureInventory(data.inventory);
+        state.inventory = ensureInventory(state.inventory || data.inventory);
         state.stockLogs = data.stockLogs || state.stockLogs || [];
         saveState();
         toast("匯入成功");
