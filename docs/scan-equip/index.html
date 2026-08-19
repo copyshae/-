@@ -2369,13 +2369,9 @@
       toast("已匯出 CSV（" + list.length + " 筆）");
     }
 
-    /* 沒有任何紀錄時先確認，避免空白 CSV 日後誤匯入蓋掉真實資料 */
-    if (list.length === 0) {
-      var label = monthOnly ? ("本月（" + month + "）") : "全部";
-      confirmModal(label + " 尚無請領紀錄。\n確定要匯出空白 CSV 嗎？", doExportCsv);
-    } else {
-      doExportCsv();
-    }
+    var label = monthOnly ? ("本月（" + month + "）") : "全部";
+    var countMsg = list.length > 0 ? ("共 " + list.length + " 筆請領紀錄。") : "⚠️ 尚無請領紀錄，將匯出空白檔案。";
+    confirmModal("匯出" + label + " CSV\n" + countMsg + "\n\n確定要下載嗎？", doExportCsv);
   }
 
   function parseCsvRows(text) {
@@ -3551,12 +3547,12 @@
       URL.revokeObjectURL(a.href);
       toast("已匯出備份");
     }
-    /* 若無任何請領紀錄且庫存全為零，可能是初始空白狀態，先確認 */
-    if (!hasRecords && !hasStock) {
-      confirmModal("目前沒有任何請領紀錄，庫存也全為零。\n確定要匯出這份空白備份嗎？\n\n若您有真實資料，請確認頁面已正確載入後再匯出。", doExportJson);
-    } else {
-      doExportJson();
-    }
+    var recCount = (state.records && state.records.length) || 0;
+    var stockTotal2 = inventoryGrandTotals().total;
+    var summaryMsg = recCount > 0
+      ? ("共 " + recCount + " 筆請領紀錄，庫存總量 " + stockTotal2 + "。")
+      : "⚠️ 目前沒有請領紀錄" + (stockTotal2 > 0 ? "，庫存總量 " + stockTotal2 + "。" : " 且庫存全為零。");
+    confirmModal("匯出備份（JSON）\n" + summaryMsg + "\n\n確定要下載嗎？", doExportJson);
   };
   document.getElementById("btnImportJson").onclick = function () {
     document.getElementById("importFile").click();
