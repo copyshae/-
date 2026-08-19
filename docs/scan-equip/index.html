@@ -338,6 +338,7 @@
       <section>
         <h2>使用提示</h2>
         <ul class="tips">
+          <li>請領列表可「修正總量」直接改寫正確數字（可同步調整庫存差額）</li>
           <li>同班級、同導師的請領數量會累加至既有總量（拍照或手動皆適用）</li>
           <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
           <li>進貨、送還可入庫加總（庫存分頁或拍照辨識）</li>
@@ -1383,6 +1384,7 @@
       var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
 
       if (formMode === "correct") {
+        var existedBefore = !!rec || !!findAccumRecord(c, tch);
         var target = rec || findAccumRecord(c, tch);
         if (!target) {
           target = {
@@ -1408,7 +1410,7 @@
         }
         saveState();
         closeModal();
-        toast(rec || findAccumRecord(c, tch) !== target ? "已修正總量" : "已儲存總量");
+        toast(existedBefore ? "已修正總量" : "已儲存總量");
         renderHome();
         renderList();
         renderStats();
@@ -1420,11 +1422,11 @@
         rec.date = d;
         rec.className = c;
         rec.teacher = tch;
-        var oldQtys = Object.assign(emptyQtys(), rec.qtys);
+        var oldQtys2 = Object.assign(emptyQtys(), rec.qtys);
         rec.qtys = newQtys;
         rec.updatedAt = Date.now();
         if (syncStock) {
-          applyStockCorrection(computeQtyDelta(oldQtys, newQtys), c, rec.id);
+          applyStockCorrection(computeQtyDelta(oldQtys2, newQtys), c, rec.id);
         }
       } else {
         var result = accumulateRequisition({
@@ -1435,7 +1437,6 @@
           source: "manual"
         });
         rec = result.record;
-        var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
         if (syncStock) {
           deductStockByDeltas(result.deltas, c, rec.id, "手動請領；");
         }
@@ -2003,7 +2004,7 @@
       return;
     }
     el.innerHTML = logs.map(function (l) {
-      var cls = l.type === "領用扣庫" ? "act-out" : "act-in";
+      var cls = l.type === "領用扣庫" || l.type === "修正扣庫" ? "act-out" : "act-in";
       var cond = l.condition ? " · " + condLabel(l.condition) : "";
       var clsName = l.className ? " · " + esc(l.className) : "";
       return '<div class="log-move"><span class="' + cls + '">' + esc(l.type) + '</span> · ' +
