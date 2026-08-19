@@ -1495,7 +1495,7 @@
       undoSnap.createdRecordId = rec.id;
       saveState();
       lastManualUndo = undoSnap;
-      _reqDraft = null; _onModalClose = null;
+      _reqDraft = null; _onModalClose = null; try { sessionStorage.removeItem("reqDraft"); } catch(e){}
       closeModal();
       toastWithUndo("已更新累計", undoLastManualReq);
     } else {
@@ -1512,7 +1512,7 @@
       undoSnap.createdRecordId = result.record.id;
       saveState();
       lastManualUndo = undoSnap;
-      _reqDraft = null; _onModalClose = null;
+      _reqDraft = null; _onModalClose = null; try { sessionStorage.removeItem("reqDraft"); } catch(e){}
       closeModal();
       toastWithUndo(result.merged ? "已累加至班級累計" : "已新增請領", undoLastManualReq);
     }
@@ -2064,10 +2064,22 @@
         qtys[inp.dataset.qty] = parseReqQty(inp.value);
       });
       var hasAny = Object.keys(qtys).some(function (k) { return qtys[k] > 0; });
-      if (!hasAny && !t.value.trim() && !c.value.trim()) { _reqDraft = null; return; }
+      if (!hasAny && !t.value.trim() && !c.value.trim()) {
+        _reqDraft = null;
+        try { sessionStorage.removeItem("reqDraft"); } catch (e2) {}
+        return;
+      }
       _reqDraft = { date: d.value, teacher: t.value, className: c.value, qtys: qtys };
+      try { sessionStorage.setItem("reqDraft", JSON.stringify(_reqDraft)); } catch (e2) {}
     } catch (e) { /* modal already gone */ }
   }
+
+  (function () {
+    try {
+      var s = sessionStorage.getItem("reqDraft");
+      if (s) _reqDraft = JSON.parse(s);
+    } catch (e) {}
+  })();
 
   function showReqForm(editId, initial) {
     initial = initial || {};
@@ -2079,7 +2091,7 @@
     var formQtys = rec
       ? Object.assign(emptyQtys(), rec.qtys)
       : Object.assign(emptyQtys(), draft ? draft.qtys : (initial.qtys || {}));
-    if (draft) { _reqDraft = null; setTimeout(function () { toast("已恢復上次未送出的草稿"); }, 150); }
+    if (draft) { _reqDraft = null; try { sessionStorage.removeItem("reqDraft"); } catch(e){} setTimeout(function () { toast("已恢復上次未送出的草稿"); }, 150); }
 
     function cumulativeHintHtml(cls, tch) {
       if (rec) return "";
