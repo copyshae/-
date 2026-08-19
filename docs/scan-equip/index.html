@@ -1181,9 +1181,9 @@
     return inv;
   }
 
-  function ensureInventory(inv) {
+  function ensureInventory(inv, items) {
     var base = {};
-    state.items.forEach(function (it) {
+    (items || state.items).forEach(function (it) {
       base[it.id] = Object.assign(emptyStockEntry(), (inv && inv[it.id]) || {});
       CONDITIONS.forEach(function (c) {
         base[it.id][c.id] = Math.max(0, parseInt(base[it.id][c.id], 10) || 0);
@@ -1240,7 +1240,7 @@
       if (!raw) return defaultState();
       var p = JSON.parse(raw);
       var s = migrateState(p);
-      s.inventory = ensureInventory(s.inventory || p.inventory);
+      s.inventory = ensureInventory(s.inventory || p.inventory, s.items);
       if (!s.removedItemIds) s.removedItemIds = p.removedItemIds || [];
       return s;
     } catch (e) {
