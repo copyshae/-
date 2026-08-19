@@ -1495,6 +1495,7 @@
       undoSnap.createdRecordId = rec.id;
       saveState();
       lastManualUndo = undoSnap;
+      _reqDraft = null; _onModalClose = null;
       closeModal();
       toastWithUndo("已更新累計", undoLastManualReq);
     } else {
@@ -1511,6 +1512,7 @@
       undoSnap.createdRecordId = result.record.id;
       saveState();
       lastManualUndo = undoSnap;
+      _reqDraft = null; _onModalClose = null;
       closeModal();
       toastWithUndo(result.merged ? "已累加至班級累計" : "已新增請領", undoLastManualReq);
     }
@@ -1648,7 +1650,9 @@
     document.getElementById("modalBack").classList.add("open");
   }
 
+  var _onModalClose = null;
   function closeModal() {
+    if (_onModalClose) { try { _onModalClose(); } catch (e) {} _onModalClose = null; }
     document.getElementById("modalBack").classList.remove("open");
   }
 
@@ -2047,15 +2051,35 @@
     renderItemDefs();
   }
 
+  var _reqDraft = null;
+
+  function _saveReqDraft() {
+    try {
+      var d = document.getElementById("fDate");
+      var t = document.getElementById("fTeacher");
+      var c = document.getElementById("fClass");
+      if (!d) return;
+      var qtys = {};
+      document.querySelectorAll("[data-qty]").forEach(function (inp) {
+        qtys[inp.dataset.qty] = parseReqQty(inp.value);
+      });
+      var hasAny = Object.keys(qtys).some(function (k) { return qtys[k] > 0; });
+      if (!hasAny && !t.value.trim() && !c.value.trim()) { _reqDraft = null; return; }
+      _reqDraft = { date: d.value, teacher: t.value, className: c.value, qtys: qtys };
+    } catch (e) { /* modal already gone */ }
+  }
+
   function showReqForm(editId, initial) {
     initial = initial || {};
     var rec = editId ? state.records.find(function (r) { return r.id === editId; }) : null;
-    var date = rec ? rec.date : (initial.date || todayStr());
-    var className = rec ? rec.className : (initial.className || "");
-    var teacher = rec ? rec.teacher : (initial.teacher || "");
+    var draft = (!rec && !initial.qtys && _reqDraft) ? _reqDraft : null;
+    var date = rec ? rec.date : (draft ? draft.date : (initial.date || todayStr()));
+    var className = rec ? rec.className : (draft ? draft.className : (initial.className || ""));
+    var teacher = rec ? rec.teacher : (draft ? draft.teacher : (initial.teacher || ""));
     var formQtys = rec
       ? Object.assign(emptyQtys(), rec.qtys)
-      : Object.assign(emptyQtys(), initial.qtys || {});
+      : Object.assign(emptyQtys(), draft ? draft.qtys : (initial.qtys || {}));
+    if (draft) _reqDraft = null;
 
     function cumulativeHintHtml(cls, tch) {
       if (rec) return "";
@@ -2110,6 +2134,7 @@
   }
 
   function bindReqForm(rec, reqFormBody) {
+    _onModalClose = rec ? null : _saveReqDraft;
     document.getElementById("modalX").onclick = closeModal;
 
     function suggestClassIfEmpty() {
