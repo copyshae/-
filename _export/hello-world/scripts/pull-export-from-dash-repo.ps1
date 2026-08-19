@@ -57,6 +57,8 @@ $files = @(
   "directory/learning-log.html",
   "directory/202608/index.html",
   "directory/202608/20260819-learning-log.html",
+  "directory/202608/20260818-learning-log.html",
+  "directory/202608/20260818-push-logs.html",
   "directory/logs/20260819-learning-log.html",
   "scripts/install-desktop-apps.ps1",
   "scripts/install-math-homework-grader.ps1",
@@ -147,7 +149,7 @@ try {
   try { & git pull origin $pagesBranch 2>$null | Out-Null } catch {}
 
   git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
-    directory/202608/20260819-learning-log.html directory/202608/index.html directory/index.html `
+    directory/202608/20260819-learning-log.html directory/202608/20260818-learning-log.html directory/202608/20260818-push-logs.html directory/202608/index.html directory/index.html `
     directory/learning-log.html directory/logs/20260819-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `

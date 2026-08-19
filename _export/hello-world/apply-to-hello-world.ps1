@@ -12,6 +12,8 @@ $pairs = @(
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
   @{ Src = 'directory\apps\scan-equip'; Dst = 'directory\apps\scan-equip' },
   @{ Src = 'directory\202608\20260819-learning-log.html'; Dst = 'directory\202608\20260819-learning-log.html' },
+  @{ Src = 'directory\202608\20260818-learning-log.html'; Dst = 'directory\202608\20260818-learning-log.html' },
+  @{ Src = 'directory\202608\20260818-push-logs.html'; Dst = 'directory\202608\20260818-push-logs.html' },
   @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
   @{ Src = 'directory\index.html'; Dst = 'directory\index.html' },
   @{ Src = 'directory\learning-log.html'; Dst = 'directory\learning-log.html' },
@@ -52,7 +54,7 @@ if (Test-Path -LiteralPath $rulesSrc) {
 Push-Location $dest
 try {
   git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/scan-equip `
-    directory/202608/20260819-learning-log.html directory/202608/index.html directory/index.html `
+    directory/202608/20260819-learning-log.html directory/202608/20260818-learning-log.html directory/202608/20260818-push-logs.html directory/202608/index.html directory/index.html `
     directory/learning-log.html directory/logs/20260819-learning-log.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
