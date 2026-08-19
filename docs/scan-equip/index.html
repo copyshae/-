@@ -1131,11 +1131,7 @@
       schoolYear: state.settings.schoolYear || "",
       teacherClass: rows
     }, null, 2)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "導師名單_" + todayStr() + ".json";
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadBlob(blob, "導師名單_" + todayStr() + ".json");
     toast("已匯出導師名單（" + rows.length + " 筆）");
   }
 
@@ -1652,6 +1648,21 @@
     if (name === "settings") renderSettings();
   }
 
+  /* iOS Safari 用 a.click() 下載會跳離頁面，改用隱藏 iframe 觸發 */
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
+  }
+
   function openModal(html) {
     document.getElementById("modalBody").innerHTML = html;
     document.getElementById("modalBack").classList.add("open");
@@ -1986,11 +1997,7 @@
     rows.push(["合計", inv.new, inv.old, inv.fair, inv.total].map(csvEscape).join(","));
     var bom = "\uFEFF";
     var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "掃具庫存_" + todayStr() + ".csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadBlob(blob, "掃具庫存_" + todayStr() + ".csv");
     toast("已匯出庫存 CSV");
   }
 
@@ -2363,11 +2370,7 @@
       });
       var bom = "\uFEFF";
       var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = (monthOnly ? "掃具請領_" + month : "掃具請領_全部") + ".csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
+      downloadBlob(blob, (monthOnly ? "掃具請領_" + month : "掃具請領_全部") + ".csv");
       toast("已匯出 CSV（" + list.length + " 筆）");
     }
 
@@ -3542,11 +3545,7 @@
     var hasStock = inventoryGrandTotals().total > 0;
     function doExportJson() {
       var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "掃具台備份_" + todayStr() + ".json";
-      a.click();
-      URL.revokeObjectURL(a.href);
+      downloadBlob(blob, "掃具台備份_" + todayStr() + ".json");
       toast("已匯出備份");
     }
     var recCount = (state.records && state.records.length) || 0;
