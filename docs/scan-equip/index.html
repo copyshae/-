@@ -1897,6 +1897,14 @@
     var cm = s.match(/(?:^|[\s(（])(\d{3}|暑[\u4e00-\u9fff\d]+)/);
     if (cm) className = cm[1];
 
+    var teacher = "";
+    var tm = s.match(/([\u4e00-\u9fff]{2,8}(?:老師|師))/);
+    if (tm) teacher = tm[1];
+    else {
+      var om = s.match(/([\u4e00-\u9fff]{2,10}(?:處|室|組))/);
+      if (om) teacher = om[1];
+    }
+
     var condition = action === "進貨" ? "new" : action === "送還" ? "fair" : "";
     if (/新/.test(s) && action !== "領用") condition = "new";
     if (/舊|旧/.test(s) && action !== "領用") condition = "old";
@@ -2323,29 +2331,6 @@
       });
     }
 
-    var parseBtn = document.getElementById("btnParseText");
-    if (parseBtn) {
-      parseBtn.onclick = function () {
-        var txt = document.getElementById("manualNote").value.trim();
-        if (!txt) { toast("請貼上或輸入文字"); return; }
-        parsed = parseNoteText(txt);
-        if (!parsed.items.length) { toast("無法解析品項，請改用手動表單"); return; }
-        parsed.date = document.getElementById("scanDate").value || todayStr();
-        parsed.className = document.getElementById("scanClass").value.trim() || parsed.className;
-        parsed.teacher = document.getElementById("scanTeacher").value.trim() || parsed.teacher;
-        parsed.action = document.getElementById("scanAction").value;
-        openModal(bodyHtml(parsed));
-        bindConfirm();
-      };
-    }
-
-    var manualFormBtn = document.getElementById("btnManualForm");
-    if (manualFormBtn) {
-      manualFormBtn.onclick = function () {
-        openManualFormFromScan();
-      };
-    }
-
     function bindConfirm() {
       document.getElementById("modalX").onclick = function () {
         URL.revokeObjectURL(url);
@@ -2367,6 +2352,24 @@
       if (scanClass) scanClass.onchange = refreshPreview;
       if (scanTeacher) scanTeacher.onchange = refreshPreview;
       bindScanTeacherFill();
+
+      var parseBtn = document.getElementById("btnParseText");
+      if (parseBtn) {
+        parseBtn.onclick = function () {
+          var txt = document.getElementById("manualNote").value.trim();
+          if (!txt) { toast("請貼上或輸入文字"); return; }
+          parsed = parseNoteText(txt);
+          if (!parsed.items.length) { toast("無法解析品項，請改用手動表單"); return; }
+          parsed.date = document.getElementById("scanDate").value || todayStr();
+          parsed.className = document.getElementById("scanClass").value.trim() || parsed.className;
+          parsed.teacher = document.getElementById("scanTeacher").value.trim() || parsed.teacher;
+          parsed.action = document.getElementById("scanAction").value;
+          openModal(bodyHtml(parsed));
+          bindConfirm();
+        };
+      }
+      var manualFormBtn = document.getElementById("btnManualForm");
+      if (manualFormBtn) manualFormBtn.onclick = openManualFormFromScan;
 
       document.getElementById("btnApplyScan").onclick = function () {
         var p = readForm();
