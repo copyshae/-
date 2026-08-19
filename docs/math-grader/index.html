@@ -1460,13 +1460,19 @@
           var s = state.seats[k];
           return s.level !== "未標" || s.feedback;
         });
+        var json = JSON.stringify(state, null, 2);
+        var newSize = new Blob([json]).size;
+        var EXPORT_SIZE_KEY = "math-grader-last-export-size";
+        var lastSize = parseInt(localStorage.getItem(EXPORT_SIZE_KEY), 10) || 0;
         function doExport() {
-          var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-          downloadBlob(blob, "習作批改進度.json");
+          localStorage.setItem(EXPORT_SIZE_KEY, newSize);
+          downloadBlob(new Blob([json], { type: "application/json" }), "習作批改進度.json");
           toast("已匯出進度（可在另一網址匯入）");
         }
         if (!hasRealData) {
           confirmModal("目前所有座號都還是初始狀態，尚無批改紀錄。\n確定要匯出這份空白資料嗎？\n\n若您有真實資料，請確認頁面已正確載入。", doExport);
+        } else if (lastSize > 0 && newSize < lastSize) {
+          confirmModal("⚠️ 本次匯出檔案（" + newSize + " bytes）比上次（" + lastSize + " bytes）小。\n\n資料可能比上次少，確定要匯出嗎？", doExport);
         } else {
           doExport();
         }
