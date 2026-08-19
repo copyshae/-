@@ -399,7 +399,7 @@
           <li>AI 辨識為選用；辨識不清或無法使用時，改<strong>手動貼文字</strong>或<strong>手動新增請領</strong></li>
           <li>手動請領：填領用人或班級，再輸入各掃具數量</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
-          <li>欄位對齊「114 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
+          <li>欄位對齊「115 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
           <li>資料存本機；換手機請用「設定 → 匯出備份」</li>
         </ul>
@@ -485,7 +485,7 @@
         </div>
         <div class="row">
           <label for="schoolYear">學年</label>
-          <input id="schoolYear" type="text" maxlength="20" placeholder="例：114 學年" />
+          <input id="schoolYear" type="text" maxlength="20" placeholder="例：115 學年" />
         </div>
         <button class="btn" type="button" id="btnSaveSettings" style="margin-top:0.45rem">儲存設定</button>
       </section>
@@ -554,7 +554,7 @@
 
   var STORAGE_KEY = "scan-equip-requisition-v5";
 
-  /** 對齊 Excel「114 學年掃具請領」標準欄位 */
+  /** 對齊 Excel「115 學年掃具請領」標準欄位 */
   var DEFAULT_ITEMS = [
     { id: "bamboo_broom", name: "竹掃把", kind: "standard" },
     { id: "tongs", name: "夾子", kind: "standard" },
@@ -594,9 +594,8 @@
   };
 
   /**
-   * 彰化縣立彰安國民中學 115 學年度班級導師（已確認部分）
-   * 來源：115 學年度班級導師名單、114 學年新生班導師 PDF（升二年級對照）
-   * 105–112、305–312 等若需補齊，請用「匯入導師名單」貼上完整表格
+   * 彰化縣立彰安國民中學 115 學年度班級導師名單（已確認部分）
+   * 105–112、305–312、特教／樂學班等可「匯入導師名單」補齊
    */
   var TEACHER_CLASS_PRESET_CAJH_115 = [
     { className: "101", teacher: "施奕廷" },
@@ -848,7 +847,7 @@
     });
 
     return {
-      settings: Object.assign(defaultState().settings, p.settings || {}),
+      settings: migrateSettings(Object.assign(defaultState().settings, p.settings || {})),
       items: items,
       classMap: p.classMap || {},
       teacherClassMap: migrateTeacherClassMap(p.classMap || {}, p.teacherClassMap || {}),
@@ -936,6 +935,11 @@
     });
     saveState();
     return rows.length;
+  }
+
+  function ensure115TeacherClassPreset() {
+    if (Object.keys(state.teacherClassMap || {}).length) return;
+    loadTeacherClassPreset(TEACHER_CLASS_PRESET_CAJH_115, true);
   }
 
   function loadTeacherClassPreset(preset, replace) {
@@ -1042,9 +1046,16 @@
     return t;
   }
 
+  function migrateSettings(settings) {
+    var s = Object.assign({}, settings || {});
+    if (!s.schoolYear || s.schoolYear === "114 學年") s.schoolYear = "115 學年";
+    if (!s.schoolName) s.schoolName = "彰化縣立彰安國民中學";
+    return s;
+  }
+
   function defaultState() {
     return {
-      settings: { schoolName: "", schoolYear: "114 學年" },
+      settings: { schoolName: "彰化縣立彰安國民中學", schoolYear: "115 學年" },
       items: allDefaultItems(),
       inventory: emptyInventory(),
       classMap: {},
@@ -2776,8 +2787,10 @@
 
   document.getElementById("listMonth").value = monthStr();
   document.getElementById("statsMonth").value = monthStr();
+  state.settings = migrateSettings(state.settings);
   state.inventory = ensureInventory(state.inventory);
   if (!state.stockLogs) state.stockLogs = [];
+  ensure115TeacherClassPreset();
   renderHome();
   handleInboxOnLoad();
 })();
