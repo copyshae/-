@@ -393,8 +393,8 @@
         <ul class="tips">
           <li>請領表每種掃具<strong>獨立一欄</strong>，可左右滑動；CSV 匯出欄位相同</li>
           <li>請領列表可「修正」直接改寫該筆各品項數量（可同步調整庫存差額）</li>
-          <li>手動請領：先選導師，再直接輸入各掃具數量</li>
-          <li>導師姓名較可靠；手寫班級若仍寫舊年級，會依「導師現任班級」自動更正</li>
+          <li>領用人（導師／處室）可直接輸入；非班級領用時班級可留空</li>
+          <li>手動請領：填領用人或班級，再輸入各掃具數量</li>
           <li>每次請領各為一列；同班級可於同天或不同天多次請領，品項不必相同</li>
           <li>拍照或分享手寫領用單 → 自動加總請領並連動扣庫存</li>
           <li>進貨、送還可入庫加總（庫存分頁或拍照辨識）</li>
@@ -518,7 +518,7 @@
       </section>
       <section>
         <h2>導師現任班級</h2>
-        <p class="tips" style="margin-bottom:0.5rem">導師姓名較不會寫錯；升年級後手寫單可能仍填舊班級，系統依導師帶出並更正為現任班級。</p>
+        <p class="tips" style="margin-bottom:0.5rem">僅供<strong>班級導師</strong>對照；非班級領用（處室等）不必設定，領用人直接輸入即可。</p>
         <div id="classMapList"></div>
         <button class="btn" type="button" id="btnAddClass" style="margin-top:0.55rem">新增導師現任班級</button>
       </section>
@@ -691,30 +691,6 @@
     return n;
   }
 
-  function teacherSelectHtml(selected) {
-    var teachers = Object.keys(state.teacherClassMap || {}).sort();
-    var sel = normKey(selected);
-    var inList = sel && teachers.indexOf(sel) >= 0;
-    var html = '<option value="">— 選擇導師 —</option>';
-    teachers.forEach(function (t) {
-      html += '<option value="' + esc(t) + '"' + (t === sel && inList ? " selected" : "") + ">" + esc(t) + "</option>";
-    });
-    if (sel && !inList) {
-      html += '<option value="__manual__" selected>手動輸入…</option>';
-    } else {
-      html += '<option value="__manual__">手動輸入…</option>';
-    }
-    return html;
-  }
-
-  function getFormTeacher() {
-    var selEl = document.getElementById("fTeacherSel");
-    if (!selEl) return normKey((document.getElementById("fTeacher") || {}).value);
-    var sel = selEl.value;
-    if (sel === "__manual__") return normKey(document.getElementById("fTeacherManual").value);
-    return normKey(sel);
-  }
-
   function qtyRowsHtml(qtys, list) {
     return list.map(function (it) {
       var v = parseReqQty(qtys[it.id]);
@@ -857,35 +833,16 @@
     if (cls && normKey(state.classMap[cls]) === teacher) delete state.classMap[cls];
   }
 
-  /** 導師優先：已知導師則班級以現任班級為準（修正舊年級手寫） */
-  function resolveClassTeacher(className, teacher) {
+  /** 領用人／班級：保留輸入原文；僅在另一欄空白且完全吻合對照表時帶出建議 */
+  function normalizeRequisitionParty(className, teacher) {
     className = normKey(className);
     teacher = normKey(teacher);
-    var corrected = false;
-    var oldClass = className;
-
-    if (teacher && state.teacherClassMap[teacher]) {
-      var current = state.teacherClassMap[teacher];
-      if (className && className !== current) {
-        corrected = true;
-        oldClass = className;
-        className = current;
-      } else if (!className) {
-        className = current;
-      }
+    if (teacher && !className && state.teacherClassMap[teacher]) {
+      className = state.teacherClassMap[teacher];
     } else if (className && !teacher && state.classMap[className]) {
       teacher = normKey(state.classMap[className]);
     }
-
-    return { className: className, teacher: teacher, corrected: corrected, oldClass: oldClass };
-  }
-
-  function toastClassCorrection(resolved, fallback) {
-    if (resolved.corrected) {
-      toast("班級 " + resolved.oldClass + " → " + resolved.className + "（依導師現任班級）· 已登記");
-    } else if (fallback) {
-      toast(fallback);
-    }
+    return { className: className, teacher: teacher };
   }
 
   function emptyStockEntry() {
@@ -1036,8 +993,8 @@
           '<button type="button" data-act="del" data-id="' + r.id + '">刪</button></td>'
         : "";
       return '<tr><td class="sticky-col">' + esc(r.date) + '</td>' +
-        '<td class="sticky-col sticky-col-2">' + esc(r.className) + '</td>' +
-        '<td class="sticky-col sticky-col-3">' + esc(r.teacher) + '</td>' +
+        '<td class="sticky-col sticky-col-2">' + (r.className ? esc(r.className) : "—") + '</td>' +
+        '<td class="sticky-col sticky-col-3">' + (r.teacher ? esc(r.teacher) : "—") + '</td>' +
         cells + acts + '</tr>';
     }).join("");
 
@@ -1061,6 +1018,7 @@
 
   function gradeOf(klass) {
     var s = String(klass || "");
+    if (!s) return "其他";
     if (/^暑/.test(s)) return "暑期";
     var m = s.match(/^(\d)/);
     return m ? m[1] + "年級" : "其他";
@@ -1210,7 +1168,8 @@
       state.items.forEach(function (it) {
         itemTotals[it.id] += Number(r.qtys[it.id]) || 0;
       });
-      classCount[r.className] = (classCount[r.className] || 0) + 1;
+      var ck = r.className || r.teacher || "其他";
+      classCount[ck] = (classCount[ck] || 0) + 1;
     });
 
     var itemSorted = state.items.map(function (it) {
@@ -1466,20 +1425,20 @@
       currentQtys = currentQtys || qtys;
       var modeTips = rec
         ? '<p class="tips" style="margin-bottom:0.45rem">修改此筆請領的各品項數量；可同步調整庫存差額</p>'
-        : '<p class="tips" style="margin-bottom:0.45rem">先<strong>選導師</strong>（可略），再直接輸入各掃具數量</p>';
+        : '<p class="tips" style="margin-bottom:0.45rem">領用人（導師／處室）<strong>直接輸入</strong>；非班級領用時班級可留空</p>';
       var title = rec ? "修正請領" : "新增請領";
       var syncLabel = rec
         ? "同步調整庫存（依差額加減，減少還庫至尚可）"
         : "同步扣減庫存（尚可→舊→新）";
-      var showManual = teacher && Object.keys(state.teacherClassMap || {}).indexOf(teacher) < 0 && !!teacher;
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         "<h3>" + title + "</h3>" +
         modeTips +
         '<div class="row"><label>領用日期</label><input id="fDate" type="date" value="' + esc(date) + '" /></div>' +
-        '<div class="row"><label>導師</label><select id="fTeacherSel" class="grow">' + teacherSelectHtml(teacher) + "</select></div>" +
-        '<div class="row" id="fTeacherManualRow" style="display:' + (showManual ? "flex" : "none") + '">' +
-        '<label>手動導師</label><input id="fTeacherManual" type="text" maxlength="20" value="' + esc(showManual ? teacher : "") + '" placeholder="不在清單時輸入" /></div>' +
-        '<div class="row"><label>領用班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="依導師帶出現任班級" /></div>' +
+        '<div class="row"><label>領用人</label><input id="fTeacher" type="text" maxlength="30" list="teacherList" value="' + esc(teacher) + '" placeholder="導師、處室或單位" /></div>' +
+        '<datalist id="teacherList">' + Object.keys(state.teacherClassMap || {}).map(function (t) {
+          return '<option value="' + esc(t) + '"></option>';
+        }).join("") + "</datalist>" +
+        '<div class="row"><label>班級</label><input id="fClass" type="text" maxlength="20" list="classList" value="' + esc(className) + '" placeholder="選填；非班級領用可留空" /></div>' +
         '<datalist id="classList">' + Object.keys(state.classMap).map(function (k) {
           return '<option value="' + esc(k) + '"></option>';
         }).join("") + "</datalist>" +
@@ -1499,41 +1458,23 @@
   function bindReqForm(rec, reqFormBody) {
     document.getElementById("modalX").onclick = closeModal;
 
-    function fillClassFromTeacher() {
-      var t = getFormTeacher();
-      if (t && state.teacherClassMap[t]) {
-        document.getElementById("fClass").value = state.teacherClassMap[t];
+    function suggestClassIfEmpty() {
+      var t = document.getElementById("fTeacher").value.trim();
+      var clsEl = document.getElementById("fClass");
+      if (t && !clsEl.value.trim() && state.teacherClassMap[t]) {
+        clsEl.value = state.teacherClassMap[t];
       }
     }
 
-    var teacherSel = document.getElementById("fTeacherSel");
-    var manualRow = document.getElementById("fTeacherManualRow");
-    teacherSel.onchange = function () {
-      if (teacherSel.value === "__manual__") {
-        manualRow.style.display = "flex";
-        document.getElementById("fTeacherManual").focus();
-      } else {
-        manualRow.style.display = "none";
-        fillClassFromTeacher();
-      }
-    };
-    var manualInp = document.getElementById("fTeacherManual");
-    if (manualInp) manualInp.oninput = fillClassFromTeacher;
-
+    document.getElementById("fTeacher").oninput = suggestClassIfEmpty;
     document.getElementById("fClass").oninput = function () {
       var c = document.getElementById("fClass").value.trim();
-      if (state.classMap[c] && !getFormTeacher()) {
-        var t = state.classMap[c];
-        var opt = Array.prototype.find.call(teacherSel.options, function (o) { return o.value === t; });
-        if (opt) teacherSel.value = t;
-        else {
-          teacherSel.value = "__manual__";
-          manualRow.style.display = "flex";
-          manualInp.value = t;
-        }
+      var tEl = document.getElementById("fTeacher");
+      if (c && !tEl.value.trim() && state.classMap[c]) {
+        tEl.value = state.classMap[c];
       }
     };
-    fillClassFromTeacher();
+    suggestClassIfEmpty();
 
     function bindQtyGrid(id) {
       var grid = document.getElementById(id);
@@ -1555,7 +1496,7 @@
         if (!it) return;
         var date = document.getElementById("fDate").value;
         var className = document.getElementById("fClass").value;
-        var teacher = getFormTeacher();
+        var teacher = document.getElementById("fTeacher").value;
         var newQtys = emptyQtys();
         document.querySelectorAll("[data-qty]").forEach(function (inp) {
           newQtys[inp.dataset.qty] = parseReqQty(inp.value);
@@ -1564,17 +1505,7 @@
         bindReqForm(rec, reqFormBody);
         document.getElementById("fDate").value = date;
         document.getElementById("fClass").value = className;
-        if (teacher) {
-          var opt = Array.prototype.find.call(document.getElementById("fTeacherSel").options, function (o) {
-            return o.value === teacher;
-          });
-          if (opt) document.getElementById("fTeacherSel").value = teacher;
-          else {
-            document.getElementById("fTeacherSel").value = "__manual__";
-            document.getElementById("fTeacherManualRow").style.display = "flex";
-            document.getElementById("fTeacherManual").value = teacher;
-          }
-        }
+        document.getElementById("fTeacher").value = teacher;
         document.querySelectorAll("[data-qty]").forEach(function (inp) {
           if (newQtys[inp.dataset.qty]) inp.value = newQtys[inp.dataset.qty];
         });
@@ -1587,21 +1518,20 @@
     document.getElementById("fSave").onclick = function () {
       var d = document.getElementById("fDate").value;
       var c = document.getElementById("fClass").value.trim();
-      var tch = getFormTeacher();
-      var resolved = resolveClassTeacher(c, tch);
-      c = resolved.className;
-      tch = resolved.teacher;
-      if (!d || (!c && !tch)) { toast("請填寫日期與導師或班級"); return; }
-      if (!c) { toast("請填寫班級，或至設定新增此導師的現任班級"); return; }
+      var tch = document.getElementById("fTeacher").value.trim();
+      var norm = normalizeRequisitionParty(c, tch);
+      c = norm.className;
+      tch = norm.teacher;
+      if (!d) { toast("請填寫日期"); return; }
+      if (!c && !tch) { toast("請填領用人或班級"); return; }
       var newQtys = emptyQtys();
       document.querySelectorAll("[data-qty]").forEach(function (inp) {
-        newQtys[inp.dataset.qty] = clampReqQty(inp.value);
+        newQtys[inp.dataset.qty] = parseReqQty(inp.value);
       });
       if (sumQty(newQtys) === 0) {
         toast("請至少填一項數量");
         return;
       }
-      if (tch) syncClassMapsFromTeacher(tch, c);
       var syncStock = document.getElementById("syncStock") && document.getElementById("syncStock").checked;
 
       if (rec) {
@@ -1616,7 +1546,7 @@
         }
         saveState();
         closeModal();
-        toastClassCorrection(resolved, "已修正請領");
+        toast("已修正請領");
       } else {
         var result = createRequisition({
           date: d,
@@ -1630,7 +1560,7 @@
         }
         saveState();
         closeModal();
-        toastClassCorrection(resolved, "已新增請領");
+        toast("已新增請領");
       }
       renderHome();
       renderList();
@@ -1798,14 +1728,13 @@
 
   /** 新增一筆請領紀錄（每次請領各一列，不合併） */
   function createRequisition(opts) {
-    var resolved = resolveClassTeacher(opts.className, opts.teacher);
-    var className = resolved.className;
-    var teacher = resolved.teacher;
+    var norm = normalizeRequisitionParty(opts.className, opts.teacher);
+    var className = norm.className;
+    var teacher = norm.teacher;
     var date = opts.date || todayStr();
     var qtys = opts.qtys || {};
 
-    if (!className) throw new Error("請填班級或已知導師");
-    if (teacher) syncClassMapsFromTeacher(teacher, className);
+    if (!className && !teacher) throw new Error("請填領用人或班級");
 
     var rec = {
       id: uid(),
@@ -1828,7 +1757,7 @@
     });
 
     state.records.unshift(rec);
-    return { record: rec, deltas: deltas, resolved: resolved };
+    return { record: rec, deltas: deltas };
   }
 
   function parsedItemsToQtys(items) {
@@ -1986,8 +1915,8 @@
     var names = state.items.map(function (it) { return it.name; }).join("、");
     var prompt =
       "這是校園掃具手寫單照片（繁體中文）。已知掃具種類：" + names +
-      "。導師姓名較可靠；班級若仍寫舊年級也請盡量辨識導師。若手寫「椰鬃拖把」請對應「椰鬃掃把」（屬掃把非拖把）。若出現未列出的種類，name 照實填寫。判斷是「領用」「進貨」或「送還」。" +
-      "只回 JSON，不要 markdown：{\"action\":\"領用|進貨|送還\",\"className\":\"班級如101\",\"teacher\":\"\",\"items\":[{\"name\":\"竹掃把\",\"qty\":5}],\"condition\":\"新|舊|尚可\"}。" +
+      "。領用人（導師、處室等）與班級請照手寫原文填入 teacher／className，辨識不清也保留原文，勿對照改名。班級可留空（非班級領用）。若手寫「椰鬃拖把」請對應「椰鬃掃把」（屬掃把非拖把）。若出現未列出的種類，name 照實填寫。判斷是「領用」「進貨」或「送還」。" +
+      "只回 JSON，不要 markdown：{\"action\":\"領用|進貨|送還\",\"className\":\"班級如101或留空\",\"teacher\":\"領用人\",\"items\":[{\"name\":\"竹掃把\",\"qty\":5}],\"condition\":\"新|舊|尚可\"}。" +
       "進貨預設 condition 新；送還預設 尚可；領用 omit condition。";
 
     var part = { inline_data: { mime_type: mime || "image/jpeg", data: b64 } };
@@ -2093,8 +2022,8 @@
         source: "photo"
       });
       recordId = result.record.id;
-      toastClassCorrection(result.resolved);
-      deductStockByDeltas(result.deltas, result.record.className, recordId, (noteExtra || "拍照") + "；");
+      accumMsg = "已新增請領";
+      deductStockByDeltas(result.deltas, result.record.className || result.record.teacher, recordId, (noteExtra || "拍照") + "；");
     }
 
     parsed.items.forEach(function (row) {
@@ -2207,16 +2136,6 @@
     }
 
     function bodyHtml(p) {
-      if (p.className && !p.teacher && state.classMap[p.className]) {
-        p.teacher = state.classMap[p.className];
-      }
-      var resolved = resolveClassTeacher(p.className, p.teacher);
-      p.className = resolved.className;
-      p.teacher = resolved.teacher;
-      var classHint = resolved.corrected
-        ? '<p class="tips" style="margin-bottom:0.45rem">班級 ' + esc(resolved.oldClass) + " → " +
-          esc(resolved.className) + "（依導師 " + esc(resolved.teacher) + " 現任班級）</p>"
-        : "";
       var preview = buildApplyPreview(p);
       var lines = preview.lines.map(function (ln) {
         return '<div class="scan-preview-line"><strong>' + esc(ln.name) + " ×" + ln.qty +
@@ -2228,17 +2147,17 @@
       return '<button class="modal-close" type="button" id="modalX">&times;</button>' +
         '<h3>確認登記</h3>' +
         '<img class="scan-thumb" src="' + url + '" alt="照片" />' +
-        classHint +
+        '<p class="tips" style="margin-bottom:0.45rem">領用人／班級以手寫原文為準，可修改；非班級領用時班級可留空</p>' +
         '<div class="row"><label>類型</label><select id="scanAction" class="grow">' +
         ["領用", "進貨", "送還"].map(function (a) {
           return '<option value="' + a + '"' + (p.action === a ? " selected" : "") + ">" + a + "</option>";
         }).join("") + "</select></div>" +
         '<div class="row"><label>領用日期</label><input id="scanDate" type="date" value="' + esc(p.date || todayStr()) + '" /></div>' +
-        '<div class="row"><label>導師</label><input id="scanTeacher" type="text" list="scanTeacherList" value="' + esc(p.teacher) + '" placeholder="建議先填" /></div>' +
+        '<div class="row"><label>領用人</label><input id="scanTeacher" type="text" list="scanTeacherList" value="' + esc(p.teacher) + '" placeholder="導師、處室或單位" /></div>' +
         '<datalist id="scanTeacherList">' + Object.keys(state.teacherClassMap || {}).map(function (t) {
           return '<option value="' + esc(t) + '"></option>';
         }).join("") + "</datalist>" +
-        '<div class="row"><label>班級</label><input id="scanClass" type="text" value="' + esc(p.className) + '" placeholder="依導師帶出現任班級" /></div>' +
+        '<div class="row"><label>班級</label><input id="scanClass" type="text" value="' + esc(p.className) + '" placeholder="選填" /></div>' +
         (p.action !== "領用"
           ? '<div class="row"><label>入庫狀態</label><select id="scanCond" class="grow">' +
             CONDITIONS.map(function (c) {
@@ -2255,24 +2174,13 @@
 
     function readForm() {
       var action = document.getElementById("scanAction").value;
-      var className = document.getElementById("scanClass").value.trim();
-      var teacher = document.getElementById("scanTeacher").value.trim();
-      if (className && !teacher && state.classMap[className]) {
-        teacher = state.classMap[className];
-        document.getElementById("scanTeacher").value = teacher;
-      }
-      var resolved = resolveClassTeacher(className, teacher);
-      if (resolved.className !== className) {
-        document.getElementById("scanClass").value = resolved.className;
-      }
       return {
         action: action,
         date: document.getElementById("scanDate").value || todayStr(),
-        className: resolved.className,
-        teacher: resolved.teacher,
+        className: document.getElementById("scanClass").value.trim(),
+        teacher: document.getElementById("scanTeacher").value.trim(),
         items: parsed.items.slice(),
-        condition: action === "領用" ? "" : (document.getElementById("scanCond") || {}).value || "new",
-        resolved: resolved
+        condition: action === "領用" ? "" : (document.getElementById("scanCond") || {}).value || "new"
       };
     }
 
@@ -2282,7 +2190,9 @@
       if (!teacherEl || !classEl) return;
       teacherEl.oninput = function () {
         var t = teacherEl.value.trim();
-        if (t && state.teacherClassMap[t]) classEl.value = state.teacherClassMap[t];
+        if (t && !classEl.value.trim() && state.teacherClassMap[t]) {
+          classEl.value = state.teacherClassMap[t];
+        }
       };
     }
     bindScanTeacherFill();
@@ -2335,19 +2245,14 @@
           p.teacher = document.getElementById("scanTeacher").value.trim() || p.teacher;
           p.action = document.getElementById("scanAction").value;
           if (p.action !== "領用") p.condition = document.getElementById("scanCond").value;
-          var manualResolved = resolveClassTeacher(p.className, p.teacher);
-          p.className = manualResolved.className;
-          p.teacher = manualResolved.teacher;
-          p.resolved = manualResolved;
         }
         if (!p.items.length) { toast("請填寫品項"); return; }
-        if (p.action === "領用" && !p.className) { toast("領用請填導師或班級"); return; }
+        if (p.action === "領用" && !p.className && !p.teacher) { toast("領用請填領用人或班級"); return; }
         try {
           var msg = applyParsedScan(p, name || "拍照");
           URL.revokeObjectURL(url);
           closeModal();
-          if (p.resolved && p.resolved.corrected) toastClassCorrection(p.resolved);
-          else toast(msg + "並更新庫存");
+          toast(msg + "並更新庫存");
           renderHome();
           renderList();
           renderStats();
@@ -2423,17 +2328,17 @@
       { date: "2026-03-20", className: "201", teacher: "黃老師", qtys: { broom: 1, dustpan: 1, detergent: 1, other_bucket: 2 } },
       { date: todayStr(), className: "101", teacher: "陳老師", qtys: { bamboo_broom: 5, other_coconut_broom: 4 }, source: "photo" },
       { date: todayStr(), className: "101", teacher: "陳老師", qtys: { trash_can: 2, detergent: 1 }, source: "manual" },
-      { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1, other_soap: 1 } }
+      { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1, other_soap: 1 } },
+      { date: todayStr(), className: "", teacher: "總務處", qtys: { trash_bag: 5, detergent: 2 }, source: "manual" }
     ];
     demos.forEach(function (d) {
       var q = emptyQtys();
       Object.keys(d.qtys).forEach(function (k) { q[k] = d.qtys[k]; });
-      var resolved = resolveClassTeacher(d.className, d.teacher);
       state.records.unshift({
         id: uid(),
         date: d.date,
-        className: resolved.className,
-        teacher: resolved.teacher,
+        className: d.className || "",
+        teacher: d.teacher || "",
         qtys: q,
         createdAt: Date.now(),
         updatedAt: Date.now(),
