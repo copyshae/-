@@ -1648,21 +1648,41 @@
     if (name === "settings") renderSettings();
   }
 
-  /* iOS Safari 下載 Blob 會跳離頁面；改在新分頁開啟，下載後關掉新分頁即可回來 */
+  /*
+   * iOS Safari 下載 Blob 會跳離頁面。
+   * 解法：在 Modal 裡顯示「點此下載」連結，使用者點連結後瀏覽器接管，
+   * 完成後按 < 回到掃具台時頁面已在 Modal 狀態，關掉 Modal 即可繼續。
+   * 非 iOS 平台則直接觸發下載，不開 Modal。
+   */
   function downloadBlob(blob, filename) {
     var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 300);
+    /* 判斷是否為 iOS Safari */
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      openModal(
+        '<button class="modal-close" id="modalX" aria-label="關閉">×</button>' +
+        '<h3>下載準備好了</h3>' +
+        '<p style="color:var(--muted);font-size:0.88rem;margin-bottom:1rem">請長按下方連結 → 選「下載連結」；或點一下用預覽開啟再由分享存檔。</p>' +
+        '<a href="' + url + '" download="' + filename + '" ' +
+          'style="display:block;text-align:center;padding:0.75rem;background:var(--accent);color:#fff;' +
+          'border-radius:0.5rem;font-weight:600;text-decoration:none;margin-bottom:0.5rem">' +
+          '⬇ ' + filename + '</a>' +
+        '<button type="button" class="btn secondary" style="width:100%" id="dlClose">關閉</button>'
+      );
+      document.getElementById("modalX").onclick = function () { closeModal(); URL.revokeObjectURL(url); };
+      document.getElementById("dlClose").onclick = function () { closeModal(); URL.revokeObjectURL(url); };
+    } else {
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 300);
+    }
   }
 
   function openModal(html) {
