@@ -483,10 +483,12 @@
         <div class="card" id="classRank"></div>
       </section>
       <section>
-        <h2>匯出</h2>
+        <h2>匯出／匯入</h2>
         <div class="actions">
           <button class="btn secondary" type="button" id="btnExportCsv">匯出本月 CSV（Excel 可用）</button>
           <button class="btn secondary" type="button" id="btnExportAllCsv">匯出全部 CSV</button>
+          <button class="btn secondary" type="button" id="btnImportCsv">匯入 CSV</button>
+          <input type="file" id="importCsvFile" accept=".csv,text/csv" class="hidden" />
         </div>
       </section>
     </div>
@@ -2353,6 +2355,82 @@
     toast("已匯出 CSV（" + list.length + " 筆）");
   }
 
+  function parseCsvRows(text) {
+    var rows = [];
+    var lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    lines.forEach(function (line) {
+      if (!line.trim()) return;
+      var cols = [];
+      var cur = "";
+      var inQ = false;
+      for (var i = 0; i < line.length; i++) {
+        var ch = line[i];
+        if (inQ) {
+          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') inQ = false;
+          else cur += ch;
+        } else {
+          if (ch === '"') inQ = true;
+          else if (ch === ',') { cols.push(cur); cur = ""; }
+          else cur += ch;
+        }
+      }
+      cols.push(cur);
+      rows.push(cols);
+    });
+    return rows;
+  }
+
+  function importCsvText(text) {
+    var rows = parseCsvRows(text);
+    if (rows.length < 2) { toast("CSV 內容不足，至少需要標題列與一筆資料"); return; }
+    var headers = rows[0].map(function (h) { return h.trim(); });
+    var dateIdx = headers.indexOf("領用日期");
+    var classIdx = headers.indexOf("領用班級");
+    var teacherIdx = headers.indexOf("導師姓名");
+    if (dateIdx < 0) { toast("找不到「領用日期」欄，請確認為掃具台匯出的 CSV"); return; }
+
+    var itemCols = [];
+    headers.forEach(function (h, i) {
+      if (i === dateIdx || i === classIdx || i === teacherIdx) return;
+      var it = state.items.find(function (x) { return x.name === h; });
+      if (it) itemCols.push({ idx: i, itemId: it.id });
+    });
+
+    var added = 0, skipped = 0;
+    rows.slice(1).forEach(function (cols) {
+      var date = (cols[dateIdx] || "").trim();
+      if (!date) { skipped++; return; }
+      var className = classIdx >= 0 ? (cols[classIdx] || "").trim() : "";
+      var teacher = teacherIdx >= 0 ? (cols[teacherIdx] || "").trim() : "";
+      var qtys = emptyQtys();
+      itemCols.forEach(function (ic) {
+        qtys[ic.itemId] = Math.max(0, parseInt(cols[ic.idx], 10) || 0);
+      });
+      var existing = state.records.find(function (r) {
+        return r.date === date && r.className === className && r.teacher === teacher;
+      });
+      if (existing) {
+        existing.qtys = Object.assign(emptyQtys(), qtys);
+        existing.updatedAt = Date.now();
+      } else {
+        state.records.push({
+          id: "csv_" + Date.now() + "_" + Math.random().toString(36).slice(2),
+          date: date,
+          className: className,
+          teacher: teacher,
+          qtys: qtys,
+          source: "csv",
+          updatedAt: Date.now()
+        });
+        added++;
+      }
+    });
+    saveState();
+    renderHome(); renderList(); renderStats();
+    toast("CSV 匯入完成：新增 " + added + " 筆，更新 " + (rows.length - 1 - added - skipped) + " 筆" + (skipped ? "，略過 " + skipped + " 筆" : ""));
+  }
+
   function loadDemoInventory() {
     var demo = {
       bamboo_broom: { new: 8, old: 12, fair: 5 },
@@ -3381,6 +3459,17 @@
   document.getElementById("statsMonth").onchange = renderStats;
   document.getElementById("btnExportCsv").onclick = function () { exportCsv(true); };
   document.getElementById("btnExportAllCsv").onclick = function () { exportCsv(false); };
+  document.getElementById("btnImportCsv").onclick = function () {
+    document.getElementById("importCsvFile").click();
+  };
+  document.getElementById("importCsvFile").onchange = function (ev) {
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () { importCsvText(reader.result); };
+    reader.readAsText(file, "UTF-8");
+    ev.target.value = "";
+  };
 
   document.getElementById("btnResetItems").onclick = function () {
     if (!confirm("還原成預設掃具種類（標準 13 項 + 7 項其他細項）？自訂其他種類與庫存數字會保留同名項目。")) return;
