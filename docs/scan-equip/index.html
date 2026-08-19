@@ -573,8 +573,18 @@
     { id: "other_bucket", name: "水桶", kind: "other" },
     { id: "other_short_brush", name: "短刷子", kind: "other" },
     { id: "other_spin_mop", name: "旋轉拖把桶", kind: "other" },
-    { id: "other_coconut_mop", name: "椰鬃拖把", kind: "other" }
+    { id: "other_coconut_broom", name: "椰鬃掃把", kind: "other" }
   ];
+
+  /** 舊稱或手寫別名 → 正式品名（椰鬃拖把屬掃把，非拖把） */
+  var ITEM_NAME_ALIASES = {
+    "椰鬃拖把": "椰鬃掃把"
+  };
+
+  /** 品項 id 更名遷移（舊 id → 新 id） */
+  var RENAMED_ITEM_IDS = {
+    other_coconut_mop: "other_coconut_broom"
+  };
 
   var GEMINI_KEY_STORAGE = "scan-equip-gemini-key";
   var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
@@ -726,8 +736,39 @@
       if (!have[it.id]) items.push(Object.assign({}, it));
     });
 
+    items = items.map(function (it) {
+      var newId = RENAMED_ITEM_IDS[it.id];
+      if (newId) {
+        var def = DEFAULT_OTHER_ITEMS.find(function (d) { return d.id === newId; });
+        if (def) return Object.assign({}, it, { id: newId, name: def.name });
+      }
+      if (it.name === "椰鬃拖把") return Object.assign({}, it, { id: "other_coconut_broom", name: "椰鬃掃把" });
+      return it;
+    });
+    items = items.filter(function (it, i, arr) {
+      return arr.findIndex(function (x) { return x.id === it.id; }) === i;
+    });
+
+    var inventory = p.inventory || {};
+    Object.keys(RENAMED_ITEM_IDS).forEach(function (oldId) {
+      var newId = RENAMED_ITEM_IDS[oldId];
+      if (!inventory[oldId]) return;
+      inventory[newId] = inventory[newId] || emptyStockEntry();
+      CONDITIONS.forEach(function (c) {
+        inventory[newId][c.id] = (Number(inventory[newId][c.id]) || 0) + (Number(inventory[oldId][c.id]) || 0);
+      });
+      delete inventory[oldId];
+    });
+
     var records = (p.records || []).map(function (r) {
       var qtys = Object.assign({}, r.qtys || {});
+      Object.keys(RENAMED_ITEM_IDS).forEach(function (oldId) {
+        var newId = RENAMED_ITEM_IDS[oldId];
+        if (qtys[oldId]) {
+          qtys[newId] = (Number(qtys[newId]) || 0) + (Number(qtys[oldId]) || 0);
+          delete qtys[oldId];
+        }
+      });
       if (r.other) {
         var parsed = parseOtherText(r.other, items);
         Object.keys(parsed).forEach(function (id) {
@@ -744,7 +785,8 @@
       items: items,
       classMap: p.classMap || {},
       records: records,
-      stockLogs: p.stockLogs || []
+      stockLogs: p.stockLogs || [],
+      inventory: inventory
     };
   }
 
@@ -808,7 +850,7 @@
       if (!raw) return defaultState();
       var p = JSON.parse(raw);
       var s = migrateState(p);
-      s.inventory = ensureInventory(p.inventory);
+      s.inventory = ensureInventory(s.inventory || p.inventory);
       return s;
     } catch (e) {
       return defaultState();
@@ -1556,7 +1598,7 @@
       rake: { new: 3, old: 5, fair: 2 },
       squeegee: { new: 2, old: 4, fair: 3 },
       other_spin_mop: { new: 1, old: 2, fair: 1 },
-      other_coconut_mop: { new: 3, old: 6, fair: 4 }
+      other_coconut_broom: { new: 3, old: 6, fair: 4 }
     };
     demo.bamboo_broom = { new: 15, old: 20, fair: 10 };
     Object.keys(demo).forEach(function (id) {
@@ -1692,12 +1734,17 @@
   function resolveItemByName(name) {
     name = String(name || "").trim().replace(/\s+/g, "");
     if (!name) return null;
+    if (ITEM_NAME_ALIASES[name]) name = ITEM_NAME_ALIASES[name];
     var it = itemByName(name);
     if (it) return it;
     var fuzzy = state.items.filter(function (x) {
       return name.indexOf(x.name) >= 0 || x.name.indexOf(name) >= 0;
-    });
+    }).sort(function (a, b) { return b.name.length - a.name.length; });
     if (fuzzy.length === 1) return fuzzy[0];
+    if (fuzzy.length > 1) {
+      var exactLen = fuzzy.filter(function (x) { return x.name === name; });
+      if (exactLen.length === 1) return exactLen[0];
+    }
     return addOtherItem(name);
   }
 
@@ -1793,7 +1840,7 @@
     var names = state.items.map(function (it) { return it.name; }).join("、");
     var prompt =
       "這是校園掃具手寫單照片（繁體中文）。已知掃具種類：" + names +
-      "。若出現未列出的種類，name 照實填寫。判斷是「領用」「進貨」或「送還」。" +
+      "。若手寫「椰鬃拖把」請對應「椰鬃掃把」（屬掃把非拖把）。若出現未列出的種類，name 照實填寫。判斷是「領用」「進貨」或「送還」。" +
       "只回 JSON，不要 markdown：{\"action\":\"領用|進貨|送還\",\"className\":\"班級如101\",\"teacher\":\"\",\"items\":[{\"name\":\"竹掃把\",\"qty\":5}],\"condition\":\"新|舊|尚可\"}。" +
       "進貨預設 condition 新；送還預設 尚可；領用 omit condition。";
 
@@ -2009,7 +2056,7 @@
     if (!parsed.items.length) {
       manualBlock =
         '<p class="scan-warn">' + esc(errMsg || "未能自動辨識，請貼上或輸入文字") + '</p>' +
-        '<textarea id="manualNote" placeholder="例：101 竹掃把x5 椰鬃拖把x4 (領用)"></textarea>' +
+        '<textarea id="manualNote" placeholder="例：101 竹掃把x5 椰鬃掃把x4 (領用)"></textarea>' +
         '<button class="btn secondary" type="button" id="btnParseText" style="margin-top:0.45rem">解析文字</button>';
     }
 
@@ -2195,7 +2242,8 @@
       { date: "2026-02-25", className: "101", teacher: "陳老師", qtys: { bamboo_broom: 1, broom: 1, mop: 1, dustpan: 1 } },
       { date: "2026-03-13", className: "102", teacher: "林老師", qtys: { mop: 2, trash_bag: 1, other_window_wiper: 2 } },
       { date: "2026-03-20", className: "201", teacher: "黃老師", qtys: { broom: 1, dustpan: 1, detergent: 1, other_bucket: 2 } },
-      { date: todayStr(), className: "101", teacher: "陳老師", qtys: { bamboo_broom: 5, other_coconut_mop: 4 }, source: "photo" },
+      { date: todayStr(), className: "101", teacher: "陳老師", qtys: { bamboo_broom: 5, other_coconut_broom: 4 }, source: "photo" },
+      { date: todayStr(), className: "101", teacher: "陳老師", qtys: { trash_can: 2, detergent: 1 }, source: "manual" },
       { date: todayStr(), className: "暑新一", teacher: "吳老師", qtys: { toilet_brush: 1, laundry: 1, other_soap: 1 } }
     ];
     demos.forEach(function (d) {
