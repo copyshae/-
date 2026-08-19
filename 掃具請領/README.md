@@ -8,7 +8,17 @@ https://github.com/copyshae/-/raw/cursor/launch-efficiency-459a/掃具請領/114
 ## CSV（用 Excel 開）
 https://github.com/copyshae/-/raw/cursor/launch-efficiency-459a/掃具請領/114學年掃具請領_已整理.csv
 
-下載後放到「下載」資料夾或你指定的原檔資料夾。**不要**再自動搬到大容量碟歸檔夾。
+## 處理桌面 test 裡的掃具請領（結果留在同一資料夾）
+
+在本機 PowerShell 貼上（不要搬到大容量碟）：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/掃具請領/split-desktop-test.ps1 | iex
+```
+
+會讀 `桌面\test` 的掃具請領 Excel，把「其他細項」拆成獨立欄位並統計，存成：
+
+`桌面\test\114學年掃具請領_已整理.xlsx`
 
 ## 復原 20260717（只搬回原位置，不再設歸檔到大容量碟）
 
