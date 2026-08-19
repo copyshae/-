@@ -1,8 +1,9 @@
 {
   "schoolName": "彰化縣立彰安國民中學",
   "schoolYear": "115 學年",
-  "presetId": "cajh-115-v3",
-  "note": "115 學年度班級導師名單（101–111、201–212、301–311）",
+  "presetId": "cajh-115-v4",
+  "source": "115學年度班級導師名單（使用者提供表，以此為準）",
+  "note": "101–111、201–212、301–311，共 34 班",
   "teacherClass": [
     { "className": "101", "teacher": "施奕廷" },
     { "className": "102", "teacher": "呂慧君" },
