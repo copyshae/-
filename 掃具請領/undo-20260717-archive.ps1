@@ -1,7 +1,10 @@
 #Requires -Version 5.1
-# 復原 20260717：把大容量碟上的「桌面／下載／文件／圖片歸檔」搬回系統原資料夾
-# 學習日誌：https://copyshae.github.io/hello-world/directory/logs/20260717-learning-log.html
-# 請在本機 Windows PowerShell 執行。不會動 F:\私人 或 D:\私人。
+# 此腳本已停用：0717 復原若只搬檔、不清「捷徑回指」，桌面會大量紅 X。
+# 請改跑：fix-desktop-red-x.ps1
+Write-Host "undo-20260717-archive.ps1 已停用，避免再造成桌面紅 X。"
+Write-Host "請改貼："
+Write-Host 'irm https://raw.githubusercontent.com/copyshae/-/cursor/launch-efficiency-459a/掃具請領/fix-desktop-red-x.ps1 | iex'
+exit 0
 $ErrorActionPreference = "Stop"
 
 function Get-DownloadsDir {
