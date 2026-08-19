@@ -515,14 +515,14 @@
       </section>
       <section>
         <h2>導師現任班級</h2>
-        <p class="tips" style="margin-bottom:0.5rem">115 學年度班級導師以<strong>官方名單表</strong>為準（101–111、201–212、301–311）。按「載入115學年度名單」可還原為該表內容。</p>
+        <p class="tips" style="margin-bottom:0.5rem">115 學年度<strong>官方 34 班</strong>（101–111、201–212、301–311）以內建名單為準，匯入或手動<strong>無法改動</strong>。特教、處室等非官方班級請用下方「新增」或「匯入」合併。</p>
         <div id="classMapList"></div>
         <div class="btn-row" style="margin-top:0.55rem">
-          <button class="btn" type="button" id="btnLoadTeacherPreset">載入115學年度名單</button>
-          <button class="btn secondary" type="button" id="btnImportTeacherClass">匯入導師名單</button>
+          <button class="btn" type="button" id="btnLoadTeacherPreset">還原官方34班</button>
+          <button class="btn secondary" type="button" id="btnImportTeacherClass">匯入其他班級</button>
           <button class="btn secondary" type="button" id="btnExportTeacherClass">匯出導師名單</button>
         </div>
-        <button class="btn secondary" type="button" id="btnAddClass" style="margin-top:0.45rem">新增導師現任班級</button>
+        <button class="btn secondary" type="button" id="btnAddClass" style="margin-top:0.45rem">新增其他班級（特教、處室等）</button>
       </section>
       <section>
         <h2>示範資料</h2>
@@ -630,6 +630,31 @@
     { className: "310", teacher: "林惠蘭" },
     { className: "311", teacher: "蔡佩悌" }
   ];
+
+  /** 官方 34 班班級代碼 → 導師（匯入／手動不可覆寫） */
+  var PRESET_CLASS_NAMES = {};
+  TEACHER_CLASS_PRESET_CAJH_115.forEach(function (r) {
+    PRESET_CLASS_NAMES[r.className] = r.teacher;
+  });
+
+  function isPresetClass(className) {
+    return Object.prototype.hasOwnProperty.call(PRESET_CLASS_NAMES, normKey(className));
+  }
+
+  function collectManualTeacherClassExtras() {
+    var extras = [];
+    Object.keys(state.teacherClassMap || {}).forEach(function (t) {
+      var cls = state.teacherClassMap[t];
+      if (!isPresetClass(cls)) extras.push({ teacher: t, className: cls });
+    });
+    return extras;
+  }
+
+  function applyOfficialPresetClasses() {
+    TEACHER_CLASS_PRESET_CAJH_115.forEach(function (r) {
+      syncClassMapsFromTeacher(r.teacher, r.className);
+    });
+  }
 
   var GEMINI_KEY_STORAGE = "scan-equip-gemini-key";
   var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
@@ -901,8 +926,13 @@
   function removeTeacherClass(teacher) {
     teacher = normKey(teacher);
     var cls = state.teacherClassMap[teacher];
+    if (isPresetClass(cls)) {
+      toast("官方 34 班不可移除，請按「還原官方34班」");
+      return false;
+    }
     delete state.teacherClassMap[teacher];
     if (cls && normKey(state.classMap[cls]) === teacher) delete state.classMap[cls];
+    return true;
   }
 
   function normalizeTeacherName(name) {
@@ -953,16 +983,29 @@
   }
 
   function applyTeacherClassRows(rows, replace) {
-    if (!rows.length) return 0;
+    rows = rows || [];
+    var applied = 0;
+    var skipped = 0;
     if (replace) {
+      var extras = collectManualTeacherClassExtras();
       state.teacherClassMap = {};
       state.classMap = {};
+      applyOfficialPresetClasses();
+      extras.forEach(function (r) {
+        syncClassMapsFromTeacher(r.teacher, r.className);
+      });
     }
     rows.forEach(function (r) {
+      if (isPresetClass(r.className)) {
+        skipped++;
+        return;
+      }
       syncClassMapsFromTeacher(r.teacher, r.className);
+      applied++;
     });
+    applyOfficialPresetClasses();
     saveState();
-    return rows.length;
+    return { applied: applied, skipped: skipped };
   }
 
   function ensure115TeacherClassPreset() {
@@ -981,7 +1024,22 @@
 
   function loadTeacherClassPreset(preset, replace) {
     preset = preset || TEACHER_CLASS_PRESET_CAJH_115;
-    var n = applyTeacherClassRows(preset.slice(), replace);
+    if (replace) {
+      var extras = collectManualTeacherClassExtras();
+      state.teacherClassMap = {};
+      state.classMap = {};
+      preset.forEach(function (r) {
+        syncClassMapsFromTeacher(r.teacher, r.className);
+      });
+      extras.forEach(function (r) {
+        syncClassMapsFromTeacher(r.teacher, r.className);
+      });
+    } else {
+      preset.forEach(function (r) {
+        syncClassMapsFromTeacher(r.teacher, r.className);
+      });
+    }
+    applyOfficialPresetClasses();
     syncRecordTeachersFromMap();
     pruneOrphanClassRows();
     ensureClassRequisitionRows();
@@ -989,16 +1047,20 @@
     state.settings.schoolYear = "115 學年";
     state.settings.teacherPresetId = TEACHER_PRESET_ID;
     saveState();
-    return n;
+    return preset.length;
   }
 
   function sync115TeacherPreset() {
-    if ((state.settings.teacherPresetId || "") === TEACHER_PRESET_ID) {
-      ensure115TeacherClassPreset();
-      return false;
+    var upgraded = (state.settings.teacherPresetId || "") !== TEACHER_PRESET_ID;
+    ensure115TeacherClassPreset();
+    applyOfficialPresetClasses();
+    syncRecordTeachersFromMap();
+    ensureClassRequisitionRows();
+    if (upgraded) {
+      state.settings.teacherPresetId = TEACHER_PRESET_ID;
+      saveState();
     }
-    loadTeacherClassPreset(TEACHER_CLASS_PRESET_CAJH_115, true);
-    return true;
+    return upgraded;
   }
 
   function exportTeacherClassJson() {
@@ -1023,12 +1085,10 @@
   function showImportTeacherClassModal() {
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      "<h3>匯入導師名單</h3>" +
-      '<p class="tips" style="margin-bottom:0.45rem">每行一筆，格式：<strong>班級 導師</strong>（例：301 施榮鍾）。可從 Excel 複製多欄，或貼上整張表格文字。</p>' +
-      '<textarea id="teacherImportText" placeholder="101 施奕廷&#10;102 呂慧君&#10;201 徐詩媛&#10;301 施榮鍾&#10;特教2 〇〇&#10;樂學班 〇〇" style="min-height:9rem"></textarea>' +
-      '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.86rem;color:var(--muted)">' +
-      '<input type="checkbox" id="teacherImportReplace" checked /> 覆寫既有對照（取消則合併更新）</label>' +
-      '<button class="btn" type="button" id="teacherImportSave" style="margin-top:0.65rem">匯入</button>'
+      "<h3>匯入其他班級</h3>" +
+      '<p class="tips" style="margin-bottom:0.45rem">每行一筆，格式：<strong>班級 導師</strong>（例：特教2 王小明）。官方 34 班（101–311）會自動略過，以內建名單為準。</p>' +
+      '<textarea id="teacherImportText" placeholder="特教2 王小明&#10;特教3 李小華&#10;樂學班 陳〇〇&#10;總務處 林〇〇" style="min-height:9rem"></textarea>' +
+      '<button class="btn" type="button" id="teacherImportSave" style="margin-top:0.65rem">合併匯入</button>'
     );
     document.getElementById("modalX").onclick = closeModal;
     document.getElementById("teacherImportSave").onclick = function () {
@@ -1036,12 +1096,15 @@
       if (!txt) { toast("請貼上名單"); return; }
       var rows = parseTeacherClassText(txt);
       if (!rows.length) { toast("無法解析，請確認格式"); return; }
-      var replace = document.getElementById("teacherImportReplace").checked;
-      if (replace && Object.keys(state.teacherClassMap || {}).length &&
-          !confirm("將覆寫現有 " + Object.keys(state.teacherClassMap).length + " 筆對照，確定？")) return;
-      applyTeacherClassRows(rows, replace);
+      var result = applyTeacherClassRows(rows, false);
+      syncRecordTeachersFromMap();
+      pruneOrphanClassRows();
+      ensureClassRequisitionRows();
+      saveState();
       closeModal();
-      toast("已匯入 " + rows.length + " 筆導師對照");
+      var msg = "已合併 " + result.applied + " 筆";
+      if (result.skipped) msg += "（略過官方班 " + result.skipped + " 筆）";
+      toast(msg);
       renderSettings();
     };
   }
@@ -1609,19 +1672,41 @@
       };
     });
 
-    var keys = Object.keys(state.teacherClassMap || {}).sort();
+    var keys = Object.keys(state.teacherClassMap || {}).sort(function (a, b) {
+      var ca = state.teacherClassMap[a];
+      var cb = state.teacherClassMap[b];
+      var ga = gradeRank(ca) - gradeRank(cb);
+      if (ga) return ga;
+      return normKey(ca).localeCompare(normKey(cb), "zh-Hant");
+    });
     var mapEl = document.getElementById("classMapList");
     if (!keys.length) {
-      mapEl.innerHTML = '<div class="empty">尚無導師現任班級，請按下方新增</div>';
+      mapEl.innerHTML = '<div class="empty">尚無導師現任班級，請按「還原官方34班」或手動新增</div>';
     } else {
-      mapEl.innerHTML = keys.map(function (t) {
-        return '<div class="card"><div class="card-head"><div class="card-title">' + esc(t) +
-          '</div><div class="meta">現任班級：' + esc(state.teacherClassMap[t]) + "</div></div>" +
-          '<div class="btn-row"><button class="btn secondary" type="button" data-delteacher="' + esc(t) + '">移除</button></div></div>';
-      }).join("");
+      var official = keys.filter(function (t) { return isPresetClass(state.teacherClassMap[t]); });
+      var manual = keys.filter(function (t) { return !isPresetClass(state.teacherClassMap[t]); });
+      function classCard(t, removable) {
+        var cls = state.teacherClassMap[t];
+        var badge = removable ? "" : '<span class="tag" style="margin-left:0.35rem;font-size:0.72rem">官方</span>';
+        var delBtn = removable
+          ? '<div class="btn-row"><button class="btn secondary" type="button" data-delteacher="' + esc(t) + '">移除</button></div>'
+          : "";
+        return '<div class="card"><div class="card-head"><div class="card-title">' + esc(t) + badge +
+          '</div><div class="meta">現任班級：' + esc(cls) + "</div></div>" + delBtn + "</div>";
+      }
+      var html = "";
+      if (official.length) {
+        html += '<p class="tips" style="margin:0 0 0.35rem">官方 34 班（' + official.length + " 班）</p>";
+        html += official.map(function (t) { return classCard(t, false); }).join("");
+      }
+      if (manual.length) {
+        html += '<p class="tips" style="margin:0.65rem 0 0.35rem">其他班級（' + manual.length + " 班，可移除）</p>";
+        html += manual.map(function (t) { return classCard(t, true); }).join("");
+      }
+      mapEl.innerHTML = html;
       mapEl.querySelectorAll("[data-delteacher]").forEach(function (btn) {
         btn.onclick = function () {
-          removeTeacherClass(btn.dataset.delteacher);
+          if (!removeTeacherClass(btn.dataset.delteacher)) return;
           saveState();
           renderSettings();
           toast("已移除");
@@ -1853,17 +1938,21 @@
   function showClassForm() {
     openModal(
       '<button class="modal-close" type="button" id="modalX">&times;</button>' +
-      "<h3>新增導師現任班級</h3>" +
-      '<p class="tips" style="margin-bottom:0.5rem">僅供班級導師對照；選取時可帶出班級，不會覆寫手動輸入。</p>' +
-      '<div class="row"><label>導師姓名</label><input id="cTeacher" type="text" maxlength="20" placeholder="例：王小明" /></div>' +
-      '<div class="row"><label>現任班級</label><input id="cClass" type="text" maxlength="20" placeholder="例：201" /></div>' +
+      "<h3>新增其他班級</h3>" +
+      '<p class="tips" style="margin-bottom:0.5rem">供<strong>特教、處室、樂學班</strong>等非官方班級。官方 34 班（101–311）請用「還原官方34班」，勿在此修改。</p>' +
+      '<div class="row"><label>領用人／導師</label><input id="cTeacher" type="text" maxlength="20" placeholder="例：王小明、總務處" /></div>' +
+      '<div class="row"><label>班級或單位</label><input id="cClass" type="text" maxlength="20" placeholder="例：特教2、樂學班" /></div>' +
       '<button class="btn" type="button" id="cSave">儲存</button>'
     );
     document.getElementById("modalX").onclick = closeModal;
     document.getElementById("cSave").onclick = function () {
       var c = document.getElementById("cClass").value.trim();
       var t = document.getElementById("cTeacher").value.trim();
-      if (!c || !t) { toast("請填寫導師與現任班級"); return; }
+      if (!c || !t) { toast("請填寫領用人與班級"); return; }
+      if (isPresetClass(c)) {
+        toast("班級 " + c + " 為官方名單，請按「還原官方34班」");
+        return;
+      }
       syncClassMapsFromTeacher(t, c);
       saveState();
       closeModal();
@@ -2908,13 +2997,13 @@
   };
   document.getElementById("btnAddClass").onclick = showClassForm;
   document.getElementById("btnLoadTeacherPreset").onclick = function () {
-    var has = Object.keys(state.teacherClassMap || {}).length;
-    var msg = has
-      ? "將以115學年度官方名單表（34班）覆寫現有 " + has + " 筆對照。確定？"
-      : "載入115學年度官方名單表（34班）？";
+    var manual = collectManualTeacherClassExtras().length;
+    var msg = manual
+      ? "將還原官方 34 班名單；已手動新增的 " + manual + " 筆其他班級會保留。確定？"
+      : "還原115學年度官方 34 班名單？";
     if (!confirm(msg)) return;
     var n = loadTeacherClassPreset(TEACHER_CLASS_PRESET_CAJH_115, true);
-    toast("已載入官方名單 " + n + " 班");
+    toast("已還原官方 " + n + " 班" + (manual ? "（保留其他 " + manual + " 班）" : ""));
     renderSettings();
     renderHome();
   };
