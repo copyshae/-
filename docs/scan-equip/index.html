@@ -515,6 +515,8 @@
           <button class="btn secondary" type="button" id="btnPhotoScanStock">拍照登記</button>
           <button class="btn secondary" type="button" id="btnAddItemStock">新增欄位</button>
           <button class="btn secondary" type="button" id="btnExportInvCsv">匯出庫存 CSV</button>
+          <button class="btn secondary" type="button" id="btnImportInvCsv">匯入庫存 CSV</button>
+          <input type="file" id="importInvCsvFile" accept=".csv,text/csv" class="hidden" />
         </div>
       </section>
       <section>
@@ -1184,9 +1186,9 @@
     return inv;
   }
 
-  function ensureInventory(inv) {
+  function ensureInventory(inv, items) {
     var base = {};
-    state.items.forEach(function (it) {
+    (items || state.items || []).forEach(function (it) {
       base[it.id] = Object.assign(emptyStockEntry(), (inv && inv[it.id]) || {});
       CONDITIONS.forEach(function (c) {
         base[it.id][c.id] = parseFloat(base[it.id][c.id]) || 0;
@@ -1243,7 +1245,7 @@
       if (!raw) return defaultState();
       var p = JSON.parse(raw);
       var s = migrateState(p);
-      s.inventory = ensureInventory(s.inventory || p.inventory);
+      s.inventory = ensureInventory(s.inventory || p.inventory, s.items);
       if (!s.removedItemIds) s.removedItemIds = p.removedItemIds || [];
       return s;
     } catch (e) {
@@ -2013,6 +2015,48 @@
     var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
     downloadBlob(blob, "掃具庫存_" + todayStr() + ".csv");
     toast("已匯出庫存 CSV");
+  }
+
+  function parseInvQty(raw) {
+    raw = String(raw || "").trim();
+    if (/^\([\d.]+\)$/.test(raw)) raw = "-" + raw.slice(1, -1);
+    return parseFloat(raw) || 0;
+  }
+
+  function importInvCsvText(text) {
+    var rows = parseCsvRows(text);
+    if (rows.length < 2) { toast("CSV 內容不足，至少需要標題列與一筆資料"); return; }
+    var headers = rows[0].map(function (h) { return h.trim(); });
+    var nameIdx = headers.indexOf("掃具種類");
+    var newIdx = headers.indexOf("新");
+    var oldIdx = headers.indexOf("舊");
+    var fairIdx = headers.indexOf("尚可");
+    if (nameIdx < 0 || newIdx < 0 || oldIdx < 0 || fairIdx < 0) {
+      toast("找不到「掃具種類／新／舊／尚可」欄，請確認為庫存匯出的 CSV");
+      return;
+    }
+    var updated = 0, skipped = 0;
+    rows.slice(1).forEach(function (cols) {
+      var name = (cols[nameIdx] || "").trim();
+      if (!name || name === "合計") { skipped++; return; }
+      var it = state.items.find(function (x) { return x.name === name; });
+      if (!it) { skipped++; return; }
+      state.inventory[it.id] = {
+        new: parseInvQty(cols[newIdx]),
+        old: parseInvQty(cols[oldIdx]),
+        fair: parseInvQty(cols[fairIdx])
+      };
+      updated++;
+    });
+    if (!updated) {
+      toast("未匯入任何庫存，請確認 CSV 格式與掃具名稱");
+      return;
+    }
+    saveState();
+    renderStock();
+    renderHome();
+    renderSettings();
+    toast("庫存 CSV 匯入完成：更新 " + updated + " 種" + (skipped ? "，略過 " + skipped + " 列" : ""));
   }
 
   function renderItemCard(it, i) {
@@ -3486,6 +3530,17 @@
     renderStock();
   };
   document.getElementById("btnExportInvCsv").onclick = exportInvCsv;
+  document.getElementById("btnImportInvCsv").onclick = function () {
+    document.getElementById("importInvCsvFile").click();
+  };
+  document.getElementById("importInvCsvFile").onchange = function (ev) {
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () { importInvCsvText(reader.result); };
+    reader.readAsText(file);
+    ev.target.value = "";
+  };
 
   document.getElementById("listSearch").oninput = function (ev) {
     listSearch = ev.target.value;
@@ -3585,7 +3640,7 @@
         var data = JSON.parse(reader.result);
         if (!data.records) throw new Error("格式錯誤");
         state = migrateState(data);
-        state.inventory = ensureInventory(state.inventory || data.inventory);
+        state.inventory = ensureInventory(state.inventory || data.inventory, state.items);
         state.stockLogs = data.stockLogs || state.stockLogs || [];
         saveState();
         toast("匯入成功");
