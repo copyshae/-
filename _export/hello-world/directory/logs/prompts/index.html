@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>快捷提示詞｜學習日誌</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --paper: #e8efe6;
+      --accent: #2d6a4f;
+      --muted: #4a5c52;
+      --line: rgba(45, 106, 79, 0.22);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      line-height: 1.65;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(149, 213, 178, 0.35), transparent 55%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 50%, #d8e8dc 100%);
+    }
+    .wrap { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1.2rem 3.5rem; }
+    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.95rem; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      font-weight: 400;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 1.25rem; }
+    .phrase {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 0.55rem 0;
+      padding: 1rem 1.1rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.7);
+      color: var(--ink);
+      font: inherit;
+      font-size: 1.15rem;
+      font-weight: 600;
+      text-align: left;
+      border-radius: 0.4rem;
+    }
+    .phrase small { font-weight: 400; color: var(--muted); font-size: 0.85rem; }
+    .phrase:active { background: #fff; border-color: var(--accent); }
+    .ok { color: var(--accent); font-size: 0.9rem; min-height: 1.3em; margin: 0.35rem 0 1rem; }
+    .callout {
+      margin: 1.25rem 0;
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(45,106,79,0.08);
+      font-size: 0.95rem;
+    }
+    code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
+    textarea {
+      width: 100%;
+      min-height: 6.5rem;
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      font: inherit;
+      font-size: 0.95rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../">← 學習日誌</a>
+      <a href="https://copyshae.github.io/hello-world/directory/202608/">當月列表</a>
+    </nav>
+    <h1>快捷提示詞</h1>
+    <p class="lead">點一下複製，再到手機 Cursor 對話貼上。倉庫請選 <strong>copyshae/-</strong>。</p>
+    <p class="ok" id="status" aria-live="polite"></p>
+
+    <button class="phrase" type="button" data-copy="推日誌">推日誌 <small>寫今日工作大要</small></button>
+    <button class="phrase" type="button" data-copy="連日誌">連日誌 <small>開啟當月列表</small></button>
+    <button class="phrase" type="button" data-copy="日誌首頁">日誌首頁 <small>學習日誌目錄</small></button>
+    <button class="phrase" type="button" data-copy="收工推日誌">收工推日誌 <small>收工時用</small></button>
+    <button class="phrase" type="button" data-copy="裝快捷詞">裝快捷詞 <small>桌面更新；手機不必跑</small></button>
+    <button class="phrase" type="button" data-copy="/push-learning-log">/push-learning-log <small>Cursor 斜線指令</small></button>
+
+    <div class="callout">
+      桌面才需要跑 <code>install-push-log-shortcut.ps1</code>。手機 Cursor 是 Cloud Agent，看不到 Windows 的 <code>%USERPROFILE%\.cursor</code>，要靠倉庫裡的規則。
+    </div>
+
+    <p>若開別的倉庫，長按複製後貼到 Cursor 設定 → Rules → User Rules：</p>
+    <textarea id="user-rule" readonly>說「推日誌」「連日誌」「日誌首頁」「裝快捷詞」時，依 skill push-learning-log 執行（hello-world 學習日誌）。手機 Cursor 同樣適用。</textarea>
+    <button class="phrase" type="button" id="copy-rule">複製 User Rule 短句</button>
+
+    <p class="lead" style="margin-top:1.25rem">完整說明：<a href="./push-learning-log.md">push-learning-log.md</a></p>
+  </div>
+  <script>
+    function copyText(text, okMsg) {
+      var status = document.getElementById("status");
+      function done() {
+        if (status) status.textContent = okMsg || "已複製，請到 Cursor 貼上";
+      }
+      function fallback() {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); done(); }
+        catch (e) { if (status) status.textContent = "請長按選取後複製：" + text; }
+        document.body.removeChild(ta);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+    }
+    document.querySelectorAll(".phrase[data-copy]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        copyText(btn.getAttribute("data-copy"), "已複製「" + btn.getAttribute("data-copy") + "」");
+      });
+    });
+    var ruleBtn = document.getElementById("copy-rule");
+    var ruleBox = document.getElementById("user-rule");
+    if (ruleBtn && ruleBox) {
+      ruleBtn.addEventListener("click", function () {
+        copyText(ruleBox.value, "已複製 User Rule 短句");
+      });
+    }
+  </script>
+</body>
+</html>
