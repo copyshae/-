@@ -94,7 +94,7 @@ $files = @(
   "directory/learning-log.html",
   "directory/202608/index.html",
   "directory/202608/20260820-learning-log.html",
-  "directory/202608/20260827-learning-log.html",
+  "directory/202608/20260821-learning-log.html",
   "scripts/install-scan-equip.ps1",
   "scripts/scan-equip-app.ps1",
   "scripts/README-scan-equip.md"
@@ -157,14 +157,14 @@ try {
 
   git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip directory/apps/daily-14 directory/apps/habits-7 `
     directory/index.html directory/learning-log.html `
-    directory/202608/index.html directory/202608/20260820-learning-log.html directory/202608/20260827-learning-log.html `
+    directory/202608/index.html directory/202608/20260820-learning-log.html directory/202608/20260821-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "七個好習慣分類：獨立 App＋學習日誌 0827（不混 14 樣功課）"
+    git commit -m "七個好習慣分類：獨立 App＋學習日誌 0821（不混 14 樣功課）"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/habits-7/"

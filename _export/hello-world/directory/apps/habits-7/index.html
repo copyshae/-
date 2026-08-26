@@ -328,7 +328,11 @@
 
     <footer>
       <p>資料只存在這支手機瀏覽器。本頁與「每日14樣功課」完全分開。</p>
-      <p style="margin-top:0.35rem;"><a id="homeLink" href="../">回上一層</a></p>
+      <p style="margin-top:0.35rem;">
+        <a id="homeLink" href="../">回上一層</a>
+        ｜
+        <a id="logLink" href="https://copyshae.github.io/hello-world/directory/202608/20260821-learning-log.html">學習日誌 0821</a>
+      </p>
     </footer>
   </div>
 
@@ -706,12 +710,21 @@
     (function setHomeLink() {
       const path = location.pathname || "";
       const homeLink = document.getElementById("homeLink");
+      const logLink = document.getElementById("logLink");
       if (path.includes("/directory/apps/")) {
         homeLink.href = "../../";
         homeLink.textContent = "回學習日誌";
+        if (logLink) {
+          logLink.href = "../../202608/20260821-learning-log.html";
+          logLink.textContent = "本篇日誌 0821";
+        }
       } else {
         homeLink.href = "../";
         homeLink.textContent = "回習作工具主頁";
+        if (logLink) {
+          logLink.href = "https://copyshae.github.io/hello-world/directory/202608/20260821-learning-log.html";
+          logLink.textContent = "學習日誌 0821";
+        }
       }
     })();
 
