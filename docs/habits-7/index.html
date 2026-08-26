@@ -489,6 +489,7 @@
         <p class="hint" id="finalAdviceEmptyA">尚無紀錄時無法產生最後建議。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="refreshAdviceBtnA">依目前紀錄重整建議</button>
+          <button type="button" class="btn" id="speakAdviceBtnA">🔊 讀誦全部建議</button>
           <button type="button" class="btn" id="saveAdviceBtnA">把最後建議疊加進今日紀錄</button>
         </div>
       </div>
@@ -499,7 +500,11 @@
         <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆可<strong>編輯修正</strong>、↑↓調順序或刪除。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="speakTodayBtn">🔊 讀誦今日紀錄</button>
-          <button type="button" class="btn" id="stopSpeakBtn">停止讀誦</button>
+          <button type="button" class="btn" id="pauseSpeakBtn" data-tts-pause>⏸ 暫停</button>
+          <button type="button" class="btn" id="stopSpeakBtn" data-tts-stop>取消讀誦</button>
+        </div>
+        <p class="hint" data-tts-status hidden style="margin-top:0.35rem;color:var(--ok);font-weight:700;"></p>
+        <div class="actions">
           <button type="button" class="btn primary" id="exportJsonBtn">匯出當日 JSON</button>
           <button type="button" class="btn" id="exportCsvBtn">匯出當日 CSV</button>
           <button type="button" class="btn" id="exportTxtBtn">匯出當日 TXT</button>
@@ -568,6 +573,7 @@
         <p class="hint" id="finalAdviceEmptyB">尚無紀錄時無法產生最後建議。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="refreshAdviceBtnB">依目前紀錄重整建議</button>
+          <button type="button" class="btn" id="speakAdviceBtnB">🔊 讀誦全部建議</button>
           <button type="button" class="btn" id="saveAdviceBtnB">把最後建議疊加進今日紀錄</button>
         </div>
       </div>
@@ -578,7 +584,8 @@
         <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆可<strong>編輯修正</strong>、↑↓調順序或刪除。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="speakTodayBtnB">🔊 讀誦今日紀錄</button>
-          <button type="button" class="btn" id="stopSpeakBtnB">停止讀誦</button>
+          <button type="button" class="btn" id="pauseSpeakBtnB" data-tts-pause>⏸ 暫停</button>
+          <button type="button" class="btn" id="stopSpeakBtnB" data-tts-stop>取消讀誦</button>
           <button type="button" class="btn primary" id="exportJsonBtnB">匯出當日 JSON</button>
           <button type="button" class="btn" id="exportCsvBtnB">匯出當日 CSV</button>
           <button type="button" class="btn" id="exportTxtBtnB">匯出當日 TXT</button>
@@ -586,6 +593,7 @@
           <button type="button" class="btn" id="importJsonBtnB">匯入當日紀錄</button>
           <button type="button" class="btn danger" id="clearHistoryBtnB">清空今日紀錄</button>
         </div>
+        <p class="hint" data-tts-status hidden style="margin-top:0.35rem;color:var(--ok);font-weight:700;"></p>
       </div>
     </section>
 
@@ -834,7 +842,23 @@
     }
 
     function stopSpeaking() {
+      if (window.TtsVoices && window.TtsVoices.stopSpeakQueue) {
+        window.TtsVoices.stopSpeakQueue();
+        return;
+      }
       try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    function pauseSpeaking() {
+      if (window.TtsVoices && window.TtsVoices.togglePauseSpeakQueue) {
+        window.TtsVoices.togglePauseSpeakQueue();
+        return;
+      }
+      try {
+        if (!window.speechSynthesis) return;
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        else window.speechSynthesis.pause();
+      } catch (e) {}
     }
 
     function pickZhVoice() {
@@ -852,6 +876,10 @@
     function speakText(text, opts) {
       if (!window.speechSynthesis) {
         alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+        return;
+      }
+      if (window.TtsVoices && window.TtsVoices.speakQueued) {
+        window.TtsVoices.speakQueued(text, opts);
         return;
       }
       stopSpeaking();
@@ -875,7 +903,7 @@
       if (!list.length) return "今日尚無紀錄。";
       const lines = [];
       lines.push("以身心靈提升、靈命持續成長為首要。");
-      lines.push(`今天共有 ${list.length} 筆紀錄，依先後順序讀誦。`);
+      lines.push(`今天共有 ${list.length} 筆紀錄，依先後順序完整讀誦。`);
       list.forEach((it, i) => {
         const habit = HABITS.find((h) => h.id === it.habitId) || { id: "?", name: "未知" };
         const quad = QUADS[it.quadId] || { name: "未分類", short: "" };
@@ -883,16 +911,38 @@
         lines.push(`第 ${i + 1} 項。${it.text || "無內容"}。`);
         lines.push(`對應習慣 ${habit.id} ${habit.name}。時間象限：${quad.short || quad.name}。約 ${mins} 分鐘。`);
       });
-      // final advice if available
       try {
         const advice = buildFinalAdvice(list);
         if (advice && advice.length) {
-          lines.push("以下是今日最後建議。");
-          advice.slice(0, 5).forEach((a, i) => lines.push(`建議 ${i + 1}。${a}`));
+          lines.push(`以下是今日最後建議，共 ${advice.length} 條，全部讀完。`);
+          advice.forEach((a, i) => lines.push(`建議 ${i + 1}。${a}`));
         }
       } catch (e) {}
       lines.push("讀誦結束。願靈命日日增長，身心平安。");
       return lines.join(" ");
+    }
+
+    function buildAllAdviceSpeechScript() {
+      state = loadState();
+      const items = Array.isArray(state.items) ? state.items : [];
+      const advice = buildFinalAdvice(items);
+      const lines = [];
+      lines.push("今日全部建議讀誦。以身心靈提升、靈命持續成長為首要。");
+      if (!advice.length) {
+        lines.push("目前尚無建議。請先有今日紀錄後再重整建議。");
+      } else {
+        lines.push(`共 ${advice.length} 條建議，將完整讀完。`);
+        advice.forEach((a, i) => lines.push(`建議 ${i + 1}。${a}`));
+      }
+      lines.push("建議讀誦結束。");
+      return lines.join(" ");
+    }
+
+    function speakAllAdvice() {
+      const script = buildAllAdviceSpeechScript();
+      speakText(script);
+      flashSave("saveFlash", "開始讀誦全部建議（可暫停／取消）");
+      flashSave("d14SaveFlash", "開始讀誦全部建議（可暫停／取消）");
     }
 
     function speakTodayRecords() {
@@ -906,8 +956,8 @@
       }
       const script = buildTodaySpeechScript(items);
       speakText(script);
-      flashSave("saveFlash", `開始讀誦今日 ${items.length} 筆紀錄`);
-      flashSave("d14SaveFlash", `開始讀誦今日 ${items.length} 筆紀錄`);
+      flashSave("saveFlash", `開始完整讀誦今日 ${items.length} 筆（含全部建議；可暫停／取消）`);
+      flashSave("d14SaveFlash", `開始完整讀誦今日 ${items.length} 筆（含全部建議；可暫停／取消）`);
     }
 
     function exportTodayPayload() {
@@ -1350,7 +1400,7 @@
       }
 
       advice.push("收工封關：最上靈命項是否完成？→ 寫一句今日靈命心得 → 匯出當日備份 → 帶著平安休息。");
-      return advice.slice(0, 8);
+      return advice;
     }
 
     function renderFinalAdvice(items) {
@@ -2026,15 +2076,20 @@
 
     document.getElementById("speakTodayBtn").addEventListener("click", speakTodayRecords);
     document.getElementById("speakTodayBtnB").addEventListener("click", speakTodayRecords);
+    document.getElementById("speakAdviceBtnA").addEventListener("click", speakAllAdvice);
+    document.getElementById("speakAdviceBtnB").addEventListener("click", speakAllAdvice);
     // 供電腦版 life-desk 以 postMessage 觸發讀誦
     window.addEventListener("message", (ev) => {
       const data = ev && ev.data;
       if (!data || typeof data !== "object") return;
       if (data.type === "life-desk-speak-today") speakTodayRecords();
       if (data.type === "life-desk-stop-speak") stopSpeaking();
+      if (data.type === "life-desk-pause-speak") pauseSpeaking();
     });
     document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
     document.getElementById("stopSpeakBtnB").addEventListener("click", stopSpeaking);
+    document.getElementById("pauseSpeakBtn").addEventListener("click", pauseSpeaking);
+    document.getElementById("pauseSpeakBtnB").addEventListener("click", pauseSpeaking);
     document.getElementById("editCancelBtn").addEventListener("click", closeEditHistoryItem);
     document.getElementById("editSaveBtn").addEventListener("click", saveEditHistoryItem);
     document.getElementById("editOverlay").addEventListener("click", (e) => {

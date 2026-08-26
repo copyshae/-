@@ -318,6 +318,7 @@
     }
 
     fillVoiceSelectors();
+    notifySpeakStatus({ reason: "init" });
     if (global.speechSynthesis) {
       global.speechSynthesis.addEventListener("voiceschanged", function () {
         fillVoiceSelectors();
@@ -326,6 +327,230 @@
       setTimeout(fillVoiceSelectors, 1000);
       setTimeout(fillVoiceSelectors, 2500);
     }
+  }
+
+  /* ========== 分段讀誦＋暫停／繼續／取消 ========== */
+  let speakSession = 0;
+  let speakChunks = [];
+  let speakIndex = 0;
+  let speakPaused = false;
+  let speakActive = false;
+  let speakKeepAliveTimer = null;
+  let statusListeners = [];
+
+  function notifySpeakStatus(extra) {
+    const st = Object.assign({
+      active: speakActive,
+      paused: speakPaused,
+      index: speakIndex,
+      total: speakChunks.length,
+      session: speakSession
+    }, extra || {});
+    statusListeners.forEach(function (fn) {
+      try { fn(st); } catch (e) {}
+    });
+    // 更新畫面上常見狀態文字
+    try {
+      document.querySelectorAll("[data-tts-status]").forEach(function (el) {
+        if (!speakActive) {
+          el.textContent = "";
+          el.hidden = true;
+          return;
+        }
+        el.hidden = false;
+        const n = speakChunks.length ? (speakIndex + 1) : 0;
+        const total = speakChunks.length;
+        el.textContent = speakPaused
+          ? ("已暫停（" + n + "／" + total + " 段）— 可按繼續或取消")
+          : ("讀誦中（" + n + "／" + total + " 段）— 可隨時暫停或取消");
+      });
+    } catch (e) {}
+    // 同步按鈕狀態
+    try {
+      document.querySelectorAll("[data-tts-pause]").forEach(function (btn) {
+        btn.disabled = !speakActive;
+        btn.textContent = speakPaused ? "▶ 繼續" : "⏸ 暫停";
+      });
+      document.querySelectorAll("[data-tts-stop]").forEach(function (btn) {
+        btn.disabled = !speakActive;
+      });
+    } catch (e) {}
+  }
+
+  function onSpeakStatus(fn) {
+    if (typeof fn === "function") statusListeners.push(fn);
+  }
+
+  function clearKeepAlive() {
+    if (speakKeepAliveTimer) {
+      clearInterval(speakKeepAliveTimer);
+      speakKeepAliveTimer = null;
+    }
+  }
+
+  function startKeepAlive() {
+    clearKeepAlive();
+    // Chrome 長語音偶發靜默中斷：短暫 pause/resume 保活
+    speakKeepAliveTimer = setInterval(function () {
+      if (!speakActive || speakPaused) return;
+      try {
+        if (global.speechSynthesis && global.speechSynthesis.speaking) {
+          global.speechSynthesis.pause();
+          global.speechSynthesis.resume();
+        }
+      } catch (e) {}
+    }, 12000);
+  }
+
+  function splitSpeechChunks(text, maxLen) {
+    maxLen = maxLen || 120;
+    const raw = String(text || "").replace(/\s+/g, " ").trim();
+    if (!raw) return [];
+    const parts = [];
+    let cur = "";
+    for (let i = 0; i < raw.length; i++) {
+      cur += raw[i];
+      const ch = raw[i];
+      const punct = "。！？；!?;，,、：:";
+      if (punct.indexOf(ch) >= 0 || cur.length >= maxLen) {
+        const t = cur.trim();
+        if (t) parts.push(t);
+        cur = "";
+      }
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    // 合併過短片段，避免斷得太碎
+    const merged = [];
+    parts.forEach(function (p) {
+      if (merged.length && (merged[merged.length - 1].length + p.length) < Math.floor(maxLen * 0.55)) {
+        merged[merged.length - 1] += p;
+      } else {
+        merged.push(p);
+      }
+    });
+    return merged;
+  }
+
+  function stopSpeakQueue() {
+    speakSession += 1;
+    speakChunks = [];
+    speakIndex = 0;
+    speakPaused = false;
+    speakActive = false;
+    clearKeepAlive();
+    try { global.speechSynthesis && global.speechSynthesis.cancel(); } catch (e) {}
+    notifySpeakStatus({ reason: "stop" });
+  }
+
+  function pauseSpeakQueue() {
+    if (!speakActive || speakPaused) return;
+    speakPaused = true;
+    try { global.speechSynthesis && global.speechSynthesis.pause(); } catch (e) {}
+    // 部分瀏覽器 pause 不可靠：取消目前段，稍後從同段繼續
+    try {
+      if (global.speechSynthesis && !global.speechSynthesis.paused) {
+        global.speechSynthesis.cancel();
+      }
+    } catch (e) {}
+    notifySpeakStatus({ reason: "pause" });
+  }
+
+  function resumeSpeakQueue() {
+    if (!speakActive || !speakPaused) return;
+    speakPaused = false;
+    notifySpeakStatus({ reason: "resume" });
+    try {
+      if (global.speechSynthesis && global.speechSynthesis.paused) {
+        global.speechSynthesis.resume();
+        return;
+      }
+    } catch (e) {}
+    // 從目前段落重播
+    speakNextChunk(speakSession);
+  }
+
+  function togglePauseSpeakQueue() {
+    if (!speakActive) return;
+    if (speakPaused) resumeSpeakQueue();
+    else pauseSpeakQueue();
+  }
+
+  function makeUtterance(chunk, settings, opts) {
+    const u = new SpeechSynthesisUtterance(String(chunk || ""));
+    u.rate = (opts && opts.rate) || settings.rate || 0.95;
+    u.pitch = (opts && opts.pitch) || settings.pitch || 1;
+    if (settings.voice) {
+      u.voice = settings.voice;
+      u.lang = settings.voice.lang || settings.lang || "zh-TW";
+    } else {
+      u.lang = settings.lang || "zh-TW";
+    }
+    return u;
+  }
+
+  function speakNextChunk(sessionId) {
+    if (sessionId !== speakSession) return;
+    if (speakPaused) return;
+    if (speakIndex >= speakChunks.length) {
+      speakActive = false;
+      speakPaused = false;
+      clearKeepAlive();
+      notifySpeakStatus({ reason: "done" });
+      return;
+    }
+    const settings = getSpeakSettings();
+    const chunk = speakChunks[speakIndex];
+    const u = makeUtterance(chunk, settings, {});
+    u.onend = function () {
+      if (sessionId !== speakSession) return;
+      if (speakPaused) return;
+      speakIndex += 1;
+      notifySpeakStatus({ reason: "progress" });
+      // 小間隔，讓取消／暫停更容易插入
+      setTimeout(function () { speakNextChunk(sessionId); }, 40);
+    };
+    u.onerror = function () {
+      if (sessionId !== speakSession) return;
+      if (speakPaused) return;
+      speakIndex += 1;
+      setTimeout(function () { speakNextChunk(sessionId); }, 40);
+    };
+    try {
+      global.speechSynthesis.speak(u);
+    } catch (e) {
+      speakIndex += 1;
+      setTimeout(function () { speakNextChunk(sessionId); }, 40);
+    }
+    notifySpeakStatus({ reason: "speaking" });
+  }
+
+  function speakQueued(text, opts) {
+    if (!global.speechSynthesis) {
+      alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+      return false;
+    }
+    stopSpeakQueue();
+    const chunks = splitSpeechChunks(text, (opts && opts.maxLen) || 120);
+    if (!chunks.length) return false;
+    speakSession += 1;
+    const sessionId = speakSession;
+    speakChunks = chunks;
+    speakIndex = 0;
+    speakPaused = false;
+    speakActive = true;
+    startKeepAlive();
+    notifySpeakStatus({ reason: "start" });
+    speakNextChunk(sessionId);
+    return true;
+  }
+
+  function getSpeakState() {
+    return {
+      active: speakActive,
+      paused: speakPaused,
+      index: speakIndex,
+      total: speakChunks.length
+    };
   }
 
   global.TtsVoices = {
@@ -338,6 +563,14 @@
     fillVoiceSelectors: fillVoiceSelectors,
     bindVoicePicker: bindVoicePicker,
     listZhVoices: listZhVoices,
-    listVoiceChoices: listVoiceChoices
+    listVoiceChoices: listVoiceChoices,
+    splitSpeechChunks: splitSpeechChunks,
+    speakQueued: speakQueued,
+    stopSpeakQueue: stopSpeakQueue,
+    pauseSpeakQueue: pauseSpeakQueue,
+    resumeSpeakQueue: resumeSpeakQueue,
+    togglePauseSpeakQueue: togglePauseSpeakQueue,
+    getSpeakState: getSpeakState,
+    onSpeakStatus: onSpeakStatus
   };
 })(typeof window !== "undefined" ? window : this);

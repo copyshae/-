@@ -372,11 +372,13 @@
 
     <div class="actions" id="speakSyncActions" style="margin-top:0.65rem;">
       <button type="button" id="speakBtn" class="primary">🔊 讀誦今日紀錄</button>
-      <button type="button" id="stopSpeakBtn">停止讀誦</button>
+      <button type="button" id="pauseSpeakBtn" data-tts-pause>⏸ 暫停</button>
+      <button type="button" id="stopSpeakBtn" data-tts-stop>取消讀誦</button>
       <button type="button" id="exportBtn">匯出同步</button>
       <button type="button" id="importBtn">匯入同步</button>
       <button type="button" id="copyBtn">複製同步 JSON</button>
     </div>
+    <p class="hint" data-tts-status hidden style="margin-top:0.35rem;text-align:center;color:var(--ok);font-weight:700;"></p>
     <input type="file" id="importFile" accept="application/json,.json" hidden />
     <p class="hint" style="margin-top:0.55rem;text-align:center;">
       與電腦版同步：匯出 JSON → 傳到電腦「靈命七習慣資料」夾 → 另一端匯入。<br />
@@ -649,7 +651,22 @@
     }
 
     function stopSpeaking() {
+      if (window.TtsVoices && window.TtsVoices.stopSpeakQueue) {
+        window.TtsVoices.stopSpeakQueue();
+        return;
+      }
       try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    }
+    function pauseSpeaking() {
+      if (window.TtsVoices && window.TtsVoices.togglePauseSpeakQueue) {
+        window.TtsVoices.togglePauseSpeakQueue();
+        return;
+      }
+      try {
+        if (!window.speechSynthesis) return;
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        else window.speechSynthesis.pause();
+      } catch (e) {}
     }
     function pickZhVoice() {
       if (window.TtsVoices && typeof window.TtsVoices.pickZhVoice === "function") {
@@ -665,6 +682,10 @@
     function speakText(text) {
       if (!window.speechSynthesis) {
         alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+        return;
+      }
+      if (window.TtsVoices && window.TtsVoices.speakQueued) {
+        window.TtsVoices.speakQueued(text);
         return;
       }
       stopSpeaking();
@@ -711,6 +732,7 @@
     }
     document.getElementById("speakBtn").addEventListener("click", speakDaily14);
     document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
+    document.getElementById("pauseSpeakBtn").addEventListener("click", pauseSpeaking);
     if (window.TtsVoices) {
       window.TtsVoices.bindVoicePicker({ speak: speakText });
     } else if (window.speechSynthesis) {
@@ -722,6 +744,7 @@
       if (!data || typeof data !== "object") return;
       if (data.type === "life-desk-speak-today") speakDaily14();
       if (data.type === "life-desk-stop-speak") stopSpeaking();
+      if (data.type === "life-desk-pause-speak") pauseSpeaking();
     });
     document.getElementById("exportBtn").addEventListener("click", () => {
       const p = exportPayload();

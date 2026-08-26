@@ -92,7 +92,8 @@
     <button type="button" data-tab="both">左右並排</button>
     <button type="button" id="btnSpeak" class="primary">🔊 讀誦今日紀錄</button>
     <button type="button" id="btnSpeakGuide">讀誦導引</button>
-    <button type="button" id="btnStopSpeak">停止讀誦</button>
+    <button type="button" id="btnPauseSpeak" data-tts-pause>⏸ 暫停</button>
+    <button type="button" id="btnStopSpeak" data-tts-stop>取消讀誦</button>
     <label class="voice-lab" for="ttsGender">聲音
       <select id="ttsGender" title="性別偏好">
         <option value="F">女聲</option>
@@ -102,6 +103,7 @@
     </label>
     <select id="ttsVoice" title="選擇讀誦聲音"></select>
     <button type="button" id="ttsPreview">試聽</button>
+    <span class="voice-lab" data-tts-status hidden style="color:#0e7a4c;"></span>
     <button type="button" id="btnSync" class="primary">同步／匯出存檔</button>
     <a class="btn" id="openDaily" href="../daily-14/" target="_blank" rel="noopener">獨立開14樣</a>
     <a class="btn" id="openHabits" href="../habits-7/" target="_blank" rel="noopener">獨立開七習慣</a>
@@ -546,12 +548,27 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
     };
 
     function stopDeskSpeak() {
-      try { speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
+      if (window.TtsVoices && window.TtsVoices.stopSpeakQueue) {
+        window.TtsVoices.stopSpeakQueue();
+      } else {
+        try { speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
+      }
       try {
         const d = document.getElementById("ifrDaily");
         const h = document.getElementById("ifrHabits");
         if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
         if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+      } catch (e) {}
+    }
+    function pauseDeskSpeak() {
+      if (window.TtsVoices && window.TtsVoices.togglePauseSpeakQueue) {
+        window.TtsVoices.togglePauseSpeakQueue();
+      }
+      try {
+        const d = document.getElementById("ifrDaily");
+        const h = document.getElementById("ifrHabits");
+        if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-pause-speak" }, "*");
+        if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-pause-speak" }, "*");
       } catch (e) {}
     }
     function pickZhVoice() {
@@ -568,6 +585,17 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
     function speakText(text) {
       if (!window.speechSynthesis) {
         alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+        return;
+      }
+      if (window.TtsVoices && window.TtsVoices.speakQueued) {
+        // 先停掉 iframe 讀誦，改由本頁分段完整朗讀（較好暫停／取消）
+        try {
+          const d = document.getElementById("ifrDaily");
+          const h = document.getElementById("ifrHabits");
+          if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+          if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+        } catch (e) {}
+        window.TtsVoices.speakQueued(text);
         return;
       }
       stopDeskSpeak();
@@ -639,22 +667,7 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
       return lines.join(" ");
     }
     function speakTodayRecords() {
-      stopDeskSpeak();
-      // 先嘗試請目前可見 iframe 自行讀誦（內容更完整）；並排時改讀本頁彙整
-      try {
-        const tab = document.querySelector(".toolbar button.active");
-        const which = tab ? tab.getAttribute("data-tab") : "daily14";
-        const d = document.getElementById("ifrDaily");
-        const h = document.getElementById("ifrHabits");
-        if (which === "habits7" && h && h.contentWindow) {
-          h.contentWindow.postMessage({ type: "life-desk-speak-today" }, "*");
-          return;
-        }
-        if (which === "daily14" && d && d.contentWindow) {
-          d.contentWindow.postMessage({ type: "life-desk-speak-today" }, "*");
-          return;
-        }
-      } catch (e) {}
+      // 一律由電腦版本頁分段讀誦，工具列暫停／取消才會立刻生效
       speakText(buildTodayRecordsScript());
     }
     function speakDeskGuide() {
@@ -663,12 +676,14 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
         "首要宗旨：身心靈提升，靈命持續成長。",
         "可切換每日十四樣功課，與七習慣時間象限。",
         "按讀誦今日紀錄，可朗讀十四樣進度與七習慣今日條目。",
+        "讀誦中可隨時暫停或取消。",
         "與手機同步：請在各 App 匯出含今日日期的檔案，再於另一端匯入。",
         "願你今日靈命增長，身心平安。"
       ].join(" "));
     }
     document.getElementById("btnSpeak").addEventListener("click", speakTodayRecords);
     document.getElementById("btnSpeakGuide").addEventListener("click", speakDeskGuide);
+    document.getElementById("btnPauseSpeak").addEventListener("click", pauseDeskSpeak);
     document.getElementById("btnStopSpeak").addEventListener("click", stopDeskSpeak);
     if (window.TtsVoices) {
       window.TtsVoices.bindVoicePicker({ speak: speakText });
