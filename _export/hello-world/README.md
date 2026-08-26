@@ -18,7 +18,7 @@
 cd $env:USERPROFILE\Desktop\hello-world
 $dir = Join-Path $PWD 'scripts'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
-$url = 'https://raw.githubusercontent.com/copyshae/-/main/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
+$url = 'https://raw.githubusercontent.com/copyshae/-/cursor/daily-14-checklist-cb3e/_export/hello-world/scripts/pull-export-from-dash-repo.ps1'
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
 ```
@@ -28,10 +28,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 1. **關掉**舊的習作批改／習作台視窗  
 2. 再雙擊桌面 `習作批改.vbs`、`習作台.cmd`  
 3. 手機強制重新整理：  
+   - https://copyshae.github.io/hello-world/directory/  
+   - https://copyshae.github.io/hello-world/directory/apps/daily-14/  
    - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
    - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
    - https://copyshae.github.io/hello-world/directory/apps/scan-equip/  
 
 ## 規格依據
 
+https://copyshae.github.io/hello-world/directory/202608/20260826-learning-log.html
 https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html

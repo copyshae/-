@@ -10,13 +10,19 @@ if (-not (Test-Path -LiteralPath $dest)) {
 $pairs = @(
   @{ Src = 'directory\apps\teacher-desk'; Dst = 'directory\apps\teacher-desk' },
   @{ Src = 'directory\apps\math-grader'; Dst = 'directory\apps\math-grader' },
+  @{ Src = 'directory\apps\scan-equip'; Dst = 'directory\apps\scan-equip' },
+  @{ Src = 'directory\apps\daily-14'; Dst = 'directory\apps\daily-14' },
+  @{ Src = 'directory\index.html'; Dst = 'directory\index.html' },
+  @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
+  @{ Src = 'directory\202608\20260826-learning-log.html'; Dst = 'directory\202608\20260826-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
   @{ Src = 'scripts\math-homework-grader-app.ps1'; Dst = 'scripts\math-homework-grader-app.ps1' },
   @{ Src = 'scripts\install-math-homework-grader.ps1'; Dst = 'scripts\install-math-homework-grader.ps1' },
   @{ Src = 'scripts\README-math-homework-grader.md'; Dst = 'scripts\README-math-homework-grader.md' },
-  @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' }
+  @{ Src = 'scripts\install-desktop-apps.ps1'; Dst = 'scripts\install-desktop-apps.ps1' },
+  @{ Src = 'scripts\pull-export-from-dash-repo.ps1'; Dst = 'scripts\pull-export-from-dash-repo.ps1' }
 )
 
 foreach ($p in $pairs) {
@@ -45,15 +51,18 @@ if (Test-Path -LiteralPath $rulesSrc) {
 
 Push-Location $dest
 try {
-  git add directory/apps/teacher-desk directory/apps/math-grader `
+  git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/scan-equip directory/apps/daily-14 `
+    directory/index.html directory/202608/index.html directory/202608/20260826-learning-log.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
-    scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
+    scripts/install-desktop-apps.ps1 scripts/pull-export-from-dash-repo.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '手機習作批改：補批完後續（自產練習／發放／回傳循環）'
+  $msg = '學習日誌：新增每日14樣功課手機勾選入口'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'
+  Write-Host '學習日誌：https://copyshae.github.io/hello-world/directory/'
+  Write-Host '每日14樣功課：https://copyshae.github.io/hello-world/directory/apps/daily-14/'
   Write-Host '請再跑：powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop-apps.ps1'
   Write-Host '習作批改：Gemini金鑰 →「Gemini自動批」或「連續自動批」（答案可選）。'
 } finally {
