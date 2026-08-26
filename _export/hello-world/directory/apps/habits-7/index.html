@@ -214,6 +214,30 @@
     .filters button.on {
       background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700;
     }
+    .suggest-box {
+      margin-top: 0.75rem;
+      padding: 0.75rem 0.7rem;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid var(--line);
+    }
+    .suggest-box h3 {
+      font-size: 0.92rem;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+    .suggest-box ol {
+      margin: 0.25rem 0 0.55rem 1.15rem;
+      font-size: 0.88rem;
+    }
+    .suggest-box li { margin: 0.28rem 0; }
+    .suggest-chips {
+      display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem;
+    }
+    .suggest-chips button {
+      font: inherit; font-size: 0.78rem; cursor: pointer;
+      border: 1px solid var(--accent); background: #fff; color: var(--accent);
+      padding: 0.35rem 0.55rem; font-weight: 600;
+    }
     .course-tip {
       margin-top: 0.75rem;
       padding: 0.85rem;
@@ -295,13 +319,13 @@
         <label for="what">事／物（做什麼）</label>
         <textarea id="what" placeholder="例：批改康軒七上 1-2 習作；巡視掃具櫃；與導師協調班級整潔競賽"></textarea>
         <label for="freeText">或整段口述／打字</label>
-        <textarea id="freeText" placeholder="也可直接貼整段話，不必分欄"></textarea>
+        <textarea id="freeText" placeholder="例：第三節要上康軒七上整數加減，學生常弄反符號；午休要巡掃具櫃"></textarea>
         <div class="actions">
           <button type="button" class="btn" id="voiceBtn">🎤 口說輸入</button>
-          <button type="button" class="btn primary" id="classifyBtn">歸類</button>
+          <button type="button" class="btn primary" id="classifyBtn">歸類＋給建議</button>
           <button type="button" class="btn" id="clearBtn">清空</button>
         </div>
-        <p class="hint" id="voiceHint">支援 Chrome／Edge 語音辨識（需麥克風權限）。Safari 請用打字。</p>
+        <p class="hint" id="voiceHint">輸入後按「歸類＋給建議」：會顯示習慣、象限，以及可執行的建議項目（可一鍵疊加）。</p>
       </div>
 
       <div class="result" id="resultBox" aria-live="polite">
@@ -314,9 +338,17 @@
           <div data-q="4">Ⅳ 不重要不緊急</div>
         </div>
         <p class="hint" id="reasonOut" style="margin-top:0.55rem;"></p>
+        <div class="suggest-box" id="suggestBox" hidden>
+          <h3>給你的建議（依這件事）</h3>
+          <ol id="suggestList"></ol>
+          <p class="hint" id="suggestWhy"></p>
+          <p class="hint" style="margin-top:0.45rem;"><strong>可一鍵加入相關行動：</strong></p>
+          <div class="suggest-chips" id="suggestChips"></div>
+        </div>
         <p class="hint" id="saveFlash" style="margin-top:0.35rem;color:var(--ok);font-weight:700;display:none;"></p>
         <div class="actions">
           <button type="button" class="btn primary" id="saveBtn">歸類並疊加到今日紀錄</button>
+          <button type="button" class="btn" id="suggestOnlyBtn">只看建議不存檔</button>
         </div>
       </div>
 
@@ -680,6 +712,7 @@
             `<div><strong>#${seq}</strong> ${escapeHtml(item.text || "")}</div>` +
             `<div class="meta">習慣${habit.id} ${habit.name}｜${quad.short}` +
             (item.source === "daily14" ? "｜來自14樣" : "") +
+            (item.source === "suggest" ? "｜來自建議" : "") +
             `</div>`;
           list.appendChild(li);
         });
@@ -711,6 +744,124 @@
         .replace(/"/g, "&quot;");
     }
 
+    function buildSuggestions(habitId, quadId, text) {
+      const t = text || "";
+      const tips = [];
+      const chips = []; // {label, habitId, quadId, text}
+
+      // 象限建議
+      if (quadId === 1) {
+        tips.push("這是重要且緊急：先做「最小可完成步驟」15 分鐘，做完再評估要不要擴大事。");
+        tips.push("做完後問一句：下次如何預防變成緊急？（把類似事排進第二象限）");
+      } else if (quadId === 2) {
+        tips.push("這是重要不緊急：排進行事曆固定時段，不要等它變成第一象限。");
+        tips.push("今天先完成一小塊（備課大綱／盤點一區／聯絡一位同仁）即可。");
+      } else if (quadId === 3) {
+        tips.push("這偏緊急但不夠重要：能委派就委派（衛生股長／導師／處室），自己只審結果。");
+        tips.push("設時間盒：最多 10–15 分鐘處理，避免佔掉要事。");
+      } else {
+        tips.push("這偏不重要不緊急：刪掉、延後，或合併到其他時段再做。");
+      }
+
+      // 習慣建議
+      const byHabit = {
+        1: "主動積極：先寫下「我能決定的一步」，不要停在抱怨或等待。",
+        2: "以終為始：先講清楚成果長什麼樣子（學生會／不會什麼；衛生要達到什麼標準）。",
+        3: "要事第一：把這件事排在今天前三要事；次要的先擋掉。",
+        4: "雙贏思維：想一個讓學生／導師／處室都能接受的方案再開口。",
+        5: "知彼解己：先聽對方 2 分鐘再說你的要求或規則。",
+        6: "統合綜效：找一位可合作的人（共備／共修／跨班），一起想第三方案。",
+        7: "不斷更新：這件事也算充電——做完記得留 5 分鐘休息或寫一句心得。"
+      };
+      tips.push(byHabit[habitId] || byHabit[3]);
+
+      // 情境建議（教師／衛生／14樣）
+      if (/數學|康軒|習作|上課|教案|批改|段考|負數|方程式|分數/.test(t)) {
+        tips.push("數學課建議：本節只抓一個核心目標＋三題精準練習；錯題先分類再講。");
+        chips.push({ label: "備課：寫本節唯一目標", habitId: 2, quadId: 2, text: "備課：寫清本節唯一學習目標" });
+        chips.push({ label: "批改：先收三題典型錯", habitId: 3, quadId: 1, text: "批改：先整理三題典型錯再講解" });
+      }
+      if (/掃具|衛生|整潔|保健|健康|班級清潔|拖把|掃把/.test(t)) {
+        tips.push("衛生組長建議：先對照庫存／請領紀錄，再決定補貨或請領；現場巡查拍照留存。");
+        chips.push({ label: "巡視掃具櫃並記錄", habitId: 3, quadId: 1, text: "衛生：巡視掃具櫃並記錄缺項" });
+        chips.push({ label: "與導師協調整潔", habitId: 4, quadId: 2, text: "衛生：與導師協調班級整潔標準（雙贏）" });
+      }
+      if (/家長|溝通|情緒|衝突|輔導|晤談/.test(t)) {
+        tips.push("溝通建議：先复述對方關切點，再提你的底線與可行方案。");
+        chips.push({ label: "先聽再回應（知彼）", habitId: 5, quadId: 1, text: "溝通：先聽完整再回應" });
+      }
+      if (/會議|群組|訊息|轉傳|蓋章/.test(t)) {
+        tips.push("行政雜務：合併回覆、設截止前提醒一次即可，避免反覆插播。");
+      }
+
+      // 對應 14 樣功課（同習慣優先）
+      const related14 = DAILY14_MAP.filter((d) => d.h === habitId).slice(0, 2);
+      related14.forEach((d) => {
+        chips.push({
+          label: `14樣${d.id}：${d.title.slice(0, 10)}…`,
+          habitId: d.h,
+          quadId: 1,
+          text: `【建議→14樣第${d.id}項】${d.title}`,
+          source: "daily14"
+        });
+      });
+      // 若沒對到，給普適更新項
+      if (!related14.length) {
+        chips.push({
+          label: "14樣：秒秒轉念",
+          habitId: 1,
+          quadId: 1,
+          text: "【建議→14樣第10項】秒秒轉念",
+          source: "daily14"
+        });
+      }
+
+      // 去重 tips
+      const uniqTips = [...new Set(tips)].slice(0, 5);
+      // 去重 chips by text
+      const seen = new Set();
+      const uniqChips = [];
+      for (const c of chips) {
+        if (seen.has(c.text)) continue;
+        seen.add(c.text);
+        uniqChips.push(c);
+        if (uniqChips.length >= 5) break;
+      }
+
+      let why = `依「習慣${habitId}」與「第${quadId}象限」產生。可點下方按鈕把建議行動疊加進今日紀錄。`;
+      if (/14樣|富有|弟子規|渡人|太陽心法/.test(t)) {
+        why = "偵測到與每日14樣功課相關：建議當日完成（Ⅰ重要且緊急），並可一鍵加入對應項。";
+      }
+      return { tips: uniqTips, chips: uniqChips, why };
+    }
+
+    function renderSuggestions(habitId, quadId, text) {
+      const box = document.getElementById("suggestBox");
+      const list = document.getElementById("suggestList");
+      const chips = document.getElementById("suggestChips");
+      const why = document.getElementById("suggestWhy");
+      const s = buildSuggestions(habitId, quadId, text);
+      list.innerHTML = s.tips.map((x) => `<li>${escapeHtml(x)}</li>`).join("");
+      why.textContent = s.why;
+      chips.innerHTML = "";
+      s.chips.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = c.label;
+        btn.addEventListener("click", () => {
+          const n = addToHistory({
+            habitId: c.habitId,
+            quadId: c.quadId,
+            text: c.text,
+            source: c.source || "suggest"
+          });
+          flashSave("saveFlash", `已把建議「${c.label}」疊加！今日共 ${n} 筆`);
+        });
+        chips.appendChild(btn);
+      });
+      box.hidden = false;
+    }
+
     function showResult(habitId, quadId, text) {
       const habit = HABITS.find((h) => h.id === habitId) || HABITS[0];
       const quad = QUADS[quadId] || QUADS[1];
@@ -724,6 +875,7 @@
       document.querySelectorAll("#matrix div").forEach((el) => {
         el.classList.toggle("on", Number(el.dataset.q) === lastResult.quadId);
       });
+      renderSuggestions(habit.id, lastResult.quadId, text);
       document.getElementById("resultBox").classList.add("show");
     }
 
@@ -907,6 +1059,19 @@
       }
       const got = classifyCurrentText(text);
       showResult(got.h, got.q, got.text);
+      // 自動捲到建議區
+      document.getElementById("suggestBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+
+    document.getElementById("suggestOnlyBtn").addEventListener("click", () => {
+      const text = combinedText();
+      if (!text) {
+        flashSave("saveFlash", "請先輸入事情，再看建議");
+        return;
+      }
+      const got = classifyCurrentText(text);
+      showResult(got.h, got.q, got.text);
+      flashSave("saveFlash", "已產生建議（尚未存檔；可點建議按鈕疊加）");
     });
 
     document.getElementById("saveBtn").addEventListener("click", () => {
@@ -932,6 +1097,7 @@
         document.getElementById(id).value = "";
       });
       document.getElementById("resultBox").classList.remove("show");
+      document.getElementById("suggestBox").hidden = true;
       lastResult = null;
     });
 
