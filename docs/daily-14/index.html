@@ -359,7 +359,7 @@
       <label for="ttsGender">性別偏好</label>
       <select id="ttsGender">
         <option value="F">女聲（好聽優先）</option>
-        <option value="M">男聲（好聽優先）</option>
+        <option value="M">男聲（含低沉效果）</option>
         <option value="all">全部中文語音</option>
       </select>
       <label for="ttsVoice">選擇聲音</label>
@@ -367,7 +367,7 @@
       <div class="actions" style="margin-top:0.55rem;">
         <button type="button" id="ttsPreview">試聽此聲音</button>
       </div>
-      <p class="hint">可選多種男聲／女聲；選擇會記在本機，與此站其他 App 共用。</p>
+      <p class="hint" id="ttsVoiceHint">可選多種男聲／女聲；若裝置缺少男聲，會提供「男聲效果・低沉」選項。選擇會記在本機，與此站其他 App 共用。</p>
     </div>
 
     <div class="actions" id="speakSyncActions" style="margin-top:0.65rem;">
@@ -668,14 +668,17 @@
         return;
       }
       stopSpeaking();
+      const settings = (window.TtsVoices && window.TtsVoices.getSpeakSettings)
+        ? window.TtsVoices.getSpeakSettings()
+        : { voice: pickZhVoice(), pitch: 1, rate: 0.95, lang: "zh-TW" };
       const u = new SpeechSynthesisUtterance(String(text || ""));
-      u.rate = 0.95;
-      const voice = pickZhVoice();
-      if (voice) {
-        u.voice = voice;
-        u.lang = voice.lang || "zh-TW";
+      u.rate = settings.rate || 0.95;
+      u.pitch = settings.pitch || 1;
+      if (settings.voice) {
+        u.voice = settings.voice;
+        u.lang = settings.voice.lang || settings.lang || "zh-TW";
       } else {
-        u.lang = "zh-TW";
+        u.lang = settings.lang || "zh-TW";
       }
       window.speechSynthesis.speak(u);
     }

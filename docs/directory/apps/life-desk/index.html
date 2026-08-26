@@ -96,7 +96,7 @@
     <label class="voice-lab" for="ttsGender">聲音
       <select id="ttsGender" title="性別偏好">
         <option value="F">女聲</option>
-        <option value="M">男聲</option>
+        <option value="M">男聲（含效果）</option>
         <option value="all">全部</option>
       </select>
     </label>
@@ -571,14 +571,17 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
         return;
       }
       stopDeskSpeak();
+      const settings = (window.TtsVoices && window.TtsVoices.getSpeakSettings)
+        ? window.TtsVoices.getSpeakSettings()
+        : { voice: pickZhVoice(), pitch: 1, rate: 0.95, lang: "zh-TW" };
       const u = new SpeechSynthesisUtterance(String(text || ""));
-      u.rate = 0.95;
-      const v = pickZhVoice();
-      if (v) {
-        u.voice = v;
-        u.lang = v.lang || "zh-TW";
+      u.rate = settings.rate || 0.95;
+      u.pitch = settings.pitch || 1;
+      if (settings.voice) {
+        u.voice = settings.voice;
+        u.lang = settings.voice.lang || settings.lang || "zh-TW";
       } else {
-        u.lang = "zh-TW";
+        u.lang = settings.lang || "zh-TW";
       }
       speechSynthesis.speak(u);
     }
