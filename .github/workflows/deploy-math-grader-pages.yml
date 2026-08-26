@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - cursor/mobile-math-grader-auto-b582
+      - cursor/daily-14-learning-log-58bf
     paths:
       - "docs/**"
       - ".github/workflows/deploy-math-grader-pages.yml"
