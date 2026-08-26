@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b6b5a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="七習慣" />
+  <meta name="description" content="口說或打字輸入人事時地物，歸類到七個好習慣與時間象限；康軒國一數學上課給每日建議。" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>七個好習慣分類</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #14352e;
+      --muted: #4a6b62;
+      --paper: #e8f4ef;
+      --accent: #1b6b5a;
+      --line: rgba(27, 107, 90, 0.22);
+      --q1: #b42318;
+      --q2: #1b6b5a;
+      --q3: #b54708;
+      --q4: #667085;
+      --ok: #0e7a4c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -10%, rgba(180, 230, 210, 0.9), transparent 60%),
+        linear-gradient(180deg, #f3faf7 0%, #dceee6 55%, #c9e2d7 100%);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .wrap { max-width: 28rem; margin: 0 auto; padding: 1.1rem 1rem 2.6rem; }
+    header { text-align: center; animation: rise 0.5s ease-out both; }
+    .brand {
+      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-size: clamp(1.55rem, 7vw, 2rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+    .sub { margin-top: 0.35rem; color: var(--muted); font-size: 0.9rem; }
+    .pill-row {
+      margin-top: 0.75rem;
+      display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center;
+    }
+    .pill {
+      font-size: 0.78rem; color: var(--accent);
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      padding: 0.25rem 0.6rem;
+    }
+    .tabs {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    .tabs button {
+      font: inherit; cursor: pointer;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.55);
+      color: var(--muted);
+      padding: 0.65rem 0.5rem;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+    .tabs button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .panel { display: none; margin-top: 1rem; animation: rise 0.4s ease-out both; }
+    .panel.show { display: block; }
+    .card {
+      background: rgba(255,252,248,0.82);
+      border: 1px solid var(--line);
+      padding: 0.95rem 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .card h2 {
+      font-family: "Noto Serif TC", serif;
+      font-size: 1.05rem;
+      color: var(--accent);
+      margin-bottom: 0.55rem;
+    }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0.55rem 0 0.25rem;
+      font-weight: 600;
+    }
+    input, textarea, select {
+      width: 100%;
+      font: inherit;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 0.55rem 0.65rem;
+      border-radius: 0;
+    }
+    textarea { min-height: 4.2rem; resize: vertical; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .actions {
+      margin-top: 0.85rem;
+      display: flex; flex-wrap: wrap; gap: 0.45rem;
+    }
+    button.btn {
+      font: inherit; cursor: pointer;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.75);
+      color: var(--accent);
+      padding: 0.55rem 0.85rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    button.btn.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    button.btn.danger { color: var(--q1); }
+    button.btn.recording {
+      background: var(--q1);
+      color: #fff;
+      border-color: var(--q1);
+    }
+    .hint { margin-top: 0.45rem; font-size: 0.78rem; color: var(--muted); }
+    .result {
+      display: none;
+      margin-top: 0.85rem;
+      padding: 0.85rem;
+      border-left: 4px solid var(--accent);
+      background: rgba(27,107,90,0.08);
+    }
+    .result.show { display: block; }
+    .result .tag {
+      display: inline-block;
+      margin: 0.2rem 0.3rem 0.2rem 0;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+    .result .tag.q1 { border-color: var(--q1); color: var(--q1); }
+    .result .tag.q2 { border-color: var(--q2); color: var(--q2); }
+    .result .tag.q3 { border-color: var(--q3); color: var(--q3); }
+    .result .tag.q4 { border-color: var(--q4); color: var(--q4); }
+    .result strong { color: var(--accent); }
+    .matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      margin-top: 0.65rem;
+      font-size: 0.75rem;
+    }
+    .matrix div {
+      padding: 0.45rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.65);
+      min-height: 2.6rem;
+    }
+    .matrix .on { outline: 2px solid var(--accent); background: rgba(27,107,90,0.12); font-weight: 700; }
+    .history { list-style: none; margin-top: 0.5rem; }
+    .history li {
+      padding: 0.7rem 0.65rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.65);
+      margin-bottom: 0.45rem;
+      font-size: 0.88rem;
+    }
+    .history .meta { color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem; }
+    .course-tip {
+      margin-top: 0.75rem;
+      padding: 0.85rem;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
+    }
+    .course-tip h3 { font-size: 0.95rem; color: var(--accent); margin-bottom: 0.35rem; }
+    .install {
+      margin-top: 0.85rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-left: 3px solid var(--accent);
+      padding: 0.5rem 0.7rem;
+      background: rgba(255,255,255,0.4);
+      text-align: left;
+    }
+    footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--accent); }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="brand">七個好習慣分類</h1>
+      <p class="sub">數學教師／衛生組長｜人事時地物 → 習慣＋時間象限</p>
+      <div class="pill-row">
+        <span class="pill" id="todayLabel">—</span>
+        <span class="pill">與「每日14樣功課」分開</span>
+      </div>
+    </header>
+
+    <p class="install" id="installTip">
+      <strong>加到手機主畫面：</strong>Safari／Chrome 開本頁 →「分享」或選單 →「加入主畫面」。本 App 獨立於每日14樣功課。
+    </p>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="active" id="tabClassify" data-tab="classify">做事歸類</button>
+      <button type="button" id="tabCourse" data-tab="course">今天上課建議</button>
+    </div>
+
+    <!-- 做事歸類 -->
+    <section class="panel show" id="panelClassify">
+      <div class="card">
+        <h2>輸入一件事（可口說）</h2>
+        <label for="who">人（誰）</label>
+        <input id="who" placeholder="例：一年甲班、衛生股長、家長" autocomplete="off" />
+        <div class="row2">
+          <div>
+            <label for="when">時</label>
+            <input id="when" placeholder="例：午休、第三節" autocomplete="off" />
+          </div>
+          <div>
+            <label for="where">地</label>
+            <input id="where" placeholder="例：教室、保健室" autocomplete="off" />
+          </div>
+        </div>
+        <label for="what">事／物（做什麼）</label>
+        <textarea id="what" placeholder="例：批改康軒七上 1-2 習作；巡視掃具櫃；與導師協調班級整潔競賽"></textarea>
+        <label for="freeText">或整段口述／打字</label>
+        <textarea id="freeText" placeholder="也可直接貼整段話，不必分欄"></textarea>
+        <div class="actions">
+          <button type="button" class="btn" id="voiceBtn">🎤 口說輸入</button>
+          <button type="button" class="btn primary" id="classifyBtn">歸類</button>
+          <button type="button" class="btn" id="clearBtn">清空</button>
+        </div>
+        <p class="hint" id="voiceHint">支援 Chrome／Edge 語音辨識（需麥克風權限）。Safari 請用打字。</p>
+      </div>
+
+      <div class="result" id="resultBox" aria-live="polite">
+        <div><strong>習慣：</strong><span id="habitOut">—</span></div>
+        <div style="margin-top:0.35rem;"><strong>象限：</strong><span id="quadOut">—</span></div>
+        <div class="matrix" id="matrix" aria-hidden="true">
+          <div data-q="1">Ⅰ 重要且緊急</div>
+          <div data-q="2">Ⅱ 重要不緊急</div>
+          <div data-q="3">Ⅲ 不重要但緊急</div>
+          <div data-q="4">Ⅳ 不重要不緊急</div>
+        </div>
+        <p class="hint" id="reasonOut" style="margin-top:0.55rem;"></p>
+        <div class="actions">
+          <button type="button" class="btn primary" id="saveBtn">存進今日紀錄</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>今日紀錄</h2>
+        <ul class="history" id="historyList"></ul>
+        <p class="hint" id="historyEmpty">尚無紀錄。歸類後可儲存。</p>
+        <div class="actions">
+          <button type="button" class="btn danger" id="clearHistoryBtn">清空今日紀錄</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 上課建議（獨立分頁，不混 14 樣功課） -->
+    <section class="panel" id="panelCourse">
+      <div class="card">
+        <h2>今天要上什麼（康軒國一數學）</h2>
+        <label for="semester">學期</label>
+        <select id="semester">
+          <option value="7a">七上</option>
+          <option value="7b">七下</option>
+        </select>
+        <label for="unit">單元</label>
+        <select id="unit"></select>
+        <label for="courseNote">補充（可口說後貼上）</label>
+        <textarea id="courseNote" placeholder="例：今晚段考複習；學生對負數加減易混"></textarea>
+        <div class="actions">
+          <button type="button" class="btn" id="courseVoiceBtn">🎤 口說補充</button>
+          <button type="button" class="btn primary" id="suggestBtn">產生每日建議</button>
+        </div>
+      </div>
+      <div class="course-tip" id="courseTip" hidden>
+        <h3 id="courseTitle">—</h3>
+        <p id="courseHabit"></p>
+        <p id="courseQuad" style="margin-top:0.35rem;"></p>
+        <p id="courseBody" style="margin-top:0.55rem;"></p>
+        <p class="hint" id="courseExtra" style="margin-top:0.45rem;"></p>
+      </div>
+      <div class="card" style="margin-top:0.75rem;">
+        <h2>七個好習慣速查</h2>
+        <ol id="habitLegend" style="margin-left:1.2rem;font-size:0.88rem;"></ol>
+      </div>
+    </section>
+
+    <footer>
+      <p>資料只存在這支手機瀏覽器。本頁與「每日14樣功課」完全分開。</p>
+      <p style="margin-top:0.35rem;"><a id="homeLink" href="../">回上一層</a></p>
+    </footer>
+  </div>
+
+  <script>
+    const TZ = "Asia/Taipei";
+    const STORAGE_KEY = "habits7-v1";
+
+    const HABITS = [
+      { id: 1, name: "主動積極", en: "Be Proactive", tip: "擴大影響圈，先做自己能決定的事" },
+      { id: 2, name: "以終為始", en: "Begin with the End in Mind", tip: "先想學習目標與成果再設計活動" },
+      { id: 3, name: "要事第一", en: "Put First Things First", tip: "把重要不緊急的備課與預防放前面" },
+      { id: 4, name: "雙贏思維", en: "Think Win-Win", tip: "學生、導師、處室都能接受的解法" },
+      { id: 5, name: "知彼解己", en: "Seek First to Understand", tip: "先聽學生／同仁再說自己的要求" },
+      { id: 6, name: "統合綜效", en: "Synergize", tip: "跨班、跨處室合作創造更好方案" },
+      { id: 7, name: "不斷更新", en: "Sharpen the Saw", tip: "身體、心智、人際、心靈四面向充電" }
+    ];
+
+    const QUADS = {
+      1: { name: "第一象限｜重要且緊急", short: "Ⅰ 重要且緊急", cls: "q1", advise: "立刻處理，但事後要檢討如何減少緊急。" },
+      2: { name: "第二象限｜重要不緊急", short: "Ⅱ 重要不緊急", cls: "q2", advise: "高效能核心：備課、預防、關係、健康。" },
+      3: { name: "第三象限｜不重要但緊急", short: "Ⅲ 不重要但緊急", cls: "q3", advise: "能委派就委派，或縮短處理時間。" },
+      4: { name: "第四象限｜不重要不緊急", short: "Ⅳ 不重要不緊急", cls: "q4", advise: "能刪就刪，保護第二象限時間。" }
+    };
+
+    const UNITS = {
+      "7a": [
+        { id: "7a-1-1", label: "1-1 負數與數線" },
+        { id: "7a-1-2", label: "1-2 整數的加減" },
+        { id: "7a-1-3", label: "1-3 整數的乘除與四則運算" },
+        { id: "7a-1-4", label: "1-4 指數記法與科學記號" },
+        { id: "7a-2-1", label: "2-1 因數與倍數" },
+        { id: "7a-2-2", label: "2-2 最大公因數與最小公倍數" },
+        { id: "7a-2-3", label: "2-3 分數的四則運算" },
+        { id: "7a-2-4", label: "2-4 指數律" },
+        { id: "7a-3-1", label: "3-1 以符號列式與運算" },
+        { id: "7a-3-2", label: "3-2 一元一次方程式的列式與求解" },
+        { id: "7a-3-3", label: "3-3 一元一次方程式應用問題" }
+      ],
+      "7b": [
+        { id: "7b-1-1", label: "1-1 二元一次聯立方程式" },
+        { id: "7b-1-2", label: "1-2 解二元一次聯立方程式" },
+        { id: "7b-1-3", label: "1-3 應用問題" },
+        { id: "7b-2-1", label: "2-1 直角坐標平面" },
+        { id: "7b-2-2", label: "2-2 二元一次方程式的圖形" },
+        { id: "7b-3-1", label: "3-1 比例式" },
+        { id: "7b-3-2", label: "3-2 正比與反比" },
+        { id: "7b-4-1", label: "4-1 認識一元一次不等式" },
+        { id: "7b-4-2", label: "4-2 解一元一次不等式" },
+        { id: "7b-5-1", label: "5-1 統計圖表與資料分析" },
+        { id: "7b-6-1", label: "6-1 垂直、線對稱與三視圖" }
+      ]
+    };
+
+    /* 康軒單元 → 每日一則建議（連結七習慣＋象限） */
+    const COURSE_TIPS = {
+      "7a-1-1": { h: 2, q: 2, focus: "先畫清「數線終點」：正負方向與原點意義", do: "開場用溫度／電梯故事，讓學生說出「方向」再寫數字。" },
+      "7a-1-2": { h: 5, q: 2, focus: "先聽學生錯誤類型（符號搞反）再示範", do: "蒐集三個典型錯題，請學生互講「我哪裡弄反了」。" },
+      "7a-1-3": { h: 3, q: 2, focus: "要事：先穩四則順序，再加速計算", do: "課堂前 8 分鐘只練「先乘除後加減＋括號」。" },
+      "7a-1-4": { h: 1, q: 2, focus: "主動用科學記號連結真實數據", do: "請學生找一則新聞大數字，改寫成科學記號。" },
+      "7a-2-1": { h: 6, q: 2, focus: "分組找因數，統合不同拆法", do: "兩組用不同方法拆同一數，比對結果是否一致。" },
+      "7a-2-2": { h: 4, q: 2, focus: "雙贏：公約數／公倍數都「剛好夠用」", do: "用「排隊間隔／切蛋糕」故事對照 GCD／LCM。" },
+      "7a-2-3": { h: 3, q: 1, focus: "易錯又常考：先穩通分再比快", do: "今日只攻「異分母加減」三題精準，不趕進度。" },
+      "7a-2-4": { h: 7, q: 2, focus: "用指數律整理舊知，更新記憶", do: "請學生用自己的話寫「三條指數律口訣」。" },
+      "7a-3-1": { h: 2, q: 2, focus: "以終為始：先想「式子要表達什麼」", do: "每題先說人話，再翻成代數式。" },
+      "7a-3-2": { h: 3, q: 2, focus: "要事：等號兩邊平衡的檢查習慣", do: "解完必代回驗證，當成課堂儀式。" },
+      "7a-3-3": { h: 5, q: 2, focus: "應用題先理解情境再列式", do: "禁止立刻寫 x；先圈關鍵句 30 秒。" },
+      "7b-1-1": { h: 2, q: 2, focus: "先定義「兩個未知數要同時滿足」", do: "用價錢／數量雙條件，對照一條不夠。" },
+      "7b-1-2": { h: 6, q: 2, focus: "消元／代入兩法並陳，統合優點", do: "同題兩組各用一法，互相檢查答案。" },
+      "7b-1-3": { h: 4, q: 2, focus: "應用雙贏：題意與答案都要合理", do: "解完問「答案有沒有違反題目條件」。" },
+      "7b-2-1": { h: 1, q: 2, focus: "主動在校園找坐標（座位圖）", do: "用班級座位當第一象限練習。" },
+      "7b-2-2": { h: 2, q: 2, focus: "圖形終點：斜率與截距意義先講", do: "先畫再算，避免只背公式。" },
+      "7b-3-1": { h: 3, q: 2, focus: "比例式：先對應關係再交叉相乘", do: "每題先畫對應箭頭。" },
+      "7b-3-2": { h: 5, q: 2, focus: "正比反比先聽生活例子再符號化", do: "請學生各舉一個「變大／變小」例子。" },
+      "7b-4-1": { h: 2, q: 2, focus: "不等式「解的集合」終點要清楚", do: "數線塗色當每題必做步驟。" },
+      "7b-4-2": { h: 3, q: 2, focus: "要事：移項變號規則練熟", do: "今日錯題只收「變號忘了」類型。" },
+      "7b-5-1": { h: 6, q: 2, focus: "統計：班級數據合作產出圖表", do: "分組整理真實小調查，再選最適圖。" },
+      "7b-6-1": { h: 7, q: 2, focus: "幾何觀察力更新：動手摺／畫三視圖", do: "用紙盒實物對照三視圖，拍一張存檔。" }
+    };
+
+    const HABIT_RULES = [
+      { h: 7, words: ["運動", "休息", "進修", "讀書會", "研習", "充電", "睡眠", "健康", "冥想", "反思", "寫心得", "學習日誌", "更新"] },
+      { h: 5, words: ["傾聽", "晤談", "輔導", "了解", "訪談", "家長溝通", "同理", "學生說", "先聽", "情緒", "抱怨"] },
+      { h: 4, words: ["協調", "協商", "雙贏", "共識", "妥協", "合約", "分工", "獎勵", "競賽規則"] },
+      { h: 6, words: ["合作", "共備", "跨班", "跨處", "團隊", "統合", "一起", "協同", "夥伴"] },
+      { h: 2, words: ["目標", "願景", "期末", "段考規劃", "教案設計", "課程地圖", "以終", "規劃", "計劃", "計畫"] },
+      { h: 3, words: ["備課", "命題", "閱卷", "批改", "預防", "演練", "巡查", "掃具", "整潔", "衛生", "防疫", "健檢", "優先"] },
+      { h: 1, words: ["主動", "提案", "改善", "先做", " innov", "啟動", "發起", "立刻處理", "應變"] }
+    ];
+
+    const Q1_WORDS = ["立刻", "馬上", "緊急", "今天一定", "家長來電", "受傷", "發燒", "缺考補考", "繳交截止", "申報截止", "督學", "檢查今天", "暴衝", "衝突現場", "止血"];
+    const Q2_WORDS = ["備課", "複習計畫", "預防", "關係", "演練", "建檔", "整理掃具", "盤點", "課程設計", "長期", "習慣養成", "健康", "進修", "共備"];
+    const Q3_WORDS = ["臨時會議", "群組訊息", "轉傳", "蓋章", "催繳", "插播", "電話問", "代班臨時", "突然叫去"];
+    const Q4_WORDS = ["滑手機", "閒聊很久", "重覆整理桌面", "無目的瀏覽", "拖延"];
+
+    let lastResult = null;
+    let recognition = null;
+
+    function todayKey() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit"
+      }).format(new Date());
+    }
+
+    function formatToday() {
+      const parts = new Intl.DateTimeFormat("zh-Hant-TW", {
+        timeZone: TZ, year: "numeric", month: "long", day: "numeric", weekday: "short"
+      }).formatToParts(new Date());
+      const get = (t) => (parts.find((p) => p.type === t) || {}).value || "";
+      return `${get("year")}年${get("month")}${get("day")}日（${get("weekday")}）`;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { date: todayKey(), items: [], lastCourse: null };
+        const data = JSON.parse(raw);
+        if (!data || data.date !== todayKey()) {
+          return { date: todayKey(), items: [], lastCourse: data && data.lastCourse ? data.lastCourse : null };
+        }
+        return {
+          date: data.date,
+          items: Array.isArray(data.items) ? data.items : [],
+          lastCourse: data.lastCourse || null
+        };
+      } catch {
+        return { date: todayKey(), items: [], lastCourse: null };
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    let state = loadState();
+
+    function combinedText() {
+      const parts = [
+        document.getElementById("who").value,
+        document.getElementById("when").value,
+        document.getElementById("where").value,
+        document.getElementById("what").value,
+        document.getElementById("freeText").value
+      ].map((s) => (s || "").trim()).filter(Boolean);
+      return parts.join(" ");
+    }
+
+    function scoreWords(text, words) {
+      let n = 0;
+      for (const w of words) {
+        if (text.includes(w)) n += 1;
+      }
+      return n;
+    }
+
+    function classifyHabit(text) {
+      let best = { h: 3, score: 0 };
+      for (const rule of HABIT_RULES) {
+        const s = scoreWords(text, rule.words);
+        if (s > best.score) best = { h: rule.h, score: s };
+      }
+      // 教師／衛生背景預設偏要事第一
+      if (best.score === 0) {
+        if (/數學|康軒|習作|上課|教案|批改/.test(text)) return 3;
+        if (/掃具|衛生|整潔|保健|健康/.test(text)) return 3;
+        return 1;
+      }
+      return best.h;
+    }
+
+    function classifyQuad(text) {
+      const s1 = scoreWords(text, Q1_WORDS);
+      const s2 = scoreWords(text, Q2_WORDS);
+      const s3 = scoreWords(text, Q3_WORDS);
+      const s4 = scoreWords(text, Q4_WORDS);
+      const arr = [
+        { q: 1, s: s1 },
+        { q: 2, s: s2 + (s1 === 0 && s3 === 0 && s4 === 0 ? 0.2 : 0) },
+        { q: 3, s: s3 },
+        { q: 4, s: s4 }
+      ].sort((a, b) => b.s - a.s);
+      if (arr[0].s === 0) {
+        // 教學備課、衛生預防偏 Q2；明確「今天截止」偏 Q1
+        if (/今天|立刻|馬上|截止|緊急/.test(text)) return 1;
+        if (/備課|上課|複習|盤點|巡|預防|計劃|計畫/.test(text)) return 2;
+        return 2;
+      }
+      return arr[0].q;
+    }
+
+    function showResult(habitId, quadId, text) {
+      const habit = HABITS.find((h) => h.id === habitId);
+      const quad = QUADS[quadId];
+      lastResult = { habitId, quadId, text, at: new Date().toISOString() };
+      document.getElementById("habitOut").textContent =
+        `習慣${habit.id}「${habit.name}」｜${habit.en} — ${habit.tip}`;
+      document.getElementById("quadOut").innerHTML =
+        `<span class="tag ${quad.cls}">${quad.name}</span> ${quad.advise}`;
+      document.getElementById("reasonOut").textContent =
+        `依據內容：「${text.slice(0, 80)}${text.length > 80 ? "…" : ""}」`;
+      document.querySelectorAll("#matrix div").forEach((el) => {
+        el.classList.toggle("on", Number(el.dataset.q) === quadId);
+      });
+      document.getElementById("resultBox").classList.add("show");
+    }
+
+    function renderHistory() {
+      const list = document.getElementById("historyList");
+      const empty = document.getElementById("historyEmpty");
+      list.innerHTML = "";
+      if (!state.items.length) {
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      state.items.slice().reverse().forEach((item) => {
+        const habit = HABITS.find((h) => h.id === item.habitId);
+        const quad = QUADS[item.quadId];
+        const li = document.createElement("li");
+        li.innerHTML =
+          `<div>${escapeHtml(item.text)}</div>` +
+          `<div class="meta">習慣${habit.id} ${habit.name}｜${quad.short}</div>`;
+        list.appendChild(li);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function fillUnits() {
+      const sem = document.getElementById("semester").value;
+      const sel = document.getElementById("unit");
+      sel.innerHTML = "";
+      UNITS[sem].forEach((u) => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = u.label;
+        sel.appendChild(opt);
+      });
+    }
+
+    function suggestCourse() {
+      const unitId = document.getElementById("unit").value;
+      const note = (document.getElementById("courseNote").value || "").trim();
+      const unitLabel = document.getElementById("unit").selectedOptions[0].textContent;
+      const tip = COURSE_TIPS[unitId] || { h: 3, q: 2, focus: "要事第一備課", do: "先釐清本節唯一目標，再設計活動。" };
+      let h = tip.h;
+      let q = tip.q;
+      if (note) {
+        const nh = classifyHabit(note);
+        const nq = classifyQuad(note);
+        if (scoreWords(note, HABIT_RULES.flatMap((r) => r.words)) > 0) h = nh;
+        if (/緊急|今天|段考|截止/.test(note)) q = nq;
+      }
+      const habit = HABITS.find((x) => x.id === h);
+      const quad = QUADS[q];
+      const dayHint = HABITS[(new Date().getDay() + h) % 7];
+      document.getElementById("courseTip").hidden = false;
+      document.getElementById("courseTitle").textContent = `今日課程：康軒 ${unitLabel}`;
+      document.getElementById("courseHabit").textContent =
+        `建議對應習慣${habit.id}「${habit.name}」：${tip.focus}`;
+      document.getElementById("courseQuad").innerHTML =
+        `時間象限：<span class="tag ${quad.cls}">${quad.short}</span> — 把本節放在「重要」而非只趕進度。`;
+      document.getElementById("courseBody").textContent = `課堂可做：${tip.do}`;
+      document.getElementById("courseExtra").textContent =
+        note
+          ? `依你的補充調整：${note}｜另可搭配習慣${dayHint.id}「${dayHint.name}」做收斂。`
+          : `衛生組長提醒（可選）：若今日有整潔／掃具事項，另開「做事歸類」記錄，不要和本課建議混成一件。`;
+      state.lastCourse = { unitId, unitLabel, habitId: h, quadId: q, note, at: new Date().toISOString() };
+      saveState(state);
+    }
+
+    function startVoice(targetId, btn) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert("此瀏覽器不支援語音辨識，請改用打字，或用 Chrome／Edge。");
+        return;
+      }
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+        recognition = null;
+        btn.classList.remove("recording");
+        btn.textContent = btn.id === "courseVoiceBtn" ? "🎤 口說補充" : "🎤 口說輸入";
+        return;
+      }
+      recognition = new SR();
+      recognition.lang = "zh-TW";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      btn.classList.add("recording");
+      btn.textContent = "■ 停止";
+      recognition.onresult = (ev) => {
+        const text = ev.results[0][0].transcript || "";
+        const el = document.getElementById(targetId);
+        el.value = (el.value ? el.value + " " : "") + text;
+      };
+      recognition.onerror = () => {
+        btn.classList.remove("recording");
+        btn.textContent = btn.id === "courseVoiceBtn" ? "🎤 口說補充" : "🎤 口說輸入";
+        recognition = null;
+      };
+      recognition.onend = () => {
+        btn.classList.remove("recording");
+        btn.textContent = btn.id === "courseVoiceBtn" ? "🎤 口說補充" : "🎤 口說輸入";
+        recognition = null;
+      };
+      recognition.start();
+    }
+
+    // tabs
+    document.querySelectorAll(".tabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tabs button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("panelClassify").classList.toggle("show", btn.dataset.tab === "classify");
+        document.getElementById("panelCourse").classList.toggle("show", btn.dataset.tab === "course");
+      });
+    });
+
+    document.getElementById("classifyBtn").addEventListener("click", () => {
+      const text = combinedText();
+      if (!text) {
+        alert("請先口說或打字輸入內容。");
+        return;
+      }
+      showResult(classifyHabit(text), classifyQuad(text), text);
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      if (!lastResult) return;
+      state = loadState();
+      state.items.push({ ...lastResult });
+      saveState(state);
+      renderHistory();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      ["who", "when", "where", "what", "freeText"].forEach((id) => {
+        document.getElementById(id).value = "";
+      });
+      document.getElementById("resultBox").classList.remove("show");
+      lastResult = null;
+    });
+
+    document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+      if (!confirm("確定清空今日歸類紀錄？")) return;
+      state = loadState();
+      state.items = [];
+      saveState(state);
+      renderHistory();
+    });
+
+    document.getElementById("voiceBtn").addEventListener("click", (e) => {
+      startVoice("freeText", e.currentTarget);
+    });
+    document.getElementById("courseVoiceBtn").addEventListener("click", (e) => {
+      startVoice("courseNote", e.currentTarget);
+    });
+
+    document.getElementById("semester").addEventListener("change", fillUnits);
+    document.getElementById("suggestBtn").addEventListener("click", suggestCourse);
+
+    document.getElementById("habitLegend").innerHTML = HABITS.map(
+      (h) => `<li><strong>${h.id}. ${h.name}</strong> — ${h.tip}</li>`
+    ).join("");
+
+    document.getElementById("todayLabel").textContent = formatToday();
+    fillUnits();
+    renderHistory();
+
+    (function setHomeLink() {
+      const path = location.pathname || "";
+      const homeLink = document.getElementById("homeLink");
+      if (path.includes("/directory/apps/")) {
+        homeLink.href = "../../";
+        homeLink.textContent = "回學習日誌";
+      } else {
+        homeLink.href = "../";
+        homeLink.textContent = "回習作工具主頁";
+      }
+    })();
+
+    try {
+      if (localStorage.getItem("habits7-hide-install") === "1") {
+        document.getElementById("installTip").style.display = "none";
+      }
+    } catch (_) {}
+    document.getElementById("installTip").addEventListener("click", () => {
+      try { localStorage.setItem("habits7-hide-install", "1"); } catch (_) {}
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

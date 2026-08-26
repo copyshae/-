@@ -84,10 +84,17 @@ $files = @(
   "directory/apps/daily-14/icon-180.png",
   "directory/apps/daily-14/icon-192.png",
   "directory/apps/daily-14/icon-512.png",
+  "directory/apps/habits-7/index.html",
+  "directory/apps/habits-7/sw.js",
+  "directory/apps/habits-7/manifest.json",
+  "directory/apps/habits-7/icon-180.png",
+  "directory/apps/habits-7/icon-192.png",
+  "directory/apps/habits-7/icon-512.png",
   "directory/index.html",
   "directory/learning-log.html",
   "directory/202608/index.html",
   "directory/202608/20260820-learning-log.html",
+  "directory/202608/20260827-learning-log.html",
   "scripts/install-scan-equip.ps1",
   "scripts/scan-equip-app.ps1",
   "scripts/README-scan-equip.md"
@@ -148,19 +155,20 @@ try {
   }
   try { & git pull origin $pagesBranch 2>$null | Out-Null } catch {}
 
-  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip directory/apps/daily-14 `
+  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip directory/apps/daily-14 directory/apps/habits-7 `
     directory/index.html directory/learning-log.html `
-    directory/202608/index.html directory/202608/20260820-learning-log.html `
+    directory/202608/index.html directory/202608/20260820-learning-log.html directory/202608/20260827-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "每日14樣功課：手機勾選備忘錄＋學習日誌 0820"
+    git commit -m "七個好習慣分類：獨立 App＋學習日誌 0827（不混 14 樣功課）"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
-    Write-Host "https://copyshae.github.io/hello-world/directory/apps/daily-14/"
+    Write-Host "https://copyshae.github.io/hello-world/directory/apps/habits-7/"
+    Write-Host "daily-14 (separate): https://copyshae.github.io/hello-world/directory/apps/daily-14/"
   } else {
     Write-Host "No git changes to push."
   }
