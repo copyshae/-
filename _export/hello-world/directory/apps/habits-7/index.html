@@ -222,6 +222,16 @@
       border-color: var(--q1);
       flex: 1 1 5rem;
     }
+    .history .item-actions button.speak-one,
+    .history .item-actions button.speak-from {
+      background: #0b5cab;
+      color: #fff;
+      border-color: #0b5cab;
+      flex: 1 1 5rem;
+    }
+    .history .item-actions button.voice-edit {
+      flex: 1 1 5rem;
+    }
     .history .item-actions button:disabled {
       opacity: 0.35;
       cursor: default;
@@ -501,9 +511,9 @@
       <div class="card">
         <h2>今日紀錄 <span id="historyCountA" style="font-size:0.85rem;color:var(--muted);font-weight:500;"></span></h2>
         <ul class="history" id="historyList"></ul>
-        <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆下方都有<strong>編輯</strong>／<strong>刪除</strong>。</p>
+        <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆皆可<strong>編輯／刪除／念這筆／語音改</strong>，也可<strong>一起念</strong>。</p>
         <div class="actions">
-          <button type="button" class="btn primary" id="speakTodayBtn">🔊 讀誦今日紀錄</button>
+          <button type="button" class="btn primary" id="speakTodayBtn">🔊 一起念全部</button>
           <button type="button" class="btn" id="pauseSpeakBtn" data-tts-pause>⏸ 暫停</button>
           <button type="button" class="btn" id="stopSpeakBtn" data-tts-stop>取消讀誦</button>
         </div>
@@ -585,11 +595,14 @@
       <div class="card">
         <h2>今日紀錄 <span id="historyCountB" style="font-size:0.85rem;color:var(--muted);font-weight:500;"></span></h2>
         <ul class="history" id="historyListB"></ul>
-        <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆下方都有<strong>編輯</strong>／<strong>刪除</strong>。</p>
+        <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆皆可<strong>編輯／刪除／念這筆／語音改</strong>，也可<strong>一起念</strong>。</p>
         <div class="actions">
-          <button type="button" class="btn primary" id="speakTodayBtnB">🔊 讀誦今日紀錄</button>
+          <button type="button" class="btn primary" id="speakTodayBtnB">🔊 一起念全部</button>
           <button type="button" class="btn" id="pauseSpeakBtnB" data-tts-pause>⏸ 暫停</button>
           <button type="button" class="btn" id="stopSpeakBtnB" data-tts-stop>取消讀誦</button>
+        </div>
+        <p class="hint" data-tts-status hidden style="margin-top:0.35rem;color:var(--ok);font-weight:700;"></p>
+        <div class="actions">
           <button type="button" class="btn primary" id="exportJsonBtnB">匯出當日 JSON</button>
           <button type="button" class="btn" id="exportCsvBtnB">匯出當日 CSV</button>
           <button type="button" class="btn" id="exportTxtBtnB">匯出當日 TXT</button>
@@ -908,18 +921,64 @@
       window.speechSynthesis.speak(u);
     }
 
+    function buildItemSpeechLine(item, seq) {
+      const habit = HABITS.find((h) => h.id === item.habitId) || { id: "?", name: "未知" };
+      const quad = QUADS[item.quadId] || { short: "" };
+      const mins = itemMinutes(item);
+      return `第 ${seq} 項。${item.text || "無內容"}。習慣 ${habit.id} ${habit.name}。時間象限：${quad.short || ""}。約 ${mins} 分鐘。`;
+    }
+
+    function speakOneHistoryItem(id) {
+      state = loadState();
+      const items = Array.isArray(state.items) ? state.items : [];
+      const idx = items.findIndex((it) => String(it.id) === String(id));
+      if (idx < 0) return;
+      const seq = idx + 1;
+      speakText(buildItemSpeechLine(items[idx], seq));
+      flashSave("saveFlash", `正在念第 ${seq} 項（可暫停／取消）`);
+      flashSave("d14SaveFlash", `正在念第 ${seq} 項（可暫停／取消）`);
+    }
+
+    function speakFromHistoryItem(id) {
+      state = loadState();
+      const items = Array.isArray(state.items) ? state.items : [];
+      const idx = items.findIndex((it) => String(it.id) === String(id));
+      if (idx < 0) return;
+      const slice = items.slice(idx);
+      const lines = [];
+      lines.push(`從第 ${idx + 1} 項一起念到最後，共 ${slice.length} 筆。`);
+      slice.forEach((it, i) => {
+        lines.push(buildItemSpeechLine(it, idx + 1 + i));
+      });
+      try {
+        const advice = buildFinalAdvice(items);
+        if (advice && advice.length) {
+          lines.push(`以下是今日最後建議，共 ${advice.length} 條。`);
+          advice.forEach((a, i) => lines.push(`建議 ${i + 1}。${a}`));
+        }
+      } catch (e) {}
+      lines.push("一起念結束。");
+      speakText(lines.join(" "));
+      flashSave("saveFlash", `從第 ${idx + 1} 項一起念（可暫停／取消）`);
+      flashSave("d14SaveFlash", `從第 ${idx + 1} 項一起念（可暫停／取消）`);
+    }
+
+    function voiceEditHistoryItem(id) {
+      openEditHistoryItem(id);
+      setTimeout(() => {
+        const btn = document.getElementById("editVoiceBtn");
+        if (btn) startVoice("editText", btn);
+      }, 120);
+    }
+
     function buildTodaySpeechScript(items) {
       const list = Array.isArray(items) ? items : [];
       if (!list.length) return "今日尚無紀錄。";
       const lines = [];
       lines.push("以身心靈提升、靈命持續成長為首要。");
-      lines.push(`今天共有 ${list.length} 筆紀錄，依先後順序完整讀誦。`);
+      lines.push(`今天共有 ${list.length} 筆紀錄，現在一起念完全部。`);
       list.forEach((it, i) => {
-        const habit = HABITS.find((h) => h.id === it.habitId) || { id: "?", name: "未知" };
-        const quad = QUADS[it.quadId] || { name: "未分類", short: "" };
-        const mins = (typeof itemMinutes === "function") ? itemMinutes(it) : (it.minutes || 15);
-        lines.push(`第 ${i + 1} 項。${it.text || "無內容"}。`);
-        lines.push(`對應習慣 ${habit.id} ${habit.name}。時間象限：${quad.short || quad.name}。約 ${mins} 分鐘。`);
+        lines.push(buildItemSpeechLine(it, i + 1));
       });
       try {
         const advice = buildFinalAdvice(list);
@@ -928,7 +987,7 @@
           advice.forEach((a, i) => lines.push(`建議 ${i + 1}。${a}`));
         }
       } catch (e) {}
-      lines.push("讀誦結束。願靈命日日增長，身心平安。");
+      lines.push("一起念結束。願靈命日日增長，身心平安。");
       return lines.join(" ");
     }
 
