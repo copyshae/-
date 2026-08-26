@@ -14,7 +14,7 @@ $pairs = @(
   @{ Src = 'directory\index.html'; Dst = 'directory\index.html' },
   @{ Src = 'directory\learning-log.html'; Dst = 'directory\learning-log.html' },
   @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
-  @{ Src = 'directory\202608\20260826-learning-log.html'; Dst = 'directory\202608\20260826-learning-log.html' },
+  @{ Src = 'directory\202608\20260820-learning-log.html'; Dst = 'directory\202608\20260820-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -52,12 +52,12 @@ Push-Location $dest
 try {
   git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/daily-14 `
     directory/index.html directory/learning-log.html `
-    directory/202608/index.html directory/202608/20260826-learning-log.html `
+    directory/202608/index.html directory/202608/20260820-learning-log.html `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 scripts/README-teacher-desk.md `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 scripts/README-math-homework-grader.md `
     scripts/install-desktop-apps.ps1 .cursor/rules 2>$null
   git status --short
-  $msg = '每日14樣功課：手機勾選備忘錄＋學習日誌 0826'
+  $msg = '每日14樣功課：手機勾選備忘錄＋學習日誌 0820'
   git commit -m $msg
   git push origin HEAD
   Write-Host '完成。'

@@ -1,11 +1,11 @@
-# 匯出最終包｜每日14樣功課備忘錄（2026-08-26）
+# 匯出最終包｜每日14樣功課備忘錄（2026-08-20）
 
 本包新增 **每日14樣功課** 手機勾選備忘錄（PWA），並更新學習日誌入口。
 
 | 項目 | 內容 |
 |------|------|
 | 每日14樣功課 | 勾選後消失、台北時區每日重置、可加到手機主畫面 |
-| 學習日誌 | `20260826-learning-log.html`；目錄與「最新」導向本篇 |
+| 學習日誌 | `20260820-learning-log.html`；目錄與「最新」導向本篇 |
 | 既有 App | 習作批改／習作台／掃具台一併可同步 |
 
 > Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址。
@@ -25,7 +25,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 
 1. 手機開啟：https://copyshae.github.io/hello-world/directory/apps/daily-14/
 2. Safari／Chrome →「加入主畫面」
-3. 學習日誌：https://copyshae.github.io/hello-world/directory/202608/20260826-learning-log.html
+3. 學習日誌：https://copyshae.github.io/hello-world/directory/202608/20260820-learning-log.html
 
 ## 規格依據
 
