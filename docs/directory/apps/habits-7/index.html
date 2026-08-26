@@ -214,9 +214,11 @@
       padding: 0.22rem 0.4rem;
       min-width: 2.4rem;
     }
-    .history .row-actions button.del {
-      color: var(--q1);
-      border-color: rgba(180, 35, 24, 0.35);
+    .history .row-actions button.edit {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      min-width: 2.8rem;
     }
     .history .row-actions button:disabled {
       opacity: 0.35;
@@ -497,7 +499,7 @@
       <div class="card">
         <h2>今日紀錄 <span id="historyCountA" style="font-size:0.85rem;color:var(--muted);font-weight:500;"></span></h2>
         <ul class="history" id="historyList"></ul>
-        <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆可<strong>編輯修正</strong>、↑↓調順序或刪除。</p>
+        <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆可按<strong>編輯</strong>再次修改（打字或語音）。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="speakTodayBtn">🔊 讀誦今日紀錄</button>
           <button type="button" class="btn" id="pauseSpeakBtn" data-tts-pause>⏸ 暫停</button>
@@ -581,7 +583,7 @@
       <div class="card">
         <h2>今日紀錄 <span id="historyCountB" style="font-size:0.85rem;color:var(--muted);font-weight:500;"></span></h2>
         <ul class="history" id="historyListB"></ul>
-        <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆可<strong>編輯修正</strong>、↑↓調順序或刪除。</p>
+        <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆可按<strong>編輯</strong>再次修改（打字或語音）。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="speakTodayBtnB">🔊 讀誦今日紀錄</button>
           <button type="button" class="btn" id="pauseSpeakBtnB" data-tts-pause>⏸ 暫停</button>
@@ -640,10 +642,16 @@
 
   <div id="editOverlay" class="edit-overlay" hidden>
     <div class="edit-sheet" role="dialog" aria-modal="true" aria-labelledby="editDialogTitle">
-      <h3 id="editDialogTitle">修正這筆紀錄</h3>
+      <h3 id="editDialogTitle">再次修改這筆紀錄</h3>
       <input type="hidden" id="editItemId" />
-      <label for="editText">內容</label>
-      <textarea id="editText" placeholder="人事時地物／這件事的說明"></textarea>
+      <label for="editText">內容（可打字或語音）</label>
+      <textarea id="editText" placeholder="直接打字修改，或按下方麥克風口說"></textarea>
+      <div class="actions" style="margin-top:0.45rem;">
+        <button type="button" class="btn" id="editVoiceBtn">🎤 語音修改</button>
+        <button type="button" class="btn" id="editClearTextBtn">清空內容</button>
+        <button type="button" class="btn" id="editReclassifyBtn">依內容重判習慣／象限</button>
+      </div>
+      <p class="hint" id="editVoiceHint">打字：點內容框直接改。語音：按「語音修改」後說話，辨識結果會加到內容後方。</p>
       <label for="editHabit">七習慣</label>
       <select id="editHabit"></select>
       <label for="editQuad">時間象限</label>
@@ -655,10 +663,10 @@
       </select>
       <label for="editMinutes">分鐘</label>
       <input id="editMinutes" type="number" min="1" max="480" step="1" />
-      <p class="hint">儲存後會立刻更新今日紀錄、圓餅圖與最後建議。</p>
+      <p class="hint">儲存後會立刻更新今日紀錄、圓餅圖與最後建議。每筆都可反覆修改。</p>
       <div class="actions">
         <button type="button" class="btn" id="editCancelBtn">取消</button>
-        <button type="button" class="btn primary" id="editSaveBtn">儲存修正</button>
+        <button type="button" class="btn primary" id="editSaveBtn">儲存修改</button>
       </div>
     </div>
   </div>
@@ -1499,16 +1507,95 @@
       });
     }
 
+    function voiceIdleLabel(btn) {
+      if (!btn) return "🎤 口說輸入";
+      if (btn.id === "courseVoiceBtn") return "🎤 口說補充";
+      if (btn.id === "editVoiceBtn") return "🎤 語音修改";
+      return "🎤 口說輸入";
+    }
+
+    function stopVoiceIfAny() {
+      if (!recognition) return;
+      try { recognition.stop(); } catch (_) {}
+      recognition = null;
+      document.querySelectorAll("button.recording").forEach((btn) => {
+        btn.classList.remove("recording");
+        btn.textContent = voiceIdleLabel(btn);
+      });
+    }
+
+    function startVoice(targetId, btn) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert("此瀏覽器不支援語音辨識，請改用打字，或用 Chrome／Edge。");
+        return;
+      }
+      if (recognition) {
+        stopVoiceIfAny();
+        return;
+      }
+      recognition = new SR();
+      recognition.lang = "zh-TW";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      btn.classList.add("recording");
+      btn.textContent = "■ 停止";
+      recognition.onresult = (ev) => {
+        const text = ev.results[0][0].transcript || "";
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        el.value = (el.value ? el.value.replace(/\s+$/, "") + " " : "") + text;
+        try { el.focus(); } catch (e) {}
+        const hint = document.getElementById("editVoiceHint");
+        if (hint && targetId === "editText") {
+          hint.textContent = "已加入語音內容，可再打字微調，或再按語音繼續補充。";
+        }
+      };
+      recognition.onerror = () => {
+        btn.classList.remove("recording");
+        btn.textContent = voiceIdleLabel(btn);
+        recognition = null;
+      };
+      recognition.onend = () => {
+        btn.classList.remove("recording");
+        btn.textContent = voiceIdleLabel(btn);
+        recognition = null;
+      };
+      recognition.start();
+    }
+
+    function reclassifyEditFromText() {
+      const text = document.getElementById("editText").value || "";
+      if (!String(text).trim()) {
+        alert("請先輸入或語音填寫內容");
+        return;
+      }
+      const got = classifyCurrentText(text);
+      document.getElementById("editHabit").value = String(got.h || 1);
+      document.getElementById("editQuad").value = String(got.q || 1);
+      const hint = document.getElementById("editVoiceHint");
+      if (hint) {
+        const habit = HABITS.find((h) => h.id === got.h) || { id: "?", name: "" };
+        const quad = QUADS[got.q] || { short: "" };
+        hint.textContent = `已依內容重判：習慣${habit.id} ${habit.name}｜${quad.short}。仍可手動改下拉選單。`;
+      }
+    }
+
     function openEditHistoryItem(id) {
       state = loadState();
       const it = (state.items || []).find((x) => String(x.id) === String(id));
       if (!it) return;
+      stopVoiceIfAny();
       ensureEditHabitOptions();
       document.getElementById("editItemId").value = String(it.id);
       document.getElementById("editText").value = it.text || "";
       document.getElementById("editHabit").value = String(it.habitId || 1);
       document.getElementById("editQuad").value = String(it.quadId || 1);
       document.getElementById("editMinutes").value = String(itemMinutes(it));
+      const hint = document.getElementById("editVoiceHint");
+      if (hint) {
+        hint.textContent = "打字：點內容框直接改。語音：按「語音修改」後說話，辨識結果會加到內容後方。";
+      }
       const overlay = document.getElementById("editOverlay");
       overlay.hidden = false;
       setTimeout(() => {
@@ -1519,6 +1606,7 @@
     }
 
     function closeEditHistoryItem() {
+      stopVoiceIfAny();
       document.getElementById("editOverlay").hidden = true;
     }
 
@@ -1530,13 +1618,18 @@
         document.getElementById("editText").focus();
         return;
       }
+      stopVoiceIfAny();
       const ok = updateHistoryItem(id, {
         text: text,
         habitId: document.getElementById("editHabit").value,
         quadId: document.getElementById("editQuad").value,
         minutes: document.getElementById("editMinutes").value
       });
-      if (ok) closeEditHistoryItem();
+      if (ok) {
+        closeEditHistoryItem();
+        flashSave("saveFlash", "已儲存修改，可再點「編輯」繼續改");
+        flashSave("d14SaveFlash", "已儲存修改，可再點「編輯」繼續改");
+      }
     }
 
     function moveHistoryItem(id, dir) {
@@ -1569,7 +1662,7 @@
       if (countPill) countPill.textContent = `今日 ${n} 筆`;
       ["historyCountA", "historyCountB"].forEach((id) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = n ? `（${n} 筆，可編輯／刪除／調順序）` : "";
+        if (el) el.textContent = n ? `（${n} 筆，逐項可再編輯）` : "";
       });
 
       function fill(listId, emptyId) {
@@ -1601,7 +1694,7 @@
             `｜<label>分鐘<input class="mins-input" type="number" min="1" max="480" value="${itemMinutes(item)}"></label>` +
             `</div></div>` +
             `<div class="row-actions">` +
-            `<button type="button" class="edit" title="編輯修正">編</button>` +
+            `<button type="button" class="edit" title="再次修改（打字／語音）">編輯</button>` +
             `<button type="button" class="up" title="上移" ${idx === 0 ? "disabled" : ""}>↑</button>` +
             `<button type="button" class="down" title="下移" ${idx === items.length - 1 ? "disabled" : ""}>↓</button>` +
             `<button type="button" class="speak-one" title="讀誦這筆">🔊</button>` +
