@@ -2122,6 +2122,13 @@
 
       syncCancelButtons();
 
+      // 電腦版 life-desk 可遠端暫停／取消讀誦
+      window.addEventListener("message", (ev) => {
+        const t = ev && ev.data && ev.data.type;
+        if (t === "life-desk-stop-speak") stopSpeak();
+        if (t === "life-desk-pause-speak") pauseSpeak();
+      });
+
       if (window.TtsVoices) {
         window.TtsVoices.bindVoicePicker({
           speak: (t) => speakText(t)
