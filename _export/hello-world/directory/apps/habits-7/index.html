@@ -196,7 +196,7 @@
       align-items: flex-start;
       justify-content: space-between;
     }
-    .history .row-main { min-width: 0; flex: 1; }
+    .history .row-main { min-width: 0; flex: 1; cursor: pointer; }
     .history .row-actions {
       display: flex;
       flex-direction: column;
@@ -251,6 +251,38 @@
     .mins-input {
       width: 3.2rem; font: inherit; font-size: 0.78rem;
       border: 1px solid var(--line); padding: 0.15rem 0.25rem; margin-left: 0.25rem;
+    }
+    .edit-overlay {
+      position: fixed; inset: 0; z-index: 80;
+      background: rgba(20, 40, 35, 0.45);
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 1rem;
+    }
+    .edit-overlay[hidden] { display: none !important; }
+    .edit-sheet {
+      width: min(28rem, 100%);
+      max-height: min(90vh, 40rem);
+      overflow: auto;
+      background: #f7fcf9;
+      border: 1px solid var(--line);
+      padding: 1rem 0.95rem 1.1rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    }
+    .edit-sheet h3 {
+      font-size: 1.05rem; color: var(--accent); margin-bottom: 0.55rem;
+    }
+    .edit-sheet label {
+      display: block; font-size: 0.8rem; font-weight: 700;
+      color: var(--muted); margin: 0.45rem 0 0.2rem;
+    }
+    .edit-sheet textarea, .edit-sheet select, .edit-sheet input[type="number"] {
+      width: 100%; font: inherit; padding: 0.5rem 0.55rem;
+      border: 1px solid var(--line); background: #fff;
+    }
+    .edit-sheet textarea { min-height: 5.5rem; resize: vertical; }
+    .edit-sheet .actions { margin-top: 0.85rem; justify-content: flex-end; }
+    @media (min-width: 520px) {
+      .edit-overlay { align-items: center; }
     }
     .d14-list { list-style: none; margin-top: 0.55rem; }
     .d14-list li {
@@ -464,7 +496,7 @@
       <div class="card">
         <h2>今日紀錄 <span id="historyCountA" style="font-size:0.85rem;color:var(--muted);font-weight:500;"></span></h2>
         <ul class="history" id="historyList"></ul>
-        <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆可↑↓調順序或刪除。</p>
+        <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆可<strong>編輯修正</strong>、↑↓調順序或刪除。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="speakTodayBtn">🔊 讀誦今日紀錄</button>
           <button type="button" class="btn" id="stopSpeakBtn">停止讀誦</button>
@@ -543,7 +575,7 @@
       <div class="card">
         <h2>今日紀錄 <span id="historyCountB" style="font-size:0.85rem;color:var(--muted);font-weight:500;"></span></h2>
         <ul class="history" id="historyListB"></ul>
-        <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆可↑↓調順序或刪除。</p>
+        <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆可<strong>編輯修正</strong>、↑↓調順序或刪除。</p>
         <div class="actions">
           <button type="button" class="btn primary" id="speakTodayBtnB">🔊 讀誦今日紀錄</button>
           <button type="button" class="btn" id="stopSpeakBtnB">停止讀誦</button>
@@ -596,6 +628,31 @@
         <a id="logLink" href="https://copyshae.github.io/-/directory/202608/20260821-learning-log.html">學習日誌 0821</a>
       </p>
     </footer>
+  </div>
+
+  <div id="editOverlay" class="edit-overlay" hidden>
+    <div class="edit-sheet" role="dialog" aria-modal="true" aria-labelledby="editDialogTitle">
+      <h3 id="editDialogTitle">修正這筆紀錄</h3>
+      <input type="hidden" id="editItemId" />
+      <label for="editText">內容</label>
+      <textarea id="editText" placeholder="人事時地物／這件事的說明"></textarea>
+      <label for="editHabit">七習慣</label>
+      <select id="editHabit"></select>
+      <label for="editQuad">時間象限</label>
+      <select id="editQuad">
+        <option value="1">Ⅰ 重要且緊急</option>
+        <option value="2">Ⅱ 重要不緊急</option>
+        <option value="3">Ⅲ 不重要但緊急</option>
+        <option value="4">Ⅳ 不重要不緊急</option>
+      </select>
+      <label for="editMinutes">分鐘</label>
+      <input id="editMinutes" type="number" min="1" max="480" step="1" />
+      <p class="hint">儲存後會立刻更新今日紀錄、圓餅圖與最後建議。</p>
+      <div class="actions">
+        <button type="button" class="btn" id="editCancelBtn">取消</button>
+        <button type="button" class="btn primary" id="editSaveBtn">儲存修正</button>
+      </div>
+    </div>
   </div>
 
   <script src="./tts-voices.js"></script>
@@ -1353,6 +1410,83 @@
       flashSave("d14SaveFlash", `已刪除，今日剩 ${state.items.length} 筆`);
     }
 
+    function updateHistoryItem(id, patch) {
+      state = loadState();
+      ensureItemIds(state.items);
+      const it = state.items.find((x) => String(x.id) === String(id));
+      if (!it) return false;
+      if (patch.text != null) it.text = String(patch.text).trim();
+      if (patch.habitId != null) {
+        const hid = Number(patch.habitId);
+        if (hid >= 1 && hid <= 7) it.habitId = hid;
+      }
+      if (patch.quadId != null) {
+        const qid = Number(patch.quadId);
+        if (qid >= 1 && qid <= 4) it.quadId = qid;
+      }
+      if (patch.minutes != null) {
+        const m = Number(patch.minutes);
+        it.minutes = Number.isFinite(m) && m > 0 ? Math.min(480, Math.round(m)) : DEFAULT_MINUTES;
+      }
+      it.updatedAt = new Date().toISOString();
+      saveState(state);
+      renderHistory();
+      flashSave("saveFlash", "已儲存修正");
+      flashSave("d14SaveFlash", "已儲存修正");
+      return true;
+    }
+
+    function ensureEditHabitOptions() {
+      const sel = document.getElementById("editHabit");
+      if (!sel || sel.options.length) return;
+      HABITS.forEach((h) => {
+        const opt = document.createElement("option");
+        opt.value = String(h.id);
+        opt.textContent = `習慣${h.id} ${h.name}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function openEditHistoryItem(id) {
+      state = loadState();
+      const it = (state.items || []).find((x) => String(x.id) === String(id));
+      if (!it) return;
+      ensureEditHabitOptions();
+      document.getElementById("editItemId").value = String(it.id);
+      document.getElementById("editText").value = it.text || "";
+      document.getElementById("editHabit").value = String(it.habitId || 1);
+      document.getElementById("editQuad").value = String(it.quadId || 1);
+      document.getElementById("editMinutes").value = String(itemMinutes(it));
+      const overlay = document.getElementById("editOverlay");
+      overlay.hidden = false;
+      setTimeout(() => {
+        const ta = document.getElementById("editText");
+        ta.focus();
+        try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+      }, 50);
+    }
+
+    function closeEditHistoryItem() {
+      document.getElementById("editOverlay").hidden = true;
+    }
+
+    function saveEditHistoryItem() {
+      const id = document.getElementById("editItemId").value;
+      const text = document.getElementById("editText").value;
+      if (!String(text || "").trim()) {
+        alert("內容不可空白");
+        document.getElementById("editText").focus();
+        return;
+      }
+      const ok = updateHistoryItem(id, {
+        text: text,
+        habitId: document.getElementById("editHabit").value,
+        quadId: document.getElementById("editQuad").value,
+        minutes: document.getElementById("editMinutes").value
+      });
+      if (ok) closeEditHistoryItem();
+    }
+
     function moveHistoryItem(id, dir) {
       // dir: -1 = 往更早（列表視覺往下，因為顯示是新到舊 reverse）
       // 使用者說「上下移動排先後」：上 = 更優先／更前面
@@ -1383,7 +1517,7 @@
       if (countPill) countPill.textContent = `今日 ${n} 筆`;
       ["historyCountA", "historyCountB"].forEach((id) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = n ? `（${n} 筆，可刪除／調順序）` : "";
+        if (el) el.textContent = n ? `（${n} 筆，可編輯／刪除／調順序）` : "";
       });
 
       function fill(listId, emptyId) {
@@ -1411,14 +1545,20 @@
             (item.source === "daily14" ? "｜來自14樣" : "") +
             (item.source === "suggest" ? "｜來自建議" : "") +
             (item.source === "import" ? "｜匯入" : "") +
+            (item.updatedAt ? "｜已修正" : "") +
             `｜<label>分鐘<input class="mins-input" type="number" min="1" max="480" value="${itemMinutes(item)}"></label>` +
             `</div></div>` +
             `<div class="row-actions">` +
+            `<button type="button" class="edit" title="編輯修正">編</button>` +
             `<button type="button" class="up" title="上移" ${idx === 0 ? "disabled" : ""}>↑</button>` +
             `<button type="button" class="down" title="下移" ${idx === items.length - 1 ? "disabled" : ""}>↓</button>` +
             `<button type="button" class="speak-one" title="讀誦這筆">🔊</button>` +
             `<button type="button" class="del" title="刪除這筆">刪</button>` +
             `</div></div>`;
+          li.querySelector(".edit").addEventListener("click", (e) => {
+            e.stopPropagation();
+            openEditHistoryItem(item.id);
+          });
           li.querySelector(".up").addEventListener("click", (e) => {
             e.stopPropagation();
             moveHistoryItem(item.id, -1);
@@ -1431,9 +1571,9 @@
           if (speakOneBtn) {
             speakOneBtn.addEventListener("click", (e) => {
               e.stopPropagation();
-              const habit = HABITS.find((h) => h.id === item.habitId) || { id: "?", name: "未知" };
-              const quad = QUADS[item.quadId] || { short: "" };
-              speakText(`第 ${seq} 項。${item.text || ""}。習慣 ${habit.id} ${habit.name}。${quad.short}。`);
+              const habit2 = HABITS.find((h) => h.id === item.habitId) || { id: "?", name: "未知" };
+              const quad2 = QUADS[item.quadId] || { short: "" };
+              speakText(`第 ${seq} 項。${item.text || ""}。習慣 ${habit2.id} ${habit2.name}。${quad2.short}。`);
             });
           }
           li.querySelector(".del").addEventListener("click", (e) => {
@@ -1447,6 +1587,7 @@
             minsEl.addEventListener("click", (e) => e.stopPropagation());
             minsEl.addEventListener("change", () => updateItemMinutes(item.id, minsEl.value));
           }
+          li.querySelector(".row-main").addEventListener("click", () => openEditHistoryItem(item.id));
           list.appendChild(li);
         });
       }
@@ -1892,6 +2033,16 @@
     });
     document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
     document.getElementById("stopSpeakBtnB").addEventListener("click", stopSpeaking);
+    document.getElementById("editCancelBtn").addEventListener("click", closeEditHistoryItem);
+    document.getElementById("editSaveBtn").addEventListener("click", saveEditHistoryItem);
+    document.getElementById("editOverlay").addEventListener("click", (e) => {
+      if (e.target && e.target.id === "editOverlay") closeEditHistoryItem();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !document.getElementById("editOverlay").hidden) {
+        closeEditHistoryItem();
+      }
+    });
     if (window.TtsVoices) {
       window.TtsVoices.bindVoicePicker({ speak: speakText });
     } else if (window.speechSynthesis) {

@@ -259,6 +259,43 @@
       color: var(--muted);
       text-align: center;
     }
+    .done-list-box {
+      margin-top: 1rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.65);
+      padding: 0.75rem 0.85rem;
+      text-align: left;
+    }
+    .done-list-box h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 0.35rem;
+    }
+    .done-list-box .hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 0.45rem;
+    }
+    .done-list { list-style: none; }
+    .done-list li {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      padding: 0.55rem 0.45rem;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.9rem;
+    }
+    .done-list li:last-child { border-bottom: 0; }
+    .done-list .body { flex: 1; min-width: 0; }
+    .done-list .title { font-weight: 700; }
+    .done-list .meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+    .done-list button {
+      flex-shrink: 0;
+      font-size: 0.78rem;
+      padding: 0.35rem 0.55rem;
+    }
     footer {
       margin-top: 1.8rem;
       text-align: center;
@@ -297,6 +334,12 @@
     </p>
 
     <ul id="list" aria-label="今日功課清單"></ul>
+
+    <div class="done-list-box" id="doneListBox" hidden>
+      <h2>今日已完成（可修正）</h2>
+      <p class="hint">點「恢復」可把誤勾項目改回未完成。</p>
+      <ul class="done-list" id="doneList"></ul>
+    </div>
 
     <div class="done-panel" id="donePanel">
       <h2>今日功課全部完成</h2>
@@ -497,6 +540,7 @@
         listEl.appendChild(li);
       });
       updateMeta();
+      renderDoneList();
     }
 
     function completeTask(id, li) {
@@ -520,6 +564,51 @@
       state.done = state.done.filter((x) => x !== id);
       saveState(state);
       render();
+    }
+
+    function undoOne(id) {
+      const nid = Number(id);
+      if (!state.done.includes(nid)) return;
+      state.done = state.done.filter((x) => x !== nid);
+      state.order = state.order.filter((x) => x !== nid);
+      saveState(state);
+      render();
+    }
+
+    function renderDoneList() {
+      const box = document.getElementById("doneListBox");
+      const list = document.getElementById("doneList");
+      if (!box || !list) return;
+      const doneTasks = TASKS.filter((t) => state.done.includes(t.id));
+      list.innerHTML = "";
+      if (!doneTasks.length) {
+        box.hidden = true;
+        return;
+      }
+      box.hidden = false;
+      // 依完成順序（order）顯示；沒在 order 的放後面
+      const ordered = [];
+      state.order.forEach((id) => {
+        const t = TASKS.find((x) => x.id === id);
+        if (t && state.done.includes(t.id)) ordered.push(t);
+      });
+      doneTasks.forEach((t) => {
+        if (!ordered.find((x) => x.id === t.id)) ordered.push(t);
+      });
+      ordered.forEach((task) => {
+        const li = document.createElement("li");
+        li.innerHTML =
+          `<span class="body">` +
+          `<div class="title">第 ${task.id} 項｜${task.title}</div>` +
+          `<div class="meta">習慣${task.habit} ${task.habitName}｜Ⅰ 重要且緊急</div>` +
+          `</span>` +
+          `<button type="button" data-id="${task.id}">恢復</button>`;
+        li.querySelector("button").addEventListener("click", () => {
+          if (!confirm(`把「第 ${task.id} 項」改回未完成？`)) return;
+          undoOne(task.id);
+        });
+        list.appendChild(li);
+      });
     }
 
     function resetToday() {
