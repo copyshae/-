@@ -88,6 +88,13 @@
     });
   }
 
+  function isIOS() {
+    try {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    } catch (e) { return false; }
+  }
+
   function makeChoice(id, voice, pitch, gender, label, synthetic, rate) {
     return {
       id: id,
@@ -107,10 +114,21 @@
     return gText + (reg ? "・" + reg : "") + "｜" + voice.name;
   }
 
+  function pickMaleBaseVoice(zh) {
+    // iPhone 只有美佳／婷婷／善怡等女聲；選一支當男聲模式基底即可，避免清單重複一堆
+    const prefer = [/mei/i, /美佳/i, /ting/i, /婷婷/i, /google/i, /hsiao/i, /xiao/i];
+    for (let i = 0; i < prefer.length; i++) {
+      const hit = zh.find(function (v) { return prefer[i].test((v.name || "") + (v.voiceURI || "")); });
+      if (hit) return hit;
+    }
+    return zh[0] || null;
+  }
+
   function listVoiceChoices(gender) {
     const zh = sortZh(gender === "all" ? "F" : gender);
     const choices = [];
     const seen = {};
+    const ios = isIOS();
 
     function pushChoice(c) {
       if (!c || !c.id || seen[c.id]) return;
@@ -132,24 +150,29 @@
     }
 
     function addMaleModes(bases) {
-      // 多數裝置只有女聲中文音色；用更低 pitch + 稍慢 rate 做「男聲模式」
-      // 並把「明顯低沉」放最前面，作為男聲預設
-      const presets = [
-        { pitch: 0.48, rate: 0.86, tag: "明顯低沉", id: "deep" },
-        { pitch: 0.38, rate: 0.84, tag: "超低沉", id: "deeper" },
-        { pitch: 0.58, rate: 0.88, tag: "沉穩", id: "steady" }
+      // iOS 對 pitch 支援弱，用更極端參數；並只列出少數選項避免「美佳／婷婷」刷一排
+      const presets = ios ? [
+        { pitch: 0.2, rate: 0.82, tag: "超低沉（建議）", id: "ios-deepest" },
+        { pitch: 0.35, rate: 0.84, tag: "明顯低沉", id: "ios-deep" },
+        { pitch: 0.5, rate: 0.88, tag: "沉穩", id: "ios-steady" }
+      ] : [
+        { pitch: 0.42, rate: 0.85, tag: "明顯低沉（建議）", id: "deep" },
+        { pitch: 0.28, rate: 0.82, tag: "超低沉", id: "deeper" },
+        { pitch: 0.55, rate: 0.88, tag: "沉穩", id: "steady" }
       ];
-      bases.forEach(function (v, vi) {
-        // 只對前幾支基底做模式，避免清單過長；優先台灣／高分聲音
-        if (vi > 5) return;
+      const list = ios
+        ? [pickMaleBaseVoice(bases)].filter(Boolean)
+        : bases.slice(0, 3);
+      list.forEach(function (v) {
         const key = v.voiceURI || v.name;
         presets.forEach(function (p) {
+          const suffix = ios ? "" : ("｜" + v.name);
           pushChoice(makeChoice(
             "male-mode:" + p.id + ":" + p.pitch + ":" + key,
             v,
             p.pitch,
             "M",
-            "男聲模式・" + p.tag + "｜" + v.name,
+            "男聲模式・" + p.tag + suffix,
             true,
             p.rate
           ));
@@ -158,7 +181,7 @@
     }
 
     function addFemaleEffects(bases) {
-      bases.forEach(function (v) {
+      bases.slice(0, ios ? 1 : 3).forEach(function (v) {
         const key = v.voiceURI || v.name;
         pushChoice(makeChoice(
           "effect-f:1.12:" + key,
@@ -175,65 +198,81 @@
     if (!zh.length) return choices;
 
     if (gender === "M") {
-      // 1) 真正系統男聲（原音）
       zh.filter(function (v) { return guessGender(v) === "M"; }).forEach(function (v) {
         addNative(v, 1, 0.95);
       });
-      // 2) 男聲模式（預設主力；不要先塞未標示原音，避免聽起來仍是女聲）
       addMaleModes(zh);
-      // 3) 未標示原音放最後，並標註可能偏女聲
-      zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(function (v) {
-        pushChoice(makeChoice(
-          "native-u:" + (v.voiceURI || v.name),
-          v,
-          1,
-          "U",
-          "原音（可能偏女聲）｜" + v.name,
-          false,
-          0.95
-        ));
-      });
+      // iPhone 不列出「原音美佳」以免誤選又變女聲
+      if (!ios) {
+        zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(function (v) {
+          pushChoice(makeChoice(
+            "native-u:" + (v.voiceURI || v.name),
+            v,
+            1,
+            "U",
+            "原音（可能偏女聲）｜" + v.name,
+            false,
+            0.95
+          ));
+        });
+      }
     } else if (gender === "F") {
       zh.filter(function (v) { return guessGender(v) === "F"; }).forEach(function (v) { addNative(v); });
       zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(function (v) { addNative(v); });
       if (!choices.length) zh.forEach(function (v) { addNative(v); });
-      addFemaleEffects(zh.slice(0, 4));
+      addFemaleEffects(zh);
     } else {
       zh.forEach(function (v) { addNative(v); });
-      addMaleModes(zh.slice(0, 4));
-      addFemaleEffects(zh.slice(0, 4));
+      addMaleModes(zh);
+      addFemaleEffects(zh);
     }
 
     return choices;
   }
 
   function isWeakMaleChoice(c) {
-    // 舊版可能存到女聲／未標示原音，在男聲偏好下應改走男聲模式
     if (!c) return true;
     if (c.synthetic && c.gender === "M") return false;
-    if (!c.synthetic && guessGender(c.voice) === "M") return false;
+    if (!c.synthetic && c.voice && guessGender(c.voice) === "M") return false;
+    // 舊版 effect-m / 美佳原音 都算弱男聲
+    if (/effect-m:|native-u:|native:/i.test(c.id || "") && guessGender(c.voice) !== "M") return true;
     return true;
   }
 
+  function purgeLegacyMalePref() {
+    try {
+      const pref = loadTtsPref();
+      if (pref.gender !== "M") return;
+      const weakId = /effect-m:|^native:|native-u:/i.test(pref.choiceId || "");
+      const weakName = /美佳|婷婷|善怡|Mei|Ting|Sin-ji|Shan/i.test(pref.voiceName || "");
+      if (weakId || weakName || !pref.choiceId || !/male-mode:/.test(pref.choiceId || "")) {
+        // 若不是 male-mode，清掉讓系統重選超低沉
+        if (!/male-mode:/.test(pref.choiceId || "")) {
+          pref.choiceId = "";
+          pref.voiceURI = "";
+          pref.voiceName = "";
+          pref.pitch = isIOS() ? 0.2 : 0.42;
+          pref.rate = isIOS() ? 0.82 : 0.85;
+          saveTtsPref(pref);
+        }
+      }
+    } catch (e) {}
+  }
+
   function resolveSelectedChoice() {
+    purgeLegacyMalePref();
     const pref = loadTtsPref();
     const list = listVoiceChoices(pref.gender);
     if (!list.length) return null;
 
     if (pref.choiceId) {
       const byId = list.find(function (c) { return c.id === pref.choiceId; });
-      if (byId) {
-        if (pref.gender === "M" && isWeakMaleChoice(byId)) {
-          // fall through to better male default
-        } else {
-          return byId;
-        }
-      }
+      if (byId && !(pref.gender === "M" && isWeakMaleChoice(byId))) return byId;
     }
 
     if (pref.gender === "M") {
       return list.find(function (c) { return c.gender === "M" && !c.synthetic; })
-        || list.find(function (c) { return c.synthetic && c.gender === "M" && /明顯低沉/.test(c.label); })
+        || list.find(function (c) { return c.synthetic && c.gender === "M" && /建議|超低沉/.test(c.label); })
         || list.find(function (c) { return c.synthetic && c.gender === "M"; })
         || list[0];
     }
@@ -258,16 +297,24 @@
   function getSpeakSettings() {
     const pref = loadTtsPref();
     const c = resolveSelectedChoice();
+    const iosDeepPitch = isIOS() ? 0.2 : 0.42;
+    const iosDeepRate = isIOS() ? 0.82 : 0.85;
     if (!c) {
-      return { voice: null, pitch: pref.gender === "M" ? 0.48 : 1, rate: pref.gender === "M" ? 0.86 : 0.95, lang: "zh-TW" };
+      return {
+        voice: null,
+        pitch: pref.gender === "M" ? iosDeepPitch : 1,
+        rate: pref.gender === "M" ? iosDeepRate : 0.95,
+        lang: "zh-TW"
+      };
     }
     let pitch = (typeof c.pitch === "number") ? c.pitch : 1;
     let rate = (typeof c.rate === "number") ? c.rate : 0.95;
-    // 男聲偏好卻選到非男聲原音時，強制套用低沉男聲模式參數
     if (pref.gender === "M" && isWeakMaleChoice(c)) {
-      pitch = 0.48;
-      rate = 0.86;
+      pitch = iosDeepPitch;
+      rate = iosDeepRate;
     }
+    // iOS 有時忽略輕微 pitch；男聲模式再保險壓一次下限
+    if (pref.gender === "M" && isIOS() && pitch > 0.35) pitch = 0.2;
     return {
       voice: c.voice,
       pitch: pitch,
@@ -282,12 +329,14 @@
     const hint = document.getElementById("ttsVoiceHint");
     if (!hint) return;
     const realMale = (choices || []).some(function (c) { return c.gender === "M" && !c.synthetic; });
-    if (gender === "M" && !realMale) {
-      hint.textContent = "此裝置多半沒有真正中文男聲音色。請選「男聲模式・明顯低沉／超低沉」並按試聽；電腦用 Edge 較容易有系統男聲（如 YunJhe）。";
+    if (gender === "M" && isIOS()) {
+      hint.textContent = "iPhone 系統中文只有美佳／婷婷／善怡等女聲音色，無法變成真正男聲。請選「男聲模式・超低沉（建議）」並試聽；要真男聲請用電腦 Edge。";
+    } else if (gender === "M" && !realMale) {
+      hint.textContent = "此裝置多半沒有真正中文男聲。請選「男聲模式・明顯低沉／超低沉」並試聽；電腦 Edge 較容易有系統男聲。";
     } else if (gender === "M") {
-      hint.textContent = "已找到系統男聲原音。若仍偏尖，可改選「男聲模式・明顯低沉」。";
+      hint.textContent = "已找到系統男聲原音。若仍偏尖，可改選「男聲模式」。";
     } else {
-      hint.textContent = "可選多種男聲／女聲。選男聲時請選「男聲模式」才會明顯低沉。";
+      hint.textContent = "可選多種男聲／女聲。iPhone 選男聲時請用「男聲模式」。";
     }
   }
 

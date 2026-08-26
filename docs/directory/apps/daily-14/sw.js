@@ -1,5 +1,5 @@
 /* 每日14樣功課｜離線快取 */
-const CACHE = "daily14-v10";
+const CACHE = "daily14-v11";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,6 +27,19 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (/tts-voices\.js/i.test(url.pathname) || /index\.html$/i.test(url.pathname) || url.pathname.endsWith("/")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
   event.respondWith(
     caches.match(req).then((cached) => {
       const live = fetch(req)
