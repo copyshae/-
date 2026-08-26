@@ -357,8 +357,14 @@
         <ul class="history" id="historyList"></ul>
         <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。</p>
         <div class="actions">
+          <button type="button" class="btn primary" id="exportJsonBtn">匯出當日 JSON</button>
+          <button type="button" class="btn" id="exportCsvBtn">匯出當日 CSV</button>
+          <button type="button" class="btn" id="importJsonBtn">匯入當日紀錄</button>
+          <button type="button" class="btn" id="copyJsonBtn">複製當日 JSON</button>
           <button type="button" class="btn danger" id="clearHistoryBtn">清空今日紀錄</button>
         </div>
+        <input type="file" id="importFile" accept="application/json,.json,text/csv,.csv" hidden />
+        <p class="hint" style="margin-top:0.45rem;">匯出可備份／換機；匯入會<strong>合併</strong>到今日（可選改為覆蓋）。</p>
       </div>
     </section>
 
@@ -405,6 +411,9 @@
         <ul class="history" id="historyListB"></ul>
         <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。</p>
         <div class="actions">
+          <button type="button" class="btn primary" id="exportJsonBtnB">匯出當日 JSON</button>
+          <button type="button" class="btn" id="exportCsvBtnB">匯出當日 CSV</button>
+          <button type="button" class="btn" id="importJsonBtnB">匯入當日紀錄</button>
           <button type="button" class="btn danger" id="clearHistoryBtnB">清空今日紀錄</button>
         </div>
       </div>
@@ -582,23 +591,220 @@
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return { date: todayKey(), items: [], lastCourse: null };
+        const today = todayKey();
+        if (!raw) return { date: today, items: [], lastCourse: null, archive: {} };
         const data = JSON.parse(raw);
-        if (!data || data.date !== todayKey()) {
-          return { date: todayKey(), items: [], lastCourse: data && data.lastCourse ? data.lastCourse : null };
+        const archive = (data && data.archive && typeof data.archive === "object") ? data.archive : {};
+        if (!data || data.date !== today) {
+          // 換日：把昨日 items 存進 archive，今日從空開始
+          if (data && data.date && Array.isArray(data.items) && data.items.length) {
+            archive[data.date] = data.items;
+          }
+          return {
+            date: today,
+            items: [],
+            lastCourse: data && data.lastCourse ? data.lastCourse : null,
+            archive
+          };
         }
         return {
           date: data.date,
           items: Array.isArray(data.items) ? data.items : [],
-          lastCourse: data.lastCourse || null
+          lastCourse: data.lastCourse || null,
+          archive
         };
       } catch {
-        return { date: todayKey(), items: [], lastCourse: null };
+        return { date: todayKey(), items: [], lastCourse: null, archive: {} };
       }
     }
 
     function saveState(state) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    function exportTodayPayload() {
+      state = loadState();
+      return {
+        app: "habits-7",
+        type: "habits7-day",
+        version: 1,
+        date: state.date || todayKey(),
+        exportedAt: new Date().toISOString(),
+        items: Array.isArray(state.items) ? state.items : [],
+        lastCourse: state.lastCourse || null
+      };
+    }
+
+    function exportTodayJson() {
+      const payload = exportTodayPayload();
+      const name = `habits7-${payload.date}.json`;
+      downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), name);
+      flashSave("saveFlash", `已匯出 ${payload.items.length} 筆（${name}）`);
+      flashSave("d14SaveFlash", `已匯出 ${payload.items.length} 筆（${name}）`);
+    }
+
+    function exportTodayCsv() {
+      const payload = exportTodayPayload();
+      const header = ["日期", "序", "內容", "習慣編號", "習慣", "象限", "來源", "時間"];
+      const lines = [header.join(",")];
+      payload.items.forEach((item, i) => {
+        const habit = HABITS.find((h) => h.id === item.habitId) || { id: "", name: "" };
+        const quad = QUADS[item.quadId] || { short: "" };
+        const cells = [
+          payload.date,
+          String(i + 1),
+          `"${String(item.text || "").replace(/"/g, '""')}"`,
+          String(habit.id || item.habitId || ""),
+          `"${String(habit.name || "").replace(/"/g, '""')}"`,
+          `"${String(quad.short || item.quadId || "").replace(/"/g, '""')}"`,
+          item.source || "",
+          item.at || ""
+        ];
+        lines.push(cells.join(","));
+      });
+      const name = `habits7-${payload.date}.csv`;
+      // BOM for Excel
+      downloadBlob(new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" }), name);
+      flashSave("saveFlash", `已匯出 CSV ${payload.items.length} 筆`);
+      flashSave("d14SaveFlash", `已匯出 CSV ${payload.items.length} 筆`);
+    }
+
+    async function copyTodayJson() {
+      const payload = exportTodayPayload();
+      const text = JSON.stringify(payload, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        flashSave("saveFlash", `已複製當日 JSON（${payload.items.length} 筆）`);
+      } catch {
+        // fallback
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        flashSave("saveFlash", `已複製當日 JSON（${payload.items.length} 筆）`);
+      }
+    }
+
+    function normalizeImportItems(rawItems) {
+      if (!Array.isArray(rawItems)) return [];
+      return rawItems.map((it, i) => ({
+        id: it.id || `imp-${Date.now()}-${i}`,
+        habitId: Number(it.habitId) || 3,
+        quadId: Number(it.quadId) || 1,
+        text: String(it.text || it.title || "").trim() || `（無標題第${i + 1}筆）`,
+        at: it.at || new Date().toISOString(),
+        source: it.source || "import"
+      })).filter((it) => it.text);
+    }
+
+    function importTodayData(payload, mode) {
+      state = loadState();
+      let items = [];
+      if (payload && Array.isArray(payload.items)) {
+        items = normalizeImportItems(payload.items);
+      } else if (Array.isArray(payload)) {
+        items = normalizeImportItems(payload);
+      } else if (payload && Array.isArray(payload.days) && payload.days[0]) {
+        items = normalizeImportItems(payload.days[0].items || []);
+      } else {
+        throw new Error("格式不符：需要 { items: [...] } 的 JSON");
+      }
+      if (!items.length) throw new Error("匯入檔沒有任何紀錄");
+
+      if (mode === "replace") {
+        state.items = items;
+      } else {
+        // merge：依 text+habitId+quadId 去重後追加
+        const key = (x) => `${x.text}||${x.habitId}||${x.quadId}`;
+        const have = new Set(state.items.map(key));
+        items.forEach((it) => {
+          if (!have.has(key(it))) {
+            state.items.push(it);
+            have.add(key(it));
+          }
+        });
+      }
+      // 若匯入檔有日期且不是今天，仍合併進「今日」使用，並備份原日到 archive
+      if (payload && payload.date && payload.date !== state.date) {
+        state.archive = state.archive || {};
+        state.archive[payload.date] = items;
+      }
+      if (payload && payload.lastCourse) state.lastCourse = payload.lastCourse;
+      saveState(state);
+      renderHistory();
+      return state.items.length;
+    }
+
+    function startImport() {
+      document.getElementById("importFile").click();
+    }
+
+    function onImportFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = String(reader.result || "");
+          let payload;
+          if (/\.csv$/i.test(file.name) || text.trim().startsWith("日期,")) {
+            // 簡易 CSV：日期,序,內容,習慣編號,習慣,象限,來源,時間
+            const rows = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
+            const items = [];
+            for (let i = 1; i < rows.length; i++) {
+              // naive CSV split respecting quotes
+              const cols = [];
+              let cur = "";
+              let q = false;
+              for (const ch of rows[i]) {
+                if (ch === '"') { q = !q; continue; }
+                if (ch === "," && !q) { cols.push(cur); cur = ""; continue; }
+                cur += ch;
+              }
+              cols.push(cur);
+              if (cols.length < 4) continue;
+              items.push({
+                text: cols[2],
+                habitId: Number(cols[3]) || 3,
+                quadId: /Ⅰ|重要且緊急|1/.test(cols[5] || "") ? 1
+                  : /Ⅱ|重要不緊急|2/.test(cols[5] || "") ? 2
+                  : /Ⅲ|3/.test(cols[5] || "") ? 3
+                  : /Ⅳ|4/.test(cols[5] || "") ? 4 : 1,
+                source: cols[6] || "import",
+                at: cols[7] || new Date().toISOString()
+              });
+            }
+            payload = { items, date: (rows[1] || "").split(",")[0] || todayKey() };
+          } else {
+            payload = JSON.parse(text);
+          }
+          const mode = confirm("確定匯入？\n\n按「確定」＝合併到今日\n按「取消」後再選一次可改為覆蓋（下一個確認）")
+            ? "merge"
+            : (confirm("改為「覆蓋」今日紀錄？按確定＝覆蓋；取消＝中止") ? "replace" : null);
+          if (!mode) {
+            flashSave("saveFlash", "已取消匯入");
+            return;
+          }
+          const n = importTodayData(payload, mode);
+          flashSave("saveFlash", `匯入完成（${mode === "merge" ? "合併" : "覆蓋"}），今日共 ${n} 筆`);
+          flashSave("d14SaveFlash", `匯入完成，今日共 ${n} 筆`);
+        } catch (err) {
+          alert("匯入失敗：" + (err && err.message ? err.message : String(err)));
+        }
+      };
+      reader.readAsText(file, "UTF-8");
     }
 
     let state = loadState();
@@ -1110,6 +1316,19 @@
     }
     document.getElementById("clearHistoryBtn").addEventListener("click", clearTodayHistory);
     document.getElementById("clearHistoryBtnB").addEventListener("click", clearTodayHistory);
+
+    document.getElementById("exportJsonBtn").addEventListener("click", exportTodayJson);
+    document.getElementById("exportJsonBtnB").addEventListener("click", exportTodayJson);
+    document.getElementById("exportCsvBtn").addEventListener("click", exportTodayCsv);
+    document.getElementById("exportCsvBtnB").addEventListener("click", exportTodayCsv);
+    document.getElementById("copyJsonBtn").addEventListener("click", copyTodayJson);
+    document.getElementById("importJsonBtn").addEventListener("click", startImport);
+    document.getElementById("importJsonBtnB").addEventListener("click", startImport);
+    document.getElementById("importFile").addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      onImportFile(file);
+      e.target.value = "";
+    });
 
     document.getElementById("voiceBtn").addEventListener("click", (e) => {
       startVoice("freeText", e.currentTarget);
