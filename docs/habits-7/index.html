@@ -63,17 +63,17 @@
     .tabs {
       margin-top: 1rem;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.45rem;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.4rem;
     }
     .tabs button {
       font: inherit; cursor: pointer;
       border: 1px solid var(--line);
       background: rgba(255,255,255,0.55);
       color: var(--muted);
-      padding: 0.65rem 0.5rem;
+      padding: 0.55rem 0.25rem;
       font-weight: 700;
-      font-size: 0.92rem;
+      font-size: 0.82rem;
     }
     .tabs button.active {
       background: var(--accent);
@@ -145,19 +145,19 @@
       background: rgba(27,107,90,0.08);
     }
     .result.show { display: block; }
-    .result .tag {
+    .result .tag, .d14-list .tag {
       display: inline-block;
       margin: 0.2rem 0.3rem 0.2rem 0;
       padding: 0.2rem 0.55rem;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
       background: #fff;
       border: 1px solid var(--line);
     }
-    .result .tag.q1 { border-color: var(--q1); color: var(--q1); }
-    .result .tag.q2 { border-color: var(--q2); color: var(--q2); }
-    .result .tag.q3 { border-color: var(--q3); color: var(--q3); }
-    .result .tag.q4 { border-color: var(--q4); color: var(--q4); }
+    .result .tag.q1, .d14-list .tag.q1 { border-color: var(--q1); color: var(--q1); }
+    .result .tag.q2, .d14-list .tag.q2 { border-color: var(--q2); color: var(--q2); }
+    .result .tag.q3, .d14-list .tag.q3 { border-color: var(--q3); color: var(--q3); }
+    .result .tag.q4, .d14-list .tag.q4 { border-color: var(--q4); color: var(--q4); }
     .result strong { color: var(--accent); }
     .matrix {
       display: grid;
@@ -182,6 +182,38 @@
       font-size: 0.88rem;
     }
     .history .meta { color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem; }
+    .d14-list { list-style: none; margin-top: 0.55rem; }
+    .d14-list li {
+      padding: 0.75rem 0.7rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      margin-bottom: 0.45rem;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .d14-list li:active { transform: scale(0.99); }
+    .d14-list .num {
+      display: inline-grid; place-items: center;
+      width: 1.55rem; height: 1.55rem; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 0.78rem; font-weight: 700;
+      margin-right: 0.35rem;
+    }
+    .d14-list .title { font-weight: 700; font-size: 0.92rem; }
+    .d14-list .map {
+      margin-top: 0.35rem; font-size: 0.78rem; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;
+    }
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem;
+    }
+    .filters button {
+      font: inherit; font-size: 0.75rem; cursor: pointer;
+      border: 1px solid var(--line); background: #fff; color: var(--muted);
+      padding: 0.28rem 0.5rem;
+    }
+    .filters button.on {
+      background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700;
+    }
     .course-tip {
       margin-top: 0.75rem;
       padding: 0.85rem;
@@ -239,7 +271,8 @@
 
     <div class="tabs" role="tablist">
       <button type="button" class="active" id="tabClassify" data-tab="classify">做事歸類</button>
-      <button type="button" id="tabCourse" data-tab="course">今天上課建議</button>
+      <button type="button" id="tabDaily14" data-tab="daily14">14樣對照</button>
+      <button type="button" id="tabCourse" data-tab="course">今天上課</button>
     </div>
 
     <!-- 做事歸類 -->
@@ -295,7 +328,46 @@
       </div>
     </section>
 
-    <!-- 上課建議（獨立分頁，不混 14 樣功課） -->
+    <!-- 14樣功課 → 七習慣＋象限對照（勾選仍在 daily-14 App） -->
+    <section class="panel" id="panelDaily14">
+      <div class="card">
+        <h2>14樣功課 × 習慣 × 象限</h2>
+        <p class="hint">把「每日14樣功課」每一項對應到七個好習慣與時間象限。<strong>14 項一律視為「重要且緊急」（第一象限）</strong>，當天必做。點一項可看說明並存入今日紀錄。勾選完成仍請用「每日14樣功課」App。</p>
+        <div class="filters" id="d14Filters" aria-label="篩選">
+          <button type="button" class="on" data-filter="all">全部</button>
+          <button type="button" data-filter="h1">習1</button>
+          <button type="button" data-filter="h2">習2</button>
+          <button type="button" data-filter="h3">習3</button>
+          <button type="button" data-filter="h4">習4</button>
+          <button type="button" data-filter="h5">習5</button>
+          <button type="button" data-filter="h6">習6</button>
+          <button type="button" data-filter="h7">習7</button>
+          <button type="button" data-filter="q1">Ⅰ 重要且緊急</button>
+        </div>
+        <ul class="d14-list" id="d14List"></ul>
+        <p class="hint" style="margin-top:0.55rem;">
+          開啟勾選 App：
+          <a href="../daily-14/" id="daily14Link">每日14樣功課</a>
+        </p>
+      </div>
+      <div class="result" id="d14Result" aria-live="polite">
+        <div><strong>選中：</strong><span id="d14PickTitle">—</span></div>
+        <div style="margin-top:0.35rem;"><strong>習慣：</strong><span id="d14HabitOut">—</span></div>
+        <div style="margin-top:0.35rem;"><strong>象限：</strong><span id="d14QuadOut">—</span></div>
+        <div class="matrix" id="d14Matrix" aria-hidden="true">
+          <div data-q="1">Ⅰ 重要且緊急</div>
+          <div data-q="2">Ⅱ 重要不緊急</div>
+          <div data-q="3">Ⅲ 不重要但緊急</div>
+          <div data-q="4">Ⅳ 不重要不緊急</div>
+        </div>
+        <p class="hint" id="d14Why" style="margin-top:0.55rem;"></p>
+        <div class="actions">
+          <button type="button" class="btn primary" id="d14SaveBtn">存進今日紀錄</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 上課建議 -->
     <section class="panel" id="panelCourse">
       <div class="card">
         <h2>今天要上什麼（康軒國一數學）</h2>
@@ -327,7 +399,7 @@
     </section>
 
     <footer>
-      <p>資料只存在這支手機瀏覽器。本頁與「每日14樣功課」完全分開。</p>
+      <p>資料只存在這支手機瀏覽器。14樣功課的「勾選」與「習慣／象限對照」分開。</p>
       <p style="margin-top:0.35rem;">
         <a id="homeLink" href="../">回上一層</a>
         ｜
@@ -413,22 +485,42 @@
     };
 
     const HABIT_RULES = [
-      { h: 7, words: ["運動", "休息", "進修", "讀書會", "研習", "充電", "睡眠", "健康", "冥想", "反思", "寫心得", "學習日誌", "更新"] },
-      { h: 5, words: ["傾聽", "晤談", "輔導", "了解", "訪談", "家長溝通", "同理", "學生說", "先聽", "情緒", "抱怨"] },
-      { h: 4, words: ["協調", "協商", "雙贏", "共識", "妥協", "合約", "分工", "獎勵", "競賽規則"] },
-      { h: 6, words: ["合作", "共備", "跨班", "跨處", "團隊", "統合", "一起", "協同", "夥伴"] },
-      { h: 2, words: ["目標", "願景", "期末", "段考規劃", "教案設計", "課程地圖", "以終", "規劃", "計劃", "計畫"] },
-      { h: 3, words: ["備課", "命題", "閱卷", "批改", "預防", "演練", "巡查", "掃具", "整潔", "衛生", "防疫", "健檢", "優先"] },
-      { h: 1, words: ["主動", "提案", "改善", "先做", " innov", "啟動", "發起", "立刻處理", "應變"] }
+      { h: 7, words: ["運動", "休息", "進修", "讀書會", "研習", "充電", "睡眠", "健康", "冥想", "反思", "寫心得", "學習日誌", "更新", "富有", "注入彩虹", "太陽心法", "照鏡子", "弟子規"] },
+      { h: 5, words: ["傾聽", "晤談", "輔導", "了解", "訪談", "家長溝通", "同理", "學生說", "先聽", "情緒", "抱怨", "去我"] },
+      { h: 4, words: ["協調", "協商", "雙贏", "共識", "妥協", "合約", "分工", "獎勵", "競賽規則", "渡人", "結緣", "分享"] },
+      { h: 6, words: ["合作", "共備", "跨班", "跨處", "團隊", "統合", "一起", "協同", "夥伴", "共修", "網絡共修"] },
+      { h: 2, words: ["目標", "願景", "期末", "段考規劃", "教案設計", "課程地圖", "以終", "規劃", "計劃", "計畫", "懺悔發願", "參悟空", "營造"] },
+      { h: 3, words: ["備課", "命題", "閱卷", "批改", "預防", "演練", "巡查", "掃具", "整潔", "衛生", "防疫", "健檢", "優先", "要事", "營造生活"] },
+      { h: 1, words: ["主動", "提案", "改善", "先做", "啟動", "發起", "立刻處理", "應變", "轉念", "感恩", "照鏡子", "懺悔"] }
     ];
 
-    const Q1_WORDS = ["立刻", "馬上", "緊急", "今天一定", "家長來電", "受傷", "發燒", "缺考補考", "繳交截止", "申報截止", "督學", "檢查今天", "暴衝", "衝突現場", "止血"];
+    /* 14樣功課 → 習慣＋象限（視為重要且緊急＝第一象限） */
+    const DAILY14_MAP = [
+      { id: 1, title: "每天聆聽「富有」歌曲 3 次", h: 7, q: 1, why: "今日必做的心靈更新：重要且緊急，當天完成。" },
+      { id: 2, title: "每天聆聽「注入彩虹」3 次", h: 7, q: 1, why: "今日必做的情緒充電：重要且緊急，當天完成。" },
+      { id: 3, title: "每天看蔡禮旭老師講解的弟子規", h: 2, q: 1, why: "以終為始的日課：重要且緊急，不可拖到明天。" },
+      { id: 4, title: "懺悔發願（心法步驟一二三）", h: 1, q: 1, why: "主動積極的日課：重要且緊急，當下轉念負責。" },
+      { id: 5, title: "每天寫心得", h: 7, q: 1, why: "心智更新日課：重要且緊急，今日必寫。" },
+      { id: 6, title: "練習秒秒感恩", h: 1, q: 1, why: "主動積極日課：重要且緊急，秒秒練習。" },
+      { id: 7, title: "做到去我", h: 5, q: 1, why: "知彼解己前置日課：重要且緊急，今日落實。" },
+      { id: 8, title: "做太陽心法，每天做 15 分鐘以上", h: 7, q: 1, why: "身體／心靈更新日課：重要且緊急，今日練足。" },
+      { id: 9, title: "每天照鏡子", h: 1, q: 1, why: "自我覺察日課：重要且緊急，今日必做。" },
+      { id: 10, title: "秒秒轉念", h: 1, q: 1, why: "主動積極核心日課：重要且緊急，不可延宕。" },
+      { id: 11, title: "秒秒參悟空", h: 2, q: 1, why: "以終為始日課：重要且緊急，今日參究。" },
+      { id: 12, title: "每天「營造」生活", h: 3, q: 1, why: "要事第一日課：重要且緊急，今日營造。" },
+      { id: 13, title: "參加網絡共修課程", h: 6, q: 1, why: "統合綜效（本週項）：排入今日則視為重要且緊急。", note: "每週一項；今日若已參加可對照" },
+      { id: 14, title: "渡人", h: 4, q: 1, why: "雙贏分享日課：重要且緊急，今日結緣／接引。", note: "增添德資糧，與人分享《超級生命密碼》" }
+    ];
+
+    const Q1_WORDS = ["立刻", "馬上", "緊急", "今天一定", "家長來電", "受傷", "發燒", "缺考補考", "繳交截止", "申報截止", "督學", "檢查今天", "暴衝", "衝突現場", "止血", "富有", "注入彩虹", "弟子規", "懺悔", "寫心得", "感恩", "去我", "太陽心法", "照鏡子", "轉念", "參悟空", "營造", "共修", "渡人", "14樣", "每日14"];
     const Q2_WORDS = ["備課", "複習計畫", "預防", "關係", "演練", "建檔", "整理掃具", "盤點", "課程設計", "長期", "習慣養成", "健康", "進修", "共備"];
     const Q3_WORDS = ["臨時會議", "群組訊息", "轉傳", "蓋章", "催繳", "插播", "電話問", "代班臨時", "突然叫去"];
     const Q4_WORDS = ["滑手機", "閒聊很久", "重覆整理桌面", "無目的瀏覽", "拖延"];
 
     let lastResult = null;
+    let lastDaily14 = null;
     let recognition = null;
+    let d14Filter = "all";
 
     function todayKey() {
       return new Intl.DateTimeFormat("en-CA", {
@@ -651,16 +743,127 @@
       btn.addEventListener("click", () => {
         document.querySelectorAll(".tabs button").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-        document.getElementById("panelClassify").classList.toggle("show", btn.dataset.tab === "classify");
-        document.getElementById("panelCourse").classList.toggle("show", btn.dataset.tab === "course");
+        const tab = btn.dataset.tab;
+        document.getElementById("panelClassify").classList.toggle("show", tab === "classify");
+        document.getElementById("panelDaily14").classList.toggle("show", tab === "daily14");
+        document.getElementById("panelCourse").classList.toggle("show", tab === "course");
       });
     });
+
+    function renderDaily14List() {
+      const list = document.getElementById("d14List");
+      list.innerHTML = "";
+      DAILY14_MAP.filter((item) => {
+        if (d14Filter === "all") return true;
+        if (d14Filter === "q2") return item.q === 2;
+        if (d14Filter === "q1") return item.q === 1;
+        if (d14Filter.startsWith("h")) return item.h === Number(d14Filter.slice(1));
+        return true;
+      }).forEach((item) => {
+        const habit = HABITS.find((h) => h.id === item.h);
+        const quad = QUADS[item.q];
+        const li = document.createElement("li");
+        li.innerHTML =
+          `<span class="num">${item.id}</span>` +
+          `<span class="title">${escapeHtml(item.title)}</span>` +
+          (item.note ? `<div class="hint">${escapeHtml(item.note)}</div>` : "") +
+          `<div class="map">` +
+          `<span class="tag">習慣${habit.id} ${habit.name}</span>` +
+          `<span class="tag ${quad.cls}">${quad.short}</span>` +
+          `</div>`;
+        li.addEventListener("click", () => pickDaily14(item));
+        list.appendChild(li);
+      });
+    }
+
+    function pickDaily14(item) {
+      const habit = HABITS.find((h) => h.id === item.h);
+      const quad = QUADS[item.q];
+      lastDaily14 = {
+        habitId: item.h,
+        quadId: item.q,
+        text: `【14樣第${item.id}項】${item.title}`,
+        at: new Date().toISOString(),
+        source: "daily14"
+      };
+      document.getElementById("d14PickTitle").textContent = `${item.id}. ${item.title}`;
+      document.getElementById("d14HabitOut").textContent =
+        `習慣${habit.id}「${habit.name}」｜${habit.en} — ${habit.tip}`;
+      document.getElementById("d14QuadOut").innerHTML =
+        `<span class="tag ${quad.cls}">${quad.name}</span> ${quad.advise}`;
+      document.getElementById("d14Why").textContent = item.why;
+      document.querySelectorAll("#d14Matrix div").forEach((el) => {
+        el.classList.toggle("on", Number(el.dataset.q) === item.q);
+      });
+      document.getElementById("d14Result").classList.add("show");
+    }
+
+    document.getElementById("d14Filters").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-filter]");
+      if (!btn) return;
+      d14Filter = btn.dataset.filter;
+      document.querySelectorAll("#d14Filters button").forEach((b) => {
+        b.classList.toggle("on", b === btn);
+      });
+      renderDaily14List();
+    });
+
+    document.getElementById("d14SaveBtn").addEventListener("click", () => {
+      if (!lastDaily14) return;
+      state = loadState();
+      state.items.push({ ...lastDaily14 });
+      saveState(state);
+      renderHistory();
+      alert("已存入今日紀錄（可到「做事歸類」分頁查看）。");
+    });
+
+    (function setDaily14Link() {
+      const a = document.getElementById("daily14Link");
+      const path = location.pathname || "";
+      if (path.includes("/directory/apps/")) {
+        a.href = "../daily-14/";
+      } else {
+        a.href = "../daily-14/";
+      }
+    })();
 
     document.getElementById("classifyBtn").addEventListener("click", () => {
       const text = combinedText();
       if (!text) {
         alert("請先口說或打字輸入內容。");
         return;
+      }
+      // 若內容命中 14 樣功課標題，優先用對照表
+      const hit = DAILY14_MAP.find((d) => text.includes(d.title) || text.includes(d.title.slice(0, 6)));
+      if (hit && (text.includes(String(hit.id)) || text.includes(hit.title.slice(0, 4)) || text.length < 40)) {
+        const loose = DAILY14_MAP.find((d) =>
+          text.includes(d.title) ||
+          ["富有", "注入彩虹", "弟子規", "懺悔", "寫心得", "感恩", "去我", "太陽心法", "照鏡子", "轉念", "參悟空", "營造", "共修", "渡人"].some(
+            (k) => text.includes(k) && d.title.includes(k)
+          )
+        );
+        if (loose) {
+          showResult(loose.h, loose.q, `【14樣第${loose.id}項】${text}`);
+          return;
+        }
+      }
+      const keyed = DAILY14_MAP.find((d) =>
+        ["富有", "注入彩虹", "弟子規", "懺悔發願", "寫心得", "秒秒感恩", "去我", "太陽心法", "照鏡子", "秒秒轉念", "參悟空", "營造生活", "網絡共修", "渡人"].some(
+          (k) => text.includes(k) && d.title.includes(k.replace("秒秒", "").replace("網絡", "").slice(0, 2) ? k : k)
+        )
+      );
+      // simpler keyed match:
+      const keyMap = [
+        ["富有", 1], ["注入彩虹", 2], ["弟子規", 3], ["懺悔", 4], ["寫心得", 5], ["心得", 5],
+        ["感恩", 6], ["去我", 7], ["太陽心法", 8], ["照鏡子", 9], ["轉念", 10],
+        ["參悟空", 11], ["營造", 12], ["共修", 13], ["渡人", 14]
+      ];
+      for (const [k, id] of keyMap) {
+        if (text.includes(k)) {
+          const d = DAILY14_MAP.find((x) => x.id === id);
+          showResult(d.h, d.q, `【14樣第${d.id}項】${text}`);
+          return;
+        }
       }
       showResult(classifyHabit(text), classifyQuad(text), text);
     });
@@ -706,6 +909,7 @@
     document.getElementById("todayLabel").textContent = formatToday();
     fillUnits();
     renderHistory();
+    renderDaily14List();
 
     (function setHomeLink() {
       const path = location.pathname || "";
