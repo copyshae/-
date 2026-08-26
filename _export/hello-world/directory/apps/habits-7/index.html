@@ -225,9 +225,17 @@
       </div>
     </header>
 
-    <p class="install" id="installTip">
-      <strong>加到手機主畫面：</strong>Safari／Chrome 開本頁 →「分享」或選單 →「加入主畫面」。本 App 獨立於每日14樣功課。
-    </p>
+    <div class="install" id="installTip">
+      <strong>手機主畫面直接開：</strong>
+      <div class="actions" style="margin-top:0.55rem;">
+        <button type="button" class="btn primary" id="installBtn">加入主畫面</button>
+      </div>
+      <p class="hint" id="installHow" style="margin-top:0.45rem;">
+        iPhone：Safari 開本頁 → 下方「分享」→「加入主畫面」。<br />
+        Android：Chrome 開本頁 → 右上選單 →「安裝應用程式」或「加入主畫面」。<br />
+        捷徑名稱「七習慣」，與「每日14樣功課」分開兩顆圖示。
+      </p>
+    </div>
 
     <div class="tabs" role="tablist">
       <button type="button" class="active" id="tabClassify" data-tab="classify">做事歸類</button>
@@ -707,14 +715,47 @@
       }
     })();
 
+    let deferredInstall = null;
+    const installBtn = document.getElementById("installBtn");
+    const installHow = document.getElementById("installHow");
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstall = e;
+      installBtn.textContent = "加入主畫面";
+      installHow.textContent = "按上方按鈕即可安裝到主畫面（可離線開啟）。";
+    });
+
+    window.addEventListener("appinstalled", () => {
+      deferredInstall = null;
+      document.getElementById("installTip").style.display = "none";
+      try { localStorage.setItem("habits7-hide-install", "1"); } catch (_) {}
+    });
+
+    installBtn.addEventListener("click", async () => {
+      if (deferredInstall) {
+        deferredInstall.prompt();
+        try { await deferredInstall.userChoice; } catch (_) {}
+        deferredInstall = null;
+        return;
+      }
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        alert("iPhone：用 Safari 打開本頁 → 點下方「分享」→ 選「加入主畫面」。之後主畫面會有「七習慣」圖示可直接開。");
+      } else {
+        alert("請用手機 Chrome 開啟本頁，再從右上選單選「安裝應用程式」或「加入主畫面」。若已加入，可直接從主畫面圖示開啟。");
+      }
+    });
+
     try {
       if (localStorage.getItem("habits7-hide-install") === "1") {
         document.getElementById("installTip").style.display = "none";
       }
+      if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+        document.getElementById("installTip").style.display = "none";
+      }
     } catch (_) {}
-    document.getElementById("installTip").addEventListener("click", () => {
-      try { localStorage.setItem("habits7-hide-install", "1"); } catch (_) {}
-    });
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
