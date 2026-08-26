@@ -78,6 +78,16 @@ $files = @(
   "directory/apps/scan-equip/icon-180.png",
   "directory/apps/scan-equip/icon-192.png",
   "directory/apps/scan-equip/icon-512.png",
+  "directory/apps/daily-14/index.html",
+  "directory/apps/daily-14/sw.js",
+  "directory/apps/daily-14/manifest.json",
+  "directory/apps/daily-14/icon-180.png",
+  "directory/apps/daily-14/icon-192.png",
+  "directory/apps/daily-14/icon-512.png",
+  "directory/index.html",
+  "directory/learning-log.html",
+  "directory/202608/index.html",
+  "directory/202608/20260820-learning-log.html",
   "scripts/install-scan-equip.ps1",
   "scripts/scan-equip-app.ps1",
   "scripts/README-scan-equip.md"
@@ -138,17 +148,19 @@ try {
   }
   try { & git pull origin $pagesBranch 2>$null | Out-Null } catch {}
 
-  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip `
+  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip directory/apps/daily-14 `
+    directory/index.html directory/learning-log.html `
+    directory/202608/index.html directory/202608/20260820-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "掃具台：匯入負數修正＋同步至 hello-world（2026-08-19）"
+    git commit -m "每日14樣功課：手機勾選備忘錄＋學習日誌 0820"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
-    Write-Host "https://copyshae.github.io/hello-world/directory/apps/math-grader/"
+    Write-Host "https://copyshae.github.io/hello-world/directory/apps/daily-14/"
   } else {
     Write-Host "No git changes to push."
   }
