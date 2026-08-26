@@ -1,16 +1,14 @@
-# 匯出最終包｜與電腦版同步＋今日合併（2026-08-19）
+# 匯出最終包｜每日14樣功課備忘錄（2026-08-26）
 
-本包把 **hello-world 電腦完整版** 與今日討論一併合併：
+本包新增 **每日14樣功課** 手機勾選備忘錄（PWA），並更新學習日誌入口。
 
 | 項目 | 內容 |
 |------|------|
-| 電腦習作批改 | 測試金鑰、503 自動重試、自產練習／回傳循環／數位練習包（完整流程） |
-| 電腦習作台 | 完整版（篩選／管道／匯入匯出）＋處理掃描匯入 |
-| 手機習作批改 | **批完後續**（練習模板／發放訊息／寫入習作台／回傳循環／歷程） |
-| 手機習作台 | 同步程度、掃描王匯入、群發文 |
-| **手機掃具台** | **新增同步**：CSV 匯入負數修正、iOS 分享、確認框、請領負數扣回 |
+| 每日14樣功課 | 勾選後消失、台北時區每日重置、可加到手機主畫面 |
+| 學習日誌 | `20260826-learning-log.html`；目錄與「最新」導向本篇 |
+| 既有 App | 習作批改／習作台／掃具台一併可同步 |
 
-> Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
+> Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址。
 
 ## 一鍵套用（PowerShell 整段貼上）
 
@@ -25,13 +23,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 
 完成後：
 
-1. **關掉**舊的習作批改／習作台視窗  
-2. 再雙擊桌面 `習作批改.vbs`、`習作台.cmd`  
-3. 手機強制重新整理：  
-   - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
-   - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
-   - https://copyshae.github.io/hello-world/directory/apps/scan-equip/  
+1. 手機開啟：https://copyshae.github.io/hello-world/directory/apps/daily-14/
+2. Safari／Chrome →「加入主畫面」
+3. 學習日誌：https://copyshae.github.io/hello-world/directory/202608/20260826-learning-log.html
 
 ## 規格依據
 
-https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html
+海報「每日14樣功課」（天圓文化／超級生命密碼）＋本倉庫 `docs/daily-14/`。
