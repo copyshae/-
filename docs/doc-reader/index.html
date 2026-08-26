@@ -372,7 +372,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script src="./tts-voices.js?v=24"></script>
+  <script src="./tts-voices.js?v=25"></script>
   <script>
     (function () {
       const PAGE_CHARS = 420;
@@ -2104,6 +2104,8 @@
         const k = localStorage.getItem(DOC_KEY) || localStorage.getItem(GEMINI_KEY) || "";
         if (k) document.getElementById("geminiKey").value = k;
       } catch (e) {}
+
+      syncCancelButtons();
 
       if (window.TtsVoices) {
         window.TtsVoices.bindVoicePicker({
