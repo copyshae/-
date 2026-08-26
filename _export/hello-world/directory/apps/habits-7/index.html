@@ -63,8 +63,8 @@
     .tabs {
       margin-top: 1rem;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 0.4rem;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 0.35rem;
     }
     .tabs button {
       font: inherit; cursor: pointer;
@@ -414,6 +414,7 @@
       <button type="button" id="tabClassify" data-tab="classify">做事歸類</button>
       <button type="button" class="active" id="tabDaily14" data-tab="daily14">14樣對照</button>
       <button type="button" id="tabCourse" data-tab="course">今天上課</button>
+      <a class="tab-link" id="tabDocReader" href="../doc-reader/" style="display:grid;place-items:center;text-decoration:none;border:1px solid var(--line);background:rgba(255,255,255,0.55);color:var(--muted);padding:0.55rem 0.2rem;font-weight:700;font-size:0.78rem;">看書文件</a>
     </div>
 
     <div class="card voice-card" id="voicePickerCard" style="margin-top:0.75rem;">
