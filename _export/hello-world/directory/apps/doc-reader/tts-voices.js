@@ -439,6 +439,57 @@
   let speakActive = false;
   let speakKeepAliveTimer = null;
   let statusListeners = [];
+  let speakOptsActive = null;
+
+  function listEnVoices() {
+    try {
+      const voices = (global.speechSynthesis && global.speechSynthesis.getVoices()) || [];
+      return voices.filter(function (v) {
+        return /^en([-_]|$)/i.test(v.lang || "") || /english/i.test((v.name || "") + " " + (v.lang || ""));
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function pickEnVoice() {
+    const voices = listEnVoices();
+    if (!voices.length) return null;
+    const pref = loadTtsPref();
+    const scored = voices.map(function (v) {
+      let score = 0;
+      const s = (v.name || "") + " " + (v.lang || "");
+      if (/en-US|en_US/i.test(s)) score += 30;
+      else if (/en-GB|en_GB/i.test(s)) score += 20;
+      else if (/en-AU|en_AU/i.test(s)) score += 12;
+      if (pref.gender === "M" && MALE_HINT.test(s)) score += 40;
+      if (pref.gender === "F" && FEMALE_HINT.test(s)) score += 40;
+      if (/Natural|Online|Premium|Neural|Google|Microsoft/i.test(s)) score += 8;
+      return { v: v, score: score };
+    }).sort(function (a, b) { return b.score - a.score; });
+    return scored[0] ? scored[0].v : voices[0];
+  }
+
+  function resolveSpeakSettings(opts) {
+    opts = opts || {};
+    const base = getSpeakSettings();
+    const lang = String(opts.lang || base.lang || "zh-TW");
+    if (/^en/i.test(lang)) {
+      const enVoice = opts.voice || pickEnVoice();
+      return {
+        voice: enVoice,
+        pitch: (typeof opts.pitch === "number") ? opts.pitch : 1,
+        rate: (typeof opts.rate === "number") ? opts.rate : 0.95,
+        lang: (enVoice && enVoice.lang) || lang || "en-US"
+      };
+    }
+    return {
+      voice: opts.voice || base.voice,
+      pitch: (typeof opts.pitch === "number") ? opts.pitch : base.pitch,
+      rate: (typeof opts.rate === "number") ? opts.rate : base.rate,
+      lang: lang
+    };
+  }
 
   function notifySpeakStatus(extra) {
     const st = Object.assign({
@@ -539,6 +590,7 @@
     speakIndex = 0;
     speakPaused = false;
     speakActive = false;
+    speakOptsActive = null;
     clearKeepAlive();
     try { global.speechSynthesis && global.speechSynthesis.cancel(); } catch (e) {}
     notifySpeakStatus({ reason: "stop" });
@@ -587,6 +639,7 @@
     } else {
       u.lang = settings.lang || "zh-TW";
     }
+    if (opts && opts.lang) u.lang = opts.lang;
     return u;
   }
 
@@ -600,9 +653,9 @@
       notifySpeakStatus({ reason: "done" });
       return;
     }
-    const settings = getSpeakSettings();
+    const settings = resolveSpeakSettings(speakOptsActive || {});
     const chunk = speakChunks[speakIndex];
-    const u = makeUtterance(chunk, settings, {});
+    const u = makeUtterance(chunk, settings, speakOptsActive || {});
     u.onend = function () {
       if (sessionId !== speakSession) return;
       if (speakPaused) return;
@@ -632,7 +685,9 @@
       return false;
     }
     stopSpeakQueue();
-    const chunks = splitSpeechChunks(text, (opts && opts.maxLen) || 120);
+    speakOptsActive = opts ? Object.assign({}, opts) : null;
+    const maxLen = (opts && opts.maxLen) || (/^en/i.test((opts && opts.lang) || "") ? 160 : 120);
+    const chunks = splitSpeechChunks(text, maxLen);
     if (!chunks.length) return false;
     speakSession += 1;
     const sessionId = speakSession;
@@ -673,6 +728,9 @@
     resumeSpeakQueue: resumeSpeakQueue,
     togglePauseSpeakQueue: togglePauseSpeakQueue,
     getSpeakState: getSpeakState,
-    onSpeakStatus: onSpeakStatus
+    onSpeakStatus: onSpeakStatus,
+    listEnVoices: listEnVoices,
+    pickEnVoice: pickEnVoice,
+    resolveSpeakSettings: resolveSpeakSettings
   };
 })(typeof window !== "undefined" ? window : this);
