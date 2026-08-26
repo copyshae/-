@@ -1,5 +1,5 @@
-/* 七個好習慣分類｜離線快取 */
-const CACHE = "habits7-v4";
+/* 每日14樣功課｜離線快取 */
+const CACHE = "daily14-v2";
 const ASSETS = [
   "./",
   "./index.html",
