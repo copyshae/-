@@ -244,6 +244,7 @@
 
     <p class="install" id="installTip">
       <strong>加到手機主畫面：</strong>用 Safari／Chrome 開啟本頁 →「分享」或選單 →「加入主畫面」。之後像 App 一樣每天打開勾選。
+      <button type="button" id="dismissInstall" style="display:block;margin-top:0.45rem;font-size:0.8rem;padding:0.3rem 0.55rem;">知道了，關閉提示</button>
     </p>
 
     <ul id="list" aria-label="今日功課清單"></ul>
@@ -420,15 +421,17 @@
     document.getElementById("resetBtn").addEventListener("click", resetToday);
     document.getElementById("resetToday").addEventListener("click", resetToday);
 
-    // hide install tip once dismissed via local flag, or after first complete day
-    try {
-      if (localStorage.getItem("daily14-hide-install") === "1") {
-        document.getElementById("installTip").style.display = "none";
-      }
-    } catch (_) {}
-
-    document.getElementById("installTip").addEventListener("click", () => {
+    function hideInstallTip() {
+      const tip = document.getElementById("installTip");
+      if (tip) tip.style.display = "none";
       try { localStorage.setItem("daily14-hide-install", "1"); } catch (_) {}
+    }
+    try {
+      if (localStorage.getItem("daily14-hide-install") === "1") hideInstallTip();
+    } catch (_) {}
+    document.getElementById("dismissInstall").addEventListener("click", (e) => {
+      e.stopPropagation();
+      hideInstallTip();
     });
 
     // refresh at local midnight
