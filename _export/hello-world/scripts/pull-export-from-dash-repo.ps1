@@ -2,7 +2,7 @@
 # Pull latest export from copyshae/- branch into Desktop\hello-world and reinstall.
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 $ErrorActionPreference = "Stop"
-$branch = "main"
+$branch = "cursor/daily-14-checklist-cb3e"
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world"
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
