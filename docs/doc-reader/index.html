@@ -228,7 +228,7 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
       <h3 id="readerTitle">文件讀誦視窗</h3>
       <p class="page-meta" id="pageMeta">第 0／0 頁</p>
-      <p class="hint">可圈選中文生字／詞句 → 按「查解釋」跳出視窗；點英文生字亦可查。</p>
+      <p class="hint">圈選中文 → 按「查解釋」（iPhone 請先圈選再按，系統會記住圈選內容）</p>
       <div class="page-text" id="pageText" aria-live="polite"></div>
       <div class="sel-bar" id="selBar">
         <button type="button" class="primary" id="btnLookupSel">🔍 查解釋（跳出視窗）</button>
@@ -401,6 +401,8 @@
       let jobAbort = null;
       let jobBusy = false;
       let jobLabel = "";
+      // iPhone 按鈕會清掉圈選，需快取最後圈選文字
+      let selectionCache = { page: "", study: "", ts: 0 };
       try {
         wordCache = JSON.parse(localStorage.getItem("doc-reader-word-cache-v1") || "{}") || {};
       } catch (e) { wordCache = {}; }
@@ -1207,15 +1209,44 @@
         }
       }
 
-      function getSelectedTextIn(el) {
+      function nodeInContainer(node, el) {
+        if (!node || !el) return false;
+        let n = node.nodeType === 3 ? node.parentNode : node;
+        while (n) {
+          if (n === el) return true;
+          n = n.parentNode;
+        }
+        return false;
+      }
+
+      function captureSelection(container, cacheKey) {
+        if (!container || !cacheKey) return;
         const sel = window.getSelection && window.getSelection();
-        if (!sel || sel.rangeCount < 1) return "";
-        const text = String(sel.toString() || "").trim();
-        if (!text) return "";
-        try {
-          if (el && sel.anchorNode && !el.contains(sel.anchorNode)) return "";
-        } catch (e) {}
-        return text.slice(0, 40);
+        if (!sel || sel.rangeCount < 1) return;
+        const text = String(sel.toString() || "").replace(/\s+/g, " ").trim();
+        if (!text) return;
+        const anchorOk = nodeInContainer(sel.anchorNode, container);
+        const focusOk = nodeInContainer(sel.focusNode, container);
+        if (!anchorOk && !focusOk) return;
+        selectionCache[cacheKey] = text.slice(0, 80);
+        selectionCache.ts = Date.now();
+      }
+
+      function getSelectedTextIn(el, cacheKey) {
+        const sel = window.getSelection && window.getSelection();
+        let text = "";
+        if (sel && sel.rangeCount > 0) {
+          text = String(sel.toString() || "").replace(/\s+/g, " ").trim();
+          if (text && el) {
+            const inEl = nodeInContainer(sel.anchorNode, el) || nodeInContainer(sel.focusNode, el);
+            if (!inEl) text = "";
+          }
+        }
+        // iOS Safari：按鈕點擊時圈選常已消失，改用快取（2 分鐘內有效）
+        if (!text && cacheKey && selectionCache[cacheKey] && (Date.now() - selectionCache.ts) < 120000) {
+          text = selectionCache[cacheKey];
+        }
+        return text.slice(0, 80);
       }
 
       function hideSelBars() {
@@ -1225,20 +1256,40 @@
         });
       }
 
-      function updateSelBar(barId, container) {
+      function updateSelBar(barId, container, cacheKey) {
         const bar = document.getElementById(barId);
         if (!bar) return;
-        const t = getSelectedTextIn(container);
+        captureSelection(container, cacheKey);
+        const t = getSelectedTextIn(container, cacheKey);
         if (t) bar.classList.add("show");
         else bar.classList.remove("show");
       }
 
-      async function lookupSelectionFrom(container) {
-        const t = getSelectedTextIn(container);
+      /** 查解釋按鈕：mousedown/touchstart 先保留圈選（iPhone 必備） */
+      function bindSelectionAction(btn, container, cacheKey, onText) {
+        if (!btn) return;
+        const keep = (e) => {
+          captureSelection(container, cacheKey);
+          // 避免按鈕搶焦點導致圈選被清
+          if (e && e.preventDefault) e.preventDefault();
+        };
+        btn.addEventListener("mousedown", keep);
+        btn.addEventListener("touchstart", keep, { passive: false });
+        btn.addEventListener("click", () => {
+          captureSelection(container, cacheKey);
+          const t = getSelectedTextIn(container, cacheKey);
+          onText(t);
+        });
+      }
+
+      async function lookupSelectionFrom(container, cacheKey) {
+        const t = getSelectedTextIn(container, cacheKey);
         if (!t) {
-          alert("請先圈選要查的生字或詞句");
+          setStatus("請先圈選生字或詞句，再按「查解釋」", "warn");
           return;
         }
+        selectionCache[cacheKey] = t;
+        selectionCache.ts = Date.now();
         setStatus("查詢：「" + t + "」…", "warn");
         document.getElementById("defOverlay").hidden = false;
         document.getElementById("defTerm").textContent = "詞句：" + t;
@@ -2037,45 +2088,58 @@
       document.getElementById("btnStudySwitchBi").addEventListener("click", () => prepareAndOpenStudy("bilingual"));
       document.getElementById("btnStudySwitchEn").addEventListener("click", () => prepareAndOpenStudy("full-en"));
 
-      document.getElementById("btnLookupSel").addEventListener("click", () => {
-        lookupSelectionFrom(document.getElementById("pageText"));
+      const pageTextEl = document.getElementById("pageText");
+      const studyBodyEl = document.getElementById("studyBody");
+
+      bindSelectionAction(document.getElementById("btnLookupSel"), pageTextEl, "page", (t) => {
+        if (!t) { setStatus("請先圈選生字或詞句", "warn"); return; }
+        lookupSelectionFrom(pageTextEl, "page");
       });
-      document.getElementById("btnSpeakSel").addEventListener("click", () => {
-        const t = getSelectedTextIn(document.getElementById("pageText"));
-        if (!t) return alert("請先圈選文字");
+      bindSelectionAction(document.getElementById("btnSpeakSel"), pageTextEl, "page", (t) => {
+        if (!t) { setStatus("請先圈選文字", "warn"); return; }
         const isEn = /^[A-Za-z]/.test(t) && !/[\u4e00-\u9fff]/.test(t);
         speakText(t, () => closeSpeakPopups(), isEn ? { lang: "en-US" } : { lang: "zh-TW" });
       });
       document.getElementById("btnClearSel").addEventListener("click", () => {
         try { window.getSelection().removeAllRanges(); } catch (e) {}
+        selectionCache.page = "";
         hideSelBars();
       });
-      document.getElementById("btnStudyLookupSel").addEventListener("click", () => {
-        lookupSelectionFrom(document.getElementById("studyBody"));
+      bindSelectionAction(document.getElementById("btnStudyLookupSel"), studyBodyEl, "study", (t) => {
+        if (!t) { setStatus("請先圈選生字或詞句", "warn"); return; }
+        lookupSelectionFrom(studyBodyEl, "study");
       });
-      document.getElementById("btnStudySpeakSel").addEventListener("click", () => {
-        const t = getSelectedTextIn(document.getElementById("studyBody"));
-        if (!t) return alert("請先圈選文字");
+      bindSelectionAction(document.getElementById("btnStudySpeakSel"), studyBodyEl, "study", (t) => {
+        if (!t) { setStatus("請先圈選文字", "warn"); return; }
         speakText(t, () => closeSpeakPopups(), { lang: "en-US" });
       });
 
-      document.getElementById("pageText").addEventListener("mouseup", () => {
-        updateSelBar("selBar", document.getElementById("pageText"));
+      document.addEventListener("selectionchange", () => {
+        if (pageTextEl && !document.getElementById("readerOverlay").hidden) {
+          captureSelection(pageTextEl, "page");
+        }
+        if (studyBodyEl && !document.getElementById("studyOverlay").hidden) {
+          captureSelection(studyBodyEl, "study");
+        }
       });
-      document.getElementById("pageText").addEventListener("touchend", () => {
-        setTimeout(() => updateSelBar("selBar", document.getElementById("pageText")), 50);
+
+      pageTextEl.addEventListener("mouseup", () => {
+        updateSelBar("selBar", pageTextEl, "page");
       });
-      document.getElementById("pageText").addEventListener("click", (e) => {
+      pageTextEl.addEventListener("touchend", () => {
+        setTimeout(() => updateSelBar("selBar", pageTextEl, "page"), 80);
+      });
+      pageTextEl.addEventListener("click", (e) => {
         const w = e.target && e.target.closest && e.target.closest("[data-word]");
         if (w && w.getAttribute("data-word")) onWordClick(w.getAttribute("data-word"));
       });
-      document.getElementById("studyBody").addEventListener("mouseup", () => {
-        updateSelBar("studySelBar", document.getElementById("studyBody"));
+      studyBodyEl.addEventListener("mouseup", () => {
+        updateSelBar("studySelBar", studyBodyEl, "study");
       });
-      document.getElementById("studyBody").addEventListener("touchend", () => {
-        setTimeout(() => updateSelBar("studySelBar", document.getElementById("studyBody")), 50);
+      studyBodyEl.addEventListener("touchend", () => {
+        setTimeout(() => updateSelBar("studySelBar", studyBodyEl, "study"), 80);
       });
-      document.getElementById("studyBody").addEventListener("click", (e) => {
+      studyBodyEl.addEventListener("click", (e) => {
         const w = e.target && e.target.closest && e.target.closest("[data-word]");
         if (w && w.getAttribute("data-word")) onWordClick(w.getAttribute("data-word"));
       });
