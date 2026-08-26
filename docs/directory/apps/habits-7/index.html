@@ -1948,43 +1948,6 @@
       saveState(state);
     }
 
-    function startVoice(targetId, btn) {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) {
-        alert("此瀏覽器不支援語音辨識，請改用打字，或用 Chrome／Edge。");
-        return;
-      }
-      if (recognition) {
-        try { recognition.stop(); } catch (_) {}
-        recognition = null;
-        btn.classList.remove("recording");
-        btn.textContent = btn.id === "courseVoiceBtn" ? "🎤 口說補充" : "🎤 口說輸入";
-        return;
-      }
-      recognition = new SR();
-      recognition.lang = "zh-TW";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      btn.classList.add("recording");
-      btn.textContent = "■ 停止";
-      recognition.onresult = (ev) => {
-        const text = ev.results[0][0].transcript || "";
-        const el = document.getElementById(targetId);
-        el.value = (el.value ? el.value + " " : "") + text;
-      };
-      recognition.onerror = () => {
-        btn.classList.remove("recording");
-        btn.textContent = btn.id === "courseVoiceBtn" ? "🎤 口說補充" : "🎤 口說輸入";
-        recognition = null;
-      };
-      recognition.onend = () => {
-        btn.classList.remove("recording");
-        btn.textContent = btn.id === "courseVoiceBtn" ? "🎤 口說補充" : "🎤 口說輸入";
-        recognition = null;
-      };
-      recognition.start();
-    }
-
     // tabs
     function showTab(tab) {
       document.querySelectorAll(".tabs button").forEach((b) => {
@@ -2185,6 +2148,15 @@
     document.getElementById("pauseSpeakBtnB").addEventListener("click", pauseSpeaking);
     document.getElementById("editCancelBtn").addEventListener("click", closeEditHistoryItem);
     document.getElementById("editSaveBtn").addEventListener("click", saveEditHistoryItem);
+    document.getElementById("editVoiceBtn").addEventListener("click", (e) => {
+      startVoice("editText", e.currentTarget);
+    });
+    document.getElementById("editClearTextBtn").addEventListener("click", () => {
+      if (!confirm("清空這筆內容？")) return;
+      document.getElementById("editText").value = "";
+      document.getElementById("editText").focus();
+    });
+    document.getElementById("editReclassifyBtn").addEventListener("click", reclassifyEditFromText);
     document.getElementById("editOverlay").addEventListener("click", (e) => {
       if (e.target && e.target.id === "editOverlay") closeEditHistoryItem();
     });

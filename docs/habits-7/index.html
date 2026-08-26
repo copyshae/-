@@ -2148,6 +2148,15 @@
     document.getElementById("pauseSpeakBtnB").addEventListener("click", pauseSpeaking);
     document.getElementById("editCancelBtn").addEventListener("click", closeEditHistoryItem);
     document.getElementById("editSaveBtn").addEventListener("click", saveEditHistoryItem);
+    document.getElementById("editVoiceBtn").addEventListener("click", (e) => {
+      startVoice("editText", e.currentTarget);
+    });
+    document.getElementById("editClearTextBtn").addEventListener("click", () => {
+      if (!confirm("清空這筆內容？")) return;
+      document.getElementById("editText").value = "";
+      document.getElementById("editText").focus();
+    });
+    document.getElementById("editReclassifyBtn").addEventListener("click", reclassifyEditFromText);
     document.getElementById("editOverlay").addEventListener("click", (e) => {
       if (e.target && e.target.id === "editOverlay") closeEditHistoryItem();
     });
