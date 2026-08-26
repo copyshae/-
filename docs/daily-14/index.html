@@ -226,6 +226,39 @@
       color: #fff;
       border-color: var(--accent);
     }
+    .voice-box {
+      margin-top: 1rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 0.75rem 0.85rem;
+      text-align: left;
+    }
+    .voice-box h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+      text-align: center;
+    }
+    .voice-box label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin: 0.35rem 0 0.2rem;
+      color: var(--muted);
+    }
+    .voice-box select {
+      width: 100%;
+      font: inherit;
+      padding: 0.45rem;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .voice-box .hint {
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
     footer {
       margin-top: 1.8rem;
       text-align: center;
@@ -278,6 +311,22 @@
       <button type="button" id="undoBtn">撤銷上一項</button>
       <button type="button" id="resetBtn">重設今日</button>
     </div>
+    <div class="voice-box" id="voicePickerCard">
+      <h2>讀誦聲音（男聲／女聲）</h2>
+      <label for="ttsGender">性別偏好</label>
+      <select id="ttsGender">
+        <option value="F">女聲（好聽優先）</option>
+        <option value="M">男聲（好聽優先）</option>
+        <option value="all">全部中文語音</option>
+      </select>
+      <label for="ttsVoice">選擇聲音</label>
+      <select id="ttsVoice"></select>
+      <div class="actions" style="margin-top:0.55rem;">
+        <button type="button" id="ttsPreview">試聽此聲音</button>
+      </div>
+      <p class="hint">可選多種男聲／女聲；選擇會記在本機，與此站其他 App 共用。</p>
+    </div>
+
     <div class="actions" id="speakSyncActions" style="margin-top:0.65rem;">
       <button type="button" id="speakBtn" class="primary">🔊 讀誦今日紀錄</button>
       <button type="button" id="stopSpeakBtn">停止讀誦</button>
@@ -301,6 +350,7 @@
     </footer>
   </div>
 
+  <script src="./tts-voices.js"></script>
   <script>
     const TASKS = [
       { id: 1, title: "每天聆聽「富有」歌曲 3 次", habit: 7, habitName: "不斷更新", quad: 1 },
@@ -513,6 +563,9 @@
       try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     }
     function pickZhVoice() {
+      if (window.TtsVoices && typeof window.TtsVoices.pickZhVoice === "function") {
+        return window.TtsVoices.pickZhVoice();
+      }
       try {
         const voices = window.speechSynthesis.getVoices() || [];
         return voices.find((v) => /zh-TW|zh_TW|Taiwan/i.test(v.lang + v.name))
@@ -527,10 +580,14 @@
       }
       stopSpeaking();
       const u = new SpeechSynthesisUtterance(String(text || ""));
-      u.lang = "zh-TW";
       u.rate = 0.95;
       const voice = pickZhVoice();
-      if (voice) u.voice = voice;
+      if (voice) {
+        u.voice = voice;
+        u.lang = voice.lang || "zh-TW";
+      } else {
+        u.lang = "zh-TW";
+      }
       window.speechSynthesis.speak(u);
     }
     function buildDaily14SpeechScript() {
@@ -562,7 +619,9 @@
     }
     document.getElementById("speakBtn").addEventListener("click", speakDaily14);
     document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
-    if (window.speechSynthesis) {
+    if (window.TtsVoices) {
+      window.TtsVoices.bindVoicePicker({ speak: speakText });
+    } else if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = function () { pickZhVoice(); };
     }
     // 供電腦版 life-desk 以 postMessage 觸發讀誦

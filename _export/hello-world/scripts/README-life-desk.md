@@ -32,7 +32,7 @@ powershell -ExecutionPolicy Bypass -File (Join-Path $env:TEMP 'install-life-desk
 | 電腦視窗 | Edge／Chrome 應用模式開啟，含 14樣＋七習慣分頁 |
 | 與手機同步 | 雙方匯出／匯入 JSON（檔名含今日日期） |
 | 今日存檔格式 | JSON、CSV、TXT、MD、Word(.doc)、PDF（另存）、PNG、JPG |
-| 語音讀誦 | 電腦版／手機版皆可「讀誦今日紀錄」 |
+| 語音讀誦 | 電腦版／手機版皆可「讀誦今日紀錄」；可選男聲／女聲多種並試聽 |
 
 ## 手機網址
 

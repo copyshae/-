@@ -1,8 +1,9 @@
 /* 每日14樣功課｜離線快取 */
-const CACHE = "daily14-v5";
+const CACHE = "daily14-v6";
 const ASSETS = [
   "./",
   "./index.html",
+  "./tts-voices.js",
   "./manifest.json",
   "./icon-180.png",
   "./icon-192.png",

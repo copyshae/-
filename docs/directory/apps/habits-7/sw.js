@@ -1,8 +1,9 @@
 /* 七個好習慣分類｜離線快取 */
-const CACHE = "habits7-v12";
+const CACHE = "habits7-v13";
 const ASSETS = [
   "./",
   "./index.html",
+  "./tts-voices.js",
   "./manifest.json",
   "./icon-180.png",
   "./icon-192.png",

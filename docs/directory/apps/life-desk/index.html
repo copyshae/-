@@ -39,6 +39,14 @@
     .toolbar button.active, .toolbar button.primary {
       background: var(--accent); color: #fff; border-color: var(--accent);
     }
+    .toolbar .voice-lab {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-size: 0.82rem; font-weight: 700; color: var(--muted);
+    }
+    .toolbar select {
+      font: inherit; padding: 0.4rem 0.45rem; border: 1px solid var(--line);
+      background: #fff; color: var(--ink); max-width: 14rem;
+    }
     .main { flex: 1; display: flex; min-height: 0; }
     .frame-wrap { flex: 1; min-width: 0; display: none; }
     .frame-wrap.show { display: flex; flex-direction: column; }
@@ -85,6 +93,15 @@
     <button type="button" id="btnSpeak" class="primary">🔊 讀誦今日紀錄</button>
     <button type="button" id="btnSpeakGuide">讀誦導引</button>
     <button type="button" id="btnStopSpeak">停止讀誦</button>
+    <label class="voice-lab" for="ttsGender">聲音
+      <select id="ttsGender" title="性別偏好">
+        <option value="F">女聲</option>
+        <option value="M">男聲</option>
+        <option value="all">全部</option>
+      </select>
+    </label>
+    <select id="ttsVoice" title="選擇讀誦聲音"></select>
+    <button type="button" id="ttsPreview">試聽</button>
     <button type="button" id="btnSync" class="primary">同步／匯出存檔</button>
     <a class="btn" id="openDaily" href="../daily-14/" target="_blank" rel="noopener">獨立開14樣</a>
     <a class="btn" id="openHabits" href="../habits-7/" target="_blank" rel="noopener">獨立開七習慣</a>
@@ -156,6 +173,7 @@
     首要：身心靈提升、靈命持續成長｜資料在各瀏覽器本機；以匯出／匯入同步。
   </footer>
 
+  <script src="./tts-voices.js"></script>
   <script>
     const TZ = "Asia/Taipei";
 
@@ -537,6 +555,9 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
       } catch (e) {}
     }
     function pickZhVoice() {
+      if (window.TtsVoices && typeof window.TtsVoices.pickZhVoice === "function") {
+        return window.TtsVoices.pickZhVoice();
+      }
       try {
         const voices = speechSynthesis.getVoices() || [];
         return voices.find((x) => /zh-TW|Taiwan/i.test(x.lang + x.name))
@@ -551,10 +572,14 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
       }
       stopDeskSpeak();
       const u = new SpeechSynthesisUtterance(String(text || ""));
-      u.lang = "zh-TW";
       u.rate = 0.95;
       const v = pickZhVoice();
-      if (v) u.voice = v;
+      if (v) {
+        u.voice = v;
+        u.lang = v.lang || "zh-TW";
+      } else {
+        u.lang = "zh-TW";
+      }
       speechSynthesis.speak(u);
     }
     function loadJsonKey(key) {
@@ -642,7 +667,9 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
     document.getElementById("btnSpeak").addEventListener("click", speakTodayRecords);
     document.getElementById("btnSpeakGuide").addEventListener("click", speakDeskGuide);
     document.getElementById("btnStopSpeak").addEventListener("click", stopDeskSpeak);
-    if (window.speechSynthesis) {
+    if (window.TtsVoices) {
+      window.TtsVoices.bindVoicePicker({ speak: speakText });
+    } else if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = function () { pickZhVoice(); };
     }
 

@@ -137,6 +137,14 @@
       border-color: var(--q1);
     }
     .hint { margin-top: 0.45rem; font-size: 0.78rem; color: var(--muted); }
+    .voice-card h2 { font-size: 1rem; }
+    .voice-picker label {
+      display: block; font-size: 0.8rem; font-weight: 700; margin: 0.4rem 0 0.2rem; color: var(--muted);
+    }
+    .voice-picker select {
+      width: 100%;
+    }
+    .voice-picker .actions { margin-top: 0.55rem; }
     .result {
       display: none;
       margin-top: 0.85rem;
@@ -362,6 +370,24 @@
       <button type="button" id="tabCourse" data-tab="course">今天上課</button>
     </div>
 
+    <div class="card voice-card" id="voicePickerCard" style="margin-top:0.75rem;">
+      <h2>讀誦聲音（男聲／女聲）</h2>
+      <div class="voice-picker">
+        <label for="ttsGender">性別偏好</label>
+        <select id="ttsGender">
+          <option value="F">女聲（好聽優先）</option>
+          <option value="M">男聲（好聽優先）</option>
+          <option value="all">全部中文語音</option>
+        </select>
+        <label for="ttsVoice">選擇聲音</label>
+        <select id="ttsVoice"></select>
+        <div class="actions">
+          <button type="button" class="btn" id="ttsPreview">試聽此聲音</button>
+        </div>
+        <p class="hint">可選多種男聲／女聲；選擇會記在本機，與此站其他 App（14樣／電腦版）共用。</p>
+      </div>
+    </div>
+
     <!-- 做事歸類 -->
     <section class="panel" id="panelClassify">
       <div class="card">
@@ -572,6 +598,7 @@
     </footer>
   </div>
 
+  <script src="./tts-voices.js"></script>
   <script>
     const TZ = "Asia/Taipei";
     const STORAGE_KEY = "habits7-v1";
@@ -754,6 +781,9 @@
     }
 
     function pickZhVoice() {
+      if (window.TtsVoices && typeof window.TtsVoices.pickZhVoice === "function") {
+        return window.TtsVoices.pickZhVoice();
+      }
       try {
         const voices = window.speechSynthesis.getVoices() || [];
         return voices.find((v) => /zh-TW|zh_TW|Taiwan/i.test(v.lang + v.name))
@@ -769,11 +799,15 @@
       }
       stopSpeaking();
       const u = new SpeechSynthesisUtterance(String(text || ""));
-      u.lang = "zh-TW";
       u.rate = (opts && opts.rate) || 0.95;
       u.pitch = 1;
       const voice = pickZhVoice();
-      if (voice) u.voice = voice;
+      if (voice) {
+        u.voice = voice;
+        u.lang = voice.lang || "zh-TW";
+      } else {
+        u.lang = "zh-TW";
+      }
       window.speechSynthesis.speak(u);
     }
 
@@ -1858,7 +1892,9 @@
     });
     document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
     document.getElementById("stopSpeakBtnB").addEventListener("click", stopSpeaking);
-    if (window.speechSynthesis) {
+    if (window.TtsVoices) {
+      window.TtsVoices.bindVoicePicker({ speak: speakText });
+    } else if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = function () { pickZhVoice(); };
     }
     document.getElementById("exportJsonBtn").addEventListener("click", exportTodayJson);
