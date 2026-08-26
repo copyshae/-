@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>20260822 學習日誌・看書／看文件（doc-reader）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --paper: #e8efe6;
+      --accent: #2d6a4f;
+      --muted: #4a5c52;
+      --line: rgba(45, 106, 79, 0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      line-height: 1.7;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(149, 213, 178, 0.35), transparent 55%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 50%, #d8e8dc 100%);
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; padding: 2rem 1.35rem 4rem; }
+    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; font-size: 0.95rem; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .nav a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+    article {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      padding: 1.75rem 1.5rem 2.5rem;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.45rem, 4.5vw, 2rem);
+      font-weight: 400;
+      color: var(--accent);
+      line-height: 1.35;
+      margin-bottom: 0.75rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 1.5rem; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: var(--accent);
+      margin: 1.75rem 0 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--line);
+    }
+    ul, ol { margin: 0.5rem 0 0.85rem 1.35rem; }
+    li { margin: 0.3rem 0; }
+    code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
+    a.inline { color: var(--accent); word-break: break-all; }
+    .callout {
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(45,106,79,0.08);
+      font-size: 0.95rem;
+    }
+    .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../index.html">← 首頁</a>
+      <a href="../index.html">← 學習日誌</a>
+      <a href="./index.html">← 日誌列表</a>
+      <a href="../../doc-reader/">開啟看書／看文件</a>
+    </nav>
+    <article>
+      <h1>20260822 看書／看文件（doc-reader）</h1>
+      <p class="lead">接日誌 <a class="inline" href="./20260821-learning-log.html">0821 七個好習慣分類</a>。本日把尚未上線的「看書／看文件」App 與後續修正一次推上日誌：拍照／檔案／網址／貼上 → 中英讀誦 → 英文可逐句或全文譯中並朗讀 → 節錄四面向建議 → 可疊加七習慣今日紀錄。</p>
+
+      <div class="callout"><strong>手機立刻可開（免開電腦）：</strong><br /><a class="inline" href="https://copyshae.github.io/-/directory/202608/20260822-learning-log.html">https://copyshae.github.io/-/directory/202608/20260822-learning-log.html</a></div>
+
+      <h2>一｜入口</h2>
+      <ul>
+        <li>主版（建議）：<a class="inline" href="https://copyshae.github.io/-/doc-reader/">https://copyshae.github.io/-/doc-reader/</a></li>
+        <li>鏡像：<a class="inline" href="https://copyshae.github.io/-/directory/apps/doc-reader/">https://copyshae.github.io/-/directory/apps/doc-reader/</a></li>
+        <li>習作工具主頁：<a class="inline" href="https://copyshae.github.io/-/">https://copyshae.github.io/-/</a> →「打開看書／看文件」</li>
+        <li>七習慣分頁「看書文件」：<a class="inline" href="https://copyshae.github.io/-/habits-7/">https://copyshae.github.io/-/habits-7/</a></li>
+        <li>電腦版嵌入：<a class="inline" href="https://copyshae.github.io/-/life-desk/">https://copyshae.github.io/-/life-desk/</a>（看書／看文件分頁）</li>
+        <li>來源路徑：<code>docs/doc-reader/</code>（Service Worker 目前 <code>doc-reader-v11</code>）</li>
+      </ul>
+
+      <h2>二｜匯入與辨識</h2>
+      <ul>
+        <li>拍照／相簿、PDF、TXT／MD、網址、<strong>貼上文字</strong>（獨立視窗，CSV 自動整理成易讀格式）。</li>
+        <li>英文照片 OCR 後可選翻譯；幾乎無文字（純圖）改走 Google／Bing／Yandex 圖搜跳出視窗。</li>
+        <li>所有輸入可<strong>取消</strong>、<strong>重新選其他檔案</strong>。</li>
+      </ul>
+
+      <h2>三｜讀誦與英文翻譯（v11）</h2>
+      <ul>
+        <li>中文／英文：念本頁、連續念；可暫停／取消。</li>
+        <li>偵測到英文時跳出選項：
+          <ol>
+            <li><strong>中英逐句翻譯＋朗讀</strong>（每句先念英文、再念中文）</li>
+            <li><strong>全文翻譯中文＋朗讀</strong></li>
+            <li>保留英文原文</li>
+            <li>整篇中英對照陳列</li>
+          </ol>
+        </li>
+        <li>英文念完後，選單自動改為中文翻譯選項；中文內容仍保留「譯成英文」學習模式。</li>
+        <li>中英學習視窗：逐句對照、點英文生字查解釋、圈選中文查萌典／維基／Gemini。</li>
+      </ul>
+
+      <h2>四｜圈選查字（含 iPhone 修正）</h2>
+      <ul>
+        <li>長按圈選 → 綠色「已記住圈選」→ 再按「查解釋」（請勿連按）。</li>
+        <li>iPhone：圈選快取、<code>touchend</code> 觸發，避免誤判「請先圈選」。</li>
+        <li>主閱讀區英文可點單字查解釋；解釋視窗可讀誦、開網路辭典。</li>
+        <li>讀誦結束<strong>不會自動關閉</strong>視窗；僅按暫停／取消或關閉才消失。</li>
+        <li>防連按約 650～800ms，避免按太快看不清。</li>
+      </ul>
+
+      <h2>五｜節錄重點與七習慣整合</h2>
+      <ul>
+        <li>看完／聽完可「節錄重點與建議」：①身心靈／靈命　②數學課程　③衛生組　④其他可行動。</li>
+        <li>可念節錄；可「疊加建議到七習慣今日紀錄」（<code>habits7-v1</code>，習慣7／Ⅱ象限）。</li>
+        <li>七習慣頁開著時，storage／focus 事件會自動刷新今日紀錄。</li>
+        <li>選填 Gemini 金鑰可提升節錄與翻譯品質（僅存本機）。</li>
+      </ul>
+
+      <h2>六｜若仍見舊版</h2>
+      <div class="callout">
+        Safari：設定 → 進階 → 網站資料 → 刪除此站 → 重新開啟 doc-reader。舊版會出現 alert「請先圈選」；新版改為綠色預覽＋狀態列提示。
+      </div>
+
+      <h2>七｜匯出同步</h2>
+      <ul>
+        <li>來源：<code>copyshae/-</code> 的 <code>docs/doc-reader/</code> 與 <code>docs/directory/apps/doc-reader/</code></li>
+        <li>鏡射：<code>_export/hello-world/directory/apps/doc-reader/</code></li>
+        <li><code>scripts/pull-export-from-dash-repo.ps1</code> 已列入本篇日誌 0822 與 doc-reader。</li>
+      </ul>
+
+      <p class="note">
+        線上：
+        <a class="inline" href="https://copyshae.github.io/-/directory/202608/20260822-learning-log.html">https://copyshae.github.io/-/directory/202608/20260822-learning-log.html</a>
+        ｜App：
+        <a class="inline" href="https://copyshae.github.io/-/doc-reader/">https://copyshae.github.io/-/doc-reader/</a>
+        ｜上一則：
+        <a class="inline" href="./20260821-learning-log.html">0821</a>
+      </p>
+    </article>
+  </div>
+</body>
+</html>
