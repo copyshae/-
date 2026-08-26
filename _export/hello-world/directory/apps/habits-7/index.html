@@ -440,14 +440,18 @@
         <ul class="history" id="historyList"></ul>
         <p class="hint" id="historyEmpty">尚無紀錄。可連續輸入下一件事再按「歸類並疊加」。每筆可↑↓調順序或刪除。</p>
         <div class="actions">
+          <button type="button" class="btn primary" id="speakTodayBtn">🔊 讀誦今日紀錄</button>
+          <button type="button" class="btn" id="stopSpeakBtn">停止讀誦</button>
           <button type="button" class="btn primary" id="exportJsonBtn">匯出當日 JSON</button>
           <button type="button" class="btn" id="exportCsvBtn">匯出當日 CSV</button>
+          <button type="button" class="btn" id="exportTxtBtn">匯出當日 TXT</button>
+          <button type="button" class="btn" id="exportMdBtn">匯出當日 MD</button>
           <button type="button" class="btn" id="importJsonBtn">匯入當日紀錄</button>
           <button type="button" class="btn" id="copyJsonBtn">複製當日 JSON</button>
           <button type="button" class="btn danger" id="clearHistoryBtn">清空今日紀錄</button>
         </div>
-        <input type="file" id="importFile" accept="application/json,.json,text/csv,.csv" hidden />
-        <p class="hint" style="margin-top:0.45rem;">匯出可備份／換機；匯入會<strong>合併</strong>到今日（可選改為覆蓋）。</p>
+        <input type="file" id="importFile" accept="application/json,.json,text/csv,.csv,text/plain,.txt,.md" hidden />
+        <p class="hint" style="margin-top:0.45rem;">匯出檔名自動含<strong>今日日期</strong>（如 habits7-20260826.json）。可與電腦版／手機互傳同步。</p>
       </div>
     </section>
 
@@ -515,8 +519,12 @@
         <ul class="history" id="historyListB"></ul>
         <p class="hint" id="historyEmptyB">尚無紀錄。點上方任一項即可疊加。每筆可↑↓調順序或刪除。</p>
         <div class="actions">
+          <button type="button" class="btn primary" id="speakTodayBtnB">🔊 讀誦今日紀錄</button>
+          <button type="button" class="btn" id="stopSpeakBtnB">停止讀誦</button>
           <button type="button" class="btn primary" id="exportJsonBtnB">匯出當日 JSON</button>
           <button type="button" class="btn" id="exportCsvBtnB">匯出當日 CSV</button>
+          <button type="button" class="btn" id="exportTxtBtnB">匯出當日 TXT</button>
+          <button type="button" class="btn" id="exportMdBtnB">匯出當日 MD</button>
           <button type="button" class="btn" id="importJsonBtnB">匯入當日紀錄</button>
           <button type="button" class="btn danger" id="clearHistoryBtnB">清空今日紀錄</button>
         </div>
@@ -684,6 +692,10 @@
       }).format(new Date());
     }
 
+    function todayStamp() {
+      return todayKey().replace(/-/g, "");
+    }
+
     function formatToday() {
       const parts = new Intl.DateTimeFormat("zh-Hant-TW", {
         timeZone: TZ, year: "numeric", month: "long", day: "numeric", weekday: "short"
@@ -737,6 +749,74 @@
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
 
+    function stopSpeaking() {
+      try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    function pickZhVoice() {
+      try {
+        const voices = window.speechSynthesis.getVoices() || [];
+        return voices.find((v) => /zh-TW|zh_TW|Taiwan/i.test(v.lang + v.name))
+          || voices.find((v) => /zh-CN|zh-HK|zh/i.test(v.lang))
+          || null;
+      } catch (e) { return null; }
+    }
+
+    function speakText(text, opts) {
+      if (!window.speechSynthesis) {
+        alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+        return;
+      }
+      stopSpeaking();
+      const u = new SpeechSynthesisUtterance(String(text || ""));
+      u.lang = "zh-TW";
+      u.rate = (opts && opts.rate) || 0.95;
+      u.pitch = 1;
+      const voice = pickZhVoice();
+      if (voice) u.voice = voice;
+      window.speechSynthesis.speak(u);
+    }
+
+    function buildTodaySpeechScript(items) {
+      const list = Array.isArray(items) ? items : [];
+      if (!list.length) return "今日尚無紀錄。";
+      const lines = [];
+      lines.push("以身心靈提升、靈命持續成長為首要。");
+      lines.push(`今天共有 ${list.length} 筆紀錄，依先後順序讀誦。`);
+      list.forEach((it, i) => {
+        const habit = HABITS.find((h) => h.id === it.habitId) || { id: "?", name: "未知" };
+        const quad = QUADS[it.quadId] || { name: "未分類", short: "" };
+        const mins = (typeof itemMinutes === "function") ? itemMinutes(it) : (it.minutes || 15);
+        lines.push(`第 ${i + 1} 項。${it.text || "無內容"}。`);
+        lines.push(`對應習慣 ${habit.id} ${habit.name}。時間象限：${quad.short || quad.name}。約 ${mins} 分鐘。`);
+      });
+      // final advice if available
+      try {
+        const advice = buildFinalAdvice(list);
+        if (advice && advice.length) {
+          lines.push("以下是今日最後建議。");
+          advice.slice(0, 5).forEach((a, i) => lines.push(`建議 ${i + 1}。${a}`));
+        }
+      } catch (e) {}
+      lines.push("讀誦結束。願靈命日日增長，身心平安。");
+      return lines.join(" ");
+    }
+
+    function speakTodayRecords() {
+      state = loadState();
+      const items = Array.isArray(state.items) ? state.items : [];
+      if (!items.length) {
+        flashSave("saveFlash", "今日尚無紀錄可讀誦");
+        flashSave("d14SaveFlash", "今日尚無紀錄可讀誦");
+        speakText("今日尚無紀錄。");
+        return;
+      }
+      const script = buildTodaySpeechScript(items);
+      speakText(script);
+      flashSave("saveFlash", `開始讀誦今日 ${items.length} 筆紀錄`);
+      flashSave("d14SaveFlash", `開始讀誦今日 ${items.length} 筆紀錄`);
+    }
+
     function exportTodayPayload() {
       state = loadState();
       return {
@@ -744,6 +824,8 @@
         type: "habits7-day",
         version: 1,
         date: state.date || todayKey(),
+        dateStamp: todayStamp(),
+        purpose: "身心靈提升｜靈命持續成長",
         exportedAt: new Date().toISOString(),
         items: Array.isArray(state.items) ? state.items : [],
         lastCourse: state.lastCourse || null
@@ -752,7 +834,7 @@
 
     function exportTodayJson() {
       const payload = exportTodayPayload();
-      const name = `habits7-${payload.date}.json`;
+      const name = `habits7-${todayStamp()}.json`;
       downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), name);
       flashSave("saveFlash", `已匯出 ${payload.items.length} 筆（${name}）`);
       flashSave("d14SaveFlash", `已匯出 ${payload.items.length} 筆（${name}）`);
@@ -777,11 +859,57 @@
         ];
         lines.push(cells.join(","));
       });
-      const name = `habits7-${payload.date}.csv`;
+      const name = `habits7-${todayStamp()}.csv`;
       // BOM for Excel
       downloadBlob(new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" }), name);
       flashSave("saveFlash", `已匯出 CSV ${payload.items.length} 筆`);
       flashSave("d14SaveFlash", `已匯出 CSV ${payload.items.length} 筆`);
+    }
+
+    function exportTodayTxt() {
+      const payload = exportTodayPayload();
+      const lines = [
+        `七習慣今日紀錄｜${payload.date}`,
+        `宗旨：身心靈提升、靈命持續成長`,
+        `匯出：${payload.exportedAt}`,
+        `筆數：${payload.items.length}`,
+        ""
+      ];
+      payload.items.forEach((it, i) => {
+        const habit = HABITS.find((h) => h.id === it.habitId) || { id: "?", name: "?" };
+        const quad = QUADS[it.quadId] || { short: "?" };
+        lines.push(`#${i + 1} ${it.text || ""}`);
+        lines.push(`  習慣${habit.id} ${habit.name}｜${quad.short}｜${it.minutes || 15}分｜${it.source || ""}`);
+      });
+      const name = `habits7-${todayStamp()}.txt`;
+      downloadBlob(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }), name);
+      flashSave("saveFlash", `已匯出 TXT ${payload.items.length} 筆`);
+      flashSave("d14SaveFlash", `已匯出 TXT ${payload.items.length} 筆`);
+    }
+
+    function exportTodayMd() {
+      const payload = exportTodayPayload();
+      const lines = [
+        `# 七習慣今日紀錄`,
+        ``,
+        `- 日期：\`${payload.date}\`（\`${todayStamp()}\`）`,
+        `- 宗旨（首要）：身心靈提升、靈命持續成長`,
+        `- 匯出：${payload.exportedAt}`,
+        `- 筆數：${payload.items.length}`,
+        ``,
+        `| 序 | 內容 | 習慣 | 象限 | 分鐘 | 來源 |`,
+        `| --- | --- | --- | --- | --- | --- |`
+      ];
+      payload.items.forEach((it, i) => {
+        const habit = HABITS.find((h) => h.id === it.habitId) || { id: "?", name: "?" };
+        const quad = QUADS[it.quadId] || { short: "?" };
+        const text = String(it.text || "").replace(/\|/g, "\\|");
+        lines.push(`| ${i + 1} | ${text} | ${habit.id} ${habit.name} | ${quad.short} | ${it.minutes || 15} | ${it.source || ""} |`);
+      });
+      const name = `habits7-${todayStamp()}.md`;
+      downloadBlob(new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" }), name);
+      flashSave("saveFlash", `已匯出 MD ${payload.items.length} 筆`);
+      flashSave("d14SaveFlash", `已匯出 MD ${payload.items.length} 筆`);
     }
 
     async function copyTodayJson() {
@@ -1254,6 +1382,7 @@
             `<div class="row-actions">` +
             `<button type="button" class="up" title="上移" ${idx === 0 ? "disabled" : ""}>↑</button>` +
             `<button type="button" class="down" title="下移" ${idx === items.length - 1 ? "disabled" : ""}>↓</button>` +
+            `<button type="button" class="speak-one" title="讀誦這筆">🔊</button>` +
             `<button type="button" class="del" title="刪除這筆">刪</button>` +
             `</div></div>`;
           li.querySelector(".up").addEventListener("click", (e) => {
@@ -1264,6 +1393,15 @@
             e.stopPropagation();
             moveHistoryItem(item.id, 1);
           });
+          const speakOneBtn = li.querySelector(".speak-one");
+          if (speakOneBtn) {
+            speakOneBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const habit = HABITS.find((h) => h.id === item.habitId) || { id: "?", name: "未知" };
+              const quad = QUADS[item.quadId] || { short: "" };
+              speakText(`第 ${seq} 項。${item.text || ""}。習慣 ${habit.id} ${habit.name}。${quad.short}。`);
+            });
+          }
           li.querySelector(".del").addEventListener("click", (e) => {
             e.stopPropagation();
             const preview = String(item.text || "").slice(0, 24);
@@ -1709,10 +1847,28 @@
     document.getElementById("saveAdviceBtnB").addEventListener("click", saveFinalAdviceToHistory);
 
 
+    document.getElementById("speakTodayBtn").addEventListener("click", speakTodayRecords);
+    document.getElementById("speakTodayBtnB").addEventListener("click", speakTodayRecords);
+    // 供電腦版 life-desk 以 postMessage 觸發讀誦
+    window.addEventListener("message", (ev) => {
+      const data = ev && ev.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "life-desk-speak-today") speakTodayRecords();
+      if (data.type === "life-desk-stop-speak") stopSpeaking();
+    });
+    document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
+    document.getElementById("stopSpeakBtnB").addEventListener("click", stopSpeaking);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = function () { pickZhVoice(); };
+    }
     document.getElementById("exportJsonBtn").addEventListener("click", exportTodayJson);
     document.getElementById("exportJsonBtnB").addEventListener("click", exportTodayJson);
     document.getElementById("exportCsvBtn").addEventListener("click", exportTodayCsv);
     document.getElementById("exportCsvBtnB").addEventListener("click", exportTodayCsv);
+    document.getElementById("exportTxtBtn").addEventListener("click", exportTodayTxt);
+    document.getElementById("exportTxtBtnB").addEventListener("click", exportTodayTxt);
+    document.getElementById("exportMdBtn").addEventListener("click", exportTodayMd);
+    document.getElementById("exportMdBtnB").addEventListener("click", exportTodayMd);
     document.getElementById("copyJsonBtn").addEventListener("click", copyTodayJson);
     document.getElementById("importJsonBtn").addEventListener("click", startImport);
     document.getElementById("importJsonBtnB").addEventListener("click", startImport);

@@ -1,0 +1,15 @@
+{
+  "name": "靈命七習慣電腦版",
+  "short_name": "靈命桌面",
+  "description": "電腦視窗：每日14樣功課＋七習慣時間象限，可與手機 JSON 同步",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e8f4ef",
+  "theme_color": "#1b6b5a",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -278,6 +278,18 @@
       <button type="button" id="undoBtn">撤銷上一項</button>
       <button type="button" id="resetBtn">重設今日</button>
     </div>
+    <div class="actions" id="speakSyncActions" style="margin-top:0.65rem;">
+      <button type="button" id="speakBtn" class="primary">🔊 讀誦今日紀錄</button>
+      <button type="button" id="stopSpeakBtn">停止讀誦</button>
+      <button type="button" id="exportBtn">匯出同步</button>
+      <button type="button" id="importBtn">匯入同步</button>
+      <button type="button" id="copyBtn">複製同步 JSON</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" hidden />
+    <p class="hint" style="margin-top:0.55rem;text-align:center;">
+      與電腦版同步：匯出 JSON → 傳到電腦「靈命七習慣資料」夾 → 另一端匯入。<br />
+      電腦版入口：<a href="../life-desk/">靈命七習慣電腦版</a>
+    </p>
 
     <footer>
       <p>資料只存在這支手機瀏覽器（不上傳）。</p>
@@ -471,6 +483,148 @@
     document.getElementById("undoLast").addEventListener("click", undoLast);
     document.getElementById("resetBtn").addEventListener("click", resetToday);
     document.getElementById("resetToday").addEventListener("click", resetToday);
+
+    function exportPayload() {
+      state = loadState();
+      return {
+        app: "daily-14",
+        type: "daily14-day",
+        version: 1,
+        date: state.date || todayKey(),
+        exportedAt: new Date().toISOString(),
+        done: Array.isArray(state.done) ? state.done : [],
+        order: Array.isArray(state.order) ? state.order : []
+      };
+    }
+
+    function downloadJson(obj, name) {
+      const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    }
+
+    function stopSpeaking() {
+      try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    }
+    function pickZhVoice() {
+      try {
+        const voices = window.speechSynthesis.getVoices() || [];
+        return voices.find((v) => /zh-TW|zh_TW|Taiwan/i.test(v.lang + v.name))
+          || voices.find((v) => /zh-CN|zh-HK|zh/i.test(v.lang))
+          || null;
+      } catch (e) { return null; }
+    }
+    function speakText(text) {
+      if (!window.speechSynthesis) {
+        alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+        return;
+      }
+      stopSpeaking();
+      const u = new SpeechSynthesisUtterance(String(text || ""));
+      u.lang = "zh-TW";
+      u.rate = 0.95;
+      const voice = pickZhVoice();
+      if (voice) u.voice = voice;
+      window.speechSynthesis.speak(u);
+    }
+    function buildDaily14SpeechScript() {
+      state = loadState();
+      const remain = TASKS.filter((t) => !state.done.includes(t.id));
+      const done = TASKS.filter((t) => state.done.includes(t.id));
+      const lines = [];
+      lines.push("每日十四樣功課今日紀錄。以身心靈提升、靈命持續成長為首要。");
+      lines.push(`今日已完成 ${done.length} 項，尚餘 ${remain.length} 項。`);
+      if (done.length) {
+        lines.push("已完成的項目如下。");
+        done.forEach((t) => {
+          lines.push(`第 ${t.id} 項。${t.title}。習慣 ${t.habit} ${t.habitName}。`);
+        });
+      }
+      if (remain.length) {
+        lines.push("尚未完成、請優先完成的項目如下。");
+        remain.forEach((t) => {
+          lines.push(`第 ${t.id} 項。${t.title}。習慣 ${t.habit} ${t.habitName}。重要且緊急。`);
+        });
+      } else {
+        lines.push("今日十四樣功課全部完成，隨喜讚歎。");
+      }
+      lines.push("讀誦結束。願靈命日日增長，身心平安。");
+      return lines.join(" ");
+    }
+    function speakDaily14() {
+      speakText(buildDaily14SpeechScript());
+    }
+    document.getElementById("speakBtn").addEventListener("click", speakDaily14);
+    document.getElementById("stopSpeakBtn").addEventListener("click", stopSpeaking);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = function () { pickZhVoice(); };
+    }
+    // 供電腦版 life-desk 以 postMessage 觸發讀誦
+    window.addEventListener("message", (ev) => {
+      const data = ev && ev.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "life-desk-speak-today") speakDaily14();
+      if (data.type === "life-desk-stop-speak") stopSpeaking();
+    });
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const p = exportPayload();
+      downloadJson(p, `daily14-${p.date}.json`);
+      alert(`已匯出 ${p.done.length} 項完成紀錄（${p.date}）。可傳到電腦同步夾匯入。`);
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const text = JSON.stringify(exportPayload(), null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("已複製同步 JSON，可貼到電腦版匯入。");
+      } catch {
+        prompt("請手動複製：", text);
+      }
+    });
+
+    document.getElementById("importBtn").addEventListener("click", () => {
+      document.getElementById("importFile").click();
+    });
+
+    document.getElementById("importFile").addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(String(reader.result || ""));
+          const done = Array.isArray(data.done) ? data.done.map(Number) : [];
+          const order = Array.isArray(data.order) ? data.order.map(Number) : done.slice();
+          if (!done.length && !confirm("匯入檔沒有已完成項目，仍要覆蓋今日嗎？")) return;
+          const modeMerge = confirm("匯入方式：\n確定＝合併完成項\n取消＝再選是否覆蓋");
+          let nextDone, nextOrder;
+          if (modeMerge) {
+            state = loadState();
+            nextDone = Array.from(new Set([...(state.done || []), ...done]));
+            nextOrder = Array.from(new Set([...(state.order || []), ...order]));
+          } else if (confirm("確定用匯入檔「覆蓋」今日勾選？")) {
+            nextDone = done;
+            nextOrder = order;
+          } else {
+            return;
+          }
+          state = { date: todayKey(), done: nextDone, order: nextOrder };
+          saveState(state);
+          render();
+          alert(`匯入完成：今日已完成 ${state.done.length}／${TASKS.length}`);
+        } catch (err) {
+          alert("匯入失敗：" + (err && err.message ? err.message : String(err)));
+        }
+      };
+      reader.readAsText(file, "UTF-8");
+    });
 
     try {
       if (localStorage.getItem("daily14-hide-install") === "1") {

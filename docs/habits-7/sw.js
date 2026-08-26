@@ -1,5 +1,5 @@
 /* 七個好習慣分類｜離線快取 */
-const CACHE = "habits7-v11";
+const CACHE = "habits7-v12";
 const ASSETS = [
   "./",
   "./index.html",

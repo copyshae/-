@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1b6b5a" />
+  <meta name="description" content="靈命七習慣電腦版：14樣功課＋七習慣象限，與手機同步，匯出含今日日期" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <title>靈命七習慣｜電腦版</title>
+  <style>
+    :root {
+      --ink: #14352e; --muted: #4a6b62; --accent: #1b6b5a; --line: rgba(27,107,90,.22);
+      --paper: #f3faf7; --q1:#b42318;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: "Microsoft JhengHei UI", "Noto Sans TC", "PingFang TC", sans-serif;
+      color: var(--ink); background: linear-gradient(180deg, #f4faf6, #dceee6);
+      display: flex; flex-direction: column; min-height: 100%;
+    }
+    header {
+      padding: 0.75rem 1rem 0.55rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+    }
+    header h1 { font-size: 1.25rem; color: var(--accent); }
+    header .sub { font-size: 0.86rem; color: var(--muted); margin-top: 0.2rem; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.55);
+    }
+    .toolbar button, .toolbar a.btn {
+      font: inherit; cursor: pointer; text-decoration: none;
+      border: 1px solid var(--line); background: #fff; color: var(--accent);
+      padding: 0.45rem 0.7rem; font-weight: 700; font-size: 0.88rem;
+    }
+    .toolbar button.active, .toolbar button.primary {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .main { flex: 1; display: flex; min-height: 0; }
+    .frame-wrap { flex: 1; min-width: 0; display: none; }
+    .frame-wrap.show { display: flex; flex-direction: column; }
+    iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+    .sync-panel {
+      width: min(22rem, 100%); border-left: 1px solid var(--line);
+      background: rgba(255,255,255,0.8); padding: 0.85rem; overflow: auto;
+      display: none;
+    }
+    .sync-panel.show { display: block; }
+    .sync-panel h2 { font-size: 1rem; color: var(--accent); margin-bottom: 0.45rem; }
+    .sync-panel p, .sync-panel li { font-size: 0.84rem; color: var(--muted); line-height: 1.55; }
+    .sync-panel ul { margin: 0.4rem 0 0.7rem 1.1rem; }
+    .sync-panel .box {
+      border: 1px solid var(--line); background: #fff; padding: 0.65rem; margin: 0.55rem 0;
+    }
+    .sync-panel label { display: block; font-size: 0.8rem; font-weight: 700; margin: 0.35rem 0 0.2rem; }
+    .sync-panel select, .sync-panel input[type="text"] {
+      width: 100%; font: inherit; padding: 0.4rem; border: 1px solid var(--line);
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.45rem; }
+    .ok { color: #0e7a4c; font-weight: 700; font-size: 0.82rem; margin-top: 0.4rem; }
+    footer {
+      padding: 0.45rem 0.85rem; font-size: 0.75rem; color: var(--muted);
+      border-top: 1px solid var(--line); background: rgba(255,255,255,0.65);
+    }
+    @media (max-width: 900px) {
+      .main { flex-direction: column; }
+      .sync-panel { width: 100%; border-left: 0; border-top: 1px solid var(--line); max-height: 40vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>靈命七習慣｜電腦版</h1>
+    <p class="sub">首要：身心靈提升、靈命持續成長｜與手機 14 樣功課／七習慣象限同步</p>
+  </header>
+
+  <div class="toolbar">
+    <button type="button" class="active" data-tab="daily14">每日14樣功課</button>
+    <button type="button" data-tab="habits7">七習慣＋時間象限</button>
+    <button type="button" data-tab="both">左右並排</button>
+    <button type="button" id="btnSpeak" class="primary">🔊 讀誦今日紀錄</button>
+    <button type="button" id="btnSpeakGuide">讀誦導引</button>
+    <button type="button" id="btnStopSpeak">停止讀誦</button>
+    <button type="button" id="btnSync" class="primary">同步／匯出存檔</button>
+    <a class="btn" id="openDaily" href="../daily-14/" target="_blank" rel="noopener">獨立開14樣</a>
+    <a class="btn" id="openHabits" href="../habits-7/" target="_blank" rel="noopener">獨立開七習慣</a>
+  </div>
+
+  <div class="main">
+    <div class="frame-wrap show" id="paneDaily">
+      <iframe id="ifrDaily" title="每日14樣功課" src="../daily-14/"></iframe>
+    </div>
+    <div class="frame-wrap" id="paneHabits">
+      <iframe id="ifrHabits" title="七個好習慣分類" src="../habits-7/"></iframe>
+    </div>
+    <aside class="sync-panel" id="syncPanel">
+      <h2>與手機同步＋今日存檔</h2>
+      <p>手機與電腦的瀏覽器資料分開存放。用「匯出／匯入」互傳即可同步。</p>
+      <ul>
+        <li>手機：App 內按匯出 → 傳到電腦（LINE／雲端／USB）</li>
+        <li>電腦：放到桌面「靈命七習慣資料」夾，再於各 App 匯入</li>
+        <li>或用下方「今日存檔」把目前說明／彙整存成本機檔</li>
+      </ul>
+
+      <div class="box">
+        <strong>今日存檔（電腦版加強）</strong>
+        <label for="exportKind">內容</label>
+        <select id="exportKind">
+          <option value="bundle">彙整包（14樣說明＋七習慣說明＋同步指引）</option>
+          <option value="habits">七習慣今日紀錄範本（空殼，請在七習慣 App 匯出實檔）</option>
+          <option value="daily14">14樣功課同步範本（空殼，請在14樣 App 匯出實檔）</option>
+        </select>
+        <label for="exportFmt">檔案格式</label>
+        <select id="exportFmt">
+          <option value="json">JSON（.json）— 最適合同步匯入</option>
+          <option value="csv">CSV（.csv）— Excel／試算表</option>
+          <option value="txt">純文字（.txt）</option>
+          <option value="md">Markdown（.md）</option>
+          <option value="doc">Word（.doc）— 可用 Word／WPS 開啟</option>
+          <option value="pdf">PDF（列印另存）— 系統「另存 PDF」</option>
+          <option value="png">圖像 PNG（.png）</option>
+          <option value="jpg">圖像 JPG（.jpg）</option>
+        </select>
+        <p class="hint">檔名會自動加上<strong>今日日期</strong>（台北時間），例如 <code>靈命存檔-20260826.json</code></p>
+        <div class="row">
+          <button type="button" class="primary" id="btnSaveToday" style="font:inherit;font-weight:700;padding:0.45rem 0.7rem;border:1px solid #1b6b5a;background:#1b6b5a;color:#fff;cursor:pointer;">下載今日存檔</button>
+          <button type="button" id="btnCopyMeta" style="font:inherit;font-weight:700;padding:0.45rem 0.7rem;border:1px solid var(--line);background:#fff;color:var(--accent);cursor:pointer;">複製檔名</button>
+        </div>
+        <p class="ok" id="saveMsg" hidden></p>
+      </div>
+
+      <div class="box">
+        <strong>建議同步夾（電腦）</strong>
+        <p class="hint">桌面\靈命七習慣資料\<br />安裝桌面程式後會自動建立。</p>
+        <p class="hint">檔名建議：</p>
+        <ul>
+          <li><code>daily14-YYYYMMDD.json</code></li>
+          <li><code>habits7-YYYY-MM-DD.json</code></li>
+        </ul>
+      </div>
+
+      <div class="box">
+        <strong>手機網址（可加主畫面）</strong>
+        <p class="hint"><a href="https://copyshae.github.io/-/daily-14/" target="_blank" rel="noopener">14樣功課</a></p>
+        <p class="hint"><a href="https://copyshae.github.io/-/habits-7/" target="_blank" rel="noopener">七習慣象限</a></p>
+        <p class="hint"><a href="https://copyshae.github.io/-/life-desk/" target="_blank" rel="noopener">本電腦版頁</a></p>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    首要：身心靈提升、靈命持續成長｜資料在各瀏覽器本機；以匯出／匯入同步。
+  </footer>
+
+  <script>
+    const TZ = "Asia/Taipei";
+
+    function todayParts() {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(new Date());
+      const get = (t) => (parts.find((p) => p.type === t) || {}).value || "";
+      return { y: get("year"), m: get("month"), d: get("day") };
+    }
+
+    function todayStamp() {
+      const { y, m, d } = todayParts();
+      return `${y}${m}${d}`;
+    }
+
+    function todayISO() {
+      const { y, m, d } = todayParts();
+      return `${y}-${m}-${d}`;
+    }
+
+    function todayLabelZh() {
+      return new Intl.DateTimeFormat("zh-Hant-TW", {
+        timeZone: TZ, year: "numeric", month: "long", day: "numeric", weekday: "short"
+      }).format(new Date());
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll(".toolbar button[data-tab]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.tab === tab);
+      });
+      const daily = document.getElementById("paneDaily");
+      const habits = document.getElementById("paneHabits");
+      if (tab === "daily14") {
+        daily.classList.add("show");
+        habits.classList.remove("show");
+      } else if (tab === "habits7") {
+        daily.classList.remove("show");
+        habits.classList.add("show");
+      } else {
+        daily.classList.add("show");
+        habits.classList.add("show");
+      }
+    }
+
+    document.querySelectorAll(".toolbar button[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => showTab(btn.dataset.tab));
+    });
+
+    document.getElementById("btnSync").addEventListener("click", () => {
+      document.getElementById("syncPanel").classList.toggle("show");
+    });
+
+    function buildBundle() {
+      const date = todayISO();
+      const stamp = todayStamp();
+      return {
+        app: "life-desk",
+        type: "life-desk-day-bundle",
+        version: 1,
+        purpose: "身心靈提升｜靈命持續成長（首要）",
+        date,
+        dateStamp: stamp,
+        dateLabel: todayLabelZh(),
+        exportedAt: new Date().toISOString(),
+        apps: {
+          daily14: {
+            phone: "https://copyshae.github.io/-/daily-14/",
+            exportHint: "在14樣 App 按「匯出同步」產生 daily14-日期.json"
+          },
+          habits7: {
+            phone: "https://copyshae.github.io/-/habits-7/",
+            exportHint: "在七習慣 App 按「匯出當日 JSON／CSV」"
+          }
+        },
+        syncFolderHint: "桌面\\\\靈命七習慣資料\\\\",
+        note: "此檔為電腦版彙整存檔；實際勾選／歸類資料請分別從兩個 App 匯出後放入同步夾。"
+      };
+    }
+
+    function toCSV(obj) {
+      const rows = [
+        ["欄位", "內容"],
+        ["日期", obj.date || ""],
+        ["日期戳記", obj.dateStamp || ""],
+        ["中文日期", obj.dateLabel || ""],
+        ["宗旨", obj.purpose || ""],
+        ["匯出時間", obj.exportedAt || ""],
+        ["14樣網址", (obj.apps && obj.apps.daily14 && obj.apps.daily14.phone) || ""],
+        ["七習慣網址", (obj.apps && obj.apps.habits7 && obj.apps.habits7.phone) || ""],
+        ["同步夾", obj.syncFolderHint || ""],
+        ["說明", obj.note || ""]
+      ];
+      return "\uFEFF" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    }
+
+    function toTXT(obj) {
+      return [
+        `靈命七習慣｜今日存檔`,
+        `日期：${obj.dateLabel}（${obj.date}）`,
+        `宗旨：${obj.purpose}`,
+        `匯出：${obj.exportedAt}`,
+        ``,
+        `【手機／電腦 App】`,
+        `14樣：${obj.apps.daily14.phone}`,
+        `七習慣：${obj.apps.habits7.phone}`,
+        ``,
+        `【同步】`,
+        obj.syncFolderHint,
+        obj.note,
+        ``,
+        `【14樣匯出提示】${obj.apps.daily14.exportHint}`,
+        `【七習慣匯出提示】${obj.apps.habits7.exportHint}`
+      ].join("\n");
+    }
+
+    function toMD(obj) {
+      return [
+        `# 靈命七習慣｜今日存檔`,
+        ``,
+        `- **日期**：${obj.dateLabel}（\`${obj.date}\`／\`${obj.dateStamp}\`）`,
+        `- **宗旨（首要）**：${obj.purpose}`,
+        `- **匯出時間**：${obj.exportedAt}`,
+        ``,
+        `## App`,
+        `- [每日14樣功課](${obj.apps.daily14.phone})`,
+        `- [七習慣＋時間象限](${obj.apps.habits7.phone})`,
+        ``,
+        `## 同步`,
+        `- 資料夾：\`${obj.syncFolderHint}\``,
+        `- ${obj.note}`,
+        ``,
+        `### 提示`,
+        `- ${obj.apps.daily14.exportHint}`,
+        `- ${obj.apps.habits7.exportHint}`
+      ].join("\n");
+    }
+
+
+    function toDocHtml(obj) {
+      const esc = (s) => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word" lang="zh-Hant"><head><meta charset="UTF-8" />
+<title>${esc(obj.dateLabel)} 靈命存檔</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+<style>body{font-family:"Microsoft JhengHei","微軟正黑體",sans-serif;font-size:12pt;line-height:1.6}
+h1{color:#1b6b5a} table{border-collapse:collapse;width:100%} td,th{border:1px solid #ccc;padding:6px;text-align:left}</style>
+</head><body>
+<h1>靈命七習慣｜今日存檔</h1>
+<p><b>日期：</b>${esc(obj.dateLabel)}（${esc(obj.date)}／${esc(obj.dateStamp)}）</p>
+<p><b>宗旨（首要）：</b>${esc(obj.purpose)}</p>
+<p><b>匯出時間：</b>${esc(obj.exportedAt)}</p>
+<h2>App 連結</h2>
+<ul>
+<li>14樣功課：${esc(obj.apps && obj.apps.daily14 && obj.apps.daily14.phone)}</li>
+<li>七習慣：${esc(obj.apps && obj.apps.habits7 && obj.apps.habits7.phone)}</li>
+</ul>
+<h2>同步</h2>
+<p>${esc(obj.syncFolderHint)}</p>
+<p>${esc(obj.note)}</p>
+</body></html>`;
+    }
+
+    function openPrintPdf(obj, filename) {
+      const html = toDocHtml(obj).replace("今日存檔", "今日存檔（請另存 PDF）");
+      const w = window.open("", "_blank", "noopener,noreferrer,width=800,height=900");
+      if (!w) { alert("請允許彈出視窗以匯出 PDF"); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.document.title = filename;
+      setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+    }
+
+    function exportImage(obj, filename, mime) {
+      const canvas = document.createElement("canvas");
+      const W = 900, H = 640;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#f3faf7";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#1b6b5a";
+      ctx.fillRect(0, 0, W, 72);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 28px Microsoft JhengHei, sans-serif";
+      ctx.fillText("靈命七習慣｜今日存檔", 28, 46);
+      ctx.fillStyle = "#14352e";
+      ctx.font = "18px Microsoft JhengHei, sans-serif";
+      const lines = [
+        `日期：${obj.dateLabel || ""}（${obj.date || ""}）`,
+        `日期檔名戳記：${obj.dateStamp || ""}`,
+        `宗旨（首要）：${obj.purpose || ""}`,
+        `匯出時間：${obj.exportedAt || ""}`,
+        "",
+        `14樣功課：${(obj.apps && obj.apps.daily14 && obj.apps.daily14.phone) || ""}`,
+        `七習慣：${(obj.apps && obj.apps.habits7 && obj.apps.habits7.phone) || ""}`,
+        "",
+        `同步夾：${obj.syncFolderHint || ""}`,
+        obj.note || ""
+      ];
+      let y = 110;
+      lines.forEach((line) => {
+        const chunk = String(line);
+        // simple wrap
+        let rest = chunk;
+        while (rest.length > 48) {
+          ctx.fillText(rest.slice(0, 48), 28, y);
+          rest = rest.slice(48);
+          y += 28;
+        }
+        ctx.fillText(rest, 28, y);
+        y += 30;
+      });
+      ctx.fillStyle = "#4a6b62";
+      ctx.font = "14px Microsoft JhengHei, sans-serif";
+      ctx.fillText("身心靈提升｜靈命持續成長", 28, H - 28);
+      canvas.toBlob((blob) => {
+        if (!blob) { alert("圖像匯出失敗"); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }, mime, mime === "image/jpeg" ? 0.92 : undefined);
+    }
+
+    function filenameFor(kind, fmt) {
+      const stamp = todayStamp();
+      const map = {
+        bundle: "靈命存檔",
+        habits: "habits7今日範本",
+        daily14: "daily14今日範本"
+      };
+      return `${map[kind] || "靈命存檔"}-${stamp}.${fmt}`;
+    }
+
+    function payloadFor(kind) {
+      const base = buildBundle();
+      if (kind === "habits") {
+        return {
+          app: "habits-7",
+          type: "habits7-day",
+          version: 1,
+          date: base.date,
+          dateStamp: base.dateStamp,
+          exportedAt: base.exportedAt,
+          items: [],
+          note: "空殼範本：請改用七習慣 App 的「匯出當日」取得真實紀錄後存成 habits7-日期.json"
+        };
+      }
+      if (kind === "daily14") {
+        return {
+          app: "daily-14",
+          type: "daily14-day",
+          version: 1,
+          date: base.date,
+          dateStamp: base.dateStamp,
+          exportedAt: base.exportedAt,
+          done: [],
+          order: [],
+          note: "空殼範本：請改用14樣 App 的「匯出同步」取得真實勾選後存成 daily14-日期戳.json"
+        };
+      }
+      return base;
+    }
+
+    function download(filename, text, mime) {
+      const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    document.getElementById("btnSaveToday").addEventListener("click", () => {
+      const kind = document.getElementById("exportKind").value;
+      const fmt = document.getElementById("exportFmt").value;
+      const payload = payloadFor(kind);
+      const full = Object.assign({
+        apps: buildBundle().apps,
+        purpose: buildBundle().purpose,
+        syncFolderHint: buildBundle().syncFolderHint,
+        note: buildBundle().note,
+        dateLabel: buildBundle().dateLabel
+      }, payload);
+      const name = filenameFor(kind, fmt === "pdf" ? "pdf" : fmt);
+      const msg = document.getElementById("saveMsg");
+
+      function done(n) {
+        msg.hidden = false;
+        msg.textContent = `已處理：${n || name}`;
+      }
+
+      if (fmt === "json") {
+        download(name, JSON.stringify(full, null, 2), "application/json");
+        done(); return;
+      }
+      if (fmt === "csv") {
+        download(name, toCSV(full), "text/csv;charset=utf-8");
+        done(); return;
+      }
+      if (fmt === "md") {
+        download(name, toMD(full), "text/markdown;charset=utf-8");
+        done(); return;
+      }
+      if (fmt === "txt") {
+        download(name, toTXT(full), "text/plain;charset=utf-8");
+        done(); return;
+      }
+      if (fmt === "doc") {
+        download(name, toDocHtml(full), "application/msword");
+        done(); return;
+      }
+      if (fmt === "pdf") {
+        openPrintPdf(full, name);
+        done(name + "（請在列印視窗選「另存為 PDF」）");
+        return;
+      }
+      if (fmt === "png" || fmt === "jpg") {
+        exportImage(full, name, fmt === "jpg" ? "image/jpeg" : "image/png");
+        done(); return;
+      }
+    });
+
+document.getElementById("btnCopyMeta").addEventListener("click", async () => {
+      const kind = document.getElementById("exportKind").value;
+      const fmt = document.getElementById("exportFmt").value;
+      const name = filenameFor(kind, fmt);
+      try {
+        await navigator.clipboard.writeText(name);
+        const msg = document.getElementById("saveMsg");
+        msg.hidden = false;
+        msg.textContent = `已複製檔名：${name}`;
+      } catch {
+        prompt("檔名：", name);
+      }
+    });
+
+    // default open sync on wide screens
+    if (window.matchMedia("(min-width: 1100px)").matches) {
+      document.getElementById("syncPanel").classList.add("show");
+    }
+
+    const HABIT_NAMES = {
+      1: "主動積極", 2: "以終為始", 3: "要事第一", 4: "雙贏思維",
+      5: "知彼解己", 6: "統合綜效", 7: "不斷更新"
+    };
+    const QUAD_SHORT = {
+      1: "Ⅰ重要且緊急", 2: "Ⅱ重要不緊急", 3: "Ⅲ不重要但緊急", 4: "Ⅳ不重要不緊急"
+    };
+    const DAILY14_TITLES = {
+      1: "每天聆聽「富有」歌曲 3 次",
+      2: "每天聆聽「注入彩虹」3 次",
+      3: "每天看蔡禮旭老師講解的弟子規",
+      4: "懺悔發願（心法步驟一二三）",
+      5: "每天寫心得",
+      6: "練習秒秒感恩",
+      7: "做到去我",
+      8: "做太陽心法，每天做 15 分鐘以上",
+      9: "每天照鏡子",
+      10: "秒秒轉念",
+      11: "秒秒參悟空",
+      12: "每天「營造」生活",
+      13: "參加網絡共修課程",
+      14: "渡人"
+    };
+
+    function stopDeskSpeak() {
+      try { speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
+      try {
+        const d = document.getElementById("ifrDaily");
+        const h = document.getElementById("ifrHabits");
+        if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+        if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+      } catch (e) {}
+    }
+    function pickZhVoice() {
+      try {
+        const voices = speechSynthesis.getVoices() || [];
+        return voices.find((x) => /zh-TW|Taiwan/i.test(x.lang + x.name))
+          || voices.find((x) => /zh/i.test(x.lang))
+          || null;
+      } catch (e) { return null; }
+    }
+    function speakText(text) {
+      if (!window.speechSynthesis) {
+        alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
+        return;
+      }
+      stopDeskSpeak();
+      const u = new SpeechSynthesisUtterance(String(text || ""));
+      u.lang = "zh-TW";
+      u.rate = 0.95;
+      const v = pickZhVoice();
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    }
+    function loadJsonKey(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+    function todayKeyTaipei() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit"
+      }).format(new Date());
+    }
+    function buildTodayRecordsScript() {
+      const today = todayKeyTaipei();
+      const lines = [];
+      lines.push("靈命七習慣電腦版。今日紀錄語音讀誦。");
+      lines.push("首要：身心靈提升，靈命持續成長。");
+
+      const d14 = loadJsonKey("daily14-v1");
+      const d14Today = d14 && d14.date === today ? d14 : { date: today, done: [] };
+      const doneIds = Array.isArray(d14Today.done) ? d14Today.done.map(Number) : [];
+      const remainIds = [];
+      for (let i = 1; i <= 14; i++) if (!doneIds.includes(i)) remainIds.push(i);
+      lines.push(`每日十四樣功課：已完成 ${doneIds.length} 項，尚餘 ${remainIds.length} 項。`);
+      if (doneIds.length) {
+        lines.push("已完成項目：");
+        doneIds.forEach((id) => lines.push(`第 ${id} 項。${DAILY14_TITLES[id] || ""}。`));
+      }
+      if (remainIds.length) {
+        lines.push("尚未完成項目：");
+        remainIds.forEach((id) => lines.push(`第 ${id} 項。${DAILY14_TITLES[id] || ""}。重要且緊急。`));
+      } else {
+        lines.push("十四樣功課今日全部完成，隨喜讚歎。");
+      }
+
+      const h7 = loadJsonKey("habits7-v1");
+      const h7Today = h7 && h7.date === today ? h7 : null;
+      const items = h7Today && Array.isArray(h7Today.items) ? h7Today.items : [];
+      if (!items.length) {
+        lines.push("七習慣今日紀錄尚無條目。請在七習慣頁面歸類並疊加後再讀誦。");
+      } else {
+        lines.push(`七習慣今日紀錄共 ${items.length} 筆，依順序如下。`);
+        items.forEach((it, i) => {
+          const hid = it.habitId;
+          const qid = it.quadId;
+          const mins = it.minutes || 15;
+          lines.push(`第 ${i + 1} 項。${it.text || "無內容"}。`);
+          lines.push(`習慣 ${hid} ${HABIT_NAMES[hid] || ""}。時間象限：${QUAD_SHORT[qid] || "未分類"}。約 ${mins} 分鐘。`);
+        });
+      }
+
+      lines.push("讀誦結束。願靈命日日增長，身心平安。");
+      return lines.join(" ");
+    }
+    function speakTodayRecords() {
+      stopDeskSpeak();
+      // 先嘗試請目前可見 iframe 自行讀誦（內容更完整）；並排時改讀本頁彙整
+      try {
+        const tab = document.querySelector(".toolbar button.active");
+        const which = tab ? tab.getAttribute("data-tab") : "daily14";
+        const d = document.getElementById("ifrDaily");
+        const h = document.getElementById("ifrHabits");
+        if (which === "habits7" && h && h.contentWindow) {
+          h.contentWindow.postMessage({ type: "life-desk-speak-today" }, "*");
+          return;
+        }
+        if (which === "daily14" && d && d.contentWindow) {
+          d.contentWindow.postMessage({ type: "life-desk-speak-today" }, "*");
+          return;
+        }
+      } catch (e) {}
+      speakText(buildTodayRecordsScript());
+    }
+    function speakDeskGuide() {
+      speakText([
+        "靈命七習慣電腦版。",
+        "首要宗旨：身心靈提升，靈命持續成長。",
+        "可切換每日十四樣功課，與七習慣時間象限。",
+        "按讀誦今日紀錄，可朗讀十四樣進度與七習慣今日條目。",
+        "與手機同步：請在各 App 匯出含今日日期的檔案，再於另一端匯入。",
+        "願你今日靈命增長，身心平安。"
+      ].join(" "));
+    }
+    document.getElementById("btnSpeak").addEventListener("click", speakTodayRecords);
+    document.getElementById("btnSpeakGuide").addEventListener("click", speakDeskGuide);
+    document.getElementById("btnStopSpeak").addEventListener("click", stopDeskSpeak);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = function () { pickZhVoice(); };
+    }
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>
