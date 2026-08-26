@@ -169,6 +169,24 @@
       color: var(--accent);
       opacity: 0.85;
     }
+    .map-row {
+      margin-top: 0.4rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .map-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.75);
+      color: var(--accent);
+    }
+    .map-tag.q1 {
+      border-color: #b42318;
+      color: #b42318;
+    }
     .done-panel {
       display: none;
       margin-top: 1.4rem;
@@ -238,7 +256,7 @@
         <span class="pill" id="countLabel">完成 0／14</span>
       </div>
       <div class="progress" aria-hidden="true"><span id="bar"></span></div>
-      <p class="hint">點一下＝完成並消失；明天自動全部回來</p>
+      <p class="hint">點一下＝完成並消失；明天自動全部回來<br />每項已標：七習慣＋Ⅰ重要且緊急</p>
     </header>
 
     <p class="install" id="installTip">
@@ -263,29 +281,36 @@
 
     <footer>
       <p>資料只存在這支手機瀏覽器（不上傳）。</p>
-      <p style="margin-top:0.35rem;"><a id="homeLink" href="../">回上一層</a></p>
+      <p style="margin-top:0.35rem;">
+        <a id="homeLink" href="../">回上一層</a>
+        ｜
+        <a id="habitsLink" href="../habits-7/">七習慣／象限對照</a>
+      </p>
     </footer>
   </div>
 
   <script>
     const TASKS = [
-      { id: 1, title: "每天聆聽「富有」歌曲 3 次" },
-      { id: 2, title: "每天聆聽「注入彩虹」3 次" },
-      { id: 3, title: "每天看蔡禮旭老師講解的弟子規" },
-      { id: 4, title: "懺悔發願（心法步驟一二三）" },
-      { id: 5, title: "每天寫心得" },
-      { id: 6, title: "練習秒秒感恩" },
-      { id: 7, title: "做到去我" },
-      { id: 8, title: "做太陽心法，每天做 15 分鐘以上" },
-      { id: 9, title: "每天照鏡子" },
-      { id: 10, title: "秒秒轉念" },
-      { id: 11, title: "秒秒參悟空" },
-      { id: 12, title: "每天「營造」生活" },
-      { id: 13, title: "參加網絡共修課程", note: "每週一項；今日若已參加可勾選" },
+      { id: 1, title: "每天聆聽「富有」歌曲 3 次", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 2, title: "每天聆聽「注入彩虹」3 次", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 3, title: "每天看蔡禮旭老師講解的弟子規", habit: 2, habitName: "以終為始", quad: 1 },
+      { id: 4, title: "懺悔發願（心法步驟一二三）", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 5, title: "每天寫心得", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 6, title: "練習秒秒感恩", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 7, title: "做到去我", habit: 5, habitName: "知彼解己", quad: 1 },
+      { id: 8, title: "做太陽心法，每天做 15 分鐘以上", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 9, title: "每天照鏡子", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 10, title: "秒秒轉念", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 11, title: "秒秒參悟空", habit: 2, habitName: "以終為始", quad: 1 },
+      { id: 12, title: "每天「營造」生活", habit: 3, habitName: "要事第一", quad: 1 },
+      { id: 13, title: "參加網絡共修課程", note: "每週一項；今日若已參加可勾選", habit: 6, habitName: "統合綜效", quad: 1 },
       {
         id: 14,
         title: "渡人",
-        note: "增添德資糧，與人分享，分發結緣書，接引他人一起來學習《超級生命密碼》"
+        note: "增添德資糧，與人分享，分發結緣書，接引他人一起來學習《超級生命密碼》",
+        habit: 4,
+        habitName: "雙贏思維",
+        quad: 1
       }
     ];
 
@@ -334,12 +359,16 @@
 
     (function setHomeLink() {
       const path = location.pathname || "";
+      const homeLink = document.getElementById("homeLink");
+      const habitsLink = document.getElementById("habitsLink");
       if (path.includes("/directory/apps/")) {
         homeLink.href = "../../";
         homeLink.textContent = "回學習日誌";
+        if (habitsLink) habitsLink.href = "../habits-7/";
       } else {
         homeLink.href = "../";
         homeLink.textContent = "回習作工具主頁";
+        if (habitsLink) habitsLink.href = "../habits-7/";
       }
     })();
 
@@ -389,6 +418,10 @@
           `<span class="body">` +
           `<div class="title">${task.title}</div>` +
           (task.note ? `<div class="note">${task.note}</div>` : "") +
+          `<div class="map-row">` +
+          `<span class="map-tag">習慣${task.habit} ${task.habitName}</span>` +
+          `<span class="map-tag q1">Ⅰ 重要且緊急</span>` +
+          `</div>` +
           `<div class="check-hint">點一下完成</div>` +
           `</span>`;
         const finish = () => completeTask(task.id, li);
