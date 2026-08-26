@@ -165,13 +165,16 @@
           <input id="fileDoc" type="file" accept="application/pdf,.pdf,text/plain,.txt,.md,text/markdown" multiple />
         </label>
         <button type="button" id="btnPaste">貼上文字</button>
+        <button type="button" class="danger" id="btnCancelInput">⏹ 取消輸入</button>
+        <button type="button" id="btnReinput">🔄 重新輸入其他檔案</button>
       </div>
       <label for="articleUrl">網路文章網址</label>
       <div class="url-row">
         <input id="articleUrl" type="url" inputmode="url" autocomplete="url" placeholder="https://… 貼上文章網址" />
         <button type="button" class="primary" id="btnFetchUrl">讀取網頁</button>
+        <button type="button" class="danger" id="btnCancelUrl" disabled>取消讀取</button>
       </div>
-      <p class="hint">會嘗試擷取網頁正文（若網站阻擋，可改用複製貼上）。</p>
+      <p class="hint">可隨時「取消輸入」；要換檔請按「重新輸入其他檔案」（會中止目前處理並清空，再選新檔）。</p>
       <div class="thumb-row" id="thumbRow"></div>
       <p class="status" id="loadStatus"></p>
     </div>
@@ -207,8 +210,9 @@
       <div class="actions">
         <button type="button" class="primary" id="btnOpenReader" disabled>打開文字視窗</button>
         <button type="button" id="btnClear">清除本次內容</button>
+        <button type="button" class="danger" id="btnCancelAll">⏹ 取消目前工作</button>
       </div>
-      <p class="hint">打開後可：中文／英文讀誦；圈選生字查解釋（跳出視窗）；讀誦結束或按暫停／取消後，跳出視窗會自動消失。</p>
+      <p class="hint">打開後可：中文／英文讀誦；圈選生字查解釋；進行中可隨時取消輸入／讀誦。</p>
     </div>
 
     <footer>
@@ -393,6 +397,10 @@
       let lastOcrText = "";
       let lastImgSearchText = "";
       let pendingEnSource = "";
+      let jobToken = 0;
+      let jobAbort = null;
+      let jobBusy = false;
+      let jobLabel = "";
       try {
         wordCache = JSON.parse(localStorage.getItem("doc-reader-word-cache-v1") || "{}") || {};
       } catch (e) { wordCache = {}; }
@@ -404,6 +412,117 @@
       function setStatus(msg, kind) {
         loadStatus.textContent = msg || "";
         loadStatus.className = "status" + (kind ? " " + kind : "");
+      }
+
+      function syncCancelButtons() {
+        const on = !!jobBusy;
+        const btnIn = document.getElementById("btnCancelInput");
+        const btnUrl = document.getElementById("btnCancelUrl");
+        const btnAll = document.getElementById("btnCancelAll");
+        if (btnIn) btnIn.disabled = false;
+        if (btnAll) btnAll.disabled = false;
+        if (btnUrl) btnUrl.disabled = !(on && /網址|網頁|讀取網/.test(jobLabel || ""));
+      }
+
+      function beginJob(label) {
+        jobToken += 1;
+        const token = jobToken;
+        if (jobAbort) {
+          try { jobAbort.abort(); } catch (e) {}
+        }
+        jobAbort = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        jobBusy = true;
+        jobLabel = label || "處理中";
+        syncCancelButtons();
+        return token;
+      }
+
+      function isJobActive(token) {
+        return token === jobToken && jobBusy;
+      }
+
+      function throwIfCancelled(token) {
+        if (!isJobActive(token)) {
+          const err = new Error("已取消");
+          err.cancelled = true;
+          throw err;
+        }
+      }
+
+      function endJob(token, opts) {
+        opts = opts || {};
+        if (token != null && token !== jobToken && !opts.force) return;
+        jobBusy = false;
+        jobLabel = "";
+        syncCancelButtons();
+      }
+
+      function clearFileInputs() {
+        ["fileImage", "fileDoc"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
+      }
+
+      function resetImportedContent() {
+        pages = [];
+        pageIndex = 0;
+        sourceName = "";
+        lastInsight = null;
+        lastOcrText = "";
+        pendingEnSource = "";
+        lastImgSearchText = "";
+        lastImageFile = null;
+        if (lastImageBlobUrl) {
+          try { URL.revokeObjectURL(lastImageBlobUrl); } catch (e) {}
+          lastImageBlobUrl = "";
+        }
+        thumbRow.innerHTML = "";
+        btnOpenReader.disabled = true;
+        const insightBox = document.getElementById("insightBox");
+        if (insightBox) insightBox.hidden = true;
+        const speakBtn = document.getElementById("btnSpeakInsight");
+        if (speakBtn) speakBtn.disabled = true;
+        const pageText = document.getElementById("pageText");
+        if (pageText) pageText.textContent = "";
+        const pageMeta = document.getElementById("pageMeta");
+        if (pageMeta) pageMeta.textContent = "第 0／0 頁";
+        try { document.getElementById("readerOverlay").hidden = true; } catch (e) {}
+      }
+
+      function cancelCurrentJob(reason) {
+        const why = reason || "已取消輸入／處理";
+        jobToken += 1;
+        jobBusy = false;
+        jobLabel = "";
+        if (jobAbort) {
+          try { jobAbort.abort(); } catch (e) {}
+          jobAbort = null;
+        }
+        clearFileInputs();
+        continuous = false;
+        if (window.TtsVoices && window.TtsVoices.stopSpeakQueue) window.TtsVoices.stopSpeakQueue();
+        else try { speechSynthesis.cancel(); } catch (e) {}
+        closeTransientPopups();
+        syncCancelButtons();
+        setStatus(why, "warn");
+      }
+
+      function reinputOtherFiles(kind) {
+        // 中止目前工作並清空，讓使用者重新選其他檔案
+        cancelCurrentJob("已取消，可重新輸入其他檔案");
+        resetImportedContent();
+        clearFileInputs();
+        const urlEl = document.getElementById("articleUrl");
+        if (urlEl) urlEl.value = "";
+        setStatus("請重新選擇檔案／拍照／網址", "warn");
+        // 打開對應檔案選擇器
+        setTimeout(() => {
+          const target = kind === "doc"
+            ? document.getElementById("fileDoc")
+            : document.getElementById("fileImage");
+          if (target) target.click();
+        }, 120);
       }
 
       function todayKey() {
@@ -592,21 +711,27 @@
         return text;
       }
 
-      async function fetchArticleFromUrl(rawUrl) {
+      async function fetchArticleFromUrl(rawUrl, token) {
         const url = normalizeUrl(rawUrl);
         if (!url) throw new Error("網址格式不正確");
-        setStatus("讀取網頁中…", "warn");
+        setStatus("讀取網頁中…（可按取消）", "warn");
         const proxies = [
           { name: "jina", build: (u) => "https://r.jina.ai/" + u },
           { name: "allorigins", build: (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u) }
         ];
         let lastErr = null;
         for (const p of proxies) {
+          throwIfCancelled(token);
           try {
-            setStatus("讀取網頁（" + p.name + "）…", "warn");
-            const res = await fetch(p.build(url), { method: "GET" });
+            setStatus("讀取網頁（" + p.name + "）…可取消", "warn");
+            const res = await fetch(p.build(url), {
+              method: "GET",
+              signal: jobAbort ? jobAbort.signal : undefined
+            });
+            throwIfCancelled(token);
             if (!res.ok) throw new Error("HTTP " + res.status);
             const raw = await res.text();
+            throwIfCancelled(token);
             let text = "";
             if (p.name === "jina") {
               text = String(raw || "")
@@ -623,10 +748,10 @@
               text = htmlToText(raw);
             }
             if (!text || text.length < 40) throw new Error("擷取內容過短");
-            // 過長則裁切，避免記憶體爆
             if (text.length > 60000) text = text.slice(0, 60000) + "\n\n…（已截斷）";
             return { text, url, via: p.name };
           } catch (e) {
+            if (e && (e.cancelled || e.name === "AbortError")) throw e;
             lastErr = e;
           }
         }
@@ -636,12 +761,20 @@
       async function handleFetchUrl() {
         const input = document.getElementById("articleUrl");
         const raw = (input && input.value) || "";
+        const token = beginJob("讀取網頁");
         try {
-          const { text, url, via } = await fetchArticleFromUrl(raw);
+          const { text, url, via } = await fetchArticleFromUrl(raw, token);
+          throwIfCancelled(token);
           setPages(text, "網頁：" + url);
           setStatus("已讀取網頁（" + via + "）", "");
           openReader();
+          endJob(token);
         } catch (e) {
+          endJob(token, { force: true });
+          if (e && (e.cancelled || e.name === "AbortError" || /已取消/.test(e.message || ""))) {
+            setStatus("已取消網頁讀取", "warn");
+            return;
+          }
           console.warn(e);
           setStatus("網頁讀取失敗：" + (e.message || e), "err");
           alert("網頁讀取失敗：" + (e.message || e) + "\n\n可改用複製網頁正文後按「貼上文字」。");
@@ -1136,22 +1269,27 @@
         return ocrWorker;
       }
 
-      async function ocrImageFile(file) {
+      async function ocrImageFile(file, token) {
         const url = URL.createObjectURL(file);
         lastImageBlobUrl = url;
         lastImageFile = file;
+        throwIfCancelled(token);
         try {
           const img = document.createElement("img");
           img.src = url;
           img.alt = file.name;
           thumbRow.appendChild(img);
-          const worker = await ensureOcrWorker((p) => setStatus(`辨識圖片 ${file.name}… ${p}%`, "warn"));
+          const worker = await ensureOcrWorker((p) => {
+            if (!isJobActive(token)) return;
+            setStatus(`辨識圖片 ${file.name}… ${p}%（可取消）`, "warn");
+          });
+          throwIfCancelled(token);
           const { data } = await worker.recognize(file);
+          throwIfCancelled(token);
           const text = (data && data.text) || "";
           lastOcrText = text;
           return text;
         } catch (e) {
-          // keep blob url for image search
           throw e;
         }
       }
@@ -1206,10 +1344,12 @@
         if (el) el.hidden = true;
       }
 
-      async function describeImageWithGemini(file) {
+      async function describeImageWithGemini(file, token) {
         const key = getGeminiKey();
         if (!key || !file) return null;
+        throwIfCancelled(token);
         const buf = await file.arrayBuffer();
+        throwIfCancelled(token);
         const bytes = new Uint8Array(buf);
         let binary = "";
         const chunk = 0x8000;
@@ -1222,12 +1362,14 @@
           "這是一張照片。請用繁體中文：1) 簡述圖中內容 2) 若有文字請完整抄出 3) 若像招牌／植物／物品請猜測可能是什麼。條列、精簡。";
         const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
         for (const model of models) {
+          throwIfCancelled(token);
           try {
             const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
               encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
             const res = await fetch(url, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
+              signal: jobAbort ? jobAbort.signal : undefined,
               body: JSON.stringify({
                 contents: [{
                   role: "user",
@@ -1238,19 +1380,23 @@
                 }]
               })
             });
+            throwIfCancelled(token);
             const data = await res.json();
             if (!res.ok) continue;
             const text = (((data.candidates || [])[0] || {}).content || {}).parts
               ? data.candidates[0].content.parts.map((p) => p.text || "").join("")
               : "";
             if (text.trim()) return { text: text.trim(), model };
-          } catch (e) {}
+          } catch (e) {
+            if (e && (e.cancelled || e.name === "AbortError")) throw e;
+          }
         }
         return null;
       }
 
-      async function runImageSearchFlow(file, ocrHint) {
-        setStatus("偵測為圖片，準備圖搜…", "warn");
+      async function runImageSearchFlow(file, ocrHint, token) {
+        throwIfCancelled(token);
+        setStatus("偵測為圖片，準備圖搜…（可取消）", "warn");
         openImgSearchWindow({
           title: "圖搜中…",
           body: "正在分析影像…" + (ocrHint ? ("\n（OCR 僅見：" + ocrHint.slice(0, 80) + "）") : ""),
@@ -1258,7 +1404,8 @@
         });
         let aiText = "";
         try {
-          const ai = await describeImageWithGemini(file);
+          const ai = await describeImageWithGemini(file, token);
+          throwIfCancelled(token);
           if (ai && ai.text) {
             aiText = ai.text;
             lastImgSearchText = aiText;
@@ -1270,8 +1417,10 @@
             return;
           }
         } catch (e) {
+          if (e && (e.cancelled || e.name === "AbortError")) throw e;
           console.warn(e);
         }
+        throwIfCancelled(token);
         const fallback =
           "此圖幾乎沒有可辨識文字，已改走圖搜。\n" +
           "請按下方「開 Google／Bing／Yandex 圖搜」，在新分頁上傳同一張照片以搜尋相似圖片與說明。\n" +
@@ -1322,9 +1471,11 @@
           return;
         }
         closeEnToZh();
-        setStatus("英文→中文翻譯中…", "warn");
+        const token = beginJob("英文翻譯");
+        setStatus("英文→中文翻譯中…（可取消）", "warn");
         try {
           const zh = await translateChunk(source.slice(0, 9000), "zh-TW");
+          throwIfCancelled(token);
           if (mode === "both") {
             const paired = "【英文原文】\n" + source.trim() + "\n\n【中文翻譯】\n" + zh;
             setPages(paired, (sourceName || "英文文件") + "｜中英對照");
@@ -1333,8 +1484,14 @@
           }
           openReader();
           setStatus("已完成英文→中文翻譯", "");
+          endJob(token);
           speakText(mode === "both" ? ("中文翻譯如下。" + zh) : zh, () => closeSpeakPopups(), { lang: "zh-TW" });
         } catch (e) {
+          endJob(token, { force: true });
+          if (e && (e.cancelled || e.name === "AbortError" || /已取消/.test(e.message || ""))) {
+            setStatus("已取消翻譯", "warn");
+            return;
+          }
           setStatus("翻譯失敗：" + (e.message || e), "err");
           alert("翻譯失敗：" + (e.message || e) + "\n可填 Gemini 金鑰提升品質。");
         }
@@ -1344,16 +1501,19 @@
         return await file.text();
       }
 
-      async function readPdfFile(file) {
+      async function readPdfFile(file, token) {
         if (typeof pdfjsLib === "undefined") throw new Error("PDF 套件尚未載入");
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        throwIfCancelled(token);
         const buf = await file.arrayBuffer();
+        throwIfCancelled(token);
         const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
         let all = "";
         let needOcr = false;
         for (let i = 1; i <= pdf.numPages; i++) {
-          setStatus(`讀取 PDF 第 ${i}/${pdf.numPages} 頁…`, "warn");
+          throwIfCancelled(token);
+          setStatus(`讀取 PDF 第 ${i}/${pdf.numPages} 頁…（可取消）`, "warn");
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
           const line = (content.items || []).map((it) => it.str).join(" ").trim();
@@ -1361,18 +1521,21 @@
             all += (all ? "\n\n" : "") + `【第 ${i} 頁】\n` + line;
           } else {
             needOcr = true;
-            // render & OCR
             const viewport = page.getViewport({ scale: 1.6 });
             const canvas = document.createElement("canvas");
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             const ctx = canvas.getContext("2d");
             await page.render({ canvasContext: ctx, viewport }).promise;
-            const worker = await ensureOcrWorker((p) => setStatus(`OCR PDF 第 ${i} 頁… ${p}%`, "warn"));
+            throwIfCancelled(token);
+            const worker = await ensureOcrWorker((p) => {
+              if (!isJobActive(token)) return;
+              setStatus(`OCR PDF 第 ${i} 頁… ${p}%（可取消）`, "warn");
+            });
             const { data } = await worker.recognize(canvas);
+            throwIfCancelled(token);
             const t = (data && data.text) || "";
             if (t.trim()) all += (all ? "\n\n" : "") + `【第 ${i} 頁】\n` + t;
-            // thumbnail
             try {
               const img = document.createElement("img");
               img.src = canvas.toDataURL("image/jpeg", 0.6);
@@ -1384,25 +1547,38 @@
         return all;
       }
 
-      async function handleFiles(fileList) {
+      async function handleFiles(fileList, opts) {
+        opts = opts || {};
         const files = Array.from(fileList || []);
         if (!files.length) return;
-        let combined = pages.length ? pages.join("\n\n") : "";
+        // 重新輸入：預設取代舊內容，不疊加
+        const replace = opts.replace !== false;
+        if (replace) {
+          // 中止舊工作但不跳「已取消」提示太久
+          jobToken += 1;
+          if (jobAbort) { try { jobAbort.abort(); } catch (e) {} }
+          resetImportedContent();
+          thumbRow.innerHTML = "";
+        }
+        const token = beginJob("匯入檔案");
+        let combined = replace ? "" : (pages.length ? pages.join("\n\n") : "");
         let sawPicture = false;
         let sawEnglish = false;
         let englishBlob = "";
         try {
           for (const file of files) {
-            setStatus(`處理：${file.name}`, "warn");
+            throwIfCancelled(token);
+            setStatus(`處理：${file.name}（可取消／可改選其他檔）`, "warn");
             const type = (file.type || "").toLowerCase();
             const name = (file.name || "").toLowerCase();
             let text = "";
             if (type.startsWith("image/") || /\.(png|jpe?g|gif|webp|heic|bmp)$/i.test(name)) {
-              text = await ocrImageFile(file);
+              text = await ocrImageFile(file, token);
+              throwIfCancelled(token);
               const info = analyzeOcrText(text);
               if (info.isPicture) {
                 sawPicture = true;
-                await runImageSearchFlow(file, info.raw);
+                await runImageSearchFlow(file, info.raw, token);
                 continue;
               }
               if (info.isMostlyEnglish) {
@@ -1410,7 +1586,8 @@
                 englishBlob += (englishBlob ? "\n\n" : "") + info.raw;
               }
             } else if (type === "application/pdf" || name.endsWith(".pdf")) {
-              text = await readPdfFile(file);
+              text = await readPdfFile(file, token);
+              throwIfCancelled(token);
               const info = analyzeOcrText(text);
               if (info.isMostlyEnglish) {
                 sawEnglish = true;
@@ -1418,6 +1595,7 @@
               }
             } else {
               text = await readTextFile(file);
+              throwIfCancelled(token);
               const info = analyzeOcrText(text);
               if (info.isMostlyEnglish) {
                 sawEnglish = true;
@@ -1428,6 +1606,7 @@
               combined += (combined ? "\n\n" : "") + text.trim();
             }
           }
+          throwIfCancelled(token);
           if (combined.trim()) {
             setPages(combined, files.map((f) => f.name).join("、"));
             openReader();
@@ -1436,17 +1615,26 @@
               openEnToZhChoice(pendingEnSource);
               setStatus("已辨識英文，可翻成中文", "");
             } else {
-              setStatus("已就緒", "");
+              setStatus("已就緒（可再按「重新輸入其他檔案」換檔）", "");
             }
           } else if (sawPicture) {
             setStatus("已改走圖搜（幾乎無文字）", "warn");
           } else {
             setStatus("沒有讀到文字", "err");
           }
+          endJob(token);
         } catch (err) {
+          endJob(token, { force: true });
+          if (err && (err.cancelled || err.name === "AbortError" || /已取消/.test(err.message || ""))) {
+            setStatus("已取消匯入，可重新輸入其他檔案", "warn");
+            clearFileInputs();
+            return;
+          }
           console.error(err);
           setStatus((err && err.message) || "讀取失敗", "err");
           alert("讀取失敗：" + ((err && err.message) || err));
+        } finally {
+          clearFileInputs();
         }
       }
 
@@ -1704,19 +1892,41 @@
 
       // events
       document.getElementById("fileImage").addEventListener("change", (e) => {
-        handleFiles(e.target.files);
+        handleFiles(e.target.files, { replace: true });
         e.target.value = "";
       });
       document.getElementById("fileDoc").addEventListener("change", (e) => {
-        handleFiles(e.target.files);
+        handleFiles(e.target.files, { replace: true });
         e.target.value = "";
       });
       document.getElementById("btnPaste").addEventListener("click", () => {
+        cancelCurrentJob("改為貼上文字");
         const t = prompt("貼上要讀誦的文字：", "");
         if (t && t.trim()) {
+          resetImportedContent();
           setPages(t, "貼上文字");
           openReader();
+          setStatus("已貼上文字", "");
+        } else {
+          setStatus("已取消貼上", "warn");
         }
+      });
+      document.getElementById("btnCancelInput").addEventListener("click", () => {
+        cancelCurrentJob("已取消輸入／處理");
+        clearFileInputs();
+        setStatus("已取消。可按「重新輸入其他檔案」再選。", "warn");
+      });
+      document.getElementById("btnReinput").addEventListener("click", () => {
+        const kind = confirm("要選「照片／圖片」嗎？\n\n按「確定」＝拍照／選圖\n按「取消」＝選 PDF／文字檔")
+          ? "image"
+          : "doc";
+        reinputOtherFiles(kind);
+      });
+      document.getElementById("btnCancelUrl").addEventListener("click", () => {
+        cancelCurrentJob("已取消網頁讀取");
+      });
+      document.getElementById("btnCancelAll").addEventListener("click", () => {
+        cancelCurrentJob("已取消目前工作");
       });
       document.getElementById("btnFetchUrl").addEventListener("click", handleFetchUrl);
       document.getElementById("articleUrl").addEventListener("keydown", (e) => {
@@ -1728,26 +1938,12 @@
 
       document.getElementById("btnOpenReader").addEventListener("click", openReader);
       document.getElementById("btnClear").addEventListener("click", () => {
-        stopSpeak();
-        pages = [];
-        pageIndex = 0;
-        sourceName = "";
-        lastInsight = null;
-        lastOcrText = "";
-        pendingEnSource = "";
-        lastImgSearchText = "";
-        lastImageFile = null;
-        if (lastImageBlobUrl) {
-          try { URL.revokeObjectURL(lastImageBlobUrl); } catch (e) {}
-          lastImageBlobUrl = "";
-        }
-        thumbRow.innerHTML = "";
-        btnOpenReader.disabled = true;
-        document.getElementById("insightBox").hidden = true;
-        const speakBtn = document.getElementById("btnSpeakInsight");
-        if (speakBtn) speakBtn.disabled = true;
-        closeTransientPopups();
-        setStatus("已清除", "");
+        cancelCurrentJob("已清除");
+        resetImportedContent();
+        clearFileInputs();
+        const urlEl = document.getElementById("articleUrl");
+        if (urlEl) urlEl.value = "";
+        setStatus("已清除，可重新輸入其他檔案", "warn");
       });
       document.getElementById("btnCloseReader").addEventListener("click", closeReader);
       document.getElementById("btnPrev").addEventListener("click", () => {
