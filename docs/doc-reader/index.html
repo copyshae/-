@@ -36,16 +36,19 @@
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem; }
     button, .file-btn {
       font: inherit; cursor: pointer; border: 1px solid var(--line);
-      background: #fff; color: var(--accent); padding: 0.5rem 0.75rem; font-weight: 700;
+      background: #fff; color: var(--accent); padding: 0.55rem 0.85rem; font-weight: 700;
+      min-height: 2.75rem; touch-action: manipulation;
     }
     button.primary, .file-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     button.danger { color: #fff; background: var(--danger); border-color: var(--danger); }
     button:disabled { opacity: 0.4; cursor: default; }
     input[type="file"] { display: none; }
-    textarea, select, input[type="password"], input[type="text"] {
-      width: 100%; font: inherit; padding: 0.5rem; border: 1px solid var(--line); background: #fff;
+    textarea, select, input[type="password"], input[type="text"], input[type="url"] {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.55rem 0.6rem;
+      border: 1px solid var(--line); background: #fff; line-height: 1.5;
     }
     textarea { min-height: 6rem; resize: vertical; }
+    #pasteTextArea { min-height: 12rem; font-size: 16px; line-height: 1.65; }
     label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--muted); margin: 0.4rem 0 0.2rem; }
     .status { font-size: 0.85rem; color: var(--ok); font-weight: 700; min-height: 1.2rem; margin-top: 0.35rem; }
     .status.warn { color: var(--warn); }
@@ -75,8 +78,8 @@
     .page-text {
       white-space: pre-wrap; word-break: break-word;
       background: #fff; border: 1px solid var(--line);
-      padding: 0.75rem; min-height: 10rem; max-height: 40vh; overflow: auto;
-      font-size: 1rem; line-height: 1.7;
+      padding: 0.85rem; min-height: 10rem; max-height: 45vh; overflow: auto;
+      font-size: 1.08rem; line-height: 1.85;
       -webkit-user-select: text; user-select: text;
     }
     .sel-preview {
@@ -143,8 +146,9 @@
     .def-body {
       white-space: pre-wrap; word-break: break-word;
       background: #fff; border: 1px solid var(--line);
-      padding: 0.7rem; max-height: 42vh; overflow: auto;
-      font-size: 0.95rem; line-height: 1.65; margin-top: 0.4rem;
+      padding: 0.85rem; max-height: 50vh; overflow: auto;
+      font-size: 1.08rem; line-height: 1.85; margin-top: 0.4rem;
+      min-height: 10rem;
     }
     .def-source { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; }
     .page-text::selection, .study-text::selection { background: rgba(27,107,90,.28); }
@@ -235,12 +239,25 @@
     </footer>
   </div>
 
+  <!-- paste text modal -->
+  <div class="overlay" id="pasteOverlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pasteTitle">
+      <h3 id="pasteTitle">貼上文字</h3>
+      <p class="hint">長按輸入框 → 貼上。CSV 會自動整理成易讀格式。</p>
+      <textarea id="pasteTextArea" placeholder="在此貼上要讀誦的文字…"></textarea>
+      <div class="actions">
+        <button type="button" class="primary" id="btnPasteConfirm">✓ 開始閱讀</button>
+        <button type="button" id="btnPasteCancel">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- reader overlay -->
   <div class="overlay" id="readerOverlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
       <h3 id="readerTitle">文件讀誦視窗</h3>
       <p class="page-meta" id="pageMeta">第 0／0 頁</p>
-      <p class="hint">① 長按拖曳圈選　② 看到下方綠色「已記住圈選」　③ 再按「查解釋」</p>
+      <p class="hint">① 長按拖曳圈選　② 看到綠色「已記住圈選」　③ 再按「查解釋」（請勿連按）</p>
       <div class="page-text" id="pageText" aria-live="polite"></div>
       <p class="sel-preview" id="selPreview" hidden></p>
       <p class="reader-status" id="readerStatus"></p>
@@ -359,6 +376,7 @@
   <div class="overlay" id="defOverlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="defTitle">
       <h3 id="defTitle">生字／詞句解釋</h3>
+      <p class="hint">視窗會保留至您按「關閉」；讀誦結束不會自動消失。</p>
       <p class="page-meta" id="defTerm"></p>
       <p class="hint" id="defPhon"></p>
       <div class="def-body" id="defBody">查詢中…</div>
@@ -436,6 +454,49 @@
         if (!el) return;
         el.textContent = msg || "";
         el.className = "reader-status" + (kind ? " " + kind : "");
+      }
+
+      /** 避免連按：按鈕至少間隔 ms 毫秒 */
+      function guardFastClick(ms) {
+        ms = ms || 750;
+        let last = 0;
+        return function () {
+          const now = Date.now();
+          if (now - last < ms) {
+            const msg = "請稍候再按（避免連按太快）";
+            setStatus(msg, "warn");
+            setReaderStatus(msg, "warn");
+            return false;
+          }
+          last = now;
+          return true;
+        };
+      }
+
+      const guardAction = guardFastClick(650);
+
+      function normalizeImportedText(text, name) {
+        let t = String(text || "").replace(/\r/g, "").trim();
+        if (!t) return t;
+        const fname = String(name || "").toLowerCase();
+        const looksCsv = fname.endsWith(".csv") || (
+          t.includes(",") &&
+          t.split("\n").length <= 500 &&
+          !t.includes("http://") &&
+          !t.includes("https://")
+        );
+        if (looksCsv) {
+          const lines = t.split("\n").map((l) => l.trim()).filter(Boolean);
+          const formatted = lines.map((line, i) => {
+            const cells = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
+            if (i === 0 && /代號|名稱|code|name/i.test(line)) {
+              return "【表頭】 " + cells.join(" ｜ ");
+            }
+            return cells.join(" ｜ ");
+          });
+          return formatted.join("\n");
+        }
+        return t;
       }
 
       function refreshSelPreview(cacheKey) {
@@ -599,7 +660,8 @@
       }
 
       function setPages(text, name) {
-        pages = splitPages(text);
+        const normalized = normalizeImportedText(text, name);
+        pages = splitPages(normalized);
         pageIndex = 0;
         sourceName = name || "本次文件";
         btnOpenReader.disabled = !pages.length;
@@ -1048,17 +1110,12 @@
       }
 
       function closeSpeakPopups() {
-        // 讀誦結束：關閉解釋／學習／圖搜／翻譯提示（保留英文後選擇）
-        ["defOverlay", "studyOverlay", "wordPopup", "imgSearchOverlay", "enToZhOverlay"].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.hidden = true;
-        });
-        hideSelBars();
+        // 已不再於讀誦結束自動關閉；保留函式供必要時手動呼叫
       }
 
       function closeTransientPopups() {
         // 暫停／取消：所有跳出視窗都消失
-        ["defOverlay", "enChoiceOverlay", "studyOverlay", "wordPopup", "imgSearchOverlay", "enToZhOverlay"].forEach((id) => {
+        ["defOverlay", "enChoiceOverlay", "studyOverlay", "wordPopup", "imgSearchOverlay", "enToZhOverlay", "pasteOverlay"].forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.hidden = true;
         });
@@ -1074,6 +1131,7 @@
         document.getElementById("defBody").textContent = item.zh || item.enDef || item.text || "（無解釋）";
         document.getElementById("defSource").textContent = item.source ? ("來源：" + item.source) : "";
         overlay.hidden = false;
+        try { overlay.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
         // 同步舊 popup 欄位（備用）
         try {
           document.getElementById("wordHead").textContent = item.word || "";
@@ -1081,7 +1139,7 @@
           document.getElementById("wordZh").textContent = item.zh || "";
         } catch (e) {}
         if (opts.autoSpeak !== false) {
-          speakDefinition(item, { closeAfter: true });
+          speakDefinition(item, { closeAfter: false });
         }
       }
 
@@ -1097,7 +1155,8 @@
         const isEn = /^[A-Za-z]/.test(term) && !/[\u4e00-\u9fff]/.test(term);
         const say = (term ? term + "。" : "") + body;
         speakText(say, () => {
-          if (opts.closeAfter) closeSpeakPopups();
+          if (opts.closeAfter) closeTransientPopups();
+          else setReaderStatus("讀誦完成，解釋視窗保留中", "ok");
         }, isEn ? { lang: "en-US", maxLen: 180, rate: 0.92 } : { lang: "zh-TW", maxLen: 120 });
       }
 
@@ -1336,14 +1395,17 @@
         else bar.classList.remove("show");
       }
 
-      /** iPhone：用 touchend 觸發，避免圈選被清掉 */
+      /** iPhone：用 touchend 觸發，避免圈選被清掉；防連按 */
       function bindSelectionAction(btn, container, cacheKey, onText) {
         if (!btn) return;
         let lastFire = 0;
         const run = (e) => {
           if (e && e.preventDefault) e.preventDefault();
           const now = Date.now();
-          if (now - lastFire < 350) return;
+          if (now - lastFire < 800) {
+            setReaderStatus("請稍候再按（避免連按太快）", "warn");
+            return;
+          }
           lastFire = now;
           captureSelection(container, cacheKey);
           const t = getSelectedTextIn(container, cacheKey);
@@ -1545,7 +1607,7 @@
             document.getElementById("imgSearchSource").textContent = "來源：Gemini 影像描述（" + ai.model + "）＋可再開圖搜引擎";
             document.getElementById("imgSearchMeta").textContent = "已產生影像說明，可讀誦或開圖搜";
             setStatus("已完成影像說明（可圖搜）", "");
-            speakText("圖搜結果。" + aiText, () => closeSpeakPopups(), { lang: "zh-TW" });
+            speakText("圖搜結果。" + aiText, null, { lang: "zh-TW" });
             return;
           }
         } catch (e) {
@@ -1617,7 +1679,7 @@
           openReader();
           setStatus("已完成英文→中文翻譯", "");
           endJob(token);
-          speakText(mode === "both" ? ("中文翻譯如下。" + zh) : zh, () => closeSpeakPopups(), { lang: "zh-TW" });
+          speakText(mode === "both" ? ("中文翻譯如下。" + zh) : zh, null, { lang: "zh-TW" });
         } catch (e) {
           endJob(token, { force: true });
           if (e && (e.cancelled || e.name === "AbortError" || /已取消/.test(e.message || ""))) {
@@ -1735,7 +1797,7 @@
               }
             }
             if (text && text.trim()) {
-              combined += (combined ? "\n\n" : "") + text.trim();
+              combined += (combined ? "\n\n" : "") + normalizeImportedText(text.trim(), file.name);
             }
           }
           throwIfCancelled(token);
@@ -2036,16 +2098,28 @@
         e.target.value = "";
       });
       document.getElementById("btnPaste").addEventListener("click", () => {
-        cancelCurrentJob("改為貼上文字");
-        const t = prompt("貼上要讀誦的文字：", "");
-        if (t && t.trim()) {
-          resetImportedContent();
-          setPages(t, "貼上文字");
-          openReader();
-          setStatus("已貼上文字", "");
-        } else {
-          setStatus("已取消貼上", "warn");
+        if (!guardAction()) return;
+        const ta = document.getElementById("pasteTextArea");
+        if (ta) ta.value = "";
+        document.getElementById("pasteOverlay").hidden = false;
+        setTimeout(() => { if (ta) ta.focus(); }, 200);
+      });
+      document.getElementById("btnPasteCancel").addEventListener("click", () => {
+        document.getElementById("pasteOverlay").hidden = true;
+      });
+      document.getElementById("btnPasteConfirm").addEventListener("click", () => {
+        if (!guardAction()) return;
+        const t = (document.getElementById("pasteTextArea").value || "").trim();
+        if (!t) {
+          setStatus("請先貼上文字", "warn");
+          return;
         }
+        document.getElementById("pasteOverlay").hidden = true;
+        cancelCurrentJob("改為貼上文字");
+        resetImportedContent();
+        setPages(t, "貼上文字");
+        openReader();
+        setStatus("已貼上文字", "");
       });
       document.getElementById("btnCancelInput").addEventListener("click", () => {
         cancelCurrentJob("已取消輸入／處理");
@@ -2117,7 +2191,10 @@
         btn.addEventListener("click", stopSpeak);
       });
 
-      document.getElementById("btnInsight").addEventListener("click", () => buildInsight());
+      document.getElementById("btnInsight").addEventListener("click", () => {
+        if (!guardAction()) return;
+        buildInsight();
+      });
       document.getElementById("btnSpeakInsight").addEventListener("click", speakInsight);
       document.getElementById("btnAddHabits").addEventListener("click", addInsightToHabits);
 
@@ -2140,9 +2217,10 @@
       document.getElementById("btnCloseEnToZh").addEventListener("click", closeEnToZh);
 
       document.getElementById("btnImgSearchSpeak").addEventListener("click", () => {
+        if (!guardAction()) return;
         const t = lastImgSearchText || document.getElementById("imgSearchBody").textContent || "";
         if (!t.trim()) return;
-        speakText(t, () => closeSpeakPopups(), { lang: "zh-TW" });
+        speakText(t, null, { lang: "zh-TW" });
       });
       document.getElementById("btnImgSearchGoogle").addEventListener("click", () => openExternalImageSearch("google"));
       document.getElementById("btnImgSearchBing").addEventListener("click", () => openExternalImageSearch("bing"));
@@ -2155,9 +2233,10 @@
       document.getElementById("btnCloseEnChoice").addEventListener("click", closeEnChoice);
       document.getElementById("btnCloseStudy").addEventListener("click", closeStudy);
       document.getElementById("btnStudySpeak").addEventListener("click", () => {
+        if (!guardAction()) return;
         const text = studySpeakText();
-        if (!text.trim()) { alert("尚無內容可讀誦"); return; }
-        speakText(text, () => closeSpeakPopups(), { lang: "en-US", maxLen: 140, rate: 0.92, pitch: 1 });
+        if (!text.trim()) { setStatus("尚無內容可讀誦", "warn"); return; }
+        speakText(text, null, { lang: "en-US", maxLen: 140, rate: 0.92, pitch: 1 });
       });
       document.getElementById("btnStudySwitchBi").addEventListener("click", () => prepareAndOpenStudy("bilingual"));
       document.getElementById("btnStudySwitchEn").addEventListener("click", () => prepareAndOpenStudy("full-en"));
@@ -2172,7 +2251,7 @@
       bindSelectionAction(document.getElementById("btnSpeakSel"), pageTextEl, "page", (t) => {
         if (!t) { setReaderStatus("請先圈選文字", "warn"); return; }
         const isEn = /^[A-Za-z]/.test(t) && !/[\u4e00-\u9fff]/.test(t);
-        speakText(t, () => closeSpeakPopups(), isEn ? { lang: "en-US" } : { lang: "zh-TW" });
+        speakText(t, () => setReaderStatus("圈選文字讀誦完成", "ok"), isEn ? { lang: "en-US" } : { lang: "zh-TW" });
       });
       document.getElementById("btnClearSel").addEventListener("click", () => {
         try { window.getSelection().removeAllRanges(); } catch (e) {}
@@ -2188,7 +2267,7 @@
       });
       bindSelectionAction(document.getElementById("btnStudySpeakSel"), studyBodyEl, "study", (t) => {
         if (!t) { setStatus("請先圈選文字", "warn"); return; }
-        speakText(t, () => closeSpeakPopups(), { lang: "en-US" });
+        speakText(t, null, { lang: "en-US" });
       });
 
       document.addEventListener("selectionchange", () => {
@@ -2214,8 +2293,9 @@
       });
 
       document.getElementById("btnDefSpeak").addEventListener("click", () => {
+        if (!guardAction()) return;
         if (!lastWord) return;
-        speakDefinition(lastWord, { closeAfter: true });
+        speakDefinition(lastWord, { closeAfter: false });
       });
       document.getElementById("btnCloseDef").addEventListener("click", closeDefWindow);
       document.getElementById("btnDefOpenWeb").addEventListener("click", () => {
@@ -2229,7 +2309,8 @@
         window.open(url, "_blank", "noopener");
       });
       document.getElementById("btnWordSpeak").addEventListener("click", () => {
-        if (lastWord) speakDefinition(lastWord, { closeAfter: true });
+        if (!guardAction()) return;
+        if (lastWord) speakDefinition(lastWord, { closeAfter: false });
       });
       document.getElementById("btnWordClose").addEventListener("click", hideWordPopup);
 
@@ -2240,12 +2321,7 @@
         alert(k ? "已記住金鑰（僅此裝置）" : "已清除本頁金鑰");
       });
 
-      // 讀誦結束 → 解釋／學習視窗消失（暫停／取消則全部跳出視窗消失）
-      if (window.TtsVoices && window.TtsVoices.onSpeakStatus) {
-        window.TtsVoices.onSpeakStatus((st) => {
-          if (st && st.reason === "done") closeSpeakPopups();
-        });
-      }
+      // 讀誦結束不再自動關閉視窗；僅按「暫停／取消讀誦」或「關閉視窗」才關
 
       // preload key
       try {
@@ -2269,7 +2345,7 @@
       }
 
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js?v=8").then((reg) => {
+        navigator.serviceWorker.register("./sw.js?v=9").then((reg) => {
           reg.update().catch(() => {});
         }).catch(() => {});
       }
