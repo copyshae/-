@@ -1,5 +1,5 @@
 /* 每日14樣功課｜離線快取 */
-const CACHE = "daily14-v8";
+const CACHE = "daily14-v10";
 const ASSETS = [
   "./",
   "./index.html",

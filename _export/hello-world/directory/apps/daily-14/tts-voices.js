@@ -1,18 +1,21 @@
 /* 語音讀誦：男聲／女聲多選（habits-7／daily-14／life-desk 共用偏好） */
 (function (global) {
-  const TTS_PREF_KEY = "tts-voice-pref-v2";
-  const TTS_PREF_KEY_LEGACY = "tts-voice-pref-v1";
+  const TTS_PREF_KEY = "tts-voice-pref-v3";
+  const TTS_PREF_KEY_LEGACY = "tts-voice-pref-v2";
+  const TTS_PREF_KEY_LEGACY2 = "tts-voice-pref-v1";
 
-  // 常見中文／系統語音名稱線索
-  const FEMALE_HINT = /female|woman|girl|\bf\b|女|mei[-\s]?jia|ting[-\s]?ting|hsiaochen|hsiaoyu|hsiao[-\s]?chen|hsiao[-\s]?yu|xiaoxiao|xiaoyi|xiaoyan|xiaochen|hanhan|yaoyao|huihui|tracy|susan|linda|karen|zira|jenny|aria|sonia|nanami|kyoko|yuna|heami|meijia|tingting|zhiyu|xiaomeng|xiaoqiu|hannah|catherine|sin[-\s]?ji|hiu[-\s]?maan|xiaomiao|xiaohan|xiaoqiu|晓晓|曉曉|曉雨|美佳|婷婷/i;
-  const MALE_HINT = /male|man|boy|\bm\b|男|yunjhe|yun[-\s]?jhe|yunyang|yunjian|yunjie|yunxi|yunhao|yunye|yuncheng|yunfeng|kangkang|zhiwei|kang|david|mark|danny|guy|ryan|jason|andrew|tony|arthur|brian|li[-\s]?mu|wang|liang|chang|云哲|雲哲|云扬|雲揚|云健|康康|志伟|志偉|晓东|曉東/i;
-  const NICE_FEMALE = [/hsiaochen/i, /mei[-\s]?jia/i, /ting[-\s]?ting/i, /hsiaoyu/i, /xiaoxiao/i, /google/i];
-  const NICE_MALE = [/yunjhe/i, /yunyang/i, /yunjian/i, /yunjie/i, /zhiwei/i, /kangkang/i, /yunxi/i, /google/i];
+  // 常見中文／系統語音名稱線索（男聲線索放寬，避免漏掉真正男聲）
+  const FEMALE_HINT = /female|woman|girl|女聲|女|mei[-\s]?jia|ting[-\s]?ting|hsiaochen|hsiaoyu|hsiao[-\s]?chen|hsiao[-\s]?yu|xiaoxiao|xiaoyi|xiaoyan|xiaochen|hanhan|yaoyao|huihui|tracy|susan|linda|karen|zira|jenny|aria|sonia|nanami|kyoko|yuna|heami|meijia|tingting|zhiyu|xiaomeng|xiaoqiu|hannah|catherine|sin[-\s]?ji|hiu[-\s]?maan|xiaomiao|xiaohan|晓晓|曉曉|曉雨|美佳|婷婷|曉臻|晓萱/i;
+  const MALE_HINT = /male|man|boy|男聲|男|yunjhe|yun[-\s]?jhe|yunyang|yunjian|yunjie|yunxi|yunhao|yunye|yuncheng|yunfeng|kangkang|zhiwei|li[-\s]?mu|云哲|雲哲|云扬|雲揚|云健|雲健|康康|志伟|志偉|晓东|曉東|雲傑|云杰|yunye|hsiaoyu male|taiwanese male|chinese male/i;
+  const NICE_FEMALE = [/hsiaochen/i, /mei[-\s]?jia/i, /ting[-\s]?ting/i, /hsiaoyu/i, /xiaoxiao/i];
+  const NICE_MALE = [/yunjhe/i, /yunyang/i, /yunjian/i, /yunjie/i, /zhiwei/i, /kangkang/i, /yunxi/i, /yunfeng/i];
 
   function loadTtsPref() {
     try {
-      const raw = localStorage.getItem(TTS_PREF_KEY) || localStorage.getItem(TTS_PREF_KEY_LEGACY);
-      if (!raw) return { gender: "F", choiceId: "", voiceURI: "", voiceName: "", pitch: 1 };
+      const raw = localStorage.getItem(TTS_PREF_KEY)
+        || localStorage.getItem(TTS_PREF_KEY_LEGACY)
+        || localStorage.getItem(TTS_PREF_KEY_LEGACY2);
+      if (!raw) return { gender: "F", choiceId: "", voiceURI: "", voiceName: "", pitch: 1, rate: 0.95 };
       const p = JSON.parse(raw);
       const gender = (p.gender === "M" || p.gender === "all") ? p.gender : "F";
       return {
@@ -20,10 +23,11 @@
         choiceId: p.choiceId || "",
         voiceURI: p.voiceURI || "",
         voiceName: p.voiceName || "",
-        pitch: Number(p.pitch) > 0 ? Number(p.pitch) : 1
+        pitch: Number(p.pitch) > 0 ? Number(p.pitch) : 1,
+        rate: Number(p.rate) > 0 ? Number(p.rate) : 0.95
       };
     } catch (e) {
-      return { gender: "F", choiceId: "", voiceURI: "", voiceName: "", pitch: 1 };
+      return { gender: "F", choiceId: "", voiceURI: "", voiceName: "", pitch: 1, rate: 0.95 };
     }
   }
 
@@ -84,11 +88,12 @@
     });
   }
 
-  function makeChoice(id, voice, pitch, gender, label, synthetic) {
+  function makeChoice(id, voice, pitch, gender, label, synthetic, rate) {
     return {
       id: id,
       voice: voice,
       pitch: pitch,
+      rate: (typeof rate === "number" && rate > 0) ? rate : 0.95,
       gender: gender,
       label: label,
       synthetic: !!synthetic
@@ -97,7 +102,7 @@
 
   function nativeLabel(voice) {
     const g = guessGender(voice);
-    const gText = g === "F" ? "女聲" : g === "M" ? "男聲" : "未標示";
+    const gText = g === "F" ? "女聲" : g === "M" ? "男聲（系統原音）" : "未標示";
     const reg = regionLabel(voice);
     return gText + (reg ? "・" + reg : "") + "｜" + voice.name;
   }
@@ -113,36 +118,42 @@
       choices.push(c);
     }
 
-    function addNative(v) {
+    function addNative(v, pitch, rate) {
+      const g = guessGender(v);
       pushChoice(makeChoice(
         "native:" + (v.voiceURI || v.name),
         v,
-        1,
-        guessGender(v),
+        typeof pitch === "number" ? pitch : 1,
+        g,
         nativeLabel(v),
-        false
+        false,
+        typeof rate === "number" ? rate : 0.95
       ));
     }
 
-    function addMaleEffects(bases) {
-      bases.forEach(function (v) {
+    function addMaleModes(bases) {
+      // 多數裝置只有女聲中文音色；用更低 pitch + 稍慢 rate 做「男聲模式」
+      // 並把「明顯低沉」放最前面，作為男聲預設
+      const presets = [
+        { pitch: 0.48, rate: 0.86, tag: "明顯低沉", id: "deep" },
+        { pitch: 0.38, rate: 0.84, tag: "超低沉", id: "deeper" },
+        { pitch: 0.58, rate: 0.88, tag: "沉穩", id: "steady" }
+      ];
+      bases.forEach(function (v, vi) {
+        // 只對前幾支基底做模式，避免清單過長；優先台灣／高分聲音
+        if (vi > 5) return;
         const key = v.voiceURI || v.name;
-        pushChoice(makeChoice(
-          "effect-m:0.72:" + key,
-          v,
-          0.72,
-          "M",
-          "男聲效果・低沉｜" + v.name,
-          true
-        ));
-        pushChoice(makeChoice(
-          "effect-m:0.62:" + key,
-          v,
-          0.62,
-          "M",
-          "男聲效果・更低沉｜" + v.name,
-          true
-        ));
+        presets.forEach(function (p) {
+          pushChoice(makeChoice(
+            "male-mode:" + p.id + ":" + p.pitch + ":" + key,
+            v,
+            p.pitch,
+            "M",
+            "男聲模式・" + p.tag + "｜" + v.name,
+            true,
+            p.rate
+          ));
+        });
       });
     }
 
@@ -155,7 +166,8 @@
           1.12,
           "F",
           "女聲效果・柔和｜" + v.name,
-          true
+          true,
+          0.95
         ));
       });
     }
@@ -163,32 +175,69 @@
     if (!zh.length) return choices;
 
     if (gender === "M") {
-      zh.filter(function (v) { return guessGender(v) === "M"; }).forEach(addNative);
-      zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(addNative);
-      // 多數手機／Safari 沒有真正中文男聲：一定提供男聲效果選項
-      addMaleEffects(zh.slice(0, 10));
+      // 1) 真正系統男聲（原音）
+      zh.filter(function (v) { return guessGender(v) === "M"; }).forEach(function (v) {
+        addNative(v, 1, 0.95);
+      });
+      // 2) 男聲模式（預設主力；不要先塞未標示原音，避免聽起來仍是女聲）
+      addMaleModes(zh);
+      // 3) 未標示原音放最後，並標註可能偏女聲
+      zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(function (v) {
+        pushChoice(makeChoice(
+          "native-u:" + (v.voiceURI || v.name),
+          v,
+          1,
+          "U",
+          "原音（可能偏女聲）｜" + v.name,
+          false,
+          0.95
+        ));
+      });
     } else if (gender === "F") {
-      zh.filter(function (v) { return guessGender(v) === "F"; }).forEach(addNative);
-      zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(addNative);
-      if (!choices.length) zh.forEach(addNative);
+      zh.filter(function (v) { return guessGender(v) === "F"; }).forEach(function (v) { addNative(v); });
+      zh.filter(function (v) { return guessGender(v) === "U"; }).forEach(function (v) { addNative(v); });
+      if (!choices.length) zh.forEach(function (v) { addNative(v); });
       addFemaleEffects(zh.slice(0, 4));
     } else {
-      zh.forEach(addNative);
-      addMaleEffects(zh.slice(0, 6));
+      zh.forEach(function (v) { addNative(v); });
+      addMaleModes(zh.slice(0, 4));
       addFemaleEffects(zh.slice(0, 4));
     }
 
     return choices;
   }
 
+  function isWeakMaleChoice(c) {
+    // 舊版可能存到女聲／未標示原音，在男聲偏好下應改走男聲模式
+    if (!c) return true;
+    if (c.synthetic && c.gender === "M") return false;
+    if (!c.synthetic && guessGender(c.voice) === "M") return false;
+    return true;
+  }
+
   function resolveSelectedChoice() {
     const pref = loadTtsPref();
     const list = listVoiceChoices(pref.gender);
     if (!list.length) return null;
+
     if (pref.choiceId) {
       const byId = list.find(function (c) { return c.id === pref.choiceId; });
-      if (byId) return byId;
+      if (byId) {
+        if (pref.gender === "M" && isWeakMaleChoice(byId)) {
+          // fall through to better male default
+        } else {
+          return byId;
+        }
+      }
     }
+
+    if (pref.gender === "M") {
+      return list.find(function (c) { return c.gender === "M" && !c.synthetic; })
+        || list.find(function (c) { return c.synthetic && c.gender === "M" && /明顯低沉/.test(c.label); })
+        || list.find(function (c) { return c.synthetic && c.gender === "M"; })
+        || list[0];
+    }
+
     if (pref.voiceURI || pref.voiceName) {
       const byVoice = list.find(function (c) {
         return (!c.synthetic) && (
@@ -197,12 +246,6 @@
         );
       });
       if (byVoice) return byVoice;
-    }
-    // 男聲偏好：優先真正男聲，否則第一個男聲效果
-    if (pref.gender === "M") {
-      return list.find(function (c) { return c.gender === "M" && !c.synthetic; })
-        || list.find(function (c) { return c.synthetic && c.gender === "M"; })
-        || list[0];
     }
     return list[0];
   }
@@ -213,17 +256,25 @@
   }
 
   function getSpeakSettings() {
+    const pref = loadTtsPref();
     const c = resolveSelectedChoice();
     if (!c) {
-      return { voice: null, pitch: 1, rate: 0.95, lang: "zh-TW" };
+      return { voice: null, pitch: pref.gender === "M" ? 0.48 : 1, rate: pref.gender === "M" ? 0.86 : 0.95, lang: "zh-TW" };
+    }
+    let pitch = (typeof c.pitch === "number") ? c.pitch : 1;
+    let rate = (typeof c.rate === "number") ? c.rate : 0.95;
+    // 男聲偏好卻選到非男聲原音時，強制套用低沉男聲模式參數
+    if (pref.gender === "M" && isWeakMaleChoice(c)) {
+      pitch = 0.48;
+      rate = 0.86;
     }
     return {
       voice: c.voice,
-      pitch: c.pitch || 1,
-      rate: 0.95,
+      pitch: pitch,
+      rate: rate,
       lang: (c.voice && c.voice.lang) || "zh-TW",
       label: c.label,
-      synthetic: c.synthetic
+      synthetic: c.synthetic || (pref.gender === "M" && isWeakMaleChoice(c))
     };
   }
 
@@ -232,11 +283,11 @@
     if (!hint) return;
     const realMale = (choices || []).some(function (c) { return c.gender === "M" && !c.synthetic; });
     if (gender === "M" && !realMale) {
-      hint.textContent = "此裝置沒有系統中文男聲，已提供「男聲效果・低沉」選項（以較低音調模擬）。可按試聽比較。";
+      hint.textContent = "此裝置多半沒有真正中文男聲音色。請選「男聲模式・明顯低沉／超低沉」並按試聽；電腦用 Edge 較容易有系統男聲（如 YunJhe）。";
     } else if (gender === "M") {
-      hint.textContent = "已列出系統男聲；若想更低沉，也可選「男聲效果」。選擇會記在本機，與此站其他 App 共用。";
+      hint.textContent = "已找到系統男聲原音。若仍偏尖，可改選「男聲模式・明顯低沉」。";
     } else {
-      hint.textContent = "可選多種男聲／女聲；若裝置缺少某性別，會提供音調效果選項。選擇會記在本機共用。";
+      hint.textContent = "可選多種男聲／女聲。選男聲時請選「男聲模式」才會明顯低沉。";
     }
   }
 
@@ -278,7 +329,8 @@
       choiceId: chosen ? chosen.id : "",
       voiceURI: chosen && chosen.voice ? (chosen.voice.voiceURI || "") : "",
       voiceName: chosen && chosen.voice ? chosen.voice.name : "",
-      pitch: chosen ? chosen.pitch : 1
+      pitch: chosen ? chosen.pitch : 1,
+      rate: chosen ? chosen.rate : 0.95
     });
   }
 
@@ -289,13 +341,15 @@
     if (!genderEl || !voiceEl) return;
 
     genderEl.addEventListener("change", function () {
-      const pref = loadTtsPref();
-      pref.gender = genderEl.value;
-      pref.choiceId = "";
-      pref.voiceURI = "";
-      pref.voiceName = "";
-      pref.pitch = 1;
-      saveTtsPref(pref);
+      // 切到男聲時清掉舊的女聲原音偏好，改走男聲模式預設
+      saveTtsPref({
+        gender: genderEl.value,
+        choiceId: "",
+        voiceURI: "",
+        voiceName: "",
+        pitch: genderEl.value === "M" ? 0.48 : 1,
+        rate: genderEl.value === "M" ? 0.86 : 0.95
+      });
       fillVoiceSelectors();
       applyFromUI();
     });
@@ -305,13 +359,12 @@
       previewBtn.addEventListener("click", function () {
         applyFromUI();
         const settings = getSpeakSettings();
-        const text = settings.synthetic
-          ? "您好，這是男聲效果讀誦。以身心靈提升、靈命持續成長為首要。"
-          : "您好，這是目前選擇的讀誦聲音。以身心靈提升、靈命持續成長為首要。";
-        // 若選女聲效果，文案微調
-        const say = (settings.synthetic && settings.pitch > 1)
-          ? "您好，這是女聲效果讀誦。以身心靈提升、靈命持續成長為首要。"
-          : text;
+        let say = "您好，這是目前選擇的讀誦聲音。以身心靈提升、靈命持續成長為首要。";
+        if (settings.synthetic && settings.pitch < 1) {
+          say = "您好，這是男聲模式讀誦。以身心靈提升、靈命持續成長為首要。";
+        } else if (settings.synthetic && settings.pitch > 1) {
+          say = "您好，這是女聲效果讀誦。以身心靈提升、靈命持續成長為首要。";
+        }
         if (options && typeof options.speak === "function") options.speak(say);
         else if (typeof global.speakText === "function") global.speakText(say);
       });
