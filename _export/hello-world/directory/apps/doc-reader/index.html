@@ -77,7 +77,19 @@
       background: #fff; border: 1px solid var(--line);
       padding: 0.75rem; min-height: 10rem; max-height: 40vh; overflow: auto;
       font-size: 1rem; line-height: 1.7;
+      -webkit-user-select: text; user-select: text;
     }
+    .sel-preview {
+      font-size: 0.85rem; color: var(--ok); font-weight: 700;
+      margin: 0.35rem 0; padding: 0.45rem 0.55rem;
+      background: rgba(14,122,76,0.1); border: 1px solid rgba(14,122,76,0.25);
+      border-radius: 0.25rem;
+    }
+    .sel-preview[hidden] { display: none !important; }
+    .reader-status { font-size: 0.85rem; font-weight: 700; min-height: 1.2rem; margin: 0.25rem 0; }
+    .reader-status.warn { color: var(--warn); }
+    .reader-status.err { color: var(--danger); }
+    .reader-status.ok { color: var(--ok); }
     .insight-box {
       margin-top: 0.65rem; background: #fff; border: 1px solid var(--line); padding: 0.7rem;
     }
@@ -228,8 +240,10 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
       <h3 id="readerTitle">文件讀誦視窗</h3>
       <p class="page-meta" id="pageMeta">第 0／0 頁</p>
-      <p class="hint">圈選中文 → 按「查解釋」（iPhone 請先圈選再按，系統會記住圈選內容）</p>
+      <p class="hint">① 長按拖曳圈選　② 看到下方綠色「已記住圈選」　③ 再按「查解釋」</p>
       <div class="page-text" id="pageText" aria-live="polite"></div>
+      <p class="sel-preview" id="selPreview" hidden></p>
+      <p class="reader-status" id="readerStatus"></p>
       <div class="sel-bar" id="selBar">
         <button type="button" class="primary" id="btnLookupSel">🔍 查解釋（跳出視窗）</button>
         <button type="button" id="btnSpeakSel">🔊 先讀圈選</button>
@@ -287,6 +301,7 @@
       <p class="page-meta" id="studyMeta"></p>
       <p class="hint">點擊藍色底線的英文單字，或圈選中文詞句 →「查解釋」跳出視窗並可讀誦。讀誦可隨時暫停／取消。</p>
       <div id="studyBody" class="study-text"></div>
+      <p class="sel-preview" id="studySelPreview" hidden></p>
       <div class="sel-bar" id="studySelBar">
         <button type="button" class="primary" id="btnStudyLookupSel">🔍 查解釋（跳出視窗）</button>
         <button type="button" id="btnStudySpeakSel">🔊 先讀圈選</button>
@@ -414,6 +429,28 @@
       function setStatus(msg, kind) {
         loadStatus.textContent = msg || "";
         loadStatus.className = "status" + (kind ? " " + kind : "");
+      }
+
+      function setReaderStatus(msg, kind) {
+        const el = document.getElementById("readerStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "reader-status" + (kind ? " " + kind : "");
+      }
+
+      function refreshSelPreview(cacheKey) {
+        const t = selectionCache[cacheKey] || "";
+        const el = cacheKey === "page"
+          ? document.getElementById("selPreview")
+          : document.getElementById("studySelPreview");
+        if (!el) return;
+        if (t) {
+          el.hidden = false;
+          el.textContent = "已記住圈選：「" + t + "」→ 可按「查解釋」";
+        } else {
+          el.hidden = true;
+          el.textContent = "";
+        }
       }
 
       function syncCancelButtons() {
@@ -1220,16 +1257,49 @@
       }
 
       function captureSelection(container, cacheKey) {
-        if (!container || !cacheKey) return;
+        if (!cacheKey) return;
         const sel = window.getSelection && window.getSelection();
         if (!sel || sel.rangeCount < 1) return;
         const text = String(sel.toString() || "").replace(/\s+/g, " ").trim();
         if (!text) return;
-        const anchorOk = nodeInContainer(sel.anchorNode, container);
-        const focusOk = nodeInContainer(sel.focusNode, container);
-        if (!anchorOk && !focusOk) return;
+
+        let ok = false;
+        if (container) {
+          ok = nodeInContainer(sel.anchorNode, container) || nodeInContainer(sel.focusNode, container);
+        }
+        // iPhone：圈選節點有時掛在 overlay 上，放寬到整個閱讀視窗
+        if (!ok && cacheKey === "page") {
+          const sheet = document.querySelector("#readerOverlay .sheet");
+          if (sheet) {
+            ok = nodeInContainer(sel.anchorNode, sheet) || nodeInContainer(sel.focusNode, sheet);
+          }
+        }
+        if (!ok && cacheKey === "study") {
+          const sheet = document.querySelector("#studyOverlay .sheet");
+          if (sheet) {
+            ok = nodeInContainer(sel.anchorNode, sheet) || nodeInContainer(sel.focusNode, sheet);
+          }
+        }
+        if (!ok) return;
+
         selectionCache[cacheKey] = text.slice(0, 80);
         selectionCache.ts = Date.now();
+        refreshSelPreview(cacheKey);
+        updateSelBarOnly(cacheKey);
+      }
+
+      function scheduleCapture(container, cacheKey) {
+        captureSelection(container, cacheKey);
+        [80, 200, 450].forEach((ms) => {
+          setTimeout(() => captureSelection(container, cacheKey), ms);
+        });
+      }
+
+      function updateSelBarOnly(cacheKey) {
+        const barId = cacheKey === "page" ? "selBar" : "studySelBar";
+        const bar = document.getElementById(barId);
+        if (!bar) return;
+        if (selectionCache[cacheKey]) bar.classList.add("show");
       }
 
       function getSelectedTextIn(el, cacheKey) {
@@ -1239,11 +1309,12 @@
           text = String(sel.toString() || "").replace(/\s+/g, " ").trim();
           if (text && el) {
             const inEl = nodeInContainer(sel.anchorNode, el) || nodeInContainer(sel.focusNode, el);
-            if (!inEl) text = "";
+            const sheet = el.closest && el.closest(".sheet");
+            const inSheet = sheet && (nodeInContainer(sel.anchorNode, sheet) || nodeInContainer(sel.focusNode, sheet));
+            if (!inEl && !inSheet) text = "";
           }
         }
-        // iOS Safari：按鈕點擊時圈選常已消失，改用快取（2 分鐘內有效）
-        if (!text && cacheKey && selectionCache[cacheKey] && (Date.now() - selectionCache.ts) < 120000) {
+        if (!text && cacheKey && selectionCache[cacheKey] && (Date.now() - selectionCache.ts) < 300000) {
           text = selectionCache[cacheKey];
         }
         return text.slice(0, 80);
@@ -1257,40 +1328,43 @@
       }
 
       function updateSelBar(barId, container, cacheKey) {
+        captureSelection(container, cacheKey);
         const bar = document.getElementById(barId);
         if (!bar) return;
-        captureSelection(container, cacheKey);
         const t = getSelectedTextIn(container, cacheKey);
         if (t) bar.classList.add("show");
         else bar.classList.remove("show");
       }
 
-      /** 查解釋按鈕：mousedown/touchstart 先保留圈選（iPhone 必備） */
+      /** iPhone：用 touchend 觸發，避免圈選被清掉 */
       function bindSelectionAction(btn, container, cacheKey, onText) {
         if (!btn) return;
-        const keep = (e) => {
-          captureSelection(container, cacheKey);
-          // 避免按鈕搶焦點導致圈選被清
+        let lastFire = 0;
+        const run = (e) => {
           if (e && e.preventDefault) e.preventDefault();
-        };
-        btn.addEventListener("mousedown", keep);
-        btn.addEventListener("touchstart", keep, { passive: false });
-        btn.addEventListener("click", () => {
+          const now = Date.now();
+          if (now - lastFire < 350) return;
+          lastFire = now;
           captureSelection(container, cacheKey);
           const t = getSelectedTextIn(container, cacheKey);
           onText(t);
-        });
+        };
+        btn.addEventListener("mousedown", run);
+        btn.addEventListener("touchend", run, { passive: false });
+        btn.addEventListener("click", run);
       }
 
       async function lookupSelectionFrom(container, cacheKey) {
+        captureSelection(container, cacheKey);
         const t = getSelectedTextIn(container, cacheKey);
         if (!t) {
-          setStatus("請先圈選生字或詞句，再按「查解釋」", "warn");
+          setReaderStatus("請先長按圈選文字，看到綠色「已記住圈選」後再按查解釋", "warn");
           return;
         }
         selectionCache[cacheKey] = t;
         selectionCache.ts = Date.now();
-        setStatus("查詢：「" + t + "」…", "warn");
+        refreshSelPreview(cacheKey);
+        setReaderStatus("查詢：「" + t + "」…", "warn");
         document.getElementById("defOverlay").hidden = false;
         document.getElementById("defTerm").textContent = "詞句：" + t;
         document.getElementById("defPhon").textContent = "";
@@ -1303,10 +1377,10 @@
           if (!item) throw new Error("查無資料");
           if (!item.zh && item.enDef) item.zh = item.enDef;
           openDefWindow(item, { autoSpeak: true });
-          setStatus("已跳出解釋視窗", "");
+          setReaderStatus("已跳出解釋視窗", "ok");
         } catch (e) {
           document.getElementById("defBody").textContent = "查詢失敗：" + (e.message || e);
-          setStatus("查詢失敗", "err");
+          setReaderStatus("查詢失敗", "err");
         }
       }
 
@@ -2092,18 +2166,21 @@
       const studyBodyEl = document.getElementById("studyBody");
 
       bindSelectionAction(document.getElementById("btnLookupSel"), pageTextEl, "page", (t) => {
-        if (!t) { setStatus("請先圈選生字或詞句", "warn"); return; }
+        if (!t) { setReaderStatus("請先圈選，等綠色「已記住圈選」出現", "warn"); return; }
         lookupSelectionFrom(pageTextEl, "page");
       });
       bindSelectionAction(document.getElementById("btnSpeakSel"), pageTextEl, "page", (t) => {
-        if (!t) { setStatus("請先圈選文字", "warn"); return; }
+        if (!t) { setReaderStatus("請先圈選文字", "warn"); return; }
         const isEn = /^[A-Za-z]/.test(t) && !/[\u4e00-\u9fff]/.test(t);
         speakText(t, () => closeSpeakPopups(), isEn ? { lang: "en-US" } : { lang: "zh-TW" });
       });
       document.getElementById("btnClearSel").addEventListener("click", () => {
         try { window.getSelection().removeAllRanges(); } catch (e) {}
         selectionCache.page = "";
+        selectionCache.ts = 0;
+        refreshSelPreview("page");
         hideSelBars();
+        setReaderStatus("已取消圈選", "");
       });
       bindSelectionAction(document.getElementById("btnStudyLookupSel"), studyBodyEl, "study", (t) => {
         if (!t) { setStatus("請先圈選生字或詞句", "warn"); return; }
@@ -2116,29 +2193,21 @@
 
       document.addEventListener("selectionchange", () => {
         if (pageTextEl && !document.getElementById("readerOverlay").hidden) {
-          captureSelection(pageTextEl, "page");
+          scheduleCapture(pageTextEl, "page");
         }
         if (studyBodyEl && !document.getElementById("studyOverlay").hidden) {
-          captureSelection(studyBodyEl, "study");
+          scheduleCapture(studyBodyEl, "study");
         }
       });
 
-      pageTextEl.addEventListener("mouseup", () => {
-        updateSelBar("selBar", pageTextEl, "page");
-      });
-      pageTextEl.addEventListener("touchend", () => {
-        setTimeout(() => updateSelBar("selBar", pageTextEl, "page"), 80);
-      });
+      pageTextEl.addEventListener("mouseup", () => scheduleCapture(pageTextEl, "page"));
+      pageTextEl.addEventListener("touchend", () => scheduleCapture(pageTextEl, "page"));
       pageTextEl.addEventListener("click", (e) => {
         const w = e.target && e.target.closest && e.target.closest("[data-word]");
         if (w && w.getAttribute("data-word")) onWordClick(w.getAttribute("data-word"));
       });
-      studyBodyEl.addEventListener("mouseup", () => {
-        updateSelBar("studySelBar", studyBodyEl, "study");
-      });
-      studyBodyEl.addEventListener("touchend", () => {
-        setTimeout(() => updateSelBar("studySelBar", studyBodyEl, "study"), 80);
-      });
+      studyBodyEl.addEventListener("mouseup", () => scheduleCapture(studyBodyEl, "study"));
+      studyBodyEl.addEventListener("touchend", () => scheduleCapture(studyBodyEl, "study"));
       studyBodyEl.addEventListener("click", (e) => {
         const w = e.target && e.target.closest && e.target.closest("[data-word]");
         if (w && w.getAttribute("data-word")) onWordClick(w.getAttribute("data-word"));
@@ -2200,7 +2269,9 @@
       }
 
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
+        navigator.serviceWorker.register("./sw.js?v=8").then((reg) => {
+          reg.update().catch(() => {});
+        }).catch(() => {});
       }
     })();
   </script>
