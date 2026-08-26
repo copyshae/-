@@ -96,7 +96,7 @@
 <body>
   <div class="wrap">
     <h1>看書／看文件</h1>
-    <p class="sub">首要：身心靈提升｜靈命持續成長<br />拍照或上傳 → 讀成文字 → 逐頁讀誦 → 結露重點與建議</p>
+    <p class="sub">首要：身心靈提升｜靈命持續成長<br />拍照或上傳 → 讀成文字 → 逐頁讀誦 → 節錄重點與建議</p>
 
     <div class="card">
       <h2>1. 匯入文件</h2>
@@ -134,7 +134,7 @@
 
     <div class="card">
       <h2>3. 可選：AI 加強摘要</h2>
-      <p class="hint">未填金鑰也會用本機規則結露重點。若此裝置曾在「習作批改」存過 Gemini 金鑰，可自動帶入。</p>
+      <p class="hint">未填金鑰也會用本機規則節錄重點。若此裝置曾在「習作批改」存過 Gemini 金鑰，可自動帶入。</p>
       <label for="geminiKey">Gemini 金鑰（選填）</label>
       <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（選填）" />
       <div class="actions">
@@ -148,7 +148,7 @@
         <button type="button" class="primary" id="btnOpenReader" disabled>打開文字視窗</button>
         <button type="button" id="btnClear">清除本次內容</button>
       </div>
-      <p class="hint">打開後可：上一頁／下一頁、念本頁、連續逐頁念、暫停、取消；聽完或看完可「結露重點」。</p>
+      <p class="hint">打開後可：上一頁／下一頁、念本頁、連續逐頁念、暫停、取消；聽完或看完會節錄：身心靈、數學課程、衛生組、其他貢獻／建議。</p>
     </div>
 
     <footer>
@@ -175,12 +175,14 @@
         <button type="button" data-tts-stop id="btnStop">取消讀誦</button>
       </div>
       <div class="actions">
-        <button type="button" class="primary" id="btnInsight">✨ 結露重點與建議</button>
+        <button type="button" class="primary" id="btnInsight">✨ 看完／聽完・節錄重點與建議</button>
+        <button type="button" id="btnSpeakInsight" disabled>🔊 念節錄</button>
         <button type="button" id="btnAddHabits">疊加建議到七習慣今日紀錄</button>
         <button type="button" id="btnCloseReader">關閉視窗</button>
       </div>
       <div class="insight-box" id="insightBox" hidden>
-        <h4>結露重點</h4>
+        <h4>節錄重點｜對你四個面向的貢獻與建議</h4>
+        <p class="hint">①身心靈／靈命　②數學課程　③衛生組工作　④其他可行動</p>
         <div id="insightContent"></div>
       </div>
     </div>
@@ -274,6 +276,8 @@
         }
         document.getElementById("readerOverlay").hidden = false;
         document.getElementById("insightBox").hidden = true;
+        const speakBtn = document.getElementById("btnSpeakInsight");
+        if (speakBtn) speakBtn.disabled = true;
         renderPage();
       }
 
@@ -331,7 +335,8 @@
             setTimeout(() => speakCurrentPage(true), 400);
           } else {
             continuous = false;
-            setStatus("已逐頁念完，可按「結露重點與建議」", "");
+            setStatus("已逐頁念完，正在節錄重點與建議…", "warn");
+            buildInsight({ autoSpeak: false, fromListen: true });
           }
         });
       }
@@ -442,10 +447,10 @@
         }
       }
 
-      // —— Insight / 結露重點 ——
-      const SPIRIT_WORDS = ["靈命", "身心靈", "感恩", "轉念", "去我", "懺悔", "祈禱", "靜心", "慈悲", "愛", "平安", "信心", "修行", "弟子規", "富有", "太陽心法", "參悟", "渡人", "共修"];
-      const MATH_WORDS = ["數學", "方程式", "分數", "整數", "坐標", "幾何", "統計", "康軒", "習作", "段考", "解題", "證明", "函數", "比例", "因式"];
-      const HYGIENE_WORDS = ["衛生", "掃具", "整潔", "清潔", "消毒", "防疫", "班級", "環境", "垃圾桶", "洗手", "保健", "巡查"];
+      // —— Insight / 節錄重點 ——
+      const SPIRIT_WORDS = ["靈命", "身心靈", "感恩", "轉念", "去我", "懺悔", "祈禱", "靜心", "慈悲", "愛", "平安", "信心", "修行", "弟子規", "富有", "太陽心法", "參悟", "渡人", "共修", "祝福", "寬恕", "謙卑"];
+      const MATH_WORDS = ["數學", "方程式", "分數", "整數", "坐標", "幾何", "統計", "康軒", "習作", "段考", "解題", "證明", "函數", "比例", "因式", "代數", "圖形", "面積", "體積"];
+      const HYGIENE_WORDS = ["衛生", "掃具", "整潔", "清潔", "消毒", "防疫", "班級", "環境", "垃圾桶", "洗手", "保健", "巡查", "垃圾", "廁所", "安全"];
 
       function pickSentences(text) {
         return String(text || "")
@@ -483,30 +488,33 @@
           other: []
         };
 
-        advice.spirit.push("以「身心靈提升、靈命持續成長」為首要：讀後選 1 句最觸動的話，寫進今日心得或秒秒轉念。");
+        advice.spirit.push("【貢獻】把吸收轉成「身心靈提升｜靈命持續成長」：選 1 句最觸動的話，寫入今日心得或秒秒轉念。");
         if (spiritHits.length) {
-          advice.spirit.push("可把文中靈命相關句，排入今日14樣（寫心得／轉念／去我）其中一項落實。");
+          advice.spirit.push("【建議】把文中靈命相關句，排入今日14樣（寫心得／轉念／去我）其中一項，當天落實。");
+          advice.spirit.push("【建議】睡前用 1 分鐘複誦那句話，讓靈命更新 overnight。");
         } else {
-          advice.spirit.push("本文靈命關鍵較少：讀後仍做 3 分鐘靜心或聽「富有／注入彩虹」，把吸收轉成更新。");
+          advice.spirit.push("【建議】本文靈命關鍵較少：仍做 3 分鐘靜心或聽「富有／注入彩虹」，把吸收轉成更新。");
         }
 
         if (mathHits.length) {
-          advice.math.push("把文中數學概念對應到明天課堂：用「以終為始」先定學習目標，再設計 1 個學生可說清楚的例子。");
-          advice.math.push("建議做成小任務：找出易錯點 → 出 2 題精準練習 → 課末代回檢查（要事第一）。");
+          advice.math.push("【貢獻】文中數學概念可對應明天課堂：用「以終為始」先定學習目標，再設計 1 個學生能說清楚的例子。");
+          advice.math.push("【建議】小任務：找出易錯點 → 出 2 題精準練習 → 課末代回檢查（要事第一）。");
         } else {
-          advice.math.push("若此文非數學：仍可練「知彼解己」——問學生哪裡卡住，再決定明天例題。");
+          advice.math.push("【建議】若此文非數學：仍可練「知彼解己」——問學生哪裡卡住，再決定明天例題或分組互助。");
+          advice.math.push("【建議】把「讀完→摘要→行動」流程示範給學生，當後設認知（學習如何學習）。");
         }
 
         if (hygieneHits.length) {
-          advice.hygiene.push("把文中整潔／衛生要點轉成可巡查清單：人（誰負責）、時（何時）、地（何處）、物（掃具）。");
-          advice.hygiene.push("建議今天做一項「重要且緊急」：確認一處掃具櫃或班級整潔死角並拍照存證。");
+          advice.hygiene.push("【貢獻】文中整潔／衛生要點可轉成巡查清單：人（誰負責）、時（何時）、地（何處）、物（掃具）。");
+          advice.hygiene.push("【建議】今天做一項 Q1：確認一處掃具櫃或班級整潔死角，並拍照／備忘存證。");
         } else {
-          advice.hygiene.push("雖非衛生專文，可用「營造」心態：讀後整理桌面／教室一角 5 分鐘，讓環境服務身心。");
+          advice.hygiene.push("【建議】雖非衛生專文，可用「營造」：讀後整理桌面／教室一角 5 分鐘，讓環境服務身心。");
+          advice.hygiene.push("【建議】檢查本週衛生組待辦是否有「重要但不緊急」可提前做（預防勝於救火）。");
         }
 
-        advice.other.push("收工：用一句話總結「我學到什麼、我明天要做什麼」，並可匯出／疊加到七習慣今日紀錄。");
+        advice.other.push("【建議】收工一句話：「我學到什麼、我明天要做什麼」，並可疊加到七習慣今日紀錄。");
         if (overview.length) {
-          advice.other.push("可分享給同仁或學生的一句話：" + overview[0].slice(0, 40));
+          advice.other.push("【可分享】給同仁或學生的一句話：" + overview[0].slice(0, 48));
         }
 
         return {
@@ -520,9 +528,9 @@
       async function geminiInsight(fullText, apiKey) {
         const prompt =
           "你是一位同時關注身心靈成長、國中數學教學、校園衛生組工作的顧問。\n" +
-          "請依下文「結露重點」，用繁體中文條列，結構必須包含：\n" +
+          "使用者剛看完或聽完一段文字，請「節錄重點」，用繁體中文條列，結構必須包含：\n" +
           "1) 文意摘要（3點）\n" +
-          "2) 對身心靈／靈命成長的貢獻與建議（3點）\n" +
+          "2) 對身心靈／靈命成長的貢獻與建議（3點；標【貢獻】或【建議】）\n" +
           "3) 對數學課程教學的貢獻與建議（2-3點；若無關請給可遷移的教學建議）\n" +
           "4) 對衛生組工作的貢獻與建議（2-3點；若無關請給環境／服務面建議）\n" +
           "5) 其他可立即行動的一小步（2點）\n" +
@@ -561,21 +569,24 @@
         const el = document.getElementById("insightContent");
         lastInsight = insight;
         box.hidden = false;
+        const speakBtn = document.getElementById("btnSpeakInsight");
+        if (speakBtn) speakBtn.disabled = false;
         if (insight.source === "gemini") {
           el.innerHTML = `<p class="hint">來源：Gemini（${insight.model || ""}）</p><pre style="white-space:pre-wrap;font:inherit;">${escapeHtml(insight.text)}</pre>`;
-          return;
+        } else {
+          const a = insight.advice;
+          el.innerHTML =
+            `<p class="hint">來源：本機節錄（可再搭配 Gemini 加強）</p>` +
+            sectionHtml("文意摘要", insight.overview) +
+            sectionHtml("文中與身心靈相關（節錄句）", insight.quotes.spirit) +
+            sectionHtml("文中與數學相關（節錄句）", insight.quotes.math) +
+            sectionHtml("文中與衛生相關（節錄句）", insight.quotes.hygiene) +
+            sectionHtml("① 身心靈／靈命｜貢獻與建議", a.spirit) +
+            sectionHtml("② 數學課程｜貢獻與建議", a.math) +
+            sectionHtml("③ 衛生組工作｜貢獻與建議", a.hygiene) +
+            sectionHtml("④ 其他方面｜可立即行動", a.other);
         }
-        const a = insight.advice;
-        el.innerHTML =
-          `<p class="hint">來源：本機結露（可再搭配 Gemini）</p>` +
-          sectionHtml("文意摘要", insight.overview) +
-          sectionHtml("文中與身心靈相關", insight.quotes.spirit) +
-          sectionHtml("文中與數學相關", insight.quotes.math) +
-          sectionHtml("文中與衛生相關", insight.quotes.hygiene) +
-          sectionHtml("身心靈／靈命建議", a.spirit) +
-          sectionHtml("數學課程建議", a.math) +
-          sectionHtml("衛生組工作建議", a.hygiene) +
-          sectionHtml("其他可行動", a.other);
+        try { box.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
       }
 
       function sectionHtml(title, lines) {
@@ -591,44 +602,74 @@
           .replace(/"/g, "&quot;");
       }
 
-      async function buildInsight() {
+      function insightToSpeakText(insight) {
+        if (!insight) return "";
+        if (insight.source === "gemini") {
+          return "節錄重點與建議。" + String(insight.text || "").replace(/\s+/g, " ").slice(0, 1800);
+        }
+        const a = insight.advice || {};
+        const parts = ["節錄重點與建議。"];
+        if (insight.overview && insight.overview.length) {
+          parts.push("文意摘要：" + insight.overview.join("；"));
+        }
+        parts.push("身心靈與靈命：" + (a.spirit || []).join("；"));
+        parts.push("數學課程：" + (a.math || []).join("；"));
+        parts.push("衛生組工作：" + (a.hygiene || []).join("；"));
+        parts.push("其他：" + (a.other || []).join("；"));
+        return parts.filter(Boolean).join("。");
+      }
+
+      function speakInsight() {
+        if (!lastInsight) {
+          alert("請先按「節錄重點與建議」");
+          return;
+        }
+        continuous = false;
+        speakText(insightToSpeakText(lastInsight));
+      }
+
+      async function buildInsight(opts) {
+        opts = opts || {};
         if (!pages.length) {
           alert("尚無文件內容");
           return;
         }
         const full = pages.join("\n");
-        setStatus("正在結露重點…", "warn");
+        setStatus(opts.fromListen ? "聽完了，正在節錄重點…" : "正在節錄重點…", "warn");
         const local = localInsight(full);
         const key = (document.getElementById("geminiKey").value || "").trim() || localStorage.getItem(DOC_KEY) || localStorage.getItem(GEMINI_KEY) || "";
         if (key) {
           try {
             const g = await geminiInsight(full, key);
             renderInsight(g);
-            setStatus("已用 Gemini 結露重點", "");
+            setStatus(opts.fromListen ? "已聽完並用 Gemini 節錄重點" : "已用 Gemini 節錄重點", "");
+            if (opts.autoSpeak) speakInsight();
             return;
           } catch (e) {
             console.warn(e);
             renderInsight(local);
-            setStatus("Gemini 失敗，已改用本機結露：" + (e.message || e), "warn");
+            setStatus("Gemini 失敗，已改用本機節錄：" + (e.message || e), "warn");
+            if (opts.autoSpeak) speakInsight();
             return;
           }
         }
         renderInsight(local);
-        setStatus("已完成本機結露重點", "");
+        setStatus(opts.fromListen ? "已聽完並完成本機節錄重點" : "已完成本機節錄重點", "");
+        if (opts.autoSpeak) speakInsight();
       }
 
       function addInsightToHabits() {
         if (!lastInsight) {
-          alert("請先按「結露重點與建議」");
+          alert("請先按「節錄重點與建議」");
           return;
         }
         let text = "";
         if (lastInsight.source === "gemini") {
-          text = "【看書文件結露】" + String(lastInsight.text || "").replace(/\s+/g, " ").slice(0, 280);
+          text = "【看書文件節錄】" + String(lastInsight.text || "").replace(/\s+/g, " ").slice(0, 280);
         } else {
           const a = lastInsight.advice || {};
           const bits = [].concat(a.spirit || [], a.math || [], a.hygiene || [], a.other || []).slice(0, 4);
-          text = "【看書文件結露｜靈命為首】" + bits.join("／");
+          text = "【看書文件節錄｜靈命為首】" + bits.join("／");
         }
         try {
           const raw = localStorage.getItem(HABITS_KEY);
@@ -684,6 +725,8 @@
         thumbRow.innerHTML = "";
         btnOpenReader.disabled = true;
         document.getElementById("insightBox").hidden = true;
+        const speakBtn = document.getElementById("btnSpeakInsight");
+        if (speakBtn) speakBtn.disabled = true;
         setStatus("已清除", "");
       });
       document.getElementById("btnCloseReader").addEventListener("click", closeReader);
@@ -703,7 +746,8 @@
       });
       document.getElementById("btnPause").addEventListener("click", pauseSpeak);
       document.getElementById("btnStop").addEventListener("click", stopSpeak);
-      document.getElementById("btnInsight").addEventListener("click", buildInsight);
+      document.getElementById("btnInsight").addEventListener("click", () => buildInsight());
+      document.getElementById("btnSpeakInsight").addEventListener("click", speakInsight);
       document.getElementById("btnAddHabits").addEventListener("click", addInsightToHabits);
 
       document.getElementById("btnSaveKey").addEventListener("click", () => {
