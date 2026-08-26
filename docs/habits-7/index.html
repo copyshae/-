@@ -1025,8 +1025,8 @@
       }
       const script = buildTodaySpeechScript(items);
       speakText(script);
-      flashSave("saveFlash", `開始完整讀誦今日 ${items.length} 筆（含全部建議；可暫停／取消）`);
-      flashSave("d14SaveFlash", `開始完整讀誦今日 ${items.length} 筆（含全部建議；可暫停／取消）`);
+      flashSave("saveFlash", `一起念全部 ${items.length} 筆（含建議；可暫停／取消）`);
+      flashSave("d14SaveFlash", `一起念全部 ${items.length} 筆（含建議；可暫停／取消）`);
     }
 
     function exportTodayPayload() {
@@ -1723,7 +1723,7 @@
       if (countPill) countPill.textContent = `今日 ${n} 筆`;
       ["historyCountA", "historyCountB"].forEach((id) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = n ? `（${n} 筆，逐項可編輯／刪除）` : "";
+        if (el) el.textContent = n ? `（${n} 筆，逐項可編輯／刪除／念）` : "";
       });
 
       function fill(listId, emptyId) {
@@ -1756,9 +1756,11 @@
             `<div class="item-actions">` +
             `<button type="button" class="edit" title="編輯這筆（打字／語音）">編輯</button>` +
             `<button type="button" class="del" title="刪除這筆">刪除</button>` +
+            `<button type="button" class="speak-one" title="只念這一筆">🔊 念這筆</button>` +
+            `<button type="button" class="speak-from" title="從這筆念到最後">一起念↓</button>` +
+            `<button type="button" class="voice-edit" title="用語音修改這筆">🎤 語音改</button>` +
             `<button type="button" class="up" title="上移" ${idx === 0 ? "disabled" : ""}>↑</button>` +
             `<button type="button" class="down" title="下移" ${idx === items.length - 1 ? "disabled" : ""}>↓</button>` +
-            `<button type="button" class="speak-one" title="讀誦這筆">🔊</button>` +
             `</div>`;
           li.querySelector(".edit").addEventListener("click", (e) => {
             e.stopPropagation();
@@ -1770,6 +1772,18 @@
             if (!confirm(`刪除這筆紀錄？\n#${seq} ${preview}`)) return;
             deleteHistoryItem(item.id);
           });
+          li.querySelector(".speak-one").addEventListener("click", (e) => {
+            e.stopPropagation();
+            speakOneHistoryItem(item.id);
+          });
+          li.querySelector(".speak-from").addEventListener("click", (e) => {
+            e.stopPropagation();
+            speakFromHistoryItem(item.id);
+          });
+          li.querySelector(".voice-edit").addEventListener("click", (e) => {
+            e.stopPropagation();
+            voiceEditHistoryItem(item.id);
+          });
           li.querySelector(".up").addEventListener("click", (e) => {
             e.stopPropagation();
             moveHistoryItem(item.id, -1);
@@ -1778,15 +1792,6 @@
             e.stopPropagation();
             moveHistoryItem(item.id, 1);
           });
-          const speakOneBtn = li.querySelector(".speak-one");
-          if (speakOneBtn) {
-            speakOneBtn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              const habit2 = HABITS.find((h) => h.id === item.habitId) || { id: "?", name: "未知" };
-              const quad2 = QUADS[item.quadId] || { short: "" };
-              speakText(`第 ${seq} 項。${item.text || ""}。習慣 ${habit2.id} ${habit2.name}。${quad2.short}。`);
-            });
-          }
           const minsEl = li.querySelector(".mins-input");
           if (minsEl) {
             minsEl.addEventListener("click", (e) => e.stopPropagation());
