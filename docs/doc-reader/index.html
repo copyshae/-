@@ -372,7 +372,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script src="./tts-voices.js?v=25"></script>
+  <script src="./tts-voices.js?v=26"></script>
   <script>
     (function () {
       const PAGE_CHARS = 420;
@@ -577,7 +577,14 @@
           return;
         }
         meta.textContent = `${sourceName}｜第 ${pageIndex + 1}／${pages.length} 頁`;
-        box.textContent = pages[pageIndex] || "";
+        const text = pages[pageIndex] || "";
+        const info = analyzeOcrText(text);
+        // 英文為主：可點單字查解釋；中文為主：保留純文字方便圈選
+        if (info.isMostlyEnglish || (info.latin > 20 && info.latin > info.cjk)) {
+          box.innerHTML = wrapEnWords(text);
+        } else {
+          box.textContent = text;
+        }
       }
 
       function openReader() {
@@ -1884,7 +1891,11 @@
             source: "doc-reader"
           });
           localStorage.setItem(HABITS_KEY, JSON.stringify(state));
-          alert("已疊加到七習慣「今日紀錄」。可到七習慣 App 查看／再編輯。");
+          try {
+            localStorage.setItem("habits7-refresh-ping", String(Date.now()));
+            window.dispatchEvent(new CustomEvent("habits7-updated", { detail: { source: "doc-reader" } }));
+          } catch (e) {}
+          alert("已疊加到七習慣「今日紀錄」（習慣7不斷更新／Ⅱ象限）。可回七習慣 App 查看／再編輯。");
         } catch (e) {
           alert("寫入失敗：" + e.message);
         }
@@ -2053,6 +2064,10 @@
       });
       document.getElementById("pageText").addEventListener("touchend", () => {
         setTimeout(() => updateSelBar("selBar", document.getElementById("pageText")), 50);
+      });
+      document.getElementById("pageText").addEventListener("click", (e) => {
+        const w = e.target && e.target.closest && e.target.closest("[data-word]");
+        if (w && w.getAttribute("data-word")) onWordClick(w.getAttribute("data-word"));
       });
       document.getElementById("studyBody").addEventListener("mouseup", () => {
         updateSelBar("studySelBar", document.getElementById("studyBody"));

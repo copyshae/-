@@ -1,5 +1,5 @@
 /* 靈命七習慣電腦版 */
-const CACHE = "life-desk-v8";
+const CACHE = "life-desk-v9";
 const ASSETS = ["./", "./index.html", "./tts-voices.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

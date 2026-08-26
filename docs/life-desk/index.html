@@ -89,6 +89,7 @@
   <div class="toolbar">
     <button type="button" class="active" data-tab="daily14">每日14樣功課</button>
     <button type="button" data-tab="habits7">七習慣＋時間象限</button>
+    <button type="button" data-tab="docreader">看書／看文件</button>
     <button type="button" data-tab="both">左右並排</button>
     <button type="button" id="btnSpeak" class="primary">🔊 讀誦今日紀錄</button>
     <button type="button" id="btnSpeakGuide">讀誦導引</button>
@@ -105,7 +106,7 @@
     <button type="button" id="ttsPreview">試聽</button>
     <span class="voice-lab" data-tts-status hidden style="color:#0e7a4c;"></span>
     <button type="button" id="btnSync" class="primary">同步／匯出存檔</button>
-    <a class="btn" id="openDoc" href="../doc-reader/" target="_blank" rel="noopener">看書／看文件</a>
+    <a class="btn" id="openDoc" href="../doc-reader/" target="_blank" rel="noopener">獨立開看書文件</a>
     <a class="btn" id="openDaily" href="../daily-14/" target="_blank" rel="noopener">獨立開14樣</a>
     <a class="btn" id="openHabits" href="../habits-7/" target="_blank" rel="noopener">獨立開七習慣</a>
   </div>
@@ -116,6 +117,9 @@
     </div>
     <div class="frame-wrap" id="paneHabits">
       <iframe id="ifrHabits" title="七個好習慣分類" src="../habits-7/"></iframe>
+    </div>
+    <div class="frame-wrap" id="paneDoc">
+      <iframe id="ifrDoc" title="看書看文件" src="../doc-reader/"></iframe>
     </div>
     <aside class="sync-panel" id="syncPanel">
       <h2>與手機同步＋今日存檔</h2>
@@ -210,13 +214,18 @@
       });
       const daily = document.getElementById("paneDaily");
       const habits = document.getElementById("paneHabits");
+      const doc = document.getElementById("paneDoc");
+      daily.classList.remove("show");
+      habits.classList.remove("show");
+      if (doc) doc.classList.remove("show");
       if (tab === "daily14") {
         daily.classList.add("show");
-        habits.classList.remove("show");
       } else if (tab === "habits7") {
-        daily.classList.remove("show");
         habits.classList.add("show");
+      } else if (tab === "docreader") {
+        if (doc) doc.classList.add("show");
       } else {
+        // 左右並排：14樣＋七習慣
         daily.classList.add("show");
         habits.classList.add("show");
       }
@@ -557,8 +566,10 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
       try {
         const d = document.getElementById("ifrDaily");
         const h = document.getElementById("ifrHabits");
+        const doc = document.getElementById("ifrDoc");
         if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
         if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+        if (doc && doc.contentWindow) doc.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
       } catch (e) {}
     }
     function pauseDeskSpeak() {
@@ -568,8 +579,10 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
       try {
         const d = document.getElementById("ifrDaily");
         const h = document.getElementById("ifrHabits");
+        const doc = document.getElementById("ifrDoc");
         if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-pause-speak" }, "*");
         if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-pause-speak" }, "*");
+        if (doc && doc.contentWindow) doc.contentWindow.postMessage({ type: "life-desk-pause-speak" }, "*");
       } catch (e) {}
     }
     function pickZhVoice() {
@@ -593,8 +606,10 @@ document.getElementById("btnCopyMeta").addEventListener("click", async () => {
         try {
           const d = document.getElementById("ifrDaily");
           const h = document.getElementById("ifrHabits");
+          const doc = document.getElementById("ifrDoc");
           if (d && d.contentWindow) d.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
           if (h && h.contentWindow) h.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
+          if (doc && doc.contentWindow) doc.contentWindow.postMessage({ type: "life-desk-stop-speak" }, "*");
         } catch (e) {}
         window.TtsVoices.speakQueued(text);
         return;

@@ -414,7 +414,7 @@
       <button type="button" id="tabClassify" data-tab="classify">做事歸類</button>
       <button type="button" class="active" id="tabDaily14" data-tab="daily14">14樣對照</button>
       <button type="button" id="tabCourse" data-tab="course">今天上課</button>
-      <a class="tab-link" id="tabDocReader" href="../doc-reader/" style="display:grid;place-items:center;text-decoration:none;border:1px solid var(--line);background:rgba(255,255,255,0.55);color:var(--muted);padding:0.55rem 0.2rem;font-weight:700;font-size:0.78rem;">看書文件</a>
+      <a class="tab-link" id="tabDocReader" href="../doc-reader/" style="display:grid;place-items:center;text-decoration:none;border:1px solid var(--accent);background:rgba(27,107,90,0.12);color:var(--accent);padding:0.55rem 0.2rem;font-weight:800;font-size:0.78rem;">看書文件</a>
     </div>
 
     <div class="card voice-card" id="voicePickerCard" style="margin-top:0.75rem;">
@@ -2273,6 +2273,23 @@
     fillUnits();
     renderHistory();
     renderDaily14List();
+
+    // 從看書／看文件疊加後，回到本頁或同裝置其他分頁時刷新今日紀錄
+    function refreshFromExternal() {
+      try {
+        state = loadState();
+        renderHistory();
+        renderQuadCharts(state.items || []);
+      } catch (e) {}
+    }
+    window.addEventListener("storage", (e) => {
+      if (!e) return;
+      if (e.key === "habits7-v1" || e.key === "habits7-refresh-ping") refreshFromExternal();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refreshFromExternal();
+    });
+    window.addEventListener("focus", refreshFromExternal);
 
     (function setHomeLink() {
       const path = location.pathname || "";

@@ -1,5 +1,5 @@
 /* 看書看文件 */
-const CACHE = "doc-reader-v5";
+const CACHE = "doc-reader-v6";
 const ASSETS = ["./", "./index.html", "./tts-voices.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
