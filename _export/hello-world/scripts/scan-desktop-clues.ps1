@@ -8,7 +8,7 @@
   「桌面程式線索報告.txt」。加 -Restore 會依線索呼叫對應安裝腳本。
 
 .PARAMETER Restore
-  依掃描結果恢復（習作批改／習作台／習作工具必做；護眼／掃具台若發現線索才做）。
+  依掃描結果恢復（習作批改／習作台／習作工具必做；護眼／掃具台／ChromeQuickLogin 若發現線索才做）。
 
 .PARAMETER ShowTip
   習作程式 refresh 完成後跳提示框。
@@ -106,6 +106,19 @@ $catalog = @(
     Ps1Names = @("bootstrap-desktop-apps.ps1", "install-desktop-apps.ps1")
     LegacyWarn = @{}
     Restore = "bootstrap"
+    ExpectedBuild = $null
+  }
+  @{
+    Id = "chrome-quick-login"
+    Log = "0721"
+    LogUrl = "https://copyshae.github.io/hello-world/directory/logs/20260721-chrome-quick-login.html"
+    Name = "ChromeQuickLogin 常用網址啟動器"
+    Shortcuts = @("ChromeQuickLogin.lnk")
+    AppDirs = @("ChromeQuickLogin")
+    WorkDirs = @()
+    Ps1Names = @("打包換機.ps1", "啟動.bat", "main.py", "app.py")
+    LegacyWarn = @{}
+    Restore = "chrome-quick-login"
     ExpectedBuild = $null
   }
 )
@@ -248,12 +261,22 @@ foreach ($app in $catalog) {
   [void]$lines.Add("")
 }
 
-# 掃描桌面所有 .vbs／.cmd（未對照到的額外線索）
+# 掃描桌面所有 .vbs／.cmd／.lnk（未對照到的額外線索）
 $extra = @(Get-ChildItem -LiteralPath $desk -File -ErrorAction SilentlyContinue |
-  Where-Object { $_.Extension -in @(".vbs", ".cmd") } |
+  Where-Object { $_.Extension -in @(".vbs", ".cmd", ".lnk") } |
   Select-Object -ExpandProperty Name)
 $known = @($catalog | ForEach-Object { $_.Shortcuts } | ForEach-Object { $_ })
 $unknown = @($extra | Where-Object { $_ -notin $known })
+# ChromeQuickLogin 換機 zip 也算線索
+$vaultZips = @(Get-ChildItem -LiteralPath $desk -Filter "ChromeQuickLogin-vault-*.zip" -ErrorAction SilentlyContinue)
+if ($vaultZips.Count -gt 0 -and $foundApps -notcontains "chrome-quick-login") {
+  [void]$foundApps.Add("chrome-quick-login")
+  [void]$lines.Add("=== 0721 ChromeQuickLogin（由換機 zip 推論）===")
+  [void]$lines.Add("學習日誌：https://copyshae.github.io/hello-world/directory/logs/20260721-chrome-quick-login.html")
+  foreach ($z in $vaultZips) { [void]$lines.Add("  找到 金庫 zip：$($z.Name)") }
+  [void]$lines.Add("  建議：執行 restore-chrome-quick-login.ps1")
+  [void]$lines.Add("")
+}
 if ($unknown.Count -gt 0) {
   [void]$lines.Add("=== 其他桌面捷徑（請人工確認）===")
   foreach ($u in $unknown) { [void]$lines.Add("  $u") }
@@ -282,6 +305,11 @@ if ($foundApps -contains "scan-equip") {
   [void]$lines.Add("掃具台（0819）：")
   [void]$lines.Add("  cd `$env:USERPROFILE\Desktop\hello-world")
   [void]$lines.Add("  powershell -ExecutionPolicy Bypass -File .\scripts\install-scan-equip.ps1")
+}
+if ($foundApps -contains "chrome-quick-login" -or $foundApps.Count -eq 0) {
+  [void]$lines.Add("ChromeQuickLogin（0721）：")
+  [void]$lines.Add("  irm $dashBase/restore-chrome-quick-login.ps1 | iex")
+  [void]$lines.Add("  （程式私有庫；金庫用桌面 ChromeQuickLogin-vault-*.zip）")
 }
 [void]$lines.Add("")
 [void]$lines.Add("掃描腳本：$dashBase/scan-desktop-clues.ps1")
@@ -344,5 +372,15 @@ if ($foundApps -contains "scan-equip") {
   Install-FromHelloWorld "scripts/install-scan-equip.ps1" $null
 }
 
+if ($foundApps -contains "chrome-quick-login") {
+  Write-Host "恢復 ChromeQuickLogin（0721）..."
+  try {
+    Invoke-RemotePs1 "$dashBase/restore-chrome-quick-login.ps1" @{}
+  } catch {
+    Write-Host "  失敗：$($_.Exception.Message)"
+    Write-Host "  請確認私有庫權限，或手動 clone github.com/copyshae/ChromeQuickLogin 到桌面。"
+  }
+}
+
 Write-Host ""
-Write-Host "恢復完成。請關舊視窗後雙擊對應 .vbs／.cmd。詳見 $reportPath"
+Write-Host "恢復完成。請關舊視窗後雙擊對應捷徑。詳見 $reportPath"

@@ -45,6 +45,7 @@ irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459
 | [0818](https://copyshae.github.io/hello-world/directory/202608/20260818-learning-log.html) | ChatPlayground、快速啟動 | `習作工具.vbs`（選單） |
 | [0819](https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html) | 掃具台 | `掃具台.cmd` → 開 PWA |
 | [0801](https://copyshae.github.io/hello-world/directory/202608/20260801-learning-log.html) | 護眼提醒 | `護眼提醒.vbs` → `EyeCareReminder\` |
+| [0721](https://copyshae.github.io/hello-world/directory/logs/20260721-chrome-quick-login.html) | ChromeQuickLogin | `ChromeQuickLogin.lnk` → `ChromeQuickLogin\` |
 
 桌面線索對照（掃描腳本會找這些）：
 
@@ -55,8 +56,16 @@ irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459
 | `習作工具.vbs` | 選單入口 | — |
 | `護眼提醒.vbs`、`EyeCareReminder\` | 護眼提醒 | — |
 | `掃具台.cmd`、`掃具台程式\` | 掃具台 | — |
+| `ChromeQuickLogin.lnk`、`ChromeQuickLogin\` | 常用網址啟動器 | 勿把帳密寫進捷徑 |
+| `ChromeQuickLogin-vault-*.zip` | 換機金庫 | 須含 vault.dat＋meta.json |
 | `習作程式版本.txt` | 上次更新紀錄 | — |
 | `習作台錯誤.txt` | 習作台上次啟動失敗 | — |
+
+**只恢復 ChromeQuickLogin**（0721；程式私有庫＋桌面金庫 zip）：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-chrome-quick-login.ps1 | iex
+```
 
 首次換機、桌面尚無 hello-world 資料夾時（會 clone 並建立工作資料夾）：
 
