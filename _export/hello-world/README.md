@@ -14,18 +14,18 @@
 
 ## 恢復桌面視窗程式（依學習日誌）
 
-**第一步：掃描桌面線索**（對照 0801～0819 學習日誌，寫入 `桌面程式線索報告.txt`）：
-
-```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/scan-desktop-clues.ps1 | iex
-```
-
-**第二步：依線索自動恢復**（習作必做；護眼／掃具台僅在桌面有線索時才裝）：
+**第一步：掃描桌面線索**（寫入 `桌面程式線索報告.txt`；請先下載再執行，避免 `irm|iex` 解析問題）：
 
 ```powershell
 $u = "https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/scan-desktop-clues.ps1"
 $i = Join-Path $env:TEMP "scan-desktop-clues.ps1"
 Invoke-WebRequest -Uri $u -OutFile $i -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File $i
+```
+
+**第二步：依線索自動恢復**（習作必做；護眼／掃具台／ChromeQuickLogin 僅在桌面有線索時才裝）：
+
+```powershell
 powershell -ExecutionPolicy Bypass -File $i -Restore
 ```
 

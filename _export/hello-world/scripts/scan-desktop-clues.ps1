@@ -39,7 +39,7 @@ $catalog = @(
     AppDirs = @("MathGradingApp")
     WorkDirs = @("MathGrading")
     Ps1Names = @("math-homework-grader-app.ps1", "launch-grader.ps1")
-    LegacyWarn = @("grade-math.vbs" = "舊名捷徑，請改 習作批改.vbs")
+    LegacyWarn = @{ "grade-math.vbs" = "舊名捷徑，請改 習作批改.vbs" }
     Restore = "refresh-desktop-vbs"
     ExpectedBuild = "20260818-fast5"
   }
@@ -52,7 +52,7 @@ $catalog = @(
     AppDirs = @("習作台程式")
     WorkDirs = @("習作台資料")
     Ps1Names = @("teacher-desk-app.ps1", "launch-teacher-desk.ps1")
-    LegacyWarn = @("習作台.cmd" = "舊 cmd 易中文路徑失敗，請改 習作台.vbs")
+    LegacyWarn = @{ "習作台.cmd" = "舊 cmd 易中文路徑失敗，請改 習作台.vbs" }
     Restore = "refresh-desktop-vbs"
     ExpectedBuild = "20260818-fast5"
   }
@@ -74,7 +74,7 @@ $catalog = @(
     Log = "0801"
     LogUrl = "https://copyshae.github.io/hello-world/directory/202608/20260801-learning-log.html"
     Name = "護眼提醒"
-    Shortcuts = @("護眼提醒.vbs", "護眼提醒-除錯.cmd")
+    Shortcuts = @("護眼提醒.vbs", "護眼提醒-除錯.cmd", "護眼提醒_除錯.cmd")
     AppDirs = @("EyeCareReminder")
     WorkDirs = @()
     Ps1Names = @("eye-care-reminder-app.ps1", "launch-with-onedrive.ps1")
@@ -87,7 +87,7 @@ $catalog = @(
     Log = "0819"
     LogUrl = "https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html"
     Name = "掃具台"
-    Shortcuts = @("掃具台.cmd")
+    Shortcuts = @("掃具台.cmd", "掃描選單.cmd")
     AppDirs = @("掃具台程式")
     WorkDirs = @("掃具台資料")
     Ps1Names = @("scan-equip-app.ps1")
@@ -323,8 +323,11 @@ foreach ($ln in $lines) { Write-Host $ln }
 
 if (-not $Restore) {
   Write-Host ""
-  Write-Host "若要自動恢復，請加 -Restore："
-  Write-Host "  powershell -ExecutionPolicy Bypass -File scan-desktop-clues.ps1 -Restore"
+  Write-Host "若要自動恢復，請下載後加 -Restore（勿用 irm|iex 傳參數）："
+  Write-Host '  $u = "' + "$dashBase/scan-desktop-clues.ps1" + '"'
+  Write-Host '  $i = Join-Path $env:TEMP "scan-desktop-clues.ps1"'
+  Write-Host "  Invoke-WebRequest -Uri `$u -OutFile `$i -UseBasicParsing"
+  Write-Host "  powershell -ExecutionPolicy Bypass -File `$i -Restore"
   exit 0
 }
 
