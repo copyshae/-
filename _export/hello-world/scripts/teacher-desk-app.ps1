@@ -4,7 +4,7 @@
 param([string]$WorkDir = "")
 
 $ErrorActionPreference = 'Stop'
-$script:AppBuild = '20260818-sync'
+$script:AppBuild = '20260818-fast5'
 $desk = [Environment]::GetFolderPath('Desktop')
 $logPath = Join-Path $desk '習作台錯誤.txt'
 $PhoneUrl = 'https://copyshae.github.io/hello-world/directory/apps/teacher-desk/'
@@ -35,6 +35,11 @@ try {
   Add-Type -AssemblyName System.Windows.Forms
   Add-Type -AssemblyName System.Drawing
   [System.Windows.Forms.Application]::EnableVisualStyles()
+  $script:SingleMtx = New-Object System.Threading.Mutex($false, 'Local\TeacherDeskApp')
+  if (-not $script:SingleMtx.WaitOne(0)) {
+    [void][System.Windows.Forms.MessageBox]::Show('習作台已在執行，請看工作列。', '習作台')
+    exit 0
+  }
 
   if ([string]::IsNullOrWhiteSpace($WorkDir)) {
     $cand = Join-Path $desk '習作台資料'
@@ -825,8 +830,10 @@ try {
     } catch {}
   })
 
-  Refresh-Filters
-  Refresh-Grid
+  $form.Add_Load({
+    Refresh-Filters
+    Refresh-Grid
+  })
   if (Test-Path -LiteralPath $logPath) {
     Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
   }

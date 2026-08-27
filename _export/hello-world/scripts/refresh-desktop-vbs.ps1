@@ -1,15 +1,17 @@
 #Requires -Version 5.1
-# 覆寫桌面兩個捷徑：習作批改.vbs、習作台.vbs（並更新對應 ps1）
+# 覆寫桌面捷徑 + 快速啟動器 + ps1 本體
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
+param([switch]$ShowTip)
+
 $ErrorActionPreference = "Stop"
-Add-Type -AssemblyName System.Windows.Forms
-$branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "cursor/textbook-grade-format-459a" }
+$branch = if ($env:DASH_EXPORT_BRANCH) { $env:DASH_EXPORT_BRANCH } else { "cursor/restore-desktop-apps-459a" }
 $base = "https://raw.githubusercontent.com/copyshae/-/$branch/_export/hello-world/scripts"
-$expectedBuild = "20260818-sync"
+$expectedBuild = "20260818-fast5"
 $desk = [Environment]::GetFolderPath("Desktop")
 $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
 $utf8Bom = New-Object System.Text.UTF8Encoding $true
 $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+$psLaunch = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File"
 
 function Save-Utf16([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText($Path, $Text, $utf16)
@@ -27,49 +29,57 @@ function Save-RemotePs1([string]$Name, [string]$DestDir, [string[]]$MustContain)
     if ($text.Length -gt 0 -and [int][char]$text[0] -eq 0xFEFF) {
       $text = $text.Substring(1)
     }
-    foreach ($needle in $MustContain) {
-      if ($text -notlike "*$needle*") {
-        throw "Downloaded $Name missing marker: $needle (GitHub may still be old; retry in 1 min)"
+    if ($MustContain -and $MustContain.Count -gt 0) {
+      foreach ($needle in $MustContain) {
+        if ($text -notlike "*$needle*") {
+          throw "Downloaded $Name missing marker: $needle"
+        }
       }
     }
     $dest = Join-Path $DestDir $Name
     [System.IO.File]::WriteAllText($dest, $text, $utf8Bom)
-    $info = Get-Item -LiteralPath $dest
-    Write-Host ("  OK {0} ({1} bytes, {2})" -f $dest, $info.Length, $info.LastWriteTime)
+    Write-Host ("  OK {0}" -f $dest)
     return $dest
   } finally {
     Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
   }
 }
 
+function Make-VbsLaunch([string]$ps1Rel, [string]$workSub) {
+  if ($workSub) {
+    return @"
+Set sh = CreateObject("WScript.Shell")
+desk = sh.SpecialFolders("Desktop")
+ps1 = desk & "\$ps1Rel"
+cmd = "$psLaunch """ & ps1 & """ -WorkDir """ & desk & "\$workSub"""
+sh.Run cmd, 0, False
+"@
+  }
+  return @"
+Set sh = CreateObject("WScript.Shell")
+desk = sh.SpecialFolders("Desktop")
+ps1 = desk & "\$ps1Rel"
+cmd = "$psLaunch """ & ps1 & """"
+sh.Run cmd, 0, False
+"@
+}
+
 $graderDir = Join-Path $desk "MathGradingApp"
 $deskAppDir = Join-Path $desk "習作台程式"
-$graderPs1 = Save-RemotePs1 "math-homework-grader-app.ps1" $graderDir @(
-  $expectedBuild, "ChatPlayground批", "③ 貼上自動批閱"
-)
-$deskPs1 = Save-RemotePs1 "teacher-desk-app.ps1" $deskAppDir @(
-  $expectedBuild, "從批改進度檔同步"
-)
+$hubDir = Join-Path $desk "習作工具程式"
+New-Item -ItemType Directory -Force -Path $graderDir, $deskAppDir, $hubDir | Out-Null
 
-$graderVbs = @"
-Set sh = CreateObject("WScript.Shell")
-desk = sh.SpecialFolders("Desktop")
-ps1 = desk & "\MathGradingApp\math-homework-grader-app.ps1"
-cmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File """ & ps1 & """ -WorkDir """ & desk & "\MathGrading"""
-sh.Run cmd, 0, False
-"@
-$deskVbs = @"
-Set sh = CreateObject("WScript.Shell")
-desk = sh.SpecialFolders("Desktop")
-ps1 = desk & "\習作台程式\teacher-desk-app.ps1"
-cmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File """ & ps1 & """ -WorkDir """ & desk & "\習作台資料"""
-sh.Run cmd, 0, False
-"@
+Save-RemotePs1 "math-homework-grader-app.ps1" $graderDir @($expectedBuild, "ChatPlayground批")
+Save-RemotePs1 "teacher-desk-app.ps1" $deskAppDir @($expectedBuild, "從批改進度檔同步")
+Save-RemotePs1 "launch-grader.ps1" $graderDir @("出現主視窗後此畫面會自動關閉")
+Save-RemotePs1 "launch-teacher-desk.ps1" $deskAppDir @("出現主視窗後此畫面會自動關閉")
+Save-RemotePs1 "launch-homework-apps.ps1" $hubDir @("習作工具")
 
-Save-Utf16 (Join-Path $desk "習作批改.vbs") $graderVbs
-Save-Utf16 (Join-Path $desk "習作台.vbs") $deskVbs
-Save-Utf16 (Join-Path $graderDir "launch.vbs") $graderVbs
-Save-Utf16 (Join-Path $deskAppDir "啟動習作台.vbs") $deskVbs
+Save-Utf16 (Join-Path $desk "習作工具.vbs") (Make-VbsLaunch "習作工具程式\launch-homework-apps.ps1" "")
+Save-Utf16 (Join-Path $desk "習作批改.vbs") (Make-VbsLaunch "MathGradingApp\launch-grader.ps1" "MathGrading")
+Save-Utf16 (Join-Path $desk "習作台.vbs") (Make-VbsLaunch "習作台程式\launch-teacher-desk.ps1" "習作台資料")
+Save-Utf16 (Join-Path $graderDir "launch.vbs") (Make-VbsLaunch "MathGradingApp\launch-grader.ps1" "MathGrading")
+Save-Utf16 (Join-Path $deskAppDir "啟動習作台.vbs") (Make-VbsLaunch "習作台程式\launch-teacher-desk.ps1" "習作台資料")
 
 $notePath = Join-Path $desk "習作程式版本.txt"
 $note = @(
@@ -77,39 +87,22 @@ $note = @(
   "分支：$branch"
   "版本：$expectedBuild"
   ""
-  "請用這兩個捷徑（不要用舊的 習作台.cmd）："
-  "  習作批改.vbs"
-  "  習作台.vbs"
-  ""
-  "關掉舊視窗後再雙擊。新視窗標題列應含 [$expectedBuild]"
-  "習作批改：綠色 ChatPlayground批、下方 ③ 貼上自動批閱"
-  "習作台：右側 從批改進度檔同步"
-  ""
-  "ps1 路徑："
-  "  $graderPs1"
-  "  $deskPs1"
+  "建議只留一個捷徑：習作工具.vbs"
+  "啟動會先顯示「正在啟動…」（不再無反應等很久）"
+  "標題列應含 [$expectedBuild]"
 ) -join "`r`n"
 [System.IO.File]::WriteAllText($notePath, $note, $utf8Bom)
 
 Write-Host ""
-Write-Host "OK — wrote desktop version note: $notePath"
-Write-Host "Close OLD windows, then double-click 習作批改.vbs / 習作台.vbs"
+Write-Host "OK — 請雙擊桌面「習作工具.vbs」"
+Write-Host $notePath
 
-[void][System.Windows.Forms.MessageBox]::Show(
-  @"
-已更新 ps1 + vbs（$stamp）
-
-1. 先關掉所有舊的習作批改／習作台視窗
-2. 雙擊桌面「習作批改.vbs」「習作台.vbs」
-   （不要用 習作台.cmd 或 MathGrading 舊捷徑）
-
-新視窗標題列要有 [$expectedBuild]
-習作批改：ChatPlayground批 + ③ 貼上自動批閱
-習作台：從批改進度檔同步
-
-詳細寫在桌面「習作程式版本.txt」
-"@,
-  "桌面習作程式已更新",
-  [System.Windows.Forms.MessageBoxButtons]::OK,
-  [System.Windows.Forms.MessageBoxIcon]::Information
-)
+if ($ShowTip) {
+  Add-Type -AssemblyName System.Windows.Forms
+  [void][System.Windows.Forms.MessageBox]::Show(
+    "已更新。請雙擊「習作工具.vbs」選程式。`n啟動時會先顯示「正在啟動…」。",
+    "桌面習作程式",
+    [System.Windows.Forms.MessageBoxButtons]::OK,
+    [System.Windows.Forms.MessageBoxIcon]::Information
+  )
+}

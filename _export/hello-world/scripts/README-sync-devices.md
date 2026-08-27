@@ -36,7 +36,7 @@
 只更新捷徑／腳本、資料夾內 JSON 不會被刪：
 
 ```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-desktop-apps.ps1 | iex
 ```
 
 關閉舊的習作批改／習作台視窗後，再雙擊桌面 `.vbs` 重開。

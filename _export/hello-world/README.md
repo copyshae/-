@@ -12,15 +12,47 @@
 
 > Cloud Agent **無法推** `copyshae/hello-world`。請在電腦跑下方指令，才會更新正式手機網址與本機捷徑。
 
-## 只更新桌面兩個 .vbs（＋電腦視窗程式）
+## 恢復桌面視窗程式（依學習日誌）
 
-PowerShell 貼上（覆寫 `習作批改.vbs`、`習作台.vbs`，並更新 `MathGradingApp`／`習作台程式` 裡的 ps1）：
+學習日誌記載的桌面 WinForms 程式：
+
+| 日誌 | 程式 | 桌面捷徑 |
+|------|------|----------|
+| [0803](https://copyshae.github.io/hello-world/directory/202608/20260803-learning-log.html) | 數學習作批改 | `習作批改.vbs` → `MathGradingApp\` |
+| [0805](https://copyshae.github.io/hello-world/directory/202608/20260805-learning-log.html) | 習作台（掃描匯入） | `習作台.vbs` → `習作台程式\` |
+| [0817](https://copyshae.github.io/hello-world/directory/202608/20260817-learning-log.html) | 換機一鍵裝兩個視窗 | `bootstrap-desktop-apps.ps1` |
+| [0818](https://copyshae.github.io/hello-world/directory/202608/20260818-learning-log.html) | ChatPlayground、快速啟動 | `習作工具.vbs`（選單） |
+
+**PowerShell 一鍵恢復**（覆寫捷徑、啟動器、ps1 本體；預設不跳提示框）：
 
 ```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/textbook-grade-format-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-desktop-apps.ps1 | iex
 ```
 
-**關掉**舊的習作批改視窗後，再雙擊 `習作批改.vbs`。新視窗標題列應含 **`[20260818-sync]`**，並有綠色 **ChatPlayground批** 與下方 **③ 貼上自動批閱**。若畫面仍舊：代表只更新了 vbs、ps1 沒重下，或舊視窗沒關；腳本結束會跳提示框，桌面會有 `習作程式版本.txt`。勿用 `習作台.cmd` 或 `MathGrading` 舊捷徑。
+等同只更新桌面檔案：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
+```
+
+首次換機、桌面尚無 hello-world 資料夾時（會 clone 並建立工作資料夾）：
+
+```powershell
+$u = "https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-desktop-apps.ps1"
+$i = Join-Path $env:TEMP "restore-desktop-apps.ps1"
+Invoke-WebRequest -Uri $u -OutFile $i -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File $i -FirstInstall
+```
+
+或依 [0817 說明](https://copyshae.github.io/hello-world/directory/apps/desktop-install.html)：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/hello-world/master/scripts/bootstrap-desktop-apps.ps1 | iex
+```
+
+**關掉**舊視窗後，雙擊 **`習作工具.vbs`**（建議只留這一個捷徑）。啟動會先顯示「正在啟動…」。標題列應含 **`[20260818-fast5]`**，習作批改有 **ChatPlayground批** 與 **③ 貼上自動批閱**。桌面會產生 `習作程式版本.txt`。勿用 `習作台.cmd` 或 `MathGrading` 舊捷徑。
+
+護眼提醒（0801）另屬分支 `cursor/eye-care-reminders-433c`，不在此包。
 
 ## 一鍵套用（PowerShell 整段貼上）
 
@@ -30,7 +62,7 @@ PR 尚未合併進 `main` 時，先設分支再拉（含 ChatPlayground AI 備�
 cd $env:USERPROFILE\Desktop\hello-world
 $dir = Join-Path $PWD 'scripts'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
-$env:DASH_EXPORT_BRANCH = 'cursor/textbook-grade-format-459a'
+$env:DASH_EXPORT_BRANCH = 'cursor/restore-desktop-apps-459a'
 $url = "https://raw.githubusercontent.com/copyshae/-/$env:DASH_EXPORT_BRANCH/_export/hello-world/scripts/pull-export-from-dash-repo.ps1"
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
@@ -51,7 +83,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 完成後：
 
 1. **關掉**舊的習作批改／習作台視窗  
-2. 再雙擊桌面兩個捷徑：`習作批改.vbs`、`習作台.vbs`  
+2. 再雙擊桌面 **`習作工具.vbs`**（或 `習作批改.vbs`、`習作台.vbs`）  
 3. 手機強制重新整理：  
    - https://copyshae.github.io/hello-world/directory/apps/math-grader/  
    - https://copyshae.github.io/hello-world/directory/apps/teacher-desk/  
