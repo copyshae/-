@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   依 20260721 學習日誌恢復桌面「ChromeQuickLogin」（常用網址啟動器）。

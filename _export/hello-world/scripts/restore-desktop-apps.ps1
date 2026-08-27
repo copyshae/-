@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   依 hello-world 學習日誌，恢復桌面 WinForms 視窗程式。

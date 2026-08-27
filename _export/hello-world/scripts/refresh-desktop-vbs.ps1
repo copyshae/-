@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # 覆寫桌面捷徑 + 快速啟動器 + ps1 本體
 # No single-quotes (avoids Windows PowerShell string terminator bugs).
 param([switch]$ShowTip)

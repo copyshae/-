@@ -14,25 +14,37 @@
 
 ## 恢復桌面視窗程式（依學習日誌）
 
-**第一步：掃描桌面線索**（寫入 `桌面程式線索報告.txt`；請先下載再執行，避免 `irm|iex` 解析問題）：
+**本機一鍵（掃描＋恢復；純 ASCII 啟動器，避免 PS5.1 中文亂碼）：**
 
 ```powershell
-$u = "https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/scan-desktop-clues.ps1"
-$i = Join-Path $env:TEMP "scan-desktop-clues.ps1"
-Invoke-WebRequest -Uri $u -OutFile $i -UseBasicParsing
-powershell -ExecutionPolicy Bypass -File $i
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-scan-and-restore.ps1 | iex
 ```
 
-**第二步：依線索自動恢復**（習作必做；護眼／掃具台／ChromeQuickLogin 僅在桌面有線索時才裝）：
+只掃描、不恢復：
 
 ```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-scan-desktop-clues.ps1 | iex
+```
+
+（腳本會以 UTF-8 BOM 下載後再執行，解決繁中 Windows `ParserError`／亂碼。）
+
+<details><summary>進階：手動下載 scan 腳本</summary>
+
+```powershell
+$u = "https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-scan-desktop-clues.ps1"
+$i = Join-Path $env:TEMP "run-scan-desktop-clues.ps1"
+$wc = New-Object Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8
+[IO.File]::WriteAllText($i, $wc.DownloadString($u), (New-Object Text.UTF8Encoding $true))
+powershell -ExecutionPolicy Bypass -File $i
 powershell -ExecutionPolicy Bypass -File $i -Restore
 ```
+
+</details>
 
 或只恢復習作批改／習作台／習作工具：
 
 ```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-desktop-apps.ps1 | iex
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-restore-desktop-apps.ps1 | iex
 ```
 
 學習日誌記載的桌面程式：

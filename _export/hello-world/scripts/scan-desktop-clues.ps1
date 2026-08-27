@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   掃描本機桌面，對照 hello-world 學習日誌找出視窗程式線索並建議恢復。
