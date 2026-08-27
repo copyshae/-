@@ -14,7 +14,28 @@
 
 ## 恢復桌面視窗程式（依學習日誌）
 
-學習日誌記載的桌面 WinForms 程式：
+**第一步：掃描桌面線索**（對照 0801～0819 學習日誌，寫入 `桌面程式線索報告.txt`）：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/scan-desktop-clues.ps1 | iex
+```
+
+**第二步：依線索自動恢復**（習作必做；護眼／掃具台僅在桌面有線索時才裝）：
+
+```powershell
+$u = "https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/scan-desktop-clues.ps1"
+$i = Join-Path $env:TEMP "scan-desktop-clues.ps1"
+Invoke-WebRequest -Uri $u -OutFile $i -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File $i -Restore
+```
+
+或只恢復習作批改／習作台／習作工具：
+
+```powershell
+irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-desktop-apps.ps1 | iex
+```
+
+學習日誌記載的桌面程式：
 
 | 日誌 | 程式 | 桌面捷徑 |
 |------|------|----------|
@@ -22,18 +43,20 @@
 | [0805](https://copyshae.github.io/hello-world/directory/202608/20260805-learning-log.html) | 習作台（掃描匯入） | `習作台.vbs` → `習作台程式\` |
 | [0817](https://copyshae.github.io/hello-world/directory/202608/20260817-learning-log.html) | 換機一鍵裝兩個視窗 | `bootstrap-desktop-apps.ps1` |
 | [0818](https://copyshae.github.io/hello-world/directory/202608/20260818-learning-log.html) | ChatPlayground、快速啟動 | `習作工具.vbs`（選單） |
+| [0819](https://copyshae.github.io/hello-world/directory/202608/20260819-learning-log.html) | 掃具台 | `掃具台.cmd` → 開 PWA |
+| [0801](https://copyshae.github.io/hello-world/directory/202608/20260801-learning-log.html) | 護眼提醒 | `護眼提醒.vbs` → `EyeCareReminder\` |
 
-**PowerShell 一鍵恢復**（覆寫捷徑、啟動器、ps1 本體；預設不跳提示框）：
+桌面線索對照（掃描腳本會找這些）：
 
-```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/restore-desktop-apps.ps1 | iex
-```
-
-等同只更新桌面檔案：
-
-```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/refresh-desktop-vbs.ps1 | iex
-```
+| 線索 | 可能程式 | 舊版勿用 |
+|------|----------|----------|
+| `習作批改.vbs`、`MathGradingApp\` | 習作批改 | `grade-math.vbs` |
+| `習作台.vbs`、`習作台程式\` | 習作台 | `習作台.cmd` |
+| `習作工具.vbs` | 選單入口 | — |
+| `護眼提醒.vbs`、`EyeCareReminder\` | 護眼提醒 | — |
+| `掃具台.cmd`、`掃具台程式\` | 掃具台 | — |
+| `習作程式版本.txt` | 上次更新紀錄 | — |
+| `習作台錯誤.txt` | 習作台上次啟動失敗 | — |
 
 首次換機、桌面尚無 hello-world 資料夾時（會 clone 並建立工作資料夾）：
 
@@ -50,9 +73,7 @@ powershell -ExecutionPolicy Bypass -File $i -FirstInstall
 irm https://raw.githubusercontent.com/copyshae/hello-world/master/scripts/bootstrap-desktop-apps.ps1 | iex
 ```
 
-**關掉**舊視窗後，雙擊 **`習作工具.vbs`**（建議只留這一個捷徑）。啟動會先顯示「正在啟動…」。標題列應含 **`[20260818-fast5]`**，習作批改有 **ChatPlayground批** 與 **③ 貼上自動批閱**。桌面會產生 `習作程式版本.txt`。勿用 `習作台.cmd` 或 `MathGrading` 舊捷徑。
-
-護眼提醒（0801）另屬分支 `cursor/eye-care-reminders-433c`，不在此包。
+**關掉**舊視窗後，雙擊 **`習作工具.vbs`**（建議只留這一個捷徑）。啟動會先顯示「正在啟動…」。標題列應含 **`[20260818-fast5]`**，習作批改有 **ChatPlayground批** 與 **③ 貼上自動批閱**。桌面會產生 `習作程式版本.txt` 與 `桌面程式線索報告.txt`。勿用 `習作台.cmd` 或 `MathGrading` 舊捷徑。
 
 ## 一鍵套用（PowerShell 整段貼上）
 

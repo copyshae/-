@@ -76,6 +76,11 @@ $files = @(
   "directory/202608/index.html",
   "directory/202608/20260818-learning-log.html",
   "scripts/refresh-desktop-vbs.ps1",
+  "scripts/restore-desktop-apps.ps1",
+  "scripts/scan-desktop-clues.ps1",
+  "scripts/launch-grader.ps1",
+  "scripts/launch-teacher-desk.ps1",
+  "scripts/launch-homework-apps.ps1",
   "scripts/sync-docs-from-export.sh"
 )
 
