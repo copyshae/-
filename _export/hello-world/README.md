@@ -14,38 +14,15 @@
 
 ## 恢復桌面視窗程式（依學習日誌）
 
-**本機一鍵（掃描＋恢復；純 ASCII 啟動器，避免 PS5.1 中文亂碼）：**
+**本機一鍵（掃描＋恢復）——請只貼這一行：**
 
 ```powershell
 irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-scan-and-restore.ps1 | iex
 ```
 
-只掃描、不恢復：
+`scan-desktop-clues.ps1` 已改為**純 ASCII 原始碼**（中文檔名執行期解碼），繁中 Windows 不會再因編碼 `ParserError`。
 
-```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-scan-desktop-clues.ps1 | iex
-```
-
-（腳本會以 UTF-8 BOM 下載後再執行，解決繁中 Windows `ParserError`／亂碼。）
-
-<details><summary>進階：手動下載 scan 腳本</summary>
-
-```powershell
-$u = "https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-scan-desktop-clues.ps1"
-$i = Join-Path $env:TEMP "run-scan-desktop-clues.ps1"
-$wc = New-Object Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8
-[IO.File]::WriteAllText($i, $wc.DownloadString($u), (New-Object Text.UTF8Encoding $true))
-powershell -ExecutionPolicy Bypass -File $i
-powershell -ExecutionPolicy Bypass -File $i -Restore
-```
-
-</details>
-
-或只恢復習作批改／習作台／習作工具：
-
-```powershell
-irm https://raw.githubusercontent.com/copyshae/-/cursor/restore-desktop-apps-459a/_export/hello-world/scripts/run-restore-desktop-apps.ps1 | iex
-```
+不要再對舊快取檔執行：請先刪除 `$env:TEMP\scan-desktop-clues.ps1` 再重下。
 
 學習日誌記載的桌面程式：
 
