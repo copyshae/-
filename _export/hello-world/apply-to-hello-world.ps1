@@ -17,9 +17,9 @@ $pairs = @(
   @{ Src = 'directory\index.html'; Dst = 'directory\index.html' },
   @{ Src = 'directory\learning-log.html'; Dst = 'directory\learning-log.html' },
   @{ Src = 'directory\202608\index.html'; Dst = 'directory\202608\index.html' },
-  @{ Src = 'directory\202608\20260820-learning-log.html'; Dst = 'directory\202608\20260820-learning-log.html' },
   @{ Src = 'directory\202608\20260821-learning-log.html'; Dst = 'directory\202608\20260821-learning-log.html' },
   @{ Src = 'directory\202608\20260822-learning-log.html'; Dst = 'directory\202608\20260822-learning-log.html' },
+  @{ Src = 'directory\202608\20260823-learning-log.html'; Dst = 'directory\202608\20260823-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -88,20 +88,20 @@ try {
   git add directory/apps/teacher-desk directory/apps/math-grader directory/apps/scan-equip `
     directory/apps/daily-14 directory/apps/habits-7 directory/apps/doc-reader `
     directory/index.html directory/learning-log.html `
-    directory/202608/index.html directory/202608/20260820-learning-log.html `
-    directory/202608/20260821-learning-log.html directory/202608/20260822-learning-log.html `
+    directory/202608/index.html directory/202608/20260821-learning-log.html `
+    directory/202608/20260822-learning-log.html directory/202608/20260823-learning-log.html `
     scripts/ .cursor/rules 2>$null
   git status --short
   if (git diff --cached --quiet) {
     Write-Host "沒有變更可提交。"
   } else {
-    $msg = '同步學習日誌 0820–0822＋habits-7／doc-reader／daily-14（電腦套用）'
+    $msg = '同步學習日誌 0821–0823＋habits-7／doc-reader／daily-14（電腦套用）'
     git commit -m $msg
     git push origin $pagesBranch
     Write-Host '已推上 hello-world Pages。'
   }
   Write-Host ''
-  Write-Host '最新日誌：https://copyshae.github.io/hello-world/directory/202608/20260822-learning-log.html'
+  Write-Host '最新日誌：https://copyshae.github.io/hello-world/directory/202608/20260823-learning-log.html'
   Write-Host '七習慣：https://copyshae.github.io/hello-world/directory/apps/habits-7/'
   Write-Host '看書文件：https://copyshae.github.io/hello-world/directory/apps/doc-reader/'
   Write-Host '14樣功課：https://copyshae.github.io/hello-world/directory/apps/daily-14/'
