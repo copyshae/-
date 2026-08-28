@@ -25,3 +25,12 @@ $url = 'https://raw.githubusercontent.com/copyshae/-/main/_export/hello-world/sc
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $dir 'pull-export-from-dash-repo.ps1') -UseBasicParsing
 powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps1
 ```
+
+同步完成後，電腦正式站應顯示：
+
+- 最新日誌 0823：https://copyshae.github.io/hello-world/directory/202608/20260823-learning-log.html
+- 0822 七習慣：https://copyshae.github.io/hello-world/directory/apps/habits-7/
+- 0821 14樣：https://copyshae.github.io/hello-world/directory/apps/daily-14/
+- 0820 環境教育（保留）：https://copyshae.github.io/hello-world/directory/202608/20260820-learning-log.html
+
+（手機免開電腦也可用 dash 鏡射：https://copyshae.github.io/-/directory/202608/）
