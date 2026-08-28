@@ -20,6 +20,7 @@ $pairs = @(
   @{ Src = 'directory\202608\20260821-learning-log.html'; Dst = 'directory\202608\20260821-learning-log.html' },
   @{ Src = 'directory\202608\20260822-learning-log.html'; Dst = 'directory\202608\20260822-learning-log.html' },
   @{ Src = 'directory\202608\20260823-learning-log.html'; Dst = 'directory\202608\20260823-learning-log.html' },
+  @{ Src = 'directory\202608\20260820-learning-log.html'; Dst = 'directory\202608\20260820-learning-log.html' },
   @{ Src = 'scripts\teacher-desk-app.ps1'; Dst = 'scripts\teacher-desk-app.ps1' },
   @{ Src = 'scripts\install-teacher-desk.ps1'; Dst = 'scripts\install-teacher-desk.ps1' },
   @{ Src = 'scripts\README-teacher-desk.md'; Dst = 'scripts\README-teacher-desk.md' },
@@ -90,6 +91,7 @@ try {
     directory/index.html directory/learning-log.html `
     directory/202608/index.html directory/202608/20260821-learning-log.html `
     directory/202608/20260822-learning-log.html directory/202608/20260823-learning-log.html `
+    directory/202608/20260820-learning-log.html `
     scripts/ .cursor/rules 2>$null
   git status --short
   if (git diff --cached --quiet) {

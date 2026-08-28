@@ -11,9 +11,11 @@
 
 ---
 
-本包另含 hello-world 匯出（學習日誌 **0821–0823**）。**只有要同步 hello-world 學習日誌站時**才需在電腦跑下方腳本。
+本包另含 hello-world 匯出（學習日誌 **0821–0823**，並保留 hello-world 專用 **0820 環境教育**）。**只有要同步 hello-world 學習日誌站時**才需在電腦跑下方腳本。
 
 ## 可選：套用到 hello-world（電腦）
+
+**請在 `Desktop\hello-world` 資料夾內執行**（不要在 `C:\Users\你的帳號>` 執行）：
 
 ```powershell
 cd $env:USERPROFILE\Desktop\hello-world

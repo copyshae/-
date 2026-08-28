@@ -57,8 +57,8 @@ jobs:
           cp -f _export/hello-world/directory/learning-log.html /tmp/hw/directory/learning-log.html
           cp -f _export/hello-world/directory/index.html /tmp/hw/directory/index.html
           cp -f _export/hello-world/directory/202608/index.html /tmp/hw/directory/202608/index.html
+          cp -f _export/hello-world/directory/202608/20260820-learning-log.html /tmp/hw/directory/202608/ || true
           cd /tmp/hw
-          rm -f directory/202608/20260820-learning-log.html
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
