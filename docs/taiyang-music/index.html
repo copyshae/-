@@ -390,6 +390,7 @@
     const CATALOG_URL = "./catalog.json";
     const PRACTICE_KEY = "taiyang-practice-log";
     const LYRICS_CACHE_KEY = "taiyang-lyrics-cache";
+    const INNERTUBE_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
     const MAX_HISTORY = 30;
 
     let catalog = { songs: [] };
@@ -409,6 +410,8 @@
     let captionSyncMode = "none"; // youtube | estimated | timed
     let captionRetimed = false;
     let preferYoutubeCaptions = localStorage.getItem("taiyang-prefer-yt-captions") !== "0";
+    let captionFetchGen = 0;
+    let captionRetryTimers = [];
     let singSession = null;
     let playTickTimer = null;
     let pendingAutoNext = false;
@@ -839,6 +842,62 @@
           if (lines.length) return lines;
         }
       }
+      return fetchYouTubeCaptionsViaInnertube(videoId);
+    }
+
+    async function fetchInnertubePlayer(videoId) {
+      const clients = [
+        { clientName: "WEB", clientVersion: "2.20250201.01.00" },
+        { clientName: "ANDROID", clientVersion: "19.09.37", androidSdkVersion: 30 },
+        { clientName: "IOS", clientVersion: "19.09.3", deviceModel: "iPhone14,3" }
+      ];
+      for (const client of clients) {
+        try {
+          const res = await fetch(
+            "https://www.youtube.com/youtubei/v1/player?key=" + INNERTUBE_KEY,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                videoId,
+                context: { client: Object.assign({}, client, { hl: "zh-TW" }) }
+              })
+            }
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data && data.videoDetails) return data;
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    async function fetchYouTubeCaptionsViaInnertube(videoId) {
+      const data = await fetchInnertubePlayer(videoId);
+      const tracks = (data && data.captions && data.captions.playerCaptionsTracklistRenderer
+        && data.captions.playerCaptionsTracklistRenderer.captionTracks) || [];
+      if (!tracks.length) return [];
+      const langPref = ["zh-Hant", "zh-TW", "zh-Hans", "zh", "en"];
+      const sorted = tracks.slice().sort((a, b) => {
+        const ia = langPref.indexOf(a.languageCode);
+        const ib = langPref.indexOf(b.languageCode);
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      });
+      for (const tr of sorted) {
+        const base = tr.baseUrl;
+        if (!base) continue;
+        for (const fmt of ["vtt", "json3"]) {
+          const url = base + (base.indexOf("?") >= 0 ? "&" : "?") + "fmt=" + fmt;
+          try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const raw = await res.text();
+            let lines = fmt === "vtt" ? parseVtt(raw) : parseJson3Captions(raw);
+            lines = mergeTimedSegments(lines);
+            if (lines.length) return lines;
+          } catch (_) {}
+        }
+      }
       return [];
     }
 
@@ -950,8 +1009,43 @@
       return null;
     }
 
-    async function resolveLyrics(videoId, item) {
-      if (preferYoutubeCaptions) {
+    async function resolveLyrics(videoId, item, options) {
+      const opts = options || {};
+      const liveFirst = opts.live !== false && preferYoutubeCaptions;
+
+      if (liveFirst) {
+        const ytHit = await fetchYouTubeCaptionsForItem(item, videoId);
+        if (ytHit.lines.length) {
+          saveLyricsCache(videoId, {
+            source: "youtube",
+            timed: ytHit.lines,
+            name: item.name,
+            fromVideoId: ytHit.fromVideoId,
+            fetchedAt: Date.now()
+          });
+          return {
+            lines: ytHit.lines,
+            source: "youtube",
+            plain: null,
+            syncMode: "youtube",
+            live: true
+          };
+        }
+      }
+
+      if (!opts.skipCache) {
+        const cache = getLyricsCache();
+        if (cache[videoId] && cache[videoId].timed && cache[videoId].timed.length) {
+          return {
+            lines: cache[videoId].timed,
+            source: cache[videoId].source || "cache",
+            plain: null,
+            syncMode: cache[videoId].source === "youtube" ? "youtube" : "timed"
+          };
+        }
+      }
+
+      if (!liveFirst) {
         const ytHit = await fetchYouTubeCaptionsForItem(item, videoId);
         if (ytHit.lines.length) {
           saveLyricsCache(videoId, {
@@ -960,18 +1054,8 @@
             name: item.name,
             fromVideoId: ytHit.fromVideoId
           });
-          return { lines: ytHit.lines, source: "youtube", plain: null, syncMode: "youtube" };
+          return { lines: ytHit.lines, source: "youtube", plain: null, syncMode: "youtube", live: true };
         }
-      }
-
-      const cache = getLyricsCache();
-      if (cache[videoId] && cache[videoId].timed && cache[videoId].timed.length) {
-        return {
-          lines: cache[videoId].timed,
-          source: cache[videoId].source || "cache",
-          plain: null,
-          syncMode: cache[videoId].source === "youtube" ? "youtube" : "timed"
-        };
       }
 
       const bundled = await fetchBundledLyrics(videoId, item);
@@ -985,19 +1069,7 @@
         if (r.lines.length) return { ...r, syncMode: "estimated" };
       }
 
-      if (!preferYoutubeCaptions) {
-        const ytHit = await fetchYouTubeCaptionsForItem(item, videoId);
-        if (ytHit.lines.length) {
-          saveLyricsCache(videoId, {
-            source: "youtube",
-            timed: ytHit.lines,
-            name: item.name,
-            fromVideoId: ytHit.fromVideoId
-          });
-          return { lines: ytHit.lines, source: "youtube", plain: null, syncMode: "youtube" };
-        }
-      }
-
+      const cache = getLyricsCache();
       if (cache[videoId]) {
         const r = packLyricsResult(cache[videoId], cache[videoId].duration);
         if (r.lines.length) {
@@ -1027,15 +1099,47 @@
 
     function captionModeHint(result) {
       if (result.syncMode === "youtube") {
-        return "YouTube 原字幕同步（跟影片時間軸）";
+        return result.live ? "即時抓取 YouTube 原字幕（跟旋律同步）" : "YouTube 原字幕同步";
       }
       if (result.syncMode === "timed") {
         return "內建時間軸字幕（已對時）";
       }
       if (result.syncMode === "estimated") {
-        return "內建歌詞（依片長估算，非原字幕）";
+        return "內建歌詞（無 CC 時依片長估算）";
       }
       return "此曲暫無字幕";
+    }
+
+    function captionQualityRank(mode) {
+      return { youtube: 3, timed: 2, estimated: 1, none: 0 }[mode] || 0;
+    }
+
+    function applyLyricsResultIfBetter(result, item) {
+      if (!result) return;
+      const cur = captionQualityRank(captionSyncMode);
+      const next = captionQualityRank(result.syncMode);
+      if (next < cur && captionLines.length) return;
+      if (next === cur && result.lines.length <= captionLines.length) return;
+      applyLyricsResult(result, item);
+    }
+
+    function clearCaptionRetries() {
+      captionRetryTimers.forEach(clearTimeout);
+      captionRetryTimers = [];
+    }
+
+    function scheduleLiveCaptionRetries(vid, item) {
+      clearCaptionRetries();
+      if (!ktvMode || !preferYoutubeCaptions) return;
+      [1200, 3500, 7000].forEach((ms) => {
+        captionRetryTimers.push(setTimeout(() => {
+          if (captionSyncMode === "youtube") return;
+          if (ktvMode) $("ktvHint").textContent = "正在即時抓取字幕…";
+          fetchCaptions(vid, item, { live: true, skipCache: true }).then((r) => {
+            if (r) applyLyricsResultIfBetter(r, item);
+          });
+        }, ms));
+      });
     }
 
     function applyLyricsResult(result, item) {
@@ -1060,7 +1164,7 @@
       const btn = $("btnCaptionMode");
       if (!btn) return;
       btn.classList.toggle("on", preferYoutubeCaptions);
-      btn.textContent = preferYoutubeCaptions ? "字幕：YouTube 原字幕優先" : "字幕：內建歌詞優先";
+      btn.textContent = preferYoutubeCaptions ? "字幕：即時抓取原字幕" : "字幕：內建歌詞備用";
     }
 
     function toggleCaptionMode() {
@@ -1070,8 +1174,11 @@
       if (queue[qIndex]) loadVideo(queue[qIndex], true);
     }
 
-    async function fetchCaptions(videoId, item) {
-      return resolveLyrics(videoId, item);
+    async function fetchCaptions(videoId, item, options) {
+      const gen = ++captionFetchGen;
+      const result = await resolveLyrics(videoId, item, options);
+      if (gen !== captionFetchGen) return null;
+      return result;
     }
 
     function stopPlayTick() {
@@ -1333,6 +1440,7 @@
     }
 
     function stopCaptionSync() {
+      clearCaptionRetries();
       if (captionTimer) {
         clearInterval(captionTimer);
         captionTimer = null;
@@ -1634,10 +1742,17 @@
       captionLines = [];
       captionPlainLines = null;
       captionSource = "none";
+      captionSyncMode = "none";
       captionRetimed = false;
       lastCaptionText = item.name;
       stopCaptionSync();
       stopPlayTick();
+      if (ktvMode) {
+        $("ktvLine").textContent = item.name;
+        $("ktvHint").textContent = preferYoutubeCaptions
+          ? "正在即時抓取字幕…"
+          : "載入內建歌詞…";
+      }
       if (ktvMode) resetSingSession(item);
       if (player && player.loadVideoById) {
         player.loadVideoById(vid);
@@ -1648,9 +1763,12 @@
       } else if (apiReady) {
         createPlayer(vid, play);
       }
-      fetchCaptions(vid, item).then((result) => {
-        applyLyricsResult(result, item);
+      fetchCaptions(vid, item, { live: true }).then((result) => {
+        if (result) applyLyricsResultIfBetter(result, item);
         updateKtvUI();
+        if (ktvMode && preferYoutubeCaptions && captionSyncMode !== "youtube") {
+          scheduleLiveCaptionRetries(vid, item);
+        }
       });
       updateNow();
       updateKtvUI();
@@ -1670,7 +1788,13 @@
             enablePlayerCaptions();
             if (play) player.playVideo();
             maybeRetimeCaptions();
-            if (ktvMode) startCaptionSync();
+            if (ktvMode) {
+              startCaptionSync();
+              const item = queue[qIndex];
+              if (item && preferYoutubeCaptions && captionSyncMode !== "youtube") {
+                scheduleLiveCaptionRetries(resolveVideoId(item), item);
+              }
+            }
           },
           onStateChange: onStateChange
         }
