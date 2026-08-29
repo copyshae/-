@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#b41e2d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="新聞主播" />
-  <meta name="description" content="從 Google 新聞抓取頭條，選擇虛擬主播人物，以語音播報今日新聞。" />
+  <meta name="description" content="從 Google 新聞抓取頭條；文字或口說輸入關鍵字／分類，虛擬主播語音播報。" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
@@ -307,7 +307,7 @@
       "頭條": "headlines", "焦點": "headlines", "要聞": "headlines",
       "台灣": "nation", "國內": "nation", "國內新聞": "nation",
       "國際": "world", "世界": "world", "國際新聞": "world",
-      "財經": "business", "经济": "business", "經濟": "business",
+      "財經": "business", "經濟": "business",
       "科技": "technology", "tech": "technology",
       "體育": "sports", "運動": "sports",
       "娛樂": "entertainment",
@@ -648,7 +648,7 @@
         btn.textContent = kw;
         btn.addEventListener("click", function () {
           $("keyword").value = kw;
-          searchAndPlay().catch(showFetchError);
+          playNewsFlow().catch(showFetchError);
         });
         wrap.appendChild(btn);
       });
@@ -1156,6 +1156,7 @@
     renderMainAnchor();
     bindTts();
     initGeminiKey();
+    setInputMode(loadInputMode());
     renderRecentKeywords();
     fetchNews().catch(function () {});
 
