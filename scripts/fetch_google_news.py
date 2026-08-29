@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""從 Google News RSS 抓取新聞，輸出 JSON 供 news-anchor PWA 使用。"""
+"""從 Google News RSS 抓取新聞，並可解碼原文連結抓取內文，輸出 JSON 供 news-anchor PWA。
+
+Google News RSS 的 description 通常只有相關報導連結，不含完整內文。
+需 pip install googlenewsdecoder 才能抓取原文（--no-articles 可略過）。
+"""
 
 from __future__ import annotations
 
@@ -8,12 +12,18 @@ import html
 import json
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from googlenewsdecoder import gnewsdecoder
+except ImportError:  # pragma: no cover - 選用依賴
+    gnewsdecoder = None  # type: ignore[misc, assignment]
 
 USER_AGENT = "Mozilla/5.0 (compatible; news-anchor/1.0; +https://github.com/copyshae/-)"
 DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "docs" / "news-anchor" / "news-cache.json"
@@ -84,6 +94,141 @@ def extract_related_titles(desc: str, main_title: str, limit: int = 4) -> list[s
     return related
 
 
+def resolve_publisher_url(link: str, interval: float = 0.5) -> str | None:
+    """將 news.google.com/rss/articles/... 解碼為媒體原文 URL。"""
+    if not link or "news.google.com" not in link:
+        return link or None
+    if gnewsdecoder is None:
+        return None
+    try:
+        result = gnewsdecoder(link, interval=interval)
+        if result.get("status") and result.get("decoded_url"):
+            return str(result["decoded_url"])
+    except Exception as exc:  # noqa: BLE001
+        print(f"  解碼失敗：{exc}", file=sys.stderr)
+    return None
+
+
+def fetch_page(url: str, timeout: int = 20) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def _meta_content(html_text: str, *patterns: str) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, html_text, re.I | re.S)
+        if match:
+            text = normalize_space(html.unescape(match.group(1)))
+            if len(text) > 20:
+                return text
+    return ""
+
+
+def _json_ld_body(html_text: str) -> str:
+    for block in re.finditer(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html_text, re.I | re.S):
+        raw = block.group(1).strip()
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        nodes = data if isinstance(data, list) else [data]
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            body = node.get("articleBody") or node.get("description")
+            if isinstance(body, str) and len(body) > 40:
+                return normalize_space(html.unescape(re.sub(r"<[^>]+>", " ", body)))
+    return ""
+
+
+def _paragraph_body(html_text: str) -> str:
+    chunks: list[str] = []
+    for block in re.finditer(r"<p[^>]*>(.*?)</p>", html_text, re.I | re.S):
+        text = normalize_space(html.unescape(re.sub(r"<[^>]+>", " ", block.group(1))))
+        if len(text) < 40:
+            continue
+        if re.search(r"(cookie|javascript|browser does not support|您的瀏覽器)", text, re.I):
+            continue
+        if re.fullmatch(r"[\d:/\s]+", text):
+            continue
+        chunks.append(text)
+        if sum(len(c) for c in chunks) >= 1200:
+            break
+    return normalize_space(" ".join(chunks))
+
+
+def extract_article_text(html_text: str) -> str:
+    """從媒體原文 HTML 抽出可播報內文。"""
+    for extractor in (
+        lambda h: _json_ld_body(h),
+        lambda h: _meta_content(
+            h,
+            r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']*)["\']',
+            r'<meta[^>]+content=["\']([^"\']*)["\'][^>]+property=["\']og:description["\']',
+            r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)["\']',
+        ),
+        lambda h: _paragraph_body(h),
+    ):
+        text = extractor(html_text)
+        if len(text) >= 40:
+            return text[:2000]
+    return ""
+
+
+def make_article_summary(text: str, max_len: int = 320) -> str:
+    text = normalize_space(text)
+    if not text:
+        return ""
+    parts = re.split(r"(?<=[。！？!?])", text)
+    summary = ""
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if len(summary) + len(part) > max_len and summary:
+            break
+        summary += part
+        if len(summary) >= max_len * 0.65:
+            break
+    if not summary:
+        summary = text[:max_len]
+    return summary[:max_len]
+
+
+def enrich_items_with_articles(
+    items: list[dict],
+    *,
+    per_feed: int,
+    interval: float,
+) -> None:
+    """就地填入 publisherUrl / articleText / articleSummary。"""
+    if gnewsdecoder is None:
+        print("  略過原文抓取（請 pip install googlenewsdecoder）", file=sys.stderr)
+        return
+    for idx, item in enumerate(items[:per_feed]):
+        link = item.get("link") or ""
+        title = item.get("title") or ""
+        print(f"  原文 {idx + 1}/{min(len(items), per_feed)}：{title[:36]}…", file=sys.stderr)
+        publisher = resolve_publisher_url(link, interval=interval)
+        if not publisher:
+            continue
+        item["publisherUrl"] = publisher
+        try:
+            page = fetch_page(publisher)
+            body = extract_article_text(page)
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            print(f"    抓取失敗：{exc}", file=sys.stderr)
+            continue
+        if body:
+            item["articleText"] = body
+            item["articleSummary"] = make_article_summary(body)
+            print(f"    ✓ {len(body)} 字", file=sys.stderr)
+        time.sleep(interval)
+
+
 def parse_rss(xml_text: str, limit: int = 12) -> list[dict]:
     root = ET.fromstring(xml_text)
     channel = root.find("channel")
@@ -125,7 +270,15 @@ def build_search_url(keyword: str) -> str:
     return f"https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
 
 
-def build_cache(categories: list[str] | None, per_feed: int, keywords: list[str] | None = None) -> dict:
+def build_cache(
+    categories: list[str] | None,
+    per_feed: int,
+    keywords: list[str] | None = None,
+    *,
+    fetch_articles: bool = True,
+    article_limit: int = 5,
+    decode_interval: float = 0.6,
+) -> dict:
     cats = categories or list(FEEDS.keys())
     payload: dict = {
         "updatedAt": datetime.now(timezone.utc).isoformat(),
@@ -139,6 +292,8 @@ def build_cache(categories: list[str] | None, per_feed: int, keywords: list[str]
         try:
             xml_text = fetch_rss(url)
             items = parse_rss(xml_text, limit=per_feed)
+            if fetch_articles and items:
+                enrich_items_with_articles(items, per_feed=article_limit, interval=decode_interval)
             payload["feeds"][key] = {
                 "label": CATEGORY_LABELS.get(key, key),
                 "url": url,
@@ -162,6 +317,8 @@ def build_cache(categories: list[str] | None, per_feed: int, keywords: list[str]
         try:
             xml_text = fetch_rss(url)
             items = parse_rss(xml_text, limit=per_feed)
+            if fetch_articles and items:
+                enrich_items_with_articles(items, per_feed=article_limit, interval=decode_interval)
             payload["feeds"][feed_key] = {
                 "label": f"「{kw}」相關",
                 "url": url,
@@ -212,11 +369,31 @@ def main() -> int:
         dest="keywords",
         help="搜尋關鍵字（Google 新聞 RSS），可重複指定",
     )
+    parser.add_argument(
+        "--no-articles",
+        action="store_true",
+        help="不抓取媒體原文內文（僅 RSS 標題與相關連結）",
+    )
+    parser.add_argument(
+        "--article-limit",
+        type=int,
+        default=5,
+        help="每個分類最多抓取幾則原文內文（預設 5）",
+    )
+    parser.add_argument(
+        "--decode-interval",
+        type=float,
+        default=0.6,
+        help="解碼／抓取原文間隔秒數（預設 0.6）",
+    )
     args = parser.parse_args()
     cache = build_cache(
         args.categories,
         max(1, min(args.limit, 30)),
         args.keywords,
+        fetch_articles=not args.no_articles,
+        article_limit=max(1, min(args.article_limit, 15)),
+        decode_interval=max(0.2, args.decode_interval),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")

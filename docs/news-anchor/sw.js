@@ -1,5 +1,5 @@
 /* Google 新聞虛擬主播｜離線快取 */
-const CACHE = "news-anchor-v20";
+const CACHE = "news-anchor-v21";
 const ASSETS = [
   "./",
   "./index.html",
