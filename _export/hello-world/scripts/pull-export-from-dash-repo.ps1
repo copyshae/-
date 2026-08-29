@@ -103,7 +103,26 @@ $files = @(
   "directory/202608/20260821-learning-log.html",
   "directory/202608/20260822-learning-log.html",
   "directory/202608/20260823-learning-log.html",
+  "directory/202608/20260824-learning-log.html",
+  "directory/202608/20260825-learning-log.html",
+  "directory/202608/20260826-learning-log.html",
+  "directory/202608/20260827-learning-log.html",
+  "directory/202608/20260828-learning-log.html",
+  "directory/202608/20260829-learning-log.html",
   "directory/202608/20260820-learning-log.html",
+  "directory/apps/dizigui-41/index.html",
+  "directory/apps/dizigui-41/sw.js",
+  "directory/apps/dizigui-41/manifest.json",
+  "directory/apps/dizigui-41/share.html",
+  "directory/apps/dizigui-41/episodes.js",
+  "directory/apps/dizigui-41/dizigui-icon-180.png",
+  "directory/apps/dizigui-41/dizigui-icon-192.png",
+  "directory/apps/dizigui-41/dizigui-icon-512.png",
+  "directory/apps/taiyang-music/index.html",
+  "directory/apps/taiyang-music/sw.js",
+  "directory/apps/taiyang-music/manifest.json",
+  "directory/apps/taiyang-music/share.html",
+  "directory/apps/taiyang-music/catalog.json",
   "scripts/install-scan-equip.ps1",
   "scripts/scan-equip-app.ps1",
   "scripts/README-scan-equip.md"
@@ -164,16 +183,16 @@ try {
   }
   try { & git pull origin $pagesBranch 2>$null | Out-Null } catch {}
 
-  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip directory/apps/daily-14 directory/apps/habits-7 directory/apps/doc-reader `
+  git add directory/apps/math-grader directory/apps/teacher-desk directory/apps/scan-equip directory/apps/daily-14 directory/apps/habits-7 directory/apps/doc-reader directory/apps/dizigui-41 directory/apps/taiyang-music `
     directory/index.html directory/learning-log.html `
-    directory/202608/index.html directory/202608/20260821-learning-log.html directory/202608/20260822-learning-log.html directory/202608/20260823-learning-log.html directory/202608/20260820-learning-log.html `
+    directory/202608/index.html directory/202608/20260821-learning-log.html directory/202608/20260822-learning-log.html directory/202608/20260823-learning-log.html directory/202608/20260824-learning-log.html directory/202608/20260825-learning-log.html directory/202608/20260826-learning-log.html directory/202608/20260827-learning-log.html directory/202608/20260828-learning-log.html directory/202608/20260829-learning-log.html directory/202608/20260820-learning-log.html `
     scripts/install-desktop-apps.ps1 `
     scripts/math-homework-grader-app.ps1 scripts/install-math-homework-grader.ps1 `
     scripts/teacher-desk-app.ps1 scripts/install-teacher-desk.ps1 `
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "學習日誌 0821–0823：14樣／七習慣／看書文件（電腦同步）"
+    git commit -m "學習日誌 0824–0829：弟子規／盛德歌曲 KTV（電腦同步）"
     git push origin HEAD
     Write-Host "Pushed. Phone URL:"
     Write-Host "https://copyshae.github.io/hello-world/directory/apps/habits-7/"
