@@ -41,7 +41,7 @@
       padding: 0.85rem; margin: 0.65rem 0;
     }
     .card h2 { font-size: 1rem; color: var(--accent); margin-bottom: 0.4rem; }
-    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
+    .hint.length-warn { color: var(--warn); font-weight: 700; }
     label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 0.45rem 0 0.2rem; }
     input[type="text"], input[type="date"], input[type="password"], textarea, select {
       width: 100%; font: inherit; font-size: 16px; padding: 0.55rem 0.6rem;
@@ -416,9 +416,10 @@
         <button type="button" id="btnSaveEdit">儲存修改</button>
         <button type="button" id="btnShare">📤 分享</button>
       </div>
-      <p class="hint">生成篇幅約 <strong>500–800 字</strong>、正文 <strong>3–4 段</strong>，輕鬆好讀、不造成閱讀負擔。生成後可<strong>直接打字修改</strong>全文，或按<strong>口說修改</strong>以語音修訂（有選取時取代選取，否則追加）。</p>
+      <p class="hint">生成篇幅依印證句數自動調整上限；編輯時上方即時顯示正文／全文字數。生成後可<strong>直接打字修改</strong>，或按<strong>口說修改</strong>。</p>
       <p class="status" id="genStatus"></p>
       <label for="outputEdit">心得全文（可手動或口說修改）</label>
+      <p class="hint" id="essayLengthHint" aria-live="polite">正文 —／— 字 · 全文 —／— 字（上限隨印證句數調整）</p>
       <textarea id="outputEdit" class="output" rows="14" placeholder="（生成後會顯示在這裡；可直接打字或口說修改）" aria-live="polite"></textarea>
       <p class="sel-hint">💡 部分複製：在方框內長按／拖曳選取 → 按「複製選取」。口說前可先選取要改寫的段落。</p>
       <div class="output-toolbar">
@@ -582,11 +583,44 @@
       "佐證引用順序：①**優先**太陽盛德導師相關言語（尤其《太陽心語》、超碼心法、演講教誨）；②其次可引用超級生命密碼**學員事蹟**作輔助（可概括如「有位學員曾分享…」，不杜撰姓名）；③**再來**才引用古今中外重要**正能量思維**事例（聖賢名言、歷史人物正向故事等，白話化印證）。若【印證參考】有對應內容須依此順序融入，勿顛倒。";
     var TAIYANG_XINYU_SEARCH_NOTE =
       "搜尋太陽盛德導師話語時，**優先查找《太陽心語》**（官方社群、天圓文化、超級生命密碼相關平台），其次才是一般演講、文章、歌曲。";
-    /** 心得篇幅：適中、好讀、不造成觀看負擔 */
-    var ESSAY_LENGTH_GUIDE =
-      "篇幅適中、輕鬆好讀：正文 3–4 段，每段 2–4 句、句子宜短；正文理想約 500–800 字、至少不宜少於 400 字（不含標題、署名、問候、感恩）。精簡不贅、不重複堆砌。";
-    var ESSAY_BODY_MIN_CHARS = 400;
-    var ESSAY_BODY_MAX_CHARS = 850;
+    /** 心得篇幅：適中、好讀；上限隨印證句數動態調整 */
+    function getEssayLengthLimits() {
+      var c = getQuoteCounts();
+      var bodyMin = 320 + c.master * 30 + c.sage * 25;
+      var bodyMax = 620 + c.master * 75 + c.sage * 55;
+      bodyMax = Math.min(1100, Math.max(550, bodyMax));
+      bodyMin = Math.max(280, Math.min(bodyMin, bodyMax - 120));
+      var overhead = 160 + getFormatHeaderLines().length * 18 + getFormatFooterLines().length * 14;
+      return {
+        bodyMin: bodyMin,
+        bodyMax: bodyMax,
+        totalMin: bodyMin + overhead,
+        totalMax: bodyMax + overhead
+      };
+    }
+
+    function buildEssayLengthGuide() {
+      var lim = getEssayLengthLimits();
+      return "篇幅適中、輕鬆好讀：正文 3–4 段，每段 2–4 句；正文約 " + lim.bodyMin + "–" + lim.bodyMax +
+        " 字、全文約 " + lim.totalMax + " 字內（隨印證句數調整）。精簡不贅、不重複堆砌。";
+    }
+
+    function countEssayTotalChars(text) {
+      return String(text || "").replace(/\s/g, "").length;
+    }
+
+    function updateEssayLengthHint(text) {
+      var el = $("essayLengthHint");
+      if (!el) return;
+      var lim = getEssayLengthLimits();
+      var bodyLen = text ? countEssayBodyChars(text) : 0;
+      var totalLen = text ? countEssayTotalChars(text) : 0;
+      var bodyOk = !text || (bodyLen >= lim.bodyMin && bodyLen <= lim.bodyMax);
+      var totalOk = !text || totalLen <= lim.totalMax;
+      el.textContent = "正文 " + bodyLen + "／" + lim.bodyMax + " 字 · 全文 " + totalLen + "／" + lim.totalMax +
+        " 字（句數 " + getQuoteCounts().master + "＋" + getQuoteCounts().sage + "）";
+      el.className = "hint" + (bodyOk && totalOk ? "" : " length-warn");
+    }
 
     function normalizeFormat(fmt) {
       return {
@@ -662,6 +696,7 @@
       updateFormatModuleHint();
       if (!silent) setStatus($("formatStatus"), "已儲存格式模組（後續生成持續套用）", "");
       if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+      updateEssayLengthHint(getOutputText());
       return formatModule;
     }
 
@@ -693,6 +728,7 @@
       try { localStorage.removeItem(KEY_FORMAT); } catch (e) {}
       setStatus($("formatStatus"), "已還原預設格式模組", "");
       if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+      updateEssayLengthHint(getOutputText());
     }
 
     function setupFormatAutoSave() {
@@ -749,7 +785,7 @@
         "4. 正文 3–4 個自然段，依內文四步法（不必標 Step 編號）\n" +
         "5. 空一行後寫感恩迴向（每句一行，依下列標準結尾）\n\n" +
         "【篇幅要求】（讓觀看者輕鬆讀完、不覺負擔）\n" +
-        "- " + ESSAY_LENGTH_GUIDE + "\n" +
+        "- " + buildEssayLengthGuide() + "\n" +
         "- 一個重點說清楚即可，寧可簡潔也不要長篇論述\n\n" +
         "【內文四步法】\n" +
         "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
@@ -776,10 +812,20 @@
       var t = String(text || "");
       lastOutput = t;
       $("outputEdit").value = t;
+      updateEssayLengthHint(t);
     }
 
     function syncOutputFromEdit() {
       lastOutput = $("outputEdit").value || "";
+      var text = getOutputText();
+      updateEssayLengthHint(text);
+      if (text) renderChecklist(validateEssay(text));
+    }
+
+    function onQuoteCountsChanged() {
+      saveQuoteCounts();
+      updateEssayLengthHint(getOutputText());
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
     }
 
     function copyTextToClipboard(text, okMsg) {
@@ -1781,9 +1827,15 @@
       var paras = getEssayBodyParagraphs(text);
       checks.push({ label: "正文 3–4 段", ok: paras.length >= 3 && paras.length <= 4 });
       var bodyLen = countEssayBodyChars(text);
+      var totalLen = countEssayTotalChars(text);
+      var lim = getEssayLengthLimits();
       checks.push({
-        label: "篇幅適中（正文約 " + ESSAY_BODY_MIN_CHARS + "–" + ESSAY_BODY_MAX_CHARS + " 字，現約 " + bodyLen + " 字）",
-        ok: bodyLen >= ESSAY_BODY_MIN_CHARS && bodyLen <= ESSAY_BODY_MAX_CHARS
+        label: "正文篇幅（" + lim.bodyMin + "–" + lim.bodyMax + " 字，現 " + bodyLen + " 字）",
+        ok: bodyLen >= lim.bodyMin && bodyLen <= lim.bodyMax
+      });
+      checks.push({
+        label: "全文字數（上限 " + lim.totalMax + " 字，現 " + totalLen + " 字）",
+        ok: totalLen <= lim.totalMax
       });
       var footerLines = getFormatFooterLines();
       var hasClosing = !footerLines.length || footerLines.every(function (line) { return text.indexOf(line) >= 0; });
@@ -2896,7 +2948,7 @@
             (refNotes ? "\n\n" + refNotes : "") +
             "\n\n【寫作指示】Step3 古今印證依序：①太陽盛德導師話語（尤其《太陽心語》）約 " + counts.master + " 則 → ②可輔以學員事蹟 → ③古今中外正能量思維約 " + counts.sage + " 則（依印證參考，白話轉念，不可只列連結或堆砌）。" +
             "\n" + EVIDENCE_PRIORITY_GUIDE +
-            "\n" + ESSAY_LENGTH_GUIDE + " 請嚴守篇幅，勿寫過長。";
+            "\n" + buildEssayLengthGuide() + " 請嚴守篇幅，勿超過全文上限。";
           var res = await callGeminiText(buildSopPrompt() + userBlock, key);
           essay = res.text;
           setStatus($("genStatus"), "已用 Gemini（" + res.model + "）生成", "");
@@ -2953,7 +3005,6 @@
         try { el.focus(); el.setSelectionRange(pos2, pos2); } catch (e) {}
       }
       syncOutputFromEdit();
-      renderChecklist(validateEssay(el.value));
     }
 
     function stopVoice() {
@@ -3089,8 +3140,8 @@
       $("btnResetFormat").onclick = resetFormatSettings;
       $("exportWithAttachments").onchange = function () { syncExportAttachCheckboxes(this.checked); };
       $("exportWithAttachments2").onchange = function () { syncExportAttachCheckboxes(this.checked); };
-      $("quoteCountSage").onchange = saveQuoteCounts;
-      $("quoteCountMaster").onchange = saveQuoteCounts;
+      $("quoteCountSage").onchange = onQuoteCountsChanged;
+      $("quoteCountMaster").onchange = onQuoteCountsChanged;
 
       $("btnSaveKey").onclick = function () {
         var v = $("geminiKey").value.trim();
@@ -3190,6 +3241,7 @@
       $("btnAddFromMaterial").onclick = addAttachmentsFromMaterial;
       renderEssayImages();
       $("outputEdit").addEventListener("input", syncOutputFromEdit);
+      updateEssayLengthHint("");
       setupShareSheet();
 
       if ("serviceWorker" in navigator) {
