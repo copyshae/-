@@ -84,18 +84,19 @@
     .anchor-photo-stage {
       position: relative; width: 100%; overflow: hidden;
       border-radius: 0.35rem 0.35rem 0 0;
-      contain: layout style paint;
     }
     .face-layer { position: absolute; left: 0; right: 0; overflow: hidden; }
     .face-jaw {
       position: relative; z-index: 1;
+      -webkit-clip-path: inset(var(--jaw-split, 52%) 0 0 0);
       clip-path: inset(var(--jaw-split, 52%) 0 0 0);
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
     }
     .face-upper {
       top: 0; z-index: 2;
       height: var(--jaw-split, 52%);
-      transform-origin: 50% 92%;
-      will-change: transform;
+      pointer-events: none;
     }
     .anchor-photo {
       width: 100%; height: auto; max-height: 14.5rem; object-fit: cover;
@@ -107,18 +108,19 @@
       transform-origin: 50% var(--jaw-split, 52%);
       will-change: transform;
     }
-    .face-upper::after {
-      content: "";
-      position: absolute; bottom: -1px; left: 0; right: 0; height: 4px; z-index: 3;
-      background: linear-gradient(180deg, rgba(0,0,0,.12), transparent);
-      pointer-events: none;
+    .anchor-photo-wrap.speaking .face-jaw {
+      animation: jawPulse 0.32s ease-in-out infinite alternate;
+    }
+    @keyframes jawPulse {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(0, 3px, 0); }
     }
     .face-upper.fx-blink .anchor-photo-upper {
-      animation: naturalBlink 0.11s ease-in-out;
+      animation: naturalBlink 0.13s ease-in-out;
     }
     @keyframes naturalBlink {
       0%, 100% { filter: brightness(1); }
-      48% { filter: brightness(0.86); }
+      45% { filter: brightness(0.78); }
     }
     .anchor-photo-wrap.speaking .anchor-photo {
       filter: brightness(1.02) saturate(1.03);
@@ -223,7 +225,7 @@
     .studio-ticker { will-change: transform; }
     @media (prefers-reduced-motion: reduce) {
       .studio-ticker { animation: none !important; }
-      .anchor-photo-jaw { transform: none !important; }
+      .anchor-photo-wrap.speaking .face-jaw { animation: none !important; }
     }
     .lower-third .headline-tag {
       display: inline-block; font-size: 0.62rem; background: var(--desk);
@@ -597,6 +599,7 @@
       mouthCurrent: 0,
       mouthTarget: 0,
       mouthNextAt: 0,
+      nextBlink: 0,
       broadcastFullscreen: false
     };
 
@@ -1109,28 +1112,31 @@
     }
 
     function applyJawMotion(openness) {
-      var jaw = document.querySelector(".anchor-photo-jaw");
-      if (!jaw) return;
+      var jawLayer = document.querySelector(".face-jaw");
+      var jawImg = document.querySelector(".anchor-photo-jaw");
+      if (!jawLayer) return;
       var o = Math.max(0, Math.min(1, openness));
-      /* 只用下巴鉸鏈微轉，禁止 scale 避免像照片放大縮小 */
-      var rot = o * 0.38;
-      jaw.style.transform = "rotate(" + rot.toFixed(3) + "deg)";
+      var drop = o * 6;
+      var rot = o * 1.2;
+      jawLayer.style.transform = "translate3d(0," + drop.toFixed(2) + "px,0)";
+      if (jawImg) jawImg.style.transform = "rotate(" + rot.toFixed(2) + "deg)";
     }
 
     function liveMotionTick(ts) {
       if (!state.motionActive) return;
-      var speaking = window.TtsVoices && TtsVoices.getSpeakState().active;
 
-      if (speaking) {
-        if (!state.mouthNextAt || ts >= state.mouthNextAt) {
-          state.mouthTarget = pickMouthTarget();
-          state.mouthNextAt = ts + 120 + Math.random() * 130;
-        }
-        state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * 0.14;
-      } else {
-        state.mouthCurrent += (0 - state.mouthCurrent) * 0.1;
+      if (!state.mouthNextAt || ts >= state.mouthNextAt) {
+        var ttsOn = window.TtsVoices && TtsVoices.getSpeakState().active;
+        state.mouthTarget = ttsOn ? pickMouthTarget() : (0.06 + Math.random() * 0.1);
+        state.mouthNextAt = ts + 90 + Math.random() * 110;
       }
+      state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * 0.18;
       applyJawMotion(state.mouthCurrent);
+
+      if (ts >= state.nextBlink) {
+        triggerPortraitBlink();
+        state.nextBlink = ts + 2000 + Math.random() * 1800;
+      }
 
       state.motionRaf = requestAnimationFrame(liveMotionTick);
     }
@@ -1139,8 +1145,9 @@
       setSpeaking(true);
       state.motionActive = true;
       state.mouthCurrent = 0;
-      state.mouthTarget = 0.08;
+      state.mouthTarget = 0.2;
       state.mouthNextAt = 0;
+      state.nextBlink = performance.now() + 900;
       if (state.motionRaf) cancelAnimationFrame(state.motionRaf);
       state.motionRaf = requestAnimationFrame(liveMotionTick);
     }
@@ -1154,13 +1161,12 @@
       }
       state.mouthCurrent = 0;
       state.mouthTarget = 0;
-      var jaw = document.querySelector(".anchor-photo-jaw");
+      var jawLayer = document.querySelector(".face-jaw");
+      var jawImg = document.querySelector(".anchor-photo-jaw");
       var upper = document.querySelector(".face-upper");
-      if (jaw) jaw.style.transform = "";
-      if (upper) {
-        upper.style.transform = "";
-        upper.classList.remove("fx-blink");
-      }
+      if (jawLayer) jawLayer.style.transform = "";
+      if (jawImg) jawImg.style.transform = "";
+      if (upper) upper.classList.remove("fx-blink");
     }
 
     function enterBroadcastFullscreen() {
@@ -1682,8 +1688,8 @@
       });
       TtsVoices.onSpeakStatus(function (ev) {
         if (ev && ev.reason === "progress") {
-          state.mouthTarget = 0.35 + Math.random() * 0.25;
-          state.mouthNextAt = performance.now() + 80;
+          state.mouthTarget = 0.55 + Math.random() * 0.35;
+          state.mouthNextAt = performance.now() + 70;
         }
       });
     }
