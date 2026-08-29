@@ -123,6 +123,18 @@
     }
     .ktv-panel.on { display: block; }
     .ktv-badge { font-size: 0.72rem; letter-spacing: 0.15em; color: #e8a020; font-weight: 700; }
+    .ktv-sync-dot {
+      display: inline-block; margin-left: 0.45rem; font-size: 0.68rem; font-weight: 600;
+      letter-spacing: 0.02em; vertical-align: middle;
+    }
+    .ktv-sync-dot.youtube { color: #95d5b2; }
+    .ktv-sync-dot.estimated { color: #ffd166; }
+    .ktv-sync-dot.none { color: rgba(255,255,255,0.35); }
+    .ktv-line.sync-flash { animation: ktvLineFlash 0.35s ease-out; }
+    @keyframes ktvLineFlash {
+      from { color: #ffd88a; transform: scale(1.02); }
+      to { color: #fff; transform: scale(1); }
+    }
     .ktv-title { margin-top: 0.35rem; font-size: clamp(1.1rem, 4.5vw, 1.35rem); font-weight: 700; color: #ffd88a; }
     .ktv-line {
       margin-top: 0.85rem;
@@ -144,6 +156,7 @@
     .ktv-caption-mode.on { background: rgba(45,106,79,0.55); border-color: rgba(149,213,178,0.5); }
     body.ktv-mode .normal-only { display: none !important; }
     body.ktv-mode .player-shell { margin-top: 0.5rem; }
+    body.ktv-mode.sync-youtube .player-shell { outline: 2px solid rgba(149,213,178,0.35); }
     body.ktv-mode .wrap { max-width: 32rem; }
     .ktv-score {
       margin-top: 0.75rem;
@@ -304,7 +317,7 @@
     <div class="player-shell"><div id="player"></div></div>
 
     <div id="ktvPanel" class="ktv-panel" aria-live="polite">
-      <div class="ktv-badge">KTV 大字幕</div>
+      <div class="ktv-badge">KTV 大字幕 <span id="ktvSyncDot" class="ktv-sync-dot none" aria-live="polite"></span></div>
       <div id="ktvTitle" class="ktv-title">—</div>
       <div id="ktvLine" class="ktv-line">按下 KTV 後開始播放，字幕會自動顯示</div>
       <div id="ktvNext" class="ktv-next"></div>
@@ -412,6 +425,7 @@
     let preferYoutubeCaptions = localStorage.getItem("taiyang-prefer-yt-captions") !== "0";
     let captionFetchGen = 0;
     let captionRetryTimers = [];
+    let lastSyncedLineIndex = -1;
     let singSession = null;
     let playTickTimer = null;
     let pendingAutoNext = false;
@@ -1148,6 +1162,10 @@
       captionSource = result.source;
       captionSyncMode = result.syncMode || (result.plain ? "estimated" : (result.source === "youtube" ? "youtube" : "none"));
       captionRetimed = captionSyncMode === "estimated" && !!result.plain;
+      updateSyncIndicator(captionSyncMode);
+      if (captionSyncMode === "youtube" || captionSyncMode === "timed") {
+        enablePlayerCaptions();
+      }
       if (ktvMode) {
         if (captionLines.length) {
           $("ktvHint").textContent = captionModeHint(result) + "（" + captionLines.length + " 段）";
@@ -1449,17 +1467,20 @@
 
     function startCaptionSync() {
       stopCaptionSync();
-      if (!ktvMode) return;
+      if (!ktvMode || !captionLines.length) return;
+      lastSyncedLineIndex = -1;
       captionTimer = setInterval(() => {
         if (!player || !player.getCurrentTime) return;
         let t = 0;
         try { t = player.getCurrentTime(); } catch (_) { return; }
         let line = null;
+        let lineIndex = -1;
         let next = null;
         for (let i = 0; i < captionLines.length; i++) {
           const L = captionLines[i];
           if (t >= L.start && t < L.end) {
             line = L;
+            lineIndex = i;
             next = captionLines[i + 1] || null;
             break;
           }
@@ -1468,20 +1489,46 @@
             break;
           }
         }
+        const lineEl = $("ktvLine");
         if (line) {
+          if (lineIndex !== lastSyncedLineIndex) {
+            lastSyncedLineIndex = lineIndex;
+            lineEl.classList.remove("sync-flash");
+            void lineEl.offsetWidth;
+            lineEl.classList.add("sync-flash");
+          }
           lastCaptionText = line.text;
-          $("ktvLine").textContent = line.text;
+          lineEl.textContent = line.text;
           $("ktvNext").textContent = next && next !== line ? next.text : "";
         } else if (next) {
-          $("ktvLine").textContent = next.text;
+          lineEl.textContent = next.text;
           const ni = captionLines.indexOf(next);
           $("ktvNext").textContent = ni >= 0 && captionLines[ni + 1] ? captionLines[ni + 1].text : "";
         } else if (captionLines.length) {
           const last = captionLines[captionLines.length - 1];
-          $("ktvLine").textContent = last.text;
+          lineEl.textContent = last.text;
           $("ktvNext").textContent = "";
         }
-      }, 100);
+      }, 50);
+    }
+
+    function updateSyncIndicator(mode) {
+      const dot = $("ktvSyncDot");
+      if (!dot) return;
+      document.body.classList.toggle("sync-youtube", mode === "youtube");
+      if (mode === "youtube") {
+        dot.className = "ktv-sync-dot youtube";
+        dot.textContent = "● 螢幕字幕同步中";
+      } else if (mode === "estimated") {
+        dot.className = "ktv-sync-dot estimated";
+        dot.textContent = "● 估算同步（非原字幕）";
+      } else if (mode === "timed") {
+        dot.className = "ktv-sync-dot youtube";
+        dot.textContent = "● 時間軸同步";
+      } else {
+        dot.className = "ktv-sync-dot none";
+        dot.textContent = "○ 尚無字幕";
+      }
     }
 
     function enablePlayerCaptions() {
@@ -1491,6 +1538,10 @@
         player.setOption("captions", "track", { languageCode: "zh-Hant" });
         player.setOption("captions", "fontSize", 3);
         player.setOption("captions", "reload", true);
+        // 播放器畫面也顯示 YouTube 原字幕（與大字幕同一時間軸）
+        if (typeof player.setOption === "function") {
+          try { player.setOption("captions", "display", 1); } catch (_) {}
+        }
       } catch (_) {}
     }
 
@@ -1744,6 +1795,8 @@
       captionSource = "none";
       captionSyncMode = "none";
       captionRetimed = false;
+      lastSyncedLineIndex = -1;
+      updateSyncIndicator("none");
       lastCaptionText = item.name;
       stopCaptionSync();
       stopPlayTick();
