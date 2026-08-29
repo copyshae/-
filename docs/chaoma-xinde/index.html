@@ -406,7 +406,7 @@
 
     <section class="card">
       <h2>配圖附件</h2>
-      <p class="hint">可 <strong>AI 依內容生成</strong>配圖，或<strong>自行增加</strong>照片／圖片。每張可<strong>選擇是否附加</strong>到 Word／PDF 文末（附件一、附件二…）。</p>
+      <p class="hint">可 <strong>AI 依內容生成</strong>配圖，或<strong>自行增加</strong>照片／圖片。按「<strong>附加到文末</strong>」的圖片，會<strong>一併出現在 Word／PDF 文末</strong>（重新生成心得後仍保留）。</p>
       <label class="check-row"><input type="checkbox" id="exportWithAttachments2" checked /> 匯出時附加已勾選的圖片到文末</label>
       <p class="attach-summary" id="attachSummary" hidden></p>
       <label for="imageCount">AI 配圖張數</label>
@@ -779,6 +779,52 @@
       return essayImages.filter(function (im) { return im.selected && im.b64; });
     }
 
+    function prepareExportWithAttachments() {
+      syncOutputFromEdit();
+      var picked = getSelectedEssayImages();
+      if (picked.length && !isExportWithAttachments()) {
+        syncExportAttachCheckboxes(true);
+        return picked.length;
+      }
+      return picked.length;
+    }
+
+    function printExportDocument(html, title, onReady) {
+      var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var w = window.open(url, "_blank", "noopener,noreferrer,width=820,height=900");
+      if (!w) {
+        URL.revokeObjectURL(url);
+        alert("請允許彈出視窗以匯出 PDF");
+        return null;
+      }
+      w.addEventListener("load", function () {
+        try { w.document.title = title || "超碼修煉心得"; } catch (e) {}
+        var imgs = w.document.images;
+        var pending = imgs.length;
+        function done() {
+          URL.revokeObjectURL(url);
+          if (onReady) onReady(w);
+        }
+        if (!pending) {
+          setTimeout(done, 350);
+          return;
+        }
+        function tick() {
+          pending--;
+          if (pending <= 0) setTimeout(done, 250);
+        }
+        for (var i = 0; i < imgs.length; i++) {
+          if (imgs[i].complete) tick();
+          else {
+            imgs[i].addEventListener("load", tick);
+            imgs[i].addEventListener("error", tick);
+          }
+        }
+      });
+      return w;
+    }
+
     function isExportWithAttachments() {
       var el = $("exportWithAttachments");
       return el ? el.checked : true;
@@ -874,7 +920,7 @@
       }).join("");
       return '<div style="page-break-before:always;margin-top:2em;padding-top:0.5em;border-top:2px solid #b8860b">' +
         '<h2 style="font-size:14pt;color:#b8860b;margin:0 0 0.8em">附件</h2>' +
-        '<p style="font-size:10pt;color:#666;margin:0 0 1em">以下配圖依心得內容生成，供參考印證。</p>' +
+        '<p style="font-size:10pt;color:#666;margin:0 0 1em">以下為已附加之配圖（AI 生成或手動加入），供參考印證。</p>' +
         blocks +
         "</div>";
     }
@@ -898,7 +944,9 @@
         "<title>" + esc(docTitle) + "</title>" +
         '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->' +
         '<style>body{font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;font-size:12pt;line-height:1.75;color:#222;padding:2cm}' +
-        "h1{text-align:center;font-size:18pt;color:#b8860b}</style></head><body>" +
+        "h1{text-align:center;font-size:18pt;color:#b8860b}" +
+        "img{max-width:100%;height:auto;display:block;margin:0 auto}" +
+        "@media print{body{padding:1.5cm}img{page-break-inside:avoid;max-width:100%!important}}</style></head><body>" +
         bodyHtml +
         "</body></html>";
     }
@@ -976,12 +1024,12 @@
     async function shareWordToApps() {
       var text = getOutputText();
       if (!text) { alert("請先生成心得"); return; }
-      syncOutputFromEdit();
+      var attachN = prepareExportWithAttachments();
       var fname = exportFilename("doc");
       var blob = new Blob(["\ufeff", buildDocHtml(text)], { type: "application/msword" });
       var file = new File([blob], fname, { type: "application/msword" });
       try {
-        await tryWebShare({ files: [file], title: "超碼修煉心得" }, "已分享 Word 檔");
+        await tryWebShare({ files: [file], title: "超碼修煉心得" }, "已分享 Word 檔" + (attachN ? "（含 " + attachN + " 附件）" : ""));
       } catch (e) {
         if (e && e.name === "AbortError") return;
         downloadBlob(fname, buildDocHtml(text), "application/msword");
@@ -1015,8 +1063,8 @@
     }
 
     async function buildAttachmentZipBlob() {
+      prepareExportWithAttachments();
       var text = getOutputText();
-      syncOutputFromEdit();
       var imgs = getExportAttachments();
       if (!text && !imgs.length) throw new Error("請先有心得內容，或勾選要附加的圖片");
       await loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
@@ -1096,31 +1144,25 @@
     function downloadWord() {
       var text = getOutputText();
       if (!text) { alert("請先生成或輸入心得"); return; }
-      syncOutputFromEdit();
+      var attachN = prepareExportWithAttachments();
       downloadBlob(exportFilename("doc"), buildDocHtml(text), "application/msword");
       var n = getExportAttachments().length;
-      setStatus($("genStatus"), "已下載 Word" + (n ? "（正文＋文末 " + n + " 項附件）" : "（僅正文，未附加圖片）"), "");
+      setStatus($("genStatus"), "已下載 Word" + (n ? "（正文＋文末 " + n + " 張附件圖）" : "（僅正文）"), "");
     }
 
     function exportPdf() {
       var text = getOutputText();
       if (!text) { alert("請先生成或輸入心得"); return; }
-      syncOutputFromEdit();
+      var attachN = prepareExportWithAttachments();
       var fname = exportFilename("pdf");
-      var html = buildDocHtml(text).replace("</body>", '<p style="margin-top:2em;font-size:10pt;color:#888;text-align:center">— 超碼修煉心得 —</p></body>');
-      var w = window.open("", "_blank", "noopener,noreferrer,width=820,height=900");
-      if (!w) {
-        alert("請允許彈出視窗以匯出 PDF");
-        return;
-      }
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      w.document.title = fname;
-      setTimeout(function () {
-        try { w.focus(); w.print(); } catch (e) {}
-      }, 400);
-      setStatus($("genStatus"), "已開啟列印視窗 → 另存 PDF" + (getExportAttachments().length ? "（含文末附件）" : "（僅正文，未附加圖片）"), "");
+      var html = buildDocHtml(text).replace("</body>",
+        '<p style="margin-top:2em;font-size:10pt;color:#888;text-align:center">— 超碼修煉心得 —</p></body>');
+      var w = printExportDocument(html, fname, function (win) {
+        try { win.focus(); win.print(); } catch (e) {}
+      });
+      if (!w) return;
+      var n = getExportAttachments().length;
+      setStatus($("genStatus"), "已開啟列印視窗 → 另存 PDF" + (n ? "（含文末 " + n + " 張附件圖）" : "（僅正文）"), "");
     }
 
     function saveEditedOutput() {
@@ -1354,8 +1396,9 @@
           var im = essayImages[Number(btn.getAttribute("data-img-toggle"))];
           if (im) {
             im.selected = !im.selected;
+            if (im.selected) syncExportAttachCheckboxes(true);
             renderEssayImages();
-            setStatus($("imgStatus"), im.selected ? "已設為附加到文末" : "已設為不附加", "");
+            setStatus($("imgStatus"), im.selected ? "已設為附加到文末（匯出 Word／PDF 會一併附上）" : "已設為不附加", "");
           }
         };
       });
@@ -2397,6 +2440,10 @@
         renderChecklist(validateEssay(essay));
         var titleMatch = essay.match(/《[^》]+》/);
         saveHistory(essay, titleMatch ? titleMatch[0] : "心得");
+        var attachN = getSelectedEssayImages().length;
+        if (attachN) {
+          setStatus($("genStatus"), ($("genStatus").textContent || "") + "；文末 " + attachN + " 張附件圖仍保留，匯出 Word／PDF 會一併附上", "");
+        }
       } catch (e) {
         setStatus($("genStatus"), "生成失敗：" + (e.message || e), "err");
       } finally {
