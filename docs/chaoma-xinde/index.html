@@ -41,7 +41,10 @@
       padding: 0.85rem; margin: 0.65rem 0;
     }
     .card h2 { font-size: 1rem; color: var(--accent); margin-bottom: 0.4rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
     .hint.length-warn { color: var(--warn); font-weight: 700; }
+    .install-card.installed { border-color: rgba(47, 107, 58, 0.45); background: rgba(232, 245, 233, 0.75); }
+    .install-card .file-btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
     label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 0.45rem 0 0.2rem; }
     input[type="text"], input[type="date"], input[type="password"], textarea, select {
       width: 100%; font: inherit; font-size: 16px; padding: 0.55rem 0.6rem;
@@ -179,6 +182,18 @@
       <h1>超碼修煉心得</h1>
       <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片・印證參考</p>
     </header>
+
+    <section class="card install-card" id="installCard">
+      <h2>📲 加入主畫面（測試）</h2>
+      <p class="hint" id="installHint">請用 Safari（iPhone）或 Chrome（Android）開啟，再加入主畫面。</p>
+      <p class="hint" id="installUrl" style="word-break:break-all;font-size:0.72rem;"></p>
+      <div class="row">
+        <button type="button" id="btnInstallPwa" class="primary" hidden>📲 安裝到主畫面</button>
+        <button type="button" id="btnCopyPwaUrl">📋 複製網址</button>
+        <a class="file-btn" href="./share.html">📖 安裝步驟</a>
+      </div>
+      <p class="status" id="installStatus"></p>
+    </section>
 
     <section class="card">
       <h2>作者資訊</h2>
@@ -1241,6 +1256,57 @@
       closeShareSheet();
     }
 
+    function setupPwaInstall() {
+      var card = $("installCard");
+      var btn = $("btnInstallPwa");
+      var hint = $("installHint");
+      var urlEl = $("installUrl");
+      var base = getPwaBaseUrl();
+      if (urlEl) urlEl.textContent = "測試網址：" + base;
+      if (isStandalonePwa()) {
+        if (card) card.classList.add("installed");
+        if (hint) hint.textContent = "✓ 已從主畫面開啟（獨立 App 模式），可開始測試生成心得。";
+        if (btn) btn.hidden = true;
+        return;
+      }
+      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+        if (hint) hint.textContent = "iPhone：Safari 開啟下方網址 → 分享 → 加入主畫面（圖示名稱：修煉心得）。";
+      } else if (hint) {
+        hint.textContent = "Android／Chrome：可按「安裝到主畫面」，或選單 ⋮ → 安裝應用程式。";
+      }
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        if (btn) btn.hidden = false;
+        if (hint) hint.textContent = "瀏覽器已就緒，可按「安裝到主畫面」一鍵加入。";
+      });
+      if (btn) {
+        btn.onclick = function () {
+          if (!deferredInstallPrompt) {
+            location.href = "./share.html";
+            return;
+          }
+          deferredInstallPrompt.prompt();
+          deferredInstallPrompt.userChoice.then(function (choice) {
+            if (choice.outcome === "accepted") {
+              setStatus($("installStatus"), "已加入主畫面，請從圖示重新開啟", "");
+            } else {
+              setStatus($("installStatus"), "已取消安裝，可改看「安裝步驟」", "warn");
+            }
+            deferredInstallPrompt = null;
+            btn.hidden = true;
+          });
+        };
+      }
+      var copyBtn = $("btnCopyPwaUrl");
+      if (copyBtn) {
+        copyBtn.onclick = function () {
+          copyTextToClipboard(base, "已複製網址");
+          setStatus($("installStatus"), "已複製，請貼到 Safari／Chrome 開啟", "");
+        };
+      }
+    }
+
     function setupShareSheet() {
       $("btnShare").onclick = openShareSheet;
       $("btnShareClose").onclick = closeShareSheet;
@@ -1286,6 +1352,18 @@
       var titleMatch = text.match(/《[^》]+》/);
       saveHistory(text, titleMatch ? titleMatch[0] : "心得（已修改）");
       setStatus($("genStatus"), "已儲存修改並更新檢核", "");
+    }
+
+    var deferredInstallPrompt = null;
+
+    function isStandalonePwa() {
+      return window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+    }
+
+    function getPwaBaseUrl() {
+      var u = location.href.split("#")[0].split("?")[0];
+      return u.replace(/[^/]*$/, "");
     }
 
     function $(id) { return document.getElementById(id); }
@@ -3242,6 +3320,7 @@
       renderEssayImages();
       $("outputEdit").addEventListener("input", syncOutputFromEdit);
       updateEssayLengthHint("");
+      setupPwaInstall();
       setupShareSheet();
 
       if ("serviceWorker" in navigator) {
