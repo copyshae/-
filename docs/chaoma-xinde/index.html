@@ -201,6 +201,7 @@
       <input id="authorName" type="text" placeholder="正本／彰化" autocomplete="name" />
       <label for="authorDate">日期</label>
       <input id="authorDate" type="date" />
+      <p class="hint" id="authorDateHint">開啟時自動以<strong>網路時間</strong>（台灣時區）帶入今日；若無法連線則改用本機日期。仍可手動修改。</p>
       <p class="hint">署名格式：姓名／地區 年／月／日（可在下方「格式框架」調整模板）</p>
     </section>
 
@@ -542,6 +543,8 @@
     var KEY_QUOTE_COUNTS = "chaoma-xinde-quote-counts";
     var KEY_EXPORT_ATTACH = "chaoma-xinde-export-attach";
     var KEY_FORMAT = "chaoma-xinde-format";
+    var KEY_NETWORK_DATE = "chaoma-xinde-network-date";
+    var NETWORK_DATE_TZ = "Asia/Taipei";
 
     var DEFAULT_FORMAT = {
       titleRule: "6–15 字，用《》包住，以具象生活或核心主題破題",
@@ -1387,11 +1390,74 @@
       return y + "/" + m + "/" + day;
     }
 
+    function dateToInputValue(d, timeZone) {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: timeZone || NETWORK_DATE_TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(d);
+    }
+
     function todayInputValue() {
-      var d = new Date();
-      var mm = String(d.getMonth() + 1).padStart(2, "0");
-      var dd = String(d.getDate()).padStart(2, "0");
-      return d.getFullYear() + "-" + mm + "-" + dd;
+      return dateToInputValue(new Date(), NETWORK_DATE_TZ);
+    }
+
+    function readNetworkDateCache() {
+      try {
+        var raw = sessionStorage.getItem(KEY_NETWORK_DATE);
+        if (!raw) return null;
+        var obj = JSON.parse(raw);
+        if (!obj || !obj.date) return null;
+        if (obj.fetchedAt && Date.now() - obj.fetchedAt < 3600000) return obj.date;
+      } catch (e) {}
+      return null;
+    }
+
+    function saveNetworkDateCache(dateStr) {
+      try {
+        sessionStorage.setItem(KEY_NETWORK_DATE, JSON.stringify({ date: dateStr, fetchedAt: Date.now() }));
+      } catch (e) {}
+    }
+
+    async function fetchNetworkDateInputValue() {
+      var cached = readNetworkDateCache();
+      if (cached) return cached;
+
+      var taipeiDate = "";
+
+      try {
+        var res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Taipei", { cache: "no-store" });
+        if (res.ok) {
+          var data = await res.json();
+          if (data && data.datetime) taipeiDate = String(data.datetime).slice(0, 10);
+        }
+      } catch (e) {}
+
+      if (!taipeiDate) {
+        try {
+          var res2 = await fetch("https://www.google.com/generate_204", { method: "HEAD", cache: "no-store" });
+          var hdr = res2.headers.get("Date");
+          if (hdr) taipeiDate = dateToInputValue(new Date(hdr), NETWORK_DATE_TZ);
+        } catch (e2) {}
+      }
+
+      if (!taipeiDate) taipeiDate = todayInputValue();
+      saveNetworkDateCache(taipeiDate);
+      return taipeiDate;
+    }
+
+    async function initAuthorDate() {
+      var input = $("authorDate");
+      var hint = $("authorDateHint");
+      if (hint) hint.textContent = "正在以網路取得今日日期（台灣時區）…";
+      try {
+        input.value = await fetchNetworkDateInputValue();
+        if (hint) hint.innerHTML = "已以<strong>網路時間</strong>（台灣時區）帶入今日；若無法連線則改用本機日期。仍可手動修改。";
+      } catch (e) {
+        input.value = todayInputValue();
+        if (hint) hint.innerHTML = "無法連線取得網路日期，已改用本機日期。仍可手動修改。";
+      }
     }
 
     function fileToBase64(file) {
@@ -3202,7 +3268,7 @@
     }
 
     function init() {
-      $("authorDate").value = todayInputValue();
+      initAuthorDate();
       var savedAuthor = localStorage.getItem(KEY_AUTHOR);
       if (savedAuthor) $("authorName").value = savedAuthor;
       var k = localStorage.getItem(KEY_LOCAL) || localStorage.getItem(KEY_GEMINI);
