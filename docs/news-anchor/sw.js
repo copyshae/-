@@ -1,5 +1,5 @@
 /* Google 新聞虛擬主播｜離線快取 */
-const CACHE = "news-anchor-v6";
+const CACHE = "news-anchor-v8";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,7 +9,13 @@ const ASSETS = [
   "./manifest.json",
   "./icon-180.png",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./portraits/anchor-yating.jpg",
+  "./portraits/anchor-zihao.jpg",
+  "./portraits/anchor-xiaoguang.jpg",
+  "./portraits/anchor-ajie.jpg",
+  "./portraits/anchor-xiaoxin.jpg",
+  "./portraits/anchor-nova.jpg"
 ];
 
 self.addEventListener("install", (event) => {

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="新聞主播" />
-  <meta name="description" content="從 Google 新聞抓取頭條；文字或口說輸入關鍵字／分類，虛擬主播語音播報。" />
+  <meta name="description" content="寫實主播、專業演播室播報；文字或口說搜尋，無關鍵字依 Google 新聞排序逐則直播，結束可一鍵繼續收聽。" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
@@ -65,9 +65,29 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
     .anchor-wrap {
       position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
-      padding-bottom: 18%;
+      padding-bottom: 14%;
     }
-    .anchor-svg { width: 58%; max-height: 78%; filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
+    .anchor-photo-wrap {
+      width: 62%; max-height: 88%; position: relative;
+      filter: drop-shadow(0 10px 24px rgba(0,0,0,.45));
+    }
+    .anchor-photo {
+      width: 100%; height: auto; max-height: 14.5rem; object-fit: cover; object-position: center 15%;
+      border-radius: 0.35rem 0.35rem 0 0;
+      background: linear-gradient(180deg, #1a3058, #0a1020);
+    }
+    .anchor-photo-wrap.speaking .anchor-photo {
+      animation: photoSpeak 0.45s ease-in-out infinite alternate;
+    }
+    @keyframes photoSpeak {
+      from { transform: scale(1); filter: brightness(1); }
+      to { transform: scale(1.012) translateY(-1px); filter: brightness(1.06); }
+    }
+    .anchor-thumb {
+      width: 100%; height: 100%; object-fit: cover; object-position: center 18%;
+      border-radius: 50%; background: #1a3058;
+    }
+    .anchor-choice .mini { width: 3.2rem; height: 3.2rem; margin: 0 auto 0.3rem; border-radius: 50%; overflow: hidden; }
     .anchor-svg .mouth { transform-origin: center; transition: transform .08s; }
     .anchor-svg.speaking .mouth { animation: talk .28s ease-in-out infinite alternate; }
     @keyframes talk {
@@ -92,6 +112,41 @@
       font-size: 0.82rem; line-height: 1.45; color: #fff;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
+    .studio-brand {
+      position: absolute; top: 0.45rem; left: 50%; transform: translateX(-50%); z-index: 3;
+      font-size: 0.66rem; font-weight: 800; letter-spacing: 0.14em; color: rgba(255,255,255,.78);
+    }
+    .studio-time {
+      position: absolute; top: 2rem; right: 0.55rem; z-index: 3;
+      font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,.62);
+      font-variant-numeric: tabular-nums;
+    }
+    .studio-ticker-wrap {
+      position: absolute; bottom: 22%; left: 0; right: 0; z-index: 2;
+      background: rgba(0,0,0,.5); border-top: 1px solid rgba(255,255,255,.1);
+      overflow: hidden; height: 1.35rem;
+    }
+    .studio-ticker {
+      display: inline-block; white-space: nowrap; font-size: 0.66rem; color: #ffe8a0; font-weight: 600;
+      padding: 0.28rem 0; animation: ticker 32s linear infinite;
+    }
+    @keyframes ticker {
+      from { transform: translateX(100vw); }
+      to { transform: translateX(-100%); }
+    }
+    .lower-third .headline-tag {
+      display: inline-block; font-size: 0.62rem; background: var(--desk);
+      padding: 0.08rem 0.35rem; margin-right: 0.25rem; vertical-align: middle; font-weight: 800;
+    }
+    .continue-panel { display: none; }
+    .continue-panel.show { display: block; }
+    .continue-panel p { font-size: 0.84rem; color: var(--ink); margin-bottom: 0.45rem; }
+    .continue-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .continue-chips button {
+      font-size: 0.78rem; padding: 0.38rem 0.65rem; min-height: auto;
+      background: rgba(232,197,71,.15); border-color: var(--accent); color: var(--accent);
+    }
+    .continue-countdown { font-size: 0.76rem; color: var(--muted); margin-top: 0.4rem; }
 
     /* ===== 卡片 ===== */
     .card {
@@ -151,8 +206,7 @@
     }
     .anchor-choice:hover { background: rgba(255,255,255,.1); }
     .anchor-choice.selected { border-color: var(--accent); background: rgba(232,197,71,.12); }
-    .anchor-choice .mini { width: 3.2rem; height: 3.2rem; margin: 0 auto 0.3rem; }
-    .anchor-choice .mini svg { width: 100%; height: 100%; }
+    .anchor-svg { width: 58%; max-height: 78%; filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
     .anchor-choice .title { font-size: 0.82rem; font-weight: 800; color: #fff; }
     .anchor-choice .tag { font-size: 0.68rem; color: var(--muted); margin-top: 0.1rem; }
 
@@ -182,23 +236,26 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">抓取 Google 新聞；<strong>文字或口說</strong>輸入關鍵字／分類，由虛擬主播語音播報。</p>
+    <p class="sub">寫實主播、<strong>專業演播室</strong>質感；口吻自然又穩，讓您想持續收聽。文字或口說皆可。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
+      <div class="studio-brand">GOOGLE 新聞快報</div>
+      <div class="studio-time" id="studioTime"></div>
       <div class="studio-live"><span class="dot"></span><span>LIVE</span></div>
       <div class="anchor-wrap" id="anchorWrap"></div>
+      <div class="studio-ticker-wrap"><div class="studio-ticker" id="studioTicker">Google 新聞快報｜寫實主播、專業播報｜無關鍵字依排序逐則直播</div></div>
       <div class="desk-bar"></div>
       <div class="lower-third">
         <div class="name" id="anchorNameTag">主播・雅婷</div>
-        <div class="caption" id="subtitle">歡迎收看，請按「更新新聞」取得今日頭條。</div>
+        <div class="caption" id="subtitle"><span class="headline-tag">快報</span>歡迎收看，請按「更新新聞」取得今日頭條。</div>
       </div>
     </section>
 
     <section class="card">
       <h2>🎭 選擇虛擬主播</h2>
       <div class="anchor-grid" id="anchorGrid"></div>
-      <p class="hint">共六種人物：專業女／男主播、科技、體育、卡通、機器人。選擇會記住偏好。</p>
+      <p class="hint">共六種寫實主播，<strong>專業穩重</strong>又親切。選擇會記住偏好。</p>
     </section>
 
     <section class="card">
@@ -252,6 +309,13 @@
       <ul class="news-list" id="newsList"></ul>
     </section>
 
+    <section class="card continue-panel" id="continuePanel">
+      <h2>📻 繼續收聽</h2>
+      <p id="continueHint">本節播報結束，還有更多消息等您關心。</p>
+      <div class="continue-chips" id="continueChips"></div>
+      <p class="continue-countdown" id="continueCountdown" hidden></p>
+    </section>
+
     <section class="card">
       <h2>🎙️ 播報控制</h2>
       <label for="scriptText">播報稿（文字或口說皆可）</label>
@@ -271,16 +335,22 @@
       <h2>🔊 語音設定</h2>
       <div class="row2">
         <div>
+          <label for="ttsStyle">播報風格</label>
+          <select id="ttsStyle">
+            <option value="pro" selected>專業主播（建議）</option>
+            <option value="warm">自然親切</option>
+            <option value="formal">正式快報</option>
+          </select>
+        </div>
+        <div>
           <label for="ttsGender">性別</label>
           <select id="ttsGender"><option value="F">女聲</option><option value="M">男聲</option></select>
         </div>
-        <div>
-          <label for="ttsVoice">語音</label>
-          <select id="ttsVoice"></select>
-        </div>
       </div>
-      <div class="actions"><button type="button" id="ttsPreview">試聽</button></div>
-      <p class="hint" id="ttsVoiceHint"></p>
+      <label for="ttsVoice">語音</label>
+      <select id="ttsVoice"></select>
+      <div class="actions"><button type="button" id="ttsPreview">試聽自然口吻</button></div>
+      <p class="hint" id="ttsVoiceHint">「專業主播」語速穩、停頓自然，較像電視快報。電腦 Edge 中文 Neural 聲音最接近真人。</p>
     </section>
 
     <section class="card">
@@ -310,7 +380,27 @@
     var KEY_GEMINI = "news-anchor-gemini-key";
     var KEY_RECENT_KW = "news-anchor-recent-keywords-v1";
     var KEY_INPUT_MODE = "news-anchor-input-mode-v1";
+    var KEY_TTS_STYLE = "news-anchor-tts-style-v1";
     var GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+
+    var LIVE_TRANSITIONS = [
+      "首先帶您關心，",
+      "接著這一則，",
+      "再來看看，",
+      "另外也請您留意，",
+      "還有一則消息，"
+    ];
+
+    var OPEN_HOOKS = [
+      "各位觀眾朋友好，歡迎鎖定 Google 新聞快報。",
+      "您好，歡迎收看，現在為您連線最新動態。",
+      "現場為您報導，請您繼續鎖定。"
+    ];
+
+    var CATEGORY_ROTATION = [
+      "headlines", "nation", "world", "business", "technology",
+      "sports", "entertainment", "science", "health"
+    ];
 
     var CAT_ALIASES = {
       "頭條": "headlines", "焦點": "headlines", "要聞": "headlines",
@@ -349,34 +439,40 @@
     /* ===== 六種虛擬主播 ===== */
     var ANCHORS = {
       yating: {
-        id: "yating", name: "雅婷", tag: "專業女主播",
-        gender: "F", skin: "#f2c9a8", hair: "#2a1810", suit: "#1a3a72", tie: "#c41e3a",
-        style: "formal", intro: "我是雅婷，為您播報今日要聞。"
+        id: "yating", name: "雅婷", tag: "氣質女主播",
+        portrait: "./portraits/anchor-yating.jpg",
+        gender: "F", style: "formal",
+        intro: "我是雅婷，很高興陪伴您，一起關心今天的重要消息。"
       },
       zihao: {
-        id: "zihao", name: "志豪", tag: "專業男主播",
-        gender: "M", skin: "#e8ba98", hair: "#1a1208", suit: "#222831", tie: "#8b1a1a",
-        style: "formal", intro: "我是志豪，以下是今日新聞摘要。"
+        id: "zihao", name: "志豪", tag: "帥氣男主播",
+        portrait: "./portraits/anchor-zihao.jpg",
+        gender: "M", style: "formal",
+        intro: "我是志豪，用清楚好懂的方式，帶您快速掌握今日要聞。"
       },
       xiaoguang: {
-        id: "xiaoguang", name: "小光", tag: "科技主播",
-        gender: "F", skin: "#f0c4aa", hair: "#3d2a55", suit: "#0d4f5c", tie: "#00d4aa",
-        style: "tech", intro: "科技快報時間，我是小光。"
+        id: "xiaoguang", name: "小光", tag: "科技女主播",
+        portrait: "./portraits/anchor-xiaoguang.jpg",
+        gender: "F", style: "tech",
+        intro: "科技快報時間，我是小光，帶您看看今天有哪些新動態。"
       },
       ajie: {
-        id: "ajie", name: "阿杰", tag: "體育主播",
-        gender: "M", skin: "#dba886", hair: "#0f0f0f", suit: "#c43800", tie: "#ffd700",
-        style: "sports", intro: "體壇最新消息，阿杰為您報導。"
+        id: "ajie", name: "阿杰", tag: "體育男主播",
+        portrait: "./portraits/anchor-ajie.jpg",
+        gender: "M", style: "sports",
+        intro: "體壇最新消息，我是阿杰，馬上為您整理重點。"
       },
       xiaoxin: {
-        id: "xiaoxin", name: "小新", tag: "卡通主播",
-        gender: "F", skin: "#ffe0b8", hair: "#ff6b35", suit: "#4a90d9", tie: "#ffeb3b",
-        style: "cartoon", intro: "哈囉！我是小新，一起來看新聞吧！"
+        id: "xiaoxin", name: "小新", tag: "親切女主播",
+        portrait: "./portraits/anchor-xiaoxin.jpg",
+        gender: "F", style: "warm",
+        intro: "哈囉大家好，我是小新，讓我們輕鬆一起看新聞。"
       },
       nova: {
-        id: "nova", name: "Nova", tag: "AI 機器人",
-        gender: "F", skin: "#b8c8e8", hair: "#8899bb", suit: "#334466", tie: "#66ccff",
-        style: "robot", intro: "Nova 系統啟動，為您播報即時新聞。"
+        id: "nova", name: "Nova", tag: "AI 主播",
+        portrait: "./portraits/anchor-nova.jpg",
+        gender: "F", style: "robot",
+        intro: "您好，我是 Nova，會用自然口吻為您播報即時新聞。"
       }
     };
 
@@ -390,7 +486,8 @@
       recognition: null,
       voiceHandler: null,
       inputMode: "text",
-      liveSession: 0
+      liveSession: 0,
+      continueCountdown: null
     };
 
     function $(id) { return document.getElementById(id); }
@@ -678,9 +775,76 @@
 
     function getAnchor() { return ANCHORS[state.anchorId] || ANCHORS.yating; }
 
-    /* ===== SVG 主播繪製 ===== */
+    function loadTtsStyle() {
+      try {
+        var v = localStorage.getItem(KEY_TTS_STYLE);
+        if (v === "formal" || v === "warm" || v === "pro") return v;
+      } catch (e) {}
+      return "pro";
+    }
+
+    function saveTtsStyle() {
+      var el = $("ttsStyle");
+      if (!el) return;
+      try { localStorage.setItem(KEY_TTS_STYLE, el.value); } catch (e) {}
+    }
+
+    function getSpeakStyleOpts() {
+      var el = $("ttsStyle");
+      var mode = el ? el.value : loadTtsStyle();
+      if (mode === "pro") return { rate: 0.84, pitch: 1.02, maxLen: 88 };
+      if (mode === "warm") return { rate: 0.87, pitch: 1.03, maxLen: 85 };
+      return { rate: 0.95, pitch: 1, maxLen: 120 };
+    }
+
+    function getNextCategories(current, n) {
+      var idx = CATEGORY_ROTATION.indexOf(current);
+      if (idx < 0) idx = 0;
+      var out = [];
+      for (var i = 1; i <= CATEGORY_ROTATION.length && out.length < n; i++) {
+        out.push(CATEGORY_ROTATION[(idx + i) % CATEGORY_ROTATION.length]);
+      }
+      return out;
+    }
+
+    function naturalNewsLine(it, index, total) {
+      var lead = LIVE_TRANSITIONS[index % LIVE_TRANSITIONS.length];
+      if (index === 0) lead = "首先帶您關心，";
+      else if (index === total - 1 && total > 1) lead = "最後這一則，";
+      var src = it.source ? "，據" + it.source + "報導" : "";
+      return lead + it.title + src + "。";
+    }
+
+    function proOpen(anchor, catLabel) {
+      var hook = OPEN_HOOKS[Math.floor(Math.random() * OPEN_HOOKS.length)];
+      return hook + "現在為您整理" + catLabel + "最新動態。" + anchor.intro + "請您繼續鎖定，我們馬上開始。";
+    }
+
+    function proClose(anchor, catLabel, nextCats) {
+      var base = "以上就是本節" + catLabel + "重點摘要。";
+      if (nextCats && nextCats.length) {
+        var names = nextCats.map(function (c) { return CATEGORY_LABELS[c] || c; }).join("、");
+        return base + "別轉台，接下來還有" + names + "等您關心。" + "我是" + anchor.name + "，感謝您的收看，我們馬上回來。";
+      }
+      return base + "我是" + anchor.name + "，感謝您的收看。想持續掌握消息，歡迎隨時回來，再會。";
+    }
+
+    function naturalOpen(anchor, catLabel) { return proOpen(anchor, catLabel); }
+    function naturalClose(anchor, catLabel, nextCats) { return proClose(anchor, catLabel, nextCats); }
+
+    function buildAnchorVisual(anchor, mini) {
+      if (anchor.portrait) {
+        if (mini) {
+          return '<img class="anchor-thumb" src="' + anchor.portrait + '" alt="' + anchor.name + '" loading="lazy"/>';
+        }
+        return '<div class="anchor-photo-wrap"><img class="anchor-photo" src="' + anchor.portrait + '" alt="' + anchor.name + '"/></div>';
+      }
+      return buildAnchorSvg(anchor, mini);
+    }
+
+    /* ===== SVG 主播備援 ===== */
     function buildAnchorSvg(anchor, mini) {
-      var s = anchor.skin, h = anchor.hair, suit = anchor.suit, tie = anchor.tie;
+      var s = anchor.skin || "#f2c9a8", h = anchor.hair || "#2a1810", suit = anchor.suit || "#1a3a72", tie = anchor.tie || "#c41e3a";
       var isRobot = anchor.style === "robot";
       var isCartoon = anchor.style === "cartoon";
       var isMale = anchor.gender === "M";
@@ -735,10 +899,10 @@
     function renderMainAnchor() {
       var anchor = getAnchor();
       var wrap = $("anchorWrap");
-      wrap.innerHTML = buildAnchorSvg(anchor, false);
+      wrap.innerHTML = buildAnchorVisual(anchor, false);
       $("anchorNameTag").textContent = "主播・" + anchor.name + "｜" + anchor.tag;
       applyAnchorGenderToTts(anchor.gender);
-      startBlink();
+      if (!anchor.portrait) startBlink();
     }
 
     function renderAnchorGrid() {
@@ -750,7 +914,7 @@
         btn.type = "button";
         btn.className = "anchor-choice" + (key === state.anchorId ? " selected" : "");
         btn.setAttribute("data-id", key);
-        btn.innerHTML = '<div class="mini">' + buildAnchorSvg(a, true) + '</div>'
+        btn.innerHTML = '<div class="mini">' + buildAnchorVisual(a, true) + '</div>'
           + '<div class="title">' + a.name + '</div>'
           + '<div class="tag">' + a.tag + '</div>';
         btn.addEventListener("click", function () {
@@ -784,12 +948,96 @@
     }
 
     function setSpeaking(on) {
+      var wrap = document.querySelector(".anchor-photo-wrap");
+      if (wrap) wrap.classList.toggle("speaking", !!on);
       var svg = document.querySelector(".anchor-svg");
       if (svg) svg.classList.toggle("speaking", !!on);
     }
 
-    function setSubtitle(text) {
-      $("subtitle").textContent = text || "";
+    function setSubtitle(text, tag) {
+      var el = $("subtitle");
+      if (!el) return;
+      var label = tag || "快報";
+      el.innerHTML = '<span class="headline-tag">' + escapeHtml(label) + '</span>' + escapeHtml(text || "");
+    }
+
+    function updateStudioTicker(items) {
+      var el = $("studioTicker");
+      if (!el) return;
+      if (!items || !items.length) {
+        el.textContent = "Google 新聞快報｜寫實主播、專業播報｜無關鍵字依排序逐則直播";
+        return;
+      }
+      el.textContent = items.slice(0, 8).map(function (it, i) {
+        return (i + 1) + ". " + it.title;
+      }).join(" ｜ ");
+    }
+
+    function updateStudioClock() {
+      var el = $("studioTime");
+      if (!el) return;
+      var now = new Date();
+      el.textContent = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    }
+
+    function hideContinuePanel() {
+      var panel = $("continuePanel");
+      if (panel) panel.classList.remove("show");
+      if (state.continueCountdown) {
+        clearInterval(state.continueCountdown);
+        state.continueCountdown = null;
+      }
+      var cd = $("continueCountdown");
+      if (cd) cd.hidden = true;
+    }
+
+    function showContinuePanel(fromCategory) {
+      hideContinuePanel();
+      if (getKeyword() || state.searchKeyword) return;
+      var nextCats = getNextCategories(fromCategory || $("category").value, 3);
+      if (!nextCats.length) return;
+      var panel = $("continuePanel");
+      var chips = $("continueChips");
+      var hint = $("continueHint");
+      if (!panel || !chips) return;
+      var names = nextCats.map(function (c) { return CATEGORY_LABELS[c]; }).join("、");
+      hint.textContent = "本節播報結束。別走開，" + names + " 等消息等您一鍵收聽。";
+      chips.innerHTML = "";
+      nextCats.forEach(function (cat) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = "▶ " + (CATEGORY_LABELS[cat] || cat);
+        btn.addEventListener("click", function () {
+          hideContinuePanel();
+          continueToCategory(cat);
+        });
+        chips.appendChild(btn);
+      });
+      panel.classList.add("show");
+      var secs = 12;
+      var cdEl = $("continueCountdown");
+      var firstLabel = CATEGORY_LABELS[nextCats[0]] || nextCats[0];
+      if (cdEl) {
+        cdEl.hidden = false;
+        cdEl.textContent = secs + " 秒後自動播報「" + firstLabel + "」（點上方可立即切換）";
+        state.continueCountdown = setInterval(function () {
+          secs -= 1;
+          if (secs <= 0) {
+            hideContinuePanel();
+            continueToCategory(nextCats[0]);
+            return;
+          }
+          cdEl.textContent = secs + " 秒後自動播報「" + firstLabel + "」（點上方可立即切換）";
+        }, 1000);
+      }
+    }
+
+    async function continueToCategory(cat) {
+      $("keyword").value = "";
+      state.searchKeyword = "";
+      $("category").value = cat;
+      hideContinuePanel();
+      await playNewsFlow();
     }
 
     /* ===== 新聞抓取 ===== */
@@ -908,6 +1156,7 @@
 
       state.news = items;
       renderNewsList();
+      updateStudioTicker(items);
       return items;
     }
 
@@ -922,7 +1171,7 @@
         li.addEventListener("click", function () {
           ul.querySelectorAll("li").forEach(function (x) { x.classList.remove("on"); });
           li.classList.add("on");
-          setSubtitle(it.title);
+          setSubtitle(it.title, "焦點");
         });
         ul.appendChild(li);
       });
@@ -936,7 +1185,7 @@
         if (index >= 0 && i === index) li.classList.add("live-on");
       });
       if (index >= 0 && state.news[index]) {
-        setSubtitle("直播中｜第 " + (index + 1) + " 則：" + state.news[index].title);
+        setSubtitle("第 " + (index + 1) + " 則：" + state.news[index].title, "直播");
       }
     }
 
@@ -965,14 +1214,13 @@
 
     function buildLiveStreamScript(items, anchor) {
       var catLabel = getFeedLabel();
-      var lines = [
-        "【Google 新聞直播｜" + catLabel + "】",
-        "各位觀眾您好，" + anchor.intro + "以下依 Google 新聞排序，逐則為您播報。"
-      ];
+      var currentCat = $("category").value;
+      var nextCats = getNextCategories(currentCat, 2);
+      var lines = [naturalOpen(anchor, catLabel), "以下依 Google 新聞排序，為您逐則播報。"];
       items.forEach(function (it, i) {
-        lines.push("第 " + (i + 1) + " 則：" + it.title + (it.source ? "（" + it.source + "）" : ""));
+        lines.push(naturalNewsLine(it, i, items.length));
       });
-      lines.push("以上為" + catLabel + "直播摘要，我是" + anchor.name + "，感謝收看。");
+      lines.push(naturalClose(anchor, catLabel, nextCats));
       return lines.join("\n");
     }
 
@@ -988,33 +1236,35 @@
 
       var anchor = getAnchor();
       var catLabel = getFeedLabel();
+      var currentCat = $("category").value;
+      var nextCats = getNextCategories(currentCat, 2);
       $("scriptText").value = buildLiveStreamScript(items, anchor);
       $("fetchStatus").textContent = "直播中｜依 Google 新聞排序，共 " + items.length + " 則";
       $("fetchStatus").className = "status warn";
       setStudioLive(true);
       setSpeaking(true);
 
-      await speakOneAndWait("各位觀眾您好，歡迎收看 Google 新聞" + catLabel + "直播。" + anchor.intro + "以下依 Google 新聞排序，為您逐則播報。");
+      await speakOneAndWait(naturalOpen(anchor, catLabel) + "以下依 Google 新聞排序，為您逐則播報。");
       if (session !== state.liveSession) return;
 
       for (var i = 0; i < items.length; i++) {
         if (session !== state.liveSession) return;
         highlightLiveNews(i);
         var it = items[i];
-        var line = "第 " + (i + 1) + " 則：" + it.title + (it.source ? "。消息來源：" + it.source : "") + "。";
-        await speakOneAndWait(line);
+        await speakOneAndWait(naturalNewsLine(it, i, items.length));
         if (session !== state.liveSession) return;
-        if (i < items.length - 1) await sleep(350);
+        if (i < items.length - 1) await sleep(650);
       }
 
       if (session !== state.liveSession) return;
       highlightLiveNews(-1);
-      await speakOneAndWait("以上為" + catLabel + "直播播報，我是" + anchor.name + "，感謝您的收看，再會。");
+      await speakOneAndWait(naturalClose(anchor, catLabel, nextCats));
       setSpeaking(false);
       setStudioLive(false);
-      setSubtitle("直播結束，感謝收看。");
+      setSubtitle("本節播報結束，感謝收看。", "快報");
       $("fetchStatus").textContent = "直播結束（共播報 " + items.length + " 則，依 Google 新聞排序）";
       $("fetchStatus").className = "status";
+      showContinuePanel(currentCat);
     }
 
     function stopLiveStream() {
@@ -1031,15 +1281,12 @@
     function buildTemplateScript(items, anchor) {
       if (isLiveStreamMode()) return buildLiveStreamScript(items, anchor);
       var catLabel = getFeedLabel();
-      var lines = [
-        "各位觀眾您好，歡迎收看 Google 新聞" + catLabel + "快報。",
-        anchor.intro,
-        "以下為您整理 " + items.length + " 則重點。"
-      ];
+      var lines = [naturalOpen(anchor, catLabel), "為您整理 " + items.length + " 則重點，我們開始。"];
       items.forEach(function (it, i) {
-        lines.push("第 " + (i + 1) + " 則：" + it.title + (it.source ? "。消息來源：" + it.source : "") + "。");
+        lines.push(naturalNewsLine(it, i, items.length));
       });
-      lines.push("以上為" + catLabel + "新聞摘要，我是" + anchor.name + "，感謝您的收看。");
+      var nextCats = isLiveStreamMode() ? getNextCategories($("category").value, 2) : null;
+      lines.push(naturalClose(anchor, catLabel, nextCats));
       return lines.join("\n");
     }
 
@@ -1054,9 +1301,11 @@
       var bullet = items.map(function (it, i) {
         return (i + 1) + ". " + it.title + (it.source ? "（" + it.source + "）" : "");
       }).join("\n");
-      var prompt = "你是電視新聞虛擬主播「" + anchor.name + "」（" + anchor.tag + "）。"
-        + "請把以下 Google 新聞" + catLabel + "標題整理成一段繁體中文口語播報稿，"
-        + "開場問候、逐則播報（不要編造細節）、結語道別。每則用口語連接，約 300～500 字。\n\n" + bullet;
+      var prompt = "你是電視新聞主播「" + anchor.name + "」（" + anchor.tag + "）。"
+        + "請把以下 Google 新聞" + catLabel + "標題整理成一段繁體中文播報稿。"
+        + "要求：專業穩重又親切，讓觀眾想持續收聽；句子長短交替；"
+        + "開場要有吸引力、用「首先」「接著」「另外」「最後」等口語連接，不要機械式「第1則、第2則」；"
+        + "結尾可留懸念或提示還有其他分類可關心；逐則播報（不要編造細節）。約 300～500 字。\n\n" + bullet;
       var body = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
@@ -1115,7 +1364,7 @@
     }
 
     /* ===== 語音播報 ===== */
-    function speakText(text) {
+    function speakText(text, extraOpts) {
       if (!window.TtsVoices) return false;
       var gEl = $("ttsGender");
       var vEl = $("ttsVoice");
@@ -1131,35 +1380,46 @@
           rate: chosen ? chosen.rate : 0.95
         });
       }
-      return TtsVoices.speakQueued(text);
+      var style = getSpeakStyleOpts();
+      var opts = Object.assign({ rate: style.rate, pitch: style.pitch, maxLen: style.maxLen }, extraOpts || {});
+      return TtsVoices.speakQueued(text, opts);
     }
 
     function watchSpeakSubtitle(text) {
       if (state.speakWatch) clearInterval(state.speakWatch);
-      var chunks = TtsVoices.splitSpeechChunks(text, 120);
+      var style = getSpeakStyleOpts();
+      var chunks = TtsVoices.splitSpeechChunks(text, style.maxLen);
       var idx = 0;
       setSpeaking(true);
-      setSubtitle(chunks[0] || text.slice(0, 60));
+      setSubtitle(chunks[0] || text.slice(0, 60), "播報");
       state.speakWatch = setInterval(function () {
         var st = TtsVoices.getSpeakState();
         if (!st.active) {
           clearInterval(state.speakWatch);
           state.speakWatch = null;
           setSpeaking(false);
-          setSubtitle("播報結束，感謝收看。");
+          setSubtitle("播報結束，感謝收看。", "快報");
+          if (isLiveStreamMode()) showContinuePanel($("category").value);
           return;
         }
         if (st.index !== idx && chunks[st.index]) {
           idx = st.index;
-          setSubtitle(chunks[idx]);
+          setSubtitle(chunks[idx], "播報");
         }
       }, 200);
     }
 
     function bindTts() {
       if (!window.TtsVoices) return;
+      var styleEl = $("ttsStyle");
+      if (styleEl) {
+        styleEl.value = loadTtsStyle();
+        styleEl.addEventListener("change", saveTtsStyle);
+      }
       TtsVoices.bindVoicePicker({
-        speak: function (say) { speakText(say); }
+        speak: function (say) {
+          speakText("您好，這是專業主播播報示範。歡迎鎖定 Google 新聞快報，我們一起關心今日要聞。");
+        }
       });
       TtsVoices.onSpeakStatus(function (st) {
         if (!st.active) setSpeaking(false);
@@ -1175,6 +1435,7 @@
     async function playNewsFlow() {
       TtsVoices.stopSpeakQueue();
       stopLiveStream();
+      hideContinuePanel();
       $("btnSearchPlay").disabled = true;
       try {
         await fetchNews();
@@ -1244,9 +1505,10 @@
     });
     $("btnStop").addEventListener("click", function () {
       stopLiveStream();
+      hideContinuePanel();
       TtsVoices.stopSpeakQueue();
       setSpeaking(false);
-      setSubtitle("已停止播報。");
+      setSubtitle("已停止播報。", "快報");
     });
 
     $("btnSaveKey").addEventListener("click", function () {
@@ -1270,6 +1532,8 @@
     initGeminiKey();
     setInputMode(loadInputMode());
     renderRecentKeywords();
+    updateStudioClock();
+    setInterval(updateStudioClock, 30000);
     fetchNews().catch(function () {});
 
     if ("serviceWorker" in navigator) {
