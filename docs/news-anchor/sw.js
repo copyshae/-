@@ -1,21 +1,34 @@
 /* Google 新聞虛擬主播｜離線快取 */
-const CACHE = "news-anchor-v13";
+const CACHE = "news-anchor-v18";
 const ASSETS = [
   "./",
   "./index.html",
   "./share.html",
   "./tts-voices.js",
+  "./tts-azure.js",
   "./news-cache.json",
   "./manifest.json",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
   "./portraits/anchor-yating.jpg",
+  "./portraits/anchor-yating-idle.webm",
+  "./portraits/anchor-yating-talk.webm",
   "./portraits/anchor-zihao.jpg",
+  "./portraits/anchor-zihao-idle.webm",
+  "./portraits/anchor-zihao-talk.webm",
   "./portraits/anchor-xiaoguang.jpg",
+  "./portraits/anchor-xiaoguang-idle.webm",
+  "./portraits/anchor-xiaoguang-talk.webm",
   "./portraits/anchor-ajie.jpg",
+  "./portraits/anchor-ajie-idle.webm",
+  "./portraits/anchor-ajie-talk.webm",
   "./portraits/anchor-xiaoxin.jpg",
-  "./portraits/anchor-nova.jpg"
+  "./portraits/anchor-xiaoxin-idle.webm",
+  "./portraits/anchor-xiaoxin-talk.webm",
+  "./portraits/anchor-nova.jpg",
+  "./portraits/anchor-nova-idle.webm",
+  "./portraits/anchor-nova-talk.webm"
 ];
 
 self.addEventListener("install", (event) => {
