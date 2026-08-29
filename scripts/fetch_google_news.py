@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -53,6 +54,36 @@ def clean_title(title: str) -> str:
     return title.strip()
 
 
+def normalize_space(text: str) -> str:
+    return re.sub(r"\s+", " ", text.strip())
+
+
+def titles_similar(a: str, b: str) -> bool:
+    a, b = normalize_space(a), normalize_space(b)
+    if not a or not b:
+        return True
+    if a == b:
+        return True
+    return a in b or b in a
+
+
+def extract_related_titles(desc: str, main_title: str, limit: int = 4) -> list[str]:
+    """從 Google News RSS 的 HTML description 抽出相關標題。"""
+    if not desc:
+        return []
+    related: list[str] = []
+    seen: set[str] = set()
+    for match in re.finditer(r"<a[^>]*>([^<]+)</a>", desc, re.I):
+        title = normalize_space(html.unescape(match.group(1)))
+        if not title or title in seen or titles_similar(title, main_title):
+            continue
+        seen.add(title)
+        related.append(title)
+        if len(related) >= limit:
+            break
+    return related
+
+
 def parse_rss(xml_text: str, limit: int = 12) -> list[dict]:
     root = ET.fromstring(xml_text)
     channel = root.find("channel")
@@ -73,12 +104,14 @@ def parse_rss(xml_text: str, limit: int = 12) -> list[dict]:
             source = source_el.text.strip()
         elif title_el is not None and title_el.text and " - " in title_el.text:
             source = title_el.text.rsplit(" - ", 1)[-1].strip()
+        desc = (desc_el.text or "").strip() if desc_el is not None else ""
         items.append(
             {
                 "title": title,
                 "link": (link_el.text or "").strip() if link_el is not None else "",
                 "pubDate": (pub_el.text or "").strip() if pub_el is not None else "",
-                "description": (desc_el.text or "").strip() if desc_el is not None else "",
+                "description": desc,
+                "relatedTitles": extract_related_titles(desc, title),
                 "source": source,
             }
         )
