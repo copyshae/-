@@ -189,7 +189,7 @@
 
     <section class="card">
       <h2>格式框架</h2>
-      <p class="hint">可修改<strong>内文之前</strong>（標題規則、署名、問候）與<strong>内文之後</strong>（感恩迴向）的固定格式；生成、本機模板與格式检核皆依此設定。</p>
+      <p class="hint">可修改<strong>内文之前</strong>（標題規則、署名、問候）與<strong>内文之後</strong>（感恩迴向）的固定格式。<strong>修改後自動記住</strong>，後續每次生成都會套用此模組。</p>
       <details class="format-block" open>
         <summary>内文前（標題、署名、問候）</summary>
         <div class="inner">
@@ -214,10 +214,11 @@
         </div>
       </details>
       <div class="row">
-        <button type="button" id="btnSaveFormat">儲存格式框架</button>
+        <button type="button" id="btnSaveFormat">立即儲存格式</button>
         <button type="button" id="btnResetFormat">還原預設</button>
       </div>
       <p class="status" id="formatStatus"></p>
+      <p class="hint" id="formatModuleHint"></p>
     </section>
 
     <section class="card">
@@ -477,6 +478,8 @@
     var essayImages = [];
     var catalogCache = null;
     var lastOutput = "";
+    var formatModule = null;
+    var formatSaveTimer = null;
 
     /** 本機印證資料庫：category = sage（中外聖賢）| master（太陽盛德導師／超碼） */
     var YINZHENG_LIB = [
@@ -497,14 +500,54 @@
       { category: "master", keywords: ["懺悔", "發願"], sage: "太陽盛德導師｜超碼功課", quote: "誠懇懺悔、發願改過。", plain: "看見過失不遮掩，願心從今天具體改正。", yinZheng: "寫心得本身就是懺悔與發願的落實。" }
     ];
 
+    function normalizeFormat(fmt) {
+      return {
+        titleRule: (fmt && fmt.titleRule) || DEFAULT_FORMAT.titleRule,
+        authorTemplate: (fmt && fmt.authorTemplate) || DEFAULT_FORMAT.authorTemplate,
+        header: (fmt && fmt.header) || DEFAULT_FORMAT.header,
+        footer: (fmt && fmt.footer) || DEFAULT_FORMAT.footer
+      };
+    }
+
+    function readFormatFromFields() {
+      return normalizeFormat({
+        titleRule: $("formatTitleRule") && $("formatTitleRule").value,
+        authorTemplate: $("formatAuthorTemplate") && $("formatAuthorTemplate").value,
+        header: $("formatHeader") && $("formatHeader").value,
+        footer: $("formatFooter") && $("formatFooter").value
+      });
+    }
+
+    function getFormatConfig() {
+      if (!formatModule) formatModule = readFormatFromFields();
+      return formatModule;
+    }
+
+    function isCustomFormat(cfg) {
+      var f = cfg || getFormatConfig();
+      return f.titleRule !== DEFAULT_FORMAT.titleRule ||
+        f.authorTemplate !== DEFAULT_FORMAT.authorTemplate ||
+        f.header !== DEFAULT_FORMAT.header ||
+        f.footer !== DEFAULT_FORMAT.footer;
+    }
+
+    function updateFormatModuleHint() {
+      var el = $("formatModuleHint");
+      if (!el) return;
+      var cfg = getFormatConfig();
+      var headerN = getFormatHeaderLines().length;
+      var footerN = getFormatFooterLines().length;
+      el.textContent = isCustomFormat(cfg)
+        ? "使用中：自訂格式模組（問候 " + headerN + " 句、感恩 " + footerN + " 句）— 後續生成持續套用"
+        : "使用中：預設格式模組 — 修改後自動記住並套用於後續生成";
+    }
+
     function getFormatHeaderLines() {
-      var raw = ($("formatHeader") && $("formatHeader").value) || DEFAULT_FORMAT.header;
-      return String(raw).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+      return String(getFormatConfig().header).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
     }
 
     function getFormatFooterLines() {
-      var raw = ($("formatFooter") && $("formatFooter").value) || DEFAULT_FORMAT.footer;
-      return String(raw).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+      return String(getFormatConfig().footer).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
     }
 
     function getGreetingText() {
@@ -516,43 +559,80 @@
     }
 
     function applyFormatToFields(fmt) {
-      var f = fmt || DEFAULT_FORMAT;
-      if ($("formatTitleRule")) $("formatTitleRule").value = f.titleRule || DEFAULT_FORMAT.titleRule;
-      if ($("formatAuthorTemplate")) $("formatAuthorTemplate").value = f.authorTemplate || DEFAULT_FORMAT.authorTemplate;
-      if ($("formatHeader")) $("formatHeader").value = f.header || DEFAULT_FORMAT.header;
-      if ($("formatFooter")) $("formatFooter").value = f.footer || DEFAULT_FORMAT.footer;
+      var f = normalizeFormat(fmt);
+      formatModule = f;
+      if ($("formatTitleRule")) $("formatTitleRule").value = f.titleRule;
+      if ($("formatAuthorTemplate")) $("formatAuthorTemplate").value = f.authorTemplate;
+      if ($("formatHeader")) $("formatHeader").value = f.header;
+      if ($("formatFooter")) $("formatFooter").value = f.footer;
+      updateFormatModuleHint();
+    }
+
+    function persistFormatModule(silent) {
+      formatModule = readFormatFromFields();
+      try { localStorage.setItem(KEY_FORMAT, JSON.stringify(formatModule)); } catch (e) {}
+      updateFormatModuleHint();
+      if (!silent) setStatus($("formatStatus"), "已儲存格式模組（後續生成持續套用）", "");
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+      return formatModule;
+    }
+
+    function scheduleFormatAutoSave() {
+      clearTimeout(formatSaveTimer);
+      formatSaveTimer = setTimeout(function () {
+        persistFormatModule(true);
+        setStatus($("formatStatus"), "已自動記住格式模組（後續生成皆套用）", "");
+      }, 450);
     }
 
     function loadFormatSettings() {
       try {
         var raw = localStorage.getItem(KEY_FORMAT);
-        if (raw) applyFormatToFields(JSON.parse(raw));
-      } catch (e) {
-        applyFormatToFields(DEFAULT_FORMAT);
-      }
+        if (raw) {
+          applyFormatToFields(JSON.parse(raw));
+          return;
+        }
+      } catch (e) {}
+      applyFormatToFields(DEFAULT_FORMAT);
     }
 
     function saveFormatSettings() {
-      var fmt = {
-        titleRule: ($("formatTitleRule").value || DEFAULT_FORMAT.titleRule).trim(),
-        authorTemplate: ($("formatAuthorTemplate").value || DEFAULT_FORMAT.authorTemplate).trim(),
-        header: ($("formatHeader").value || DEFAULT_FORMAT.header).trim(),
-        footer: ($("formatFooter").value || DEFAULT_FORMAT.footer).trim()
-      };
-      try { localStorage.setItem(KEY_FORMAT, JSON.stringify(fmt)); } catch (e) {}
-      setStatus($("formatStatus"), "已儲存格式框架", "");
-      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+      persistFormatModule(false);
     }
 
     function resetFormatSettings() {
       applyFormatToFields(DEFAULT_FORMAT);
       try { localStorage.removeItem(KEY_FORMAT); } catch (e) {}
-      setStatus($("formatStatus"), "已還原預設格式", "");
+      setStatus($("formatStatus"), "已還原預設格式模組", "");
       if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
     }
 
+    function setupFormatAutoSave() {
+      ["formatTitleRule", "formatAuthorTemplate", "formatHeader", "formatFooter"].forEach(function (id) {
+        var el = $(id);
+        if (!el) return;
+        el.addEventListener("input", scheduleFormatAutoSave);
+        el.addEventListener("change", scheduleFormatAutoSave);
+      });
+      window.addEventListener("storage", function (e) {
+        if (e.key === KEY_FORMAT && e.newValue) {
+          try { applyFormatToFields(JSON.parse(e.newValue)); } catch (err) {}
+        }
+      });
+    }
+
+    function assembleEssay(title, authorLine, bodyCore) {
+      var parts = [title, authorLine];
+      var header = getGreetingText();
+      var footer = getClosingText();
+      if (header) parts.push("", header);
+      if (bodyCore) parts.push("", bodyCore);
+      if (footer) parts.push("", footer);
+      return parts.join("\n");
+    }
+
     function buildAuthorLine(name, d) {
-      var tpl = ($("formatAuthorTemplate") && $("formatAuthorTemplate").value.trim()) || DEFAULT_FORMAT.authorTemplate;
+      var tpl = getFormatConfig().authorTemplate;
       var dateStr = formatAuthorDate(d);
       return tpl
         .replace(/\{name\}/g, name)
@@ -563,8 +643,9 @@
     }
 
     function buildSopPrompt() {
-      var titleRule = ($("formatTitleRule") && $("formatTitleRule").value.trim()) || DEFAULT_FORMAT.titleRule;
-      var authorTpl = ($("formatAuthorTemplate") && $("formatAuthorTemplate").value.trim()) || DEFAULT_FORMAT.authorTemplate;
+      var cfg = getFormatConfig();
+      var titleRule = cfg.titleRule;
+      var authorTpl = cfg.authorTemplate;
       var headerLines = getFormatHeaderLines();
       var footerLines = getFormatFooterLines();
       var headerDesc = headerLines.length
@@ -1531,7 +1612,7 @@
       var p2 = "以前總覺得自己「知道」該怎麼做，但遇到實際境緣才發現，情緒與慣性仍會牽著走；這份落差，正是我需要誠實面對、持續修正的地方。";
       var p3 = "古人說「吾日三省吾身」，白話就是時時回頭看自己；這也契合導師教導我們秒秒 GPS 定位、在事上磨練——不在外面找理由，而是把念頭轉回來修正自己。";
       var p4 = "就像太陽每天無私普照、不求回報，天地也以寬容承載萬物；當我願意懷抱愛與感恩，把領悟落實在待人接物的一個微笑、一句好話裡，眼前的路便多了平安與力量。";
-      return title + "\n" + authorLine + "\n\n" + getGreetingText() + "\n\n" + p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + getClosingText();
+      return assembleEssay(title, authorLine, p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4);
     }
 
     function validateEssay(text) {
@@ -2146,6 +2227,7 @@
     async function generateEssay() {
       var btn = $("btnGenerate");
       btn.disabled = true;
+      persistFormatModule(true);
       setStatus($("genStatus"), "準備素材…", "warn");
       try {
         var author = ($("authorName").value || "家人").trim();
@@ -2276,6 +2358,7 @@
       loadQuoteCounts();
       loadExportAttachPref();
       loadFormatSettings();
+      setupFormatAutoSave();
       $("btnSaveFormat").onclick = saveFormatSettings;
       $("btnResetFormat").onclick = resetFormatSettings;
       $("exportWithAttachments").onchange = function () { syncExportAttachCheckboxes(this.checked); };
