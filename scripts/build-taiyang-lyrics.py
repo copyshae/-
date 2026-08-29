@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "docs" / "taiyang-music" / "catalog.json"
 LYRICS_DIR = ROOT / "docs" / "taiyang-music" / "lyrics"
 
-# 手動歌詞（官方詞；播放時依片長分段同步）
+# 手動歌詞（官方詞）。若有 `timed: [{start,end,text}]` 則精準同步；否則播放時依片長分段估算。
 MANUAL: dict[str, dict] = {
     "注入彩虹": {
         "duration": 314,

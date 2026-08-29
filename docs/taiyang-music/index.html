@@ -136,6 +136,12 @@
     }
     .ktv-next { margin-top: 0.35rem; font-size: clamp(0.95rem, 4vw, 1.15rem); color: rgba(255,248,232,0.45); min-height: 1.4em; }
     .ktv-hint { margin-top: 0.55rem; font-size: 0.72rem; color: rgba(255,248,232,0.55); }
+    .ktv-caption-mode {
+      margin-top: 0.45rem; padding: 0.35rem 0.65rem; font-size: 0.72rem;
+      background: rgba(255,255,255,0.12); color: rgba(255,248,232,0.85);
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; cursor: pointer;
+    }
+    .ktv-caption-mode.on { background: rgba(45,106,79,0.55); border-color: rgba(149,213,178,0.5); }
     body.ktv-mode .normal-only { display: none !important; }
     body.ktv-mode .player-shell { margin-top: 0.5rem; }
     body.ktv-mode .wrap { max-width: 32rem; }
@@ -303,6 +309,7 @@
       <div id="ktvLine" class="ktv-line">按下 KTV 後開始播放，字幕會自動顯示</div>
       <div id="ktvNext" class="ktv-next"></div>
       <p id="ktvHint" class="ktv-hint">伴唱：有伴奏版時自動切換；也可按「伴唱」切換</p>
+      <button type="button" id="btnCaptionMode" class="ktv-caption-mode">字幕：原字幕優先</button>
       <div id="ktvLoopBar" class="ktv-loop-bar">
         <button type="button" id="btnSetA">A 點</button>
         <button type="button" id="btnSetB">B 點</button>
@@ -399,7 +406,9 @@
     let lastCaptionText = "";
     let captionPlainLines = null;
     let captionSource = "none";
+    let captionSyncMode = "none"; // youtube | estimated | timed
     let captionRetimed = false;
+    let preferYoutubeCaptions = localStorage.getItem("taiyang-prefer-yt-captions") !== "0";
     let singSession = null;
     let playTickTimer = null;
     let pendingAutoNext = false;
@@ -734,28 +743,115 @@
       return out;
     }
 
+    function parseTrackList(xml) {
+      const tracks = [];
+      if (!xml) return tracks;
+      const re = /<track\b([^>]*)\/?>/gi;
+      let m;
+      while ((m = re.exec(xml))) {
+        const attrs = m[1];
+        const lang = (attrs.match(/lang_code="([^"]+)"/) || [])[1];
+        if (!lang) continue;
+        tracks.push({
+          lang,
+          kind: (attrs.match(/kind="([^"]*)"/) || [])[1] || "",
+          name: (attrs.match(/name="([^"]*)"/) || [])[1] || ""
+        });
+      }
+      return tracks;
+    }
+
+    function mergeTimedSegments(lines) {
+      if (!lines || !lines.length) return [];
+      const merged = [];
+      const gapMax = 0.35;
+      for (const L of lines) {
+        const text = (L.text || "").replace(/\s+/g, " ").trim();
+        if (!text) continue;
+        const prev = merged[merged.length - 1];
+        if (prev && (L.start - prev.end) <= gapMax) {
+          prev.text = (prev.text + " " + text).trim();
+          prev.end = Math.max(prev.end, L.end);
+        } else {
+          merged.push({ start: L.start, end: L.end, text });
+        }
+      }
+      return merged;
+    }
+
+    async function fetchYouTubeCaptionTracks(videoId) {
+      const url = "https://www.youtube.com/api/timedtext?type=list&v=" + encodeURIComponent(videoId);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        return parseTrackList(await res.text());
+      } catch (_) {
+        return [];
+      }
+    }
+
+    async function fetchTimedTextUrl(videoId, opts) {
+      const params = new URLSearchParams({ v: videoId, fmt: opts.fmt || "vtt" });
+      if (opts.lang) params.set("lang", opts.lang);
+      if (opts.kind) params.set("kind", opts.kind);
+      if (opts.name) params.set("name", opts.name);
+      const url = "https://www.youtube.com/api/timedtext?" + params.toString();
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const text = await res.text();
+        return text && text.trim() ? text : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
     async function fetchYouTubeCaptions(videoId) {
-      const langs = ["zh-Hant", "zh-TW", "zh-Hans", "zh", "en"];
-      for (const lang of langs) {
+      const tracks = await fetchYouTubeCaptionTracks(videoId);
+      const langPref = ["zh-Hant", "zh-TW", "zh-Hans", "zh", "en"];
+      const tried = new Set();
+      const tryFetch = async (lang, kind, name) => {
+        const key = lang + "|" + (kind || "") + "|" + (name || "");
+        if (tried.has(key)) return [];
+        tried.add(key);
         for (const fmt of ["vtt", "json3"]) {
-          const url = "https://www.youtube.com/api/timedtext?v=" + encodeURIComponent(videoId) +
-            "&lang=" + encodeURIComponent(lang) + "&fmt=" + fmt;
-          try {
-            const res = await fetch(url);
-            if (!res.ok) continue;
-            const text = await res.text();
-            if (!text) continue;
-            if (fmt === "vtt") {
-              const lines = parseVtt(text);
-              if (lines.length) return lines;
-            } else {
-              const lines = parseJson3Captions(text);
-              if (lines.length) return lines;
-            }
-          } catch (_) {}
+          const raw = await fetchTimedTextUrl(videoId, { lang, kind, name, fmt });
+          if (!raw) continue;
+          let lines = fmt === "vtt" ? parseVtt(raw) : parseJson3Captions(raw);
+          lines = mergeTimedSegments(lines);
+          if (lines.length) return lines;
+        }
+        return [];
+      };
+
+      const sortedTracks = tracks.slice().sort((a, b) => {
+        const ia = langPref.indexOf(a.lang);
+        const ib = langPref.indexOf(b.lang);
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      });
+      for (const tr of sortedTracks) {
+        const lines = await tryFetch(tr.lang, tr.kind, tr.name);
+        if (lines.length) return lines;
+      }
+      for (const lang of langPref) {
+        for (const kind of ["", "asr"]) {
+          const lines = await tryFetch(lang, kind, "");
+          if (lines.length) return lines;
         }
       }
       return [];
+    }
+
+    async function fetchYouTubeCaptionsForItem(item, playingVideoId) {
+      const ids = [];
+      if (playingVideoId) ids.push(playingVideoId);
+      if (item && item.id && ids.indexOf(item.id) < 0) ids.push(item.id);
+      if (item && item.karaokeId && ids.indexOf(item.karaokeId) < 0) ids.push(item.karaokeId);
+      for (const id of ids) {
+        const lines = await fetchYouTubeCaptions(id);
+        if (lines.length) return { lines, fromVideoId: id };
+      }
+      return { lines: [], fromVideoId: null };
     }
 
     function parseJson3Captions(raw) {
@@ -855,26 +951,64 @@
     }
 
     async function resolveLyrics(videoId, item) {
+      if (preferYoutubeCaptions) {
+        const ytHit = await fetchYouTubeCaptionsForItem(item, videoId);
+        if (ytHit.lines.length) {
+          saveLyricsCache(videoId, {
+            source: "youtube",
+            timed: ytHit.lines,
+            name: item.name,
+            fromVideoId: ytHit.fromVideoId
+          });
+          return { lines: ytHit.lines, source: "youtube", plain: null, syncMode: "youtube" };
+        }
+      }
+
       const cache = getLyricsCache();
-      if (cache[videoId]) {
-        const r = packLyricsResult(cache[videoId], cache[videoId].duration);
-        if (r.lines.length) return r;
+      if (cache[videoId] && cache[videoId].timed && cache[videoId].timed.length) {
+        return {
+          lines: cache[videoId].timed,
+          source: cache[videoId].source || "cache",
+          plain: null,
+          syncMode: cache[videoId].source === "youtube" ? "youtube" : "timed"
+        };
       }
 
       const bundled = await fetchBundledLyrics(videoId, item);
-      if (bundled && (bundled.lines || bundled.timed)) {
+      if (bundled && bundled.timed && bundled.timed.length) {
+        saveLyricsCache(videoId, bundled);
+        return { lines: bundled.timed, source: bundled.source || "timed", plain: null, syncMode: "timed" };
+      }
+      if (bundled && bundled.lines && bundled.lines.length) {
         saveLyricsCache(videoId, bundled);
         const r = packLyricsResult(bundled, bundled.duration);
-        if (r.lines.length) return r;
+        if (r.lines.length) return { ...r, syncMode: "estimated" };
       }
 
-      const yt = await fetchYouTubeCaptions(videoId);
-      if (yt.length) {
-        saveLyricsCache(videoId, { source: "youtube", timed: yt, name: item.name });
-        return { lines: yt, source: "youtube", plain: null };
+      if (!preferYoutubeCaptions) {
+        const ytHit = await fetchYouTubeCaptionsForItem(item, videoId);
+        if (ytHit.lines.length) {
+          saveLyricsCache(videoId, {
+            source: "youtube",
+            timed: ytHit.lines,
+            name: item.name,
+            fromVideoId: ytHit.fromVideoId
+          });
+          return { lines: ytHit.lines, source: "youtube", plain: null, syncMode: "youtube" };
+        }
       }
 
-      return { lines: [], source: "none", plain: null };
+      if (cache[videoId]) {
+        const r = packLyricsResult(cache[videoId], cache[videoId].duration);
+        if (r.lines.length) {
+          return {
+            ...r,
+            syncMode: cache[videoId].source === "youtube" ? "youtube" : (r.plain ? "estimated" : "timed")
+          };
+        }
+      }
+
+      return { lines: [], source: "none", plain: null, syncMode: "none" };
     }
 
     function maybeRetimeCaptions() {
@@ -885,28 +1019,55 @@
           captionLines = buildTimedFromPlainLines(captionPlainLines, d);
           captionRetimed = true;
           if (ktvMode && captionLines.length) {
-            const src = captionSource === "plain" || captionSource === "manual" ? "內建歌詞" : "歌詞";
-            $("ktvHint").textContent = src + "已依片長 " + formatTime(d) + " 同步（" + captionLines.length + " 段）";
+            $("ktvHint").textContent = "內建歌詞已依片長 " + formatTime(d) + " 重新估算（非 YouTube 原字幕）";
           }
         }
       } catch (_) {}
+    }
+
+    function captionModeHint(result) {
+      if (result.syncMode === "youtube") {
+        return "YouTube 原字幕同步（跟影片時間軸）";
+      }
+      if (result.syncMode === "timed") {
+        return "內建時間軸字幕（已對時）";
+      }
+      if (result.syncMode === "estimated") {
+        return "內建歌詞（依片長估算，非原字幕）";
+      }
+      return "此曲暫無字幕";
     }
 
     function applyLyricsResult(result, item) {
       captionLines = result.lines || [];
       captionPlainLines = result.plain;
       captionSource = result.source;
-      captionRetimed = !result.plain;
+      captionSyncMode = result.syncMode || (result.plain ? "estimated" : (result.source === "youtube" ? "youtube" : "none"));
+      captionRetimed = captionSyncMode === "estimated" && !!result.plain;
       if (ktvMode) {
         if (captionLines.length) {
-          const label = { youtube: "YouTube", manual: "內建", plain: "內建", cache: "快取", timed: "內建" };
-          $("ktvHint").textContent = (label[captionSource] || "歌詞") + "字幕（" + captionLines.length + " 段，隨播放更新）";
+          $("ktvHint").textContent = captionModeHint(result) + "（" + captionLines.length + " 段）";
           startCaptionSync();
+          maybeRetimeCaptions();
         } else {
           $("ktvLine").textContent = item.name;
-          $("ktvHint").textContent = "此曲暫無歌詞；可開 YouTube 播放器字幕";
+          $("ktvHint").textContent = "此曲暫無字幕；可切換原唱／伴唱再試，或開播放器 CC";
         }
       }
+    }
+
+    function updateCaptionModeBtn() {
+      const btn = $("btnCaptionMode");
+      if (!btn) return;
+      btn.classList.toggle("on", preferYoutubeCaptions);
+      btn.textContent = preferYoutubeCaptions ? "字幕：YouTube 原字幕優先" : "字幕：內建歌詞優先";
+    }
+
+    function toggleCaptionMode() {
+      preferYoutubeCaptions = !preferYoutubeCaptions;
+      localStorage.setItem("taiyang-prefer-yt-captions", preferYoutubeCaptions ? "1" : "0");
+      updateCaptionModeBtn();
+      if (queue[qIndex]) loadVideo(queue[qIndex], true);
     }
 
     async function fetchCaptions(videoId, item) {
@@ -1212,7 +1373,7 @@
           $("ktvLine").textContent = last.text;
           $("ktvNext").textContent = "";
         }
-      }, 180);
+      }, 100);
     }
 
     function enablePlayerCaptions() {
@@ -1221,6 +1382,7 @@
         player.loadModule("captions");
         player.setOption("captions", "track", { languageCode: "zh-Hant" });
         player.setOption("captions", "fontSize", 3);
+        player.setOption("captions", "reload", true);
       } catch (_) {}
     }
 
@@ -1230,6 +1392,9 @@
       $("ktvPanel").classList.toggle("on", ktvMode || sessionOpen);
       $("btnKtv").classList.toggle("ktv-on", ktvMode);
       $("btnKtv").textContent = ktvMode ? "🎤 KTV 開" : "🎤 KTV 模式";
+      updateCaptionModeBtn();
+      const btnCap = $("btnCaptionMode");
+      if (btnCap) btnCap.style.display = ktvMode ? "inline-block" : "none";
       const item = queue[qIndex];
       const hasK = item && findKaraokeInCatalog(item);
       $("btnKaraoke").disabled = !ktvMode;
@@ -1242,8 +1407,8 @@
         if (!captionLines.length) {
           $("ktvLine").textContent = item.name;
           $("ktvHint").textContent = hasK
-            ? "已切換伴奏版（若無字幕將顯示歌名大字）"
-            : "此曲暫無伴奏版，使用原唱；字幕取自 YouTube";
+            ? "此曲暫無字幕；可切換原唱／伴唱，或按下方改「原字幕優先」"
+            : "此曲暫無字幕；可改「原字幕優先」或開播放器 CC";
         }
       }
     }
@@ -1573,6 +1738,7 @@
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
     $("btnKtv").addEventListener("click", () => setKtvMode(!ktvMode));
     $("btnKaraoke").addEventListener("click", toggleKaraoke);
+    $("btnCaptionMode").addEventListener("click", toggleCaptionMode);
     $("btnScoreRetry").addEventListener("click", () => proceedAfterScore(true));
     $("btnScoreNext").addEventListener("click", () => proceedAfterScore(false));
     $("btnScoreLoop").addEventListener("click", startHotspotLoop);
