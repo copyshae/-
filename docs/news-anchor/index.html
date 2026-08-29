@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="新聞主播" />
-  <meta name="description" content="寫實主播即時口型表情、全螢幕播報；流暢不卡頓，像真人當下在說話，魅力十足。" />
+  <meta name="description" content="寫實主播影片播報、Azure viseme 對嘴；可切換相片特效或 idle／talk 短片。" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
@@ -126,6 +126,27 @@
       filter: brightness(1.02) saturate(1.03);
     }
 
+    /* ===== 影片播報（idle / talk 雙層交叉） ===== */
+    .anchor-video-wrap {
+      width: 100%; position: relative;
+      filter: drop-shadow(0 10px 24px rgba(0,0,0,.45));
+    }
+    .anchor-video-wrap.speaking {
+      filter: drop-shadow(0 14px 30px rgba(0,0,0,.5)) drop-shadow(0 0 22px rgba(232,197,71,.18));
+    }
+    .anchor-video {
+      width: 100%; height: auto; max-height: 14.5rem; object-fit: cover;
+      display: block; background: linear-gradient(180deg, #1a3058, #0a1020);
+      border-radius: 0.35rem 0.35rem 0 0;
+    }
+    .anchor-video-talk {
+      position: absolute; inset: 0; opacity: 0;
+      transition: opacity 0.12s ease-out;
+      pointer-events: none;
+    }
+    .anchor-video-wrap.speaking .anchor-video-idle { visibility: hidden; }
+    .anchor-video-wrap.speaking .anchor-video-talk { opacity: 1; visibility: visible; }
+
     /* ===== 全螢幕播報 ===== */
     body.broadcast-fullscreen {
       overflow: hidden;
@@ -144,7 +165,12 @@
     }
     body.broadcast-fullscreen .anchor-wrap { padding-bottom: 18%; flex: 1; }
     body.broadcast-fullscreen .anchor-photo-wrap { width: min(92vw, 26rem); max-height: none; }
+    body.broadcast-fullscreen .anchor-video-wrap { width: min(92vw, 26rem); max-height: none; }
     body.broadcast-fullscreen .anchor-photo {
+      max-height: none; height: min(76vh, 50rem); width: 100%;
+      object-position: center 40%;
+    }
+    body.broadcast-fullscreen .anchor-video {
       max-height: none; height: min(76vh, 50rem); width: 100%;
       object-position: center 40%;
     }
@@ -452,6 +478,39 @@
     </section>
 
     <section class="card">
+      <h2>🎬 影片與對嘴</h2>
+      <div class="row2">
+        <div>
+          <label for="visualMode">畫面模式</label>
+          <select id="visualMode">
+            <option value="photo">相片＋口型特效</option>
+            <option value="video">影片播報（idle／talk）</option>
+          </select>
+        </div>
+        <div>
+          <label for="ttsEngine">語音引擎</label>
+          <select id="ttsEngine">
+            <option value="system">系統語音（免費）</option>
+            <option value="azure">Azure Speech（viseme 對嘴）</option>
+          </select>
+        </div>
+      </div>
+      <label for="azureKey">Azure Speech 金鑰（選填，對嘴用）</label>
+      <input id="azureKey" type="password" autocomplete="off" placeholder="Speech 資源金鑰；填了才能用 viseme 對嘴" />
+      <div class="row2">
+        <div>
+          <label for="azureRegion">區域</label>
+          <input id="azureRegion" type="text" value="eastasia" placeholder="eastasia" />
+        </div>
+        <div class="actions" style="align-items:flex-end;margin-top:1.4rem">
+          <button type="button" id="btnSaveAzure">儲存 Azure</button>
+          <button type="button" id="btnClearAzure">清除</button>
+        </div>
+      </div>
+      <p class="hint"><strong>影片模式</strong>：每位主播有 idle／talk 短片，播報時自動切換。<strong>Azure 對嘴</strong>：依 viseme 驅動嘴型（相片模式效果最佳）。金鑰只存本機。Azure 免費層約 50 萬字／月，<a href="https://azure.microsoft.com/zh-tw/products/ai-services/speech-services" target="_blank" rel="noopener">申請 Speech</a>。</p>
+    </section>
+
+    <section class="card">
       <h2>✨ Gemini 播報稿（選填）</h2>
       <label for="geminiKey">Gemini 金鑰</label>
       <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰，可生成更口語的播報稿" />
@@ -470,6 +529,7 @@
   </div>
 
   <script src="tts-voices.js"></script>
+  <script src="tts-azure.js"></script>
   <script>
   (function () {
     "use strict";
@@ -479,6 +539,8 @@
     var KEY_RECENT_KW = "news-anchor-recent-keywords-v1";
     var KEY_INPUT_MODE = "news-anchor-input-mode-v1";
     var KEY_TTS_STYLE = "news-anchor-tts-style-v1";
+    var KEY_VISUAL_MODE = "news-anchor-visual-mode-v1";
+    var KEY_TTS_ENGINE = "news-anchor-tts-engine-v1";
     var GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
 
     var LIVE_TRANSITIONS = [
@@ -539,6 +601,8 @@
       yating: {
         id: "yating", name: "雅婷", tag: "氣質女主播",
         portrait: "./portraits/anchor-yating.jpg",
+        videoIdle: "./portraits/anchor-yating-idle.webm",
+        videoTalk: "./portraits/anchor-yating-talk.webm",
         gender: "F", style: "formal",
         face: { jawSplit: 51, objPos: 38 },
         intro: "我是雅婷，很高興陪伴您，一起關心今天的重要消息。"
@@ -546,6 +610,8 @@
       zihao: {
         id: "zihao", name: "志豪", tag: "帥氣男主播",
         portrait: "./portraits/anchor-zihao.jpg",
+        videoIdle: "./portraits/anchor-zihao-idle.webm",
+        videoTalk: "./portraits/anchor-zihao-talk.webm",
         gender: "M", style: "formal",
         face: { jawSplit: 52, objPos: 38 },
         intro: "我是志豪，用清楚好懂的方式，帶您快速掌握今日要聞。"
@@ -553,6 +619,8 @@
       xiaoguang: {
         id: "xiaoguang", name: "小光", tag: "科技女主播",
         portrait: "./portraits/anchor-xiaoguang.jpg",
+        videoIdle: "./portraits/anchor-xiaoguang-idle.webm",
+        videoTalk: "./portraits/anchor-xiaoguang-talk.webm",
         gender: "F", style: "tech",
         face: { jawSplit: 51, objPos: 38 },
         intro: "科技快報時間，我是小光，帶您看看今天有哪些新動態。"
@@ -560,6 +628,8 @@
       ajie: {
         id: "ajie", name: "阿杰", tag: "體育男主播",
         portrait: "./portraits/anchor-ajie.jpg",
+        videoIdle: "./portraits/anchor-ajie-idle.webm",
+        videoTalk: "./portraits/anchor-ajie-talk.webm",
         gender: "M", style: "sports",
         face: { jawSplit: 53, objPos: 39 },
         intro: "體壇最新消息，我是阿杰，馬上為您整理重點。"
@@ -567,6 +637,8 @@
       xiaoxin: {
         id: "xiaoxin", name: "小新", tag: "親切女主播",
         portrait: "./portraits/anchor-xiaoxin.jpg",
+        videoIdle: "./portraits/anchor-xiaoxin-idle.webm",
+        videoTalk: "./portraits/anchor-xiaoxin-talk.webm",
         gender: "F", style: "warm",
         face: { jawSplit: 51, objPos: 38 },
         intro: "哈囉大家好，我是小新，讓我們輕鬆一起看新聞。"
@@ -574,6 +646,8 @@
       nova: {
         id: "nova", name: "Nova", tag: "AI 主播",
         portrait: "./portraits/anchor-nova.jpg",
+        videoIdle: "./portraits/anchor-nova-idle.webm",
+        videoTalk: "./portraits/anchor-nova-talk.webm",
         gender: "F", style: "robot",
         face: { jawSplit: 50, objPos: 37 },
         intro: "您好，我是 Nova，會用自然口吻為您播報即時新聞。"
@@ -600,6 +674,7 @@
       mouthTarget: 0,
       mouthNextAt: 0,
       nextBlink: 0,
+      visemeDrive: false,
       broadcastFullscreen: false
     };
 
@@ -732,7 +807,7 @@
         stopVoiceIfAny();
         return;
       }
-      if (window.TtsVoices) TtsVoices.stopSpeakQueue();
+      stopAllTts();
       state.voiceHandler = handler;
       state.recognition = new SR();
       state.recognition.lang = "zh-TW";
@@ -902,6 +977,61 @@
       try { localStorage.setItem(KEY_TTS_STYLE, el.value); } catch (e) {}
     }
 
+    function loadVisualMode() {
+      try {
+        var v = localStorage.getItem(KEY_VISUAL_MODE);
+        if (v === "photo" || v === "video") return v;
+      } catch (e) {}
+      return "photo";
+    }
+
+    function saveVisualMode() {
+      var el = $("visualMode");
+      if (!el) return;
+      try { localStorage.setItem(KEY_VISUAL_MODE, el.value); } catch (e) {}
+      renderMainAnchor();
+    }
+
+    function loadTtsEngine() {
+      try {
+        var v = localStorage.getItem(KEY_TTS_ENGINE);
+        if (v === "system" || v === "azure") return v;
+      } catch (e) {}
+      return "system";
+    }
+
+    function saveTtsEngine() {
+      var el = $("ttsEngine");
+      if (!el) return;
+      try { localStorage.setItem(KEY_TTS_ENGINE, el.value); } catch (e) {}
+    }
+
+    function useVideoMode() {
+      var el = $("visualMode");
+      return el ? el.value === "video" : loadVisualMode() === "video";
+    }
+
+    function useAzureTts() {
+      var el = $("ttsEngine");
+      var mode = el ? el.value : loadTtsEngine();
+      return mode === "azure" && window.TtsAzure && TtsAzure.hasKey();
+    }
+
+    function getActiveTts() {
+      if (useAzureTts()) return window.TtsAzure;
+      return window.TtsVoices;
+    }
+
+    function stopAllTts() {
+      if (window.TtsVoices) TtsVoices.stopSpeakQueue();
+      if (window.TtsAzure) TtsAzure.stopSpeakQueue();
+    }
+
+    function isTtsSpeaking() {
+      var t = getActiveTts();
+      return t && t.getSpeakState().active;
+    }
+
     function getSpeakStyleOpts() {
       var el = $("ttsStyle");
       var mode = el ? el.value : loadTtsStyle();
@@ -950,12 +1080,25 @@
       return "--jaw-split:" + (f.jawSplit || 52) + "%;";
     }
 
+    function buildAnchorVideo(anchor, objPos) {
+      var pos = "object-position:center " + objPos + "%";
+      var idle = anchor.videoIdle || "";
+      var talk = anchor.videoTalk || "";
+      return '<div class="anchor-video-wrap">'
+        + '<video class="anchor-video anchor-video-idle" src="' + idle + '" poster="' + anchor.portrait + '" style="' + pos + '" loop muted playsinline autoplay preload="auto"></video>'
+        + '<video class="anchor-video anchor-video-talk" src="' + talk + '" style="' + pos + '" loop muted playsinline preload="auto"></video>'
+        + '</div>';
+    }
+
     function buildAnchorVisual(anchor, mini) {
       if (anchor.portrait) {
         if (mini) {
           return '<img class="anchor-thumb" src="' + anchor.portrait + '" alt="' + anchor.name + '" loading="lazy"/>';
         }
         var objPos = (anchor.face && anchor.face.objPos) || 38;
+        if (useVideoMode() && anchor.videoIdle && anchor.videoTalk) {
+          return buildAnchorVideo(anchor, objPos);
+        }
         var pos = "object-position:center " + objPos + "%";
         var src = anchor.portrait;
         var alt = anchor.name;
@@ -970,6 +1113,16 @@
           + '</div></div>';
       }
       return buildAnchorSvg(anchor, mini);
+    }
+
+    function syncAnchorVideos() {
+      var idle = document.querySelector(".anchor-video-idle");
+      var talk = document.querySelector(".anchor-video-talk");
+      if (!idle || !talk) return;
+      idle.play().catch(function () {});
+      if (document.querySelector(".anchor-video-wrap.speaking")) {
+        talk.play().catch(function () {});
+      }
     }
 
     /* ===== SVG 主播備援 ===== */
@@ -1037,10 +1190,12 @@
         preload.src = anchor.portrait;
       }
       startPortraitBlink();
+      setTimeout(syncAnchorVideos, 60);
     }
 
     function startPortraitBlink() {
       if (state.blinkTimer) clearInterval(state.blinkTimer);
+      if (useVideoMode()) return;
       var anchor = getAnchor();
       if (!anchor.portrait) {
         startBlink();
@@ -1112,6 +1267,7 @@
     }
 
     function applyJawMotion(openness) {
+      if (useVideoMode()) return;
       var jawLayer = document.querySelector(".face-jaw");
       var jawImg = document.querySelector(".anchor-photo-jaw");
       if (!jawLayer) return;
@@ -1126,14 +1282,16 @@
       if (!state.motionActive) return;
 
       if (!state.mouthNextAt || ts >= state.mouthNextAt) {
-        var ttsOn = window.TtsVoices && TtsVoices.getSpeakState().active;
-        state.mouthTarget = ttsOn ? pickMouthTarget() : (0.06 + Math.random() * 0.1);
-        state.mouthNextAt = ts + 90 + Math.random() * 110;
+        if (!state.visemeDrive) {
+          var ttsOn = isTtsSpeaking();
+          state.mouthTarget = ttsOn ? pickMouthTarget() : (0.06 + Math.random() * 0.1);
+          state.mouthNextAt = ts + 90 + Math.random() * 110;
+        }
       }
-      state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * 0.18;
+      state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * (state.visemeDrive ? 0.32 : 0.18);
       applyJawMotion(state.mouthCurrent);
 
-      if (ts >= state.nextBlink) {
+      if (ts >= state.nextBlink && !useVideoMode()) {
         triggerPortraitBlink();
         state.nextBlink = ts + 2000 + Math.random() * 1800;
       }
@@ -1206,6 +1364,8 @@
     function setSpeaking(on) {
       var wrap = document.querySelector(".anchor-photo-wrap");
       if (wrap) wrap.classList.toggle("speaking", !!on);
+      var vwrap = document.querySelector(".anchor-video-wrap");
+      if (vwrap) vwrap.classList.toggle("speaking", !!on);
       var svg = document.querySelector(".anchor-svg");
       if (svg) svg.classList.toggle("speaking", !!on);
     }
@@ -1456,10 +1616,12 @@
 
     function speakOneAndWait(text) {
       return new Promise(function (resolve) {
-        if (!text || !window.TtsVoices) { resolve(false); return; }
+        if (!text) { resolve(false); return; }
+        var tts = getActiveTts();
+        if (!tts) { resolve(false); return; }
         if (!speakText(text)) { resolve(false); return; }
         var timer = setInterval(function () {
-          var st = TtsVoices.getSpeakState();
+          var st = tts.getSpeakState();
           if (!st.active) {
             clearInterval(timer);
             setTimeout(resolve, 100);
@@ -1627,8 +1789,20 @@
 
     /* ===== 語音播報 ===== */
     function speakText(text, extraOpts) {
-      if (!window.TtsVoices) return false;
+      var style = getSpeakStyleOpts();
       var gEl = $("ttsGender");
+      var baseOpts = {
+        rate: style.rate,
+        pitch: style.pitch,
+        maxLen: style.maxLen,
+        gender: gEl ? gEl.value : "F"
+      };
+      var opts = Object.assign(baseOpts, extraOpts || {});
+
+      if (useAzureTts() && window.TtsAzure) {
+        return TtsAzure.speakQueued(text, opts);
+      }
+      if (!window.TtsVoices) return false;
       var vEl = $("ttsVoice");
       if (gEl && vEl) {
         var list = TtsVoices.listVoiceChoices(gEl.value);
@@ -1642,8 +1816,6 @@
           rate: chosen ? chosen.rate : 0.95
         });
       }
-      var style = getSpeakStyleOpts();
-      var opts = Object.assign({ rate: style.rate, pitch: style.pitch, maxLen: style.maxLen }, extraOpts || {});
       return TtsVoices.speakQueued(text, opts);
     }
 
@@ -1654,7 +1826,8 @@
       var idx = 0;
       setSubtitle(chunks[0] || text.slice(0, 60), "播報");
       state.speakWatch = setInterval(function () {
-        var st = TtsVoices.getSpeakState();
+        var tts = getActiveTts();
+        var st = tts ? tts.getSpeakState() : { active: false };
         if (!st.active) {
           clearInterval(state.speakWatch);
           state.speakWatch = null;
@@ -1677,21 +1850,57 @@
         styleEl.value = loadTtsStyle();
         styleEl.addEventListener("change", saveTtsStyle);
       }
+      var visualEl = $("visualMode");
+      if (visualEl) {
+        visualEl.value = loadVisualMode();
+        visualEl.addEventListener("change", saveVisualMode);
+      }
+      var engineEl = $("ttsEngine");
+      if (engineEl) {
+        engineEl.value = loadTtsEngine();
+        engineEl.addEventListener("change", saveTtsEngine);
+      }
       TtsVoices.bindVoicePicker({
         speak: function () {
           onBroadcastStart();
           speakText("您好，這是有魅力的主播播報示範。歡迎鎖定 Google 新聞快報，我們一起關心今日要聞。");
           setTimeout(function () {
-            if (!TtsVoices.getSpeakState().active) onBroadcastEnd();
+            var tts = getActiveTts();
+            if (tts && !tts.getSpeakState().active) onBroadcastEnd();
           }, 12000);
         }
       });
       TtsVoices.onSpeakStatus(function (ev) {
+        if (useAzureTts()) return;
         if (ev && ev.reason === "progress") {
           state.mouthTarget = 0.55 + Math.random() * 0.35;
           state.mouthNextAt = performance.now() + 70;
         }
       });
+      if (window.TtsAzure) {
+        TtsAzure.onSpeakStatus(function (ev) {
+          if (!useAzureTts()) return;
+          if (ev.reason === "viseme") {
+            state.visemeDrive = true;
+            state.mouthTarget = ev.openness;
+            state.mouthNextAt = performance.now() + 100;
+          } else if (ev.reason === "amplitude") {
+            if (!state.visemeDrive) {
+              state.mouthTarget = 0.08 + ev.level * 0.62;
+            }
+          } else if (ev.reason === "stop" || ev.reason === "done") {
+            state.visemeDrive = false;
+            state.mouthTarget = 0;
+          }
+        });
+      }
+    }
+
+    function initAzureKey() {
+      if (!window.TtsAzure) return;
+      var pref = TtsAzure.loadPref();
+      if ($("azureRegion")) $("azureRegion").value = pref.region || "eastasia";
+      if (pref.key && $("azureKey")) $("azureKey").value = "••••••••";
     }
 
     /* ===== Gemini 金鑰 ===== */
@@ -1701,7 +1910,7 @@
     }
 
     async function playNewsFlow() {
-      TtsVoices.stopSpeakQueue();
+      stopAllTts();
       stopLiveStream();
       hideContinuePanel();
       $("btnSearchPlay").disabled = true;
@@ -1771,17 +1980,19 @@
     });
 
     $("btnPause").addEventListener("click", function () {
-      TtsVoices.togglePauseSpeakQueue();
+      var tts = getActiveTts();
+      if (tts) tts.togglePauseSpeakQueue();
     });
     $("btnStop").addEventListener("click", function () {
       stopLiveStream();
       hideContinuePanel();
-      TtsVoices.stopSpeakQueue();
+      stopAllTts();
       setSubtitle("已停止播報。", "快報");
     });
 
     $("btnFsPause").addEventListener("click", function () {
-      TtsVoices.togglePauseSpeakQueue();
+      var tts = getActiveTts();
+      if (tts) tts.togglePauseSpeakQueue();
     });
     $("btnFsStop").addEventListener("click", function () {
       $("btnStop").click();
@@ -1810,12 +2021,33 @@
       $("geminiKey").value = "";
     });
 
+    $("btnSaveAzure").addEventListener("click", function () {
+      if (!window.TtsAzure) return;
+      var key = $("azureKey").value.trim();
+      if (!key || key === "••••••••") return;
+      var pref = TtsAzure.loadPref();
+      pref.key = key;
+      pref.region = ($("azureRegion").value || "eastasia").trim();
+      TtsAzure.savePref(pref);
+      $("azureKey").value = "••••••••";
+      $("fetchStatus").textContent = "Azure Speech 金鑰已儲存（本機）";
+      $("fetchStatus").className = "status";
+    });
+    $("btnClearAzure").addEventListener("click", function () {
+      if (!window.TtsAzure) return;
+      TtsAzure.savePref({ key: "", region: "eastasia" });
+      $("azureKey").value = "";
+      $("fetchStatus").textContent = "已清除 Azure 金鑰";
+      $("fetchStatus").className = "status";
+    });
+
     /* ===== 啟動 ===== */
     state.anchorId = loadAnchorPref();
     renderAnchorGrid();
     renderMainAnchor();
     bindTts();
     initGeminiKey();
+    initAzureKey();
     setInputMode(loadInputMode());
     renderRecentKeywords();
     updateStudioClock();
