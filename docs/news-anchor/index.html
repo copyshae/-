@@ -86,33 +86,51 @@
       border-radius: 0.35rem 0.35rem 0 0;
       contain: layout style paint;
     }
+    .face-layer { position: absolute; left: 0; right: 0; overflow: hidden; }
+    .face-jaw {
+      position: relative; z-index: 1;
+      clip-path: inset(var(--jaw-split, 52%) 0 0 0);
+    }
+    .face-upper {
+      top: 0; z-index: 2;
+      height: var(--jaw-split, 52%);
+      transform-origin: 50% 92%;
+      will-change: transform;
+    }
     .anchor-photo {
-      width: 100%; height: auto; max-height: 14.5rem; object-fit: cover; object-position: center 38%;
+      width: 100%; height: auto; max-height: 14.5rem; object-fit: cover;
       background: linear-gradient(180deg, #1a3058, #0a1020);
       display: block;
       transform: translate3d(0, 0, 0);
-      transform-origin: 50% var(--jaw-origin, 53%);
+    }
+    .anchor-photo-jaw {
+      transform-origin: 50% var(--jaw-split, 52%);
       will-change: transform;
-      transition: filter 0.3s ease;
+    }
+    .face-upper.fx-blink {
+      animation: naturalBlink 0.13s ease-in-out;
+    }
+    @keyframes naturalBlink {
+      0%, 100% { transform: scaleY(1); }
+      42% { transform: scaleY(0.955); }
     }
     .anchor-photo-wrap.speaking .anchor-photo {
-      filter: brightness(1.04) saturate(1.06) contrast(1.01);
+      filter: brightness(1.03) saturate(1.05);
     }
     .anchor-photo-wrap.speaking .anchor-photo-stage {
-      animation: headSway 5.6s ease-in-out infinite;
+      animation: headSway 7s ease-in-out infinite;
       will-change: transform;
     }
     .anchor-photo-wrap.speaking.fx-nod .anchor-photo-stage {
-      animation: headNod 0.34s ease-out, headSway 5.6s ease-in-out infinite;
+      animation: headNod 0.38s ease-out, headSway 7s ease-in-out infinite;
     }
     @keyframes headSway {
-      0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-      35% { transform: translate3d(0.5px, -0.5px, 0) rotate(0.15deg); }
-      70% { transform: translate3d(-0.5px, 0, 0) rotate(-0.12deg); }
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(0, -0.5px, 0); }
     }
     @keyframes headNod {
       0% { transform: translate3d(0, 0, 0); }
-      40% { transform: translate3d(0, -1.5px, 0); }
+      45% { transform: translate3d(0, -1px, 0); }
       100% { transform: translate3d(0, 0, 0); }
     }
 
@@ -319,7 +337,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">寫實主播<strong>自然口型</strong>（下巴微動，無假疊層）；播報<strong>全螢幕</strong>，像真人當下在說話。</p>
+    <p class="sub">寫實主播<strong>上下臉分層口型</strong>，眼睛自然眨眼；播報<strong>全螢幕</strong>，像真人當下在說話。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -530,42 +548,42 @@
         id: "yating", name: "雅婷", tag: "氣質女主播",
         portrait: "./portraits/anchor-yating.jpg",
         gender: "F", style: "formal",
-        face: { jawOrigin: 53, objPos: 38 },
+        face: { jawSplit: 51, objPos: 38 },
         intro: "我是雅婷，很高興陪伴您，一起關心今天的重要消息。"
       },
       zihao: {
         id: "zihao", name: "志豪", tag: "帥氣男主播",
         portrait: "./portraits/anchor-zihao.jpg",
         gender: "M", style: "formal",
-        face: { jawOrigin: 54, objPos: 38 },
+        face: { jawSplit: 52, objPos: 38 },
         intro: "我是志豪，用清楚好懂的方式，帶您快速掌握今日要聞。"
       },
       xiaoguang: {
         id: "xiaoguang", name: "小光", tag: "科技女主播",
         portrait: "./portraits/anchor-xiaoguang.jpg",
         gender: "F", style: "tech",
-        face: { jawOrigin: 53, objPos: 38 },
+        face: { jawSplit: 51, objPos: 38 },
         intro: "科技快報時間，我是小光，帶您看看今天有哪些新動態。"
       },
       ajie: {
         id: "ajie", name: "阿杰", tag: "體育男主播",
         portrait: "./portraits/anchor-ajie.jpg",
         gender: "M", style: "sports",
-        face: { jawOrigin: 55, objPos: 39 },
+        face: { jawSplit: 53, objPos: 39 },
         intro: "體壇最新消息，我是阿杰，馬上為您整理重點。"
       },
       xiaoxin: {
         id: "xiaoxin", name: "小新", tag: "親切女主播",
         portrait: "./portraits/anchor-xiaoxin.jpg",
         gender: "F", style: "warm",
-        face: { jawOrigin: 53, objPos: 38 },
+        face: { jawSplit: 51, objPos: 38 },
         intro: "哈囉大家好，我是小新，讓我們輕鬆一起看新聞。"
       },
       nova: {
         id: "nova", name: "Nova", tag: "AI 主播",
         portrait: "./portraits/anchor-nova.jpg",
         gender: "F", style: "robot",
-        face: { jawOrigin: 52, objPos: 37 },
+        face: { jawSplit: 50, objPos: 37 },
         intro: "您好，我是 Nova，會用自然口吻為您播報即時新聞。"
       }
     };
@@ -586,8 +604,11 @@
       motionRaf: null,
       motionLast: 0,
       lipPhase: 0,
-      nextBlink: 0,
+      mouthCurrent: 0,
+      mouthTarget: 0,
+      mouthNextAt: 0,
       nextEmphasis: 0,
+      nextGaze: 0,
       broadcastFullscreen: false
     };
 
@@ -935,7 +956,7 @@
 
     function portraitStyle(anchor) {
       var f = anchor.face || {};
-      return "--jaw-origin:" + (f.jawOrigin || 53) + "%;";
+      return "--jaw-split:" + (f.jawSplit || 52) + "%;";
     }
 
     function buildAnchorVisual(anchor, mini) {
@@ -944,10 +965,17 @@
           return '<img class="anchor-thumb" src="' + anchor.portrait + '" alt="' + anchor.name + '" loading="lazy"/>';
         }
         var objPos = (anchor.face && anchor.face.objPos) || 38;
+        var pos = "object-position:center " + objPos + "%";
+        var src = anchor.portrait;
+        var alt = anchor.name;
         return '<div class="anchor-photo-wrap" style="' + portraitStyle(anchor) + '">'
           + '<div class="anchor-photo-stage">'
-          + '<img class="anchor-photo" src="' + anchor.portrait + '" alt="' + anchor.name + '"'
-          + ' style="object-position:center ' + objPos + '%"/>'
+          + '<div class="face-layer face-jaw">'
+          + '<img class="anchor-photo anchor-photo-jaw" src="' + src + '" alt="' + alt + '" style="' + pos + '"/>'
+          + '</div>'
+          + '<div class="face-layer face-upper">'
+          + '<img class="anchor-photo anchor-photo-upper" src="' + src + '" alt="" aria-hidden="true" style="' + pos + '"/>'
+          + '</div>'
           + '</div></div>';
       }
       return buildAnchorSvg(anchor, mini);
@@ -1028,9 +1056,9 @@
         return;
       }
       state.blinkTimer = setInterval(function () {
-        if (!document.querySelector(".anchor-photo")) return;
-        if (state.motionActive) triggerPortraitBlink();
-      }, 3200 + Math.random() * 2600);
+        if (!document.querySelector(".face-upper")) return;
+        if (state.motionActive && Math.random() > 0.25) triggerPortraitBlink();
+      }, 2800 + Math.random() * 2200);
     }
 
     function renderAnchorGrid() {
@@ -1076,46 +1104,65 @@
     }
 
     function triggerPortraitBlink() {
-      var photo = document.querySelector(".anchor-photo");
-      if (!photo) return;
-      photo.style.filter = "brightness(0.97) saturate(1.02)";
-      setTimeout(function () {
-        if (photo) photo.style.filter = "";
-      }, 90);
+      var upper = document.querySelector(".face-upper");
+      if (!upper) return;
+      upper.classList.remove("fx-blink");
+      void upper.offsetWidth;
+      upper.classList.add("fx-blink");
+      setTimeout(function () { upper.classList.remove("fx-blink"); }, 140);
+    }
+
+    function pickMouthTarget() {
+      var r = Math.random();
+      if (r < 0.14) return 0.03 + Math.random() * 0.07;
+      if (r < 0.4) return 0.14 + Math.random() * 0.18;
+      if (r < 0.78) return 0.32 + Math.random() * 0.28;
+      return 0.52 + Math.random() * 0.32;
     }
 
     function applyJawMotion(openness) {
-      var photo = document.querySelector(".anchor-photo");
-      if (!photo) return;
+      var jaw = document.querySelector(".anchor-photo-jaw");
+      if (!jaw) return;
       var o = Math.max(0, Math.min(1, openness));
-      var scaleY = 1 + o * 0.018;
-      var scaleX = 1 + o * 0.003;
-      var lift = o * 0.4;
-      photo.style.transform = "translate3d(0," + (-lift).toFixed(2) + "px,0) scale("
-        + scaleX.toFixed(4) + "," + scaleY.toFixed(4) + ")";
+      var scaleY = 1 + o * 0.045;
+      var ty = -o * 1.4;
+      jaw.style.transform = "translate3d(0," + ty.toFixed(2) + "px,0) scaleY(" + scaleY.toFixed(4) + ")";
     }
 
     function liveMotionTick(ts) {
       if (!state.motionActive) return;
-      if (!state.motionLast) state.motionLast = ts;
-      var elapsed = ts - state.motionLast;
       var speaking = window.TtsVoices && TtsVoices.getSpeakState().active;
 
-      if (speaking && elapsed >= 72) {
-        state.motionLast = ts;
-        state.lipPhase += 0.16 + Math.random() * 0.1;
-        var wave = Math.sin(state.lipPhase * 6.8) * 0.5 + 0.5;
-        var burst = Math.sin(state.lipPhase * 19) * 0.5 + 0.5;
-        applyJawMotion(0.12 + wave * 0.55 + burst * 0.12);
+      if (speaking) {
+        if (!state.mouthNextAt || ts >= state.mouthNextAt) {
+          state.mouthTarget = pickMouthTarget();
+          state.mouthNextAt = ts + 95 + Math.random() * 105;
+        }
+        state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * 0.18;
+      } else {
+        state.mouthCurrent += (0 - state.mouthCurrent) * 0.12;
+      }
+      applyJawMotion(state.mouthCurrent);
+
+      if (speaking && ts >= state.nextEmphasis) {
+        var wrap = document.querySelector(".anchor-photo-wrap");
+        if (wrap && Math.random() > 0.55) {
+          wrap.classList.add("fx-nod");
+          setTimeout(function () { wrap.classList.remove("fx-nod"); }, 320);
+        }
+        state.nextEmphasis = ts + 1800 + Math.random() * 1200;
       }
 
-      if (ts >= state.nextEmphasis && speaking) {
-        var wrap = document.querySelector(".anchor-photo-wrap");
-        if (wrap) {
-          wrap.classList.add("fx-nod");
-          setTimeout(function () { wrap.classList.remove("fx-nod"); }, 280);
+      if (speaking && ts >= state.nextGaze) {
+        var upper = document.querySelector(".face-upper");
+        if (upper && !upper.classList.contains("fx-blink")) {
+          var gx = (Math.random() - 0.5) * 1.4;
+          upper.style.transform = "translate3d(" + gx.toFixed(2) + "px,0,0)";
+          setTimeout(function () {
+            if (upper && !upper.classList.contains("fx-blink")) upper.style.transform = "";
+          }, 480);
         }
-        state.nextEmphasis = ts + 1400 + Math.random() * 900;
+        state.nextGaze = ts + 2200 + Math.random() * 2800;
       }
 
       state.motionRaf = requestAnimationFrame(liveMotionTick);
@@ -1124,11 +1171,12 @@
     function startLiveMotion() {
       setSpeaking(true);
       state.motionActive = true;
-      state.motionLast = 0;
-      state.lipPhase = Math.random() * 6;
+      state.mouthCurrent = 0;
+      state.mouthTarget = 0.15;
+      state.mouthNextAt = 0;
       var now = performance.now();
-      state.nextEmphasis = now + 1100;
-      applyJawMotion(0.25);
+      state.nextEmphasis = now + 1400;
+      state.nextGaze = now + 800;
       if (state.motionRaf) cancelAnimationFrame(state.motionRaf);
       state.motionRaf = requestAnimationFrame(liveMotionTick);
     }
@@ -1140,11 +1188,14 @@
         cancelAnimationFrame(state.motionRaf);
         state.motionRaf = null;
       }
-      state.motionLast = 0;
-      var photo = document.querySelector(".anchor-photo");
-      if (photo) {
-        photo.style.transform = "";
-        photo.style.filter = "";
+      state.mouthCurrent = 0;
+      state.mouthTarget = 0;
+      var jaw = document.querySelector(".anchor-photo-jaw");
+      var upper = document.querySelector(".face-upper");
+      if (jaw) jaw.style.transform = "";
+      if (upper) {
+        upper.style.transform = "";
+        upper.classList.remove("fx-blink");
       }
     }
 
@@ -1666,7 +1717,10 @@
         }
       });
       TtsVoices.onSpeakStatus(function (ev) {
-        if (ev && ev.reason === "progress") applyJawMotion(0.62 + Math.random() * 0.28);
+        if (ev && ev.reason === "progress") {
+          state.mouthTarget = 0.55 + Math.random() * 0.35;
+          state.mouthNextAt = performance.now() + 60;
+        }
       });
     }
 
