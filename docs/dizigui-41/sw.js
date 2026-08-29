@@ -3,6 +3,7 @@ const CACHE = "dizigui41-v1";
 const ASSETS = [
   "./",
   "./index.html",
+  "./share.html",
   "./episodes.js",
   "./manifest.json",
   "./icon-180.png",
