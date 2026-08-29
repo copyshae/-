@@ -64,6 +64,20 @@
     .hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--muted); padding: 0.65rem; background: rgba(255,255,255,0.5); border: 1px dashed var(--line); border-radius: 0.35rem; }
     .section { margin-top: 1rem; font-size: 0.9rem; font-weight: 700; color: var(--accent); }
     .song-picker { margin-top: 0.45rem; }
+    .song-picker-top {
+      margin-top: 0.85rem;
+      padding: 0.75rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+    }
+    body.ktv-mode .song-picker-top {
+      margin-top: 0.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
     .picker-label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500; }
     .song-select {
       width: 100%;
@@ -245,6 +259,21 @@
       </div>
     </section>
 
+    <section class="song-picker-top" aria-label="歌曲選單">
+      <h2 class="section" style="margin-top:0">歌曲選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
+      <div class="filter-row" role="tablist" aria-label="歌曲分類">
+        <button type="button" class="active" data-filter="all" role="tab">全部</button>
+        <button type="button" data-filter="master" role="tab">導師親唱</button>
+        <button type="button" data-filter="other" role="tab">其他演唱者</button>
+      </div>
+      <div class="song-picker">
+        <label for="songSelect" class="picker-label">選擇歌曲播放（曲庫全部歌曲）</label>
+        <select id="songSelect" class="song-select" aria-label="歌曲選單">
+          <option value="">載入曲庫中…</option>
+        </select>
+      </div>
+    </section>
+
     <div class="player-shell"><div id="player"></div></div>
 
     <div id="ktvPanel" class="ktv-panel" aria-live="polite">
@@ -325,19 +354,6 @@
       <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱 → ④ 其他演唱者。KTV 模式含評分、練唱紀錄、A-B 循環與成果卡（快捷鍵 <strong>K</strong>）。
     </p>
 
-    <div class="filter-row normal-only" role="tablist" aria-label="歌曲分類">
-      <button type="button" class="active" data-filter="all" role="tab">全部</button>
-      <button type="button" data-filter="master" role="tab">導師親唱</button>
-      <button type="button" data-filter="other" role="tab">其他演唱者</button>
-    </div>
-
-    <h2 class="section normal-only">歌曲選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
-    <div class="song-picker normal-only">
-      <label for="songSelect" class="picker-label">選擇歌曲播放（曲庫全部歌曲）</label>
-      <select id="songSelect" class="song-select" aria-label="歌曲選單">
-        <option value="">載入曲庫中…</option>
-      </select>
-    </div>
     <p class="status" id="statusLine"></p>
   </div>
 
@@ -1403,7 +1419,7 @@
     });
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=20260905").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=20260906").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
