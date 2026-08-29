@@ -456,7 +456,7 @@
       <label for="ttsVoice">語音</label>
       <select id="ttsVoice"></select>
       <div class="actions"><button type="button" id="ttsPreview">試聽自然口吻</button></div>
-      <p class="hint" id="ttsVoiceHint">「專業主播」語速穩、停頓自然，較像電視快報。電腦 Edge 中文 Neural 聲音最接近真人。</p>
+      <p class="hint" id="ttsVoiceHint">「專業主播」語速穩、停頓自然，較像電視快報。若沒聲音：確認未靜音、先按「試聽自然口吻」；iPhone 請用 Safari 並允許網站播放聲音。</p>
     </section>
 
     <section class="card">
@@ -982,6 +982,29 @@
       var el = $("ttsEngine");
       if (!el) return;
       try { localStorage.setItem(KEY_TTS_ENGINE, el.value); } catch (e) {}
+    }
+
+    function initTtsEngine() {
+      var el = $("ttsEngine");
+      if (!el) return;
+      el.value = loadTtsEngine();
+      if (el.value === "azure" && window.TtsAzure && !TtsAzure.hasKey()) {
+        el.value = "system";
+        saveTtsEngine();
+      }
+    }
+
+    function unlockAudioForPlayback() {
+      if (window.TtsVoices && TtsVoices.unlockSpeech) TtsVoices.unlockSpeech();
+      if (window.TtsAzure && TtsAzure.unlockAudio) TtsAzure.unlockAudio();
+    }
+
+    function showTtsError(msg) {
+      var status = $("fetchStatus");
+      if (status) {
+        status.textContent = msg;
+        status.className = "status err";
+      }
     }
 
     function useAzureTts() {
@@ -1548,8 +1571,16 @@
       return new Promise(function (resolve) {
         if (!text) { resolve(false); return; }
         var tts = getActiveTts();
-        if (!tts) { resolve(false); return; }
-        if (!speakText(text)) { resolve(false); return; }
+        if (!tts) {
+          showTtsError("語音模組未載入，請重新整理頁面。");
+          resolve(false);
+          return;
+        }
+        if (!speakText(text)) {
+          showTtsError("語音無法播放：請先按「試聽自然口吻」測試，或確認未靜音。");
+          resolve(false);
+          return;
+        }
         var timer = setInterval(function () {
           var st = tts.getSpeakState();
           if (!st.active) {
@@ -1593,14 +1624,18 @@
       onBroadcastStart();
 
       try {
-        await speakOneAndWait(naturalOpen(anchor, catLabel) + "以下依 Google 新聞排序，為您逐則播報。");
+        if (!(await speakOneAndWait(naturalOpen(anchor, catLabel) + "以下依 Google 新聞排序，為您逐則播報。"))) {
+          throw new Error("語音無法播放，請確認裝置未靜音並按「試聽自然口吻」測試");
+        }
         if (session !== state.liveSession) return;
 
         for (var i = 0; i < items.length; i++) {
           if (session !== state.liveSession) return;
           highlightLiveNews(i);
           var it = items[i];
-          await speakOneAndWait(naturalNewsLine(it, i, items.length));
+          if (!(await speakOneAndWait(naturalNewsLine(it, i, items.length)))) {
+            throw new Error("語音中斷，播報已停止");
+          }
           if (session !== state.liveSession) return;
           if (i < items.length - 1) await sleep(520);
         }
@@ -1612,6 +1647,10 @@
         $("fetchStatus").textContent = "直播結束（共播報 " + items.length + " 則，依 Google 新聞排序）";
         $("fetchStatus").className = "status";
         showContinuePanel(currentCat);
+      } catch (e) {
+        if (session === state.liveSession) {
+          showFetchError(e);
+        }
       } finally {
         if (session === state.liveSession) {
           setStudioLive(false);
@@ -1719,6 +1758,7 @@
 
     /* ===== 語音播報 ===== */
     function speakText(text, extraOpts) {
+      unlockAudioForPlayback();
       var style = getSpeakStyleOpts();
       var gEl = $("ttsGender");
       var baseOpts = {
@@ -1729,14 +1769,23 @@
       };
       var opts = Object.assign(baseOpts, extraOpts || {});
 
+      if (extraOpts && extraOpts.forceSystem) {
+        if (!window.TtsVoices) return false;
+        return TtsVoices.speakQueued(text, opts);
+      }
+
       if (useAzureTts() && window.TtsAzure) {
         return TtsAzure.speakQueued(text, opts);
       }
       if ($("ttsEngine") && $("ttsEngine").value === "azure" && window.TtsAzure && !TtsAzure.hasKey()) {
-        alert("已選 Azure 對嘴，請先在下方填寫並儲存 Speech 金鑰；或改回「系統語音」。");
+        showTtsError("已選 Azure 語音但未填金鑰，已改回系統語音；或請先儲存 Speech 金鑰。");
+        $("ttsEngine").value = "system";
+        saveTtsEngine();
+      }
+      if (!window.TtsVoices) {
+        showTtsError("此瀏覽器不支援語音，請用 Chrome／Edge／Safari。");
         return false;
       }
-      if (!window.TtsVoices) return false;
       var vEl = $("ttsVoice");
       if (gEl && vEl) {
         var list = TtsVoices.listVoiceChoices(gEl.value);
@@ -1791,11 +1840,12 @@
       }
       var engineEl = $("ttsEngine");
       if (engineEl) {
-        engineEl.value = loadTtsEngine();
+        initTtsEngine();
         engineEl.addEventListener("change", saveTtsEngine);
       }
       TtsVoices.bindVoicePicker({
         speak: function () {
+          unlockAudioForPlayback();
           onBroadcastStart();
           speakText("您好，這是有魅力的主播播報示範。歡迎鎖定 Google 新聞快報，我們一起關心今日要聞。");
           setTimeout(function () {
@@ -1814,6 +1864,12 @@
       if (window.TtsAzure) {
         TtsAzure.onSpeakStatus(function (ev) {
           if (!useAzureTts()) return;
+          if (ev.reason === "fatal") {
+            showTtsError("Azure 語音失敗（" + (ev.message || "未知錯誤") + "），已改回系統語音。");
+            $("ttsEngine").value = "system";
+            saveTtsEngine();
+            return;
+          }
           if (ev.reason === "viseme") {
             state.visemeDrive = true;
             state.mouthTarget = ev.openness;
@@ -1844,6 +1900,7 @@
     }
 
     async function playNewsFlow() {
+      unlockAudioForPlayback();
       stopAllTts();
       stopLiveStream();
       hideContinuePanel();
@@ -1869,6 +1926,7 @@
     });
 
     $("btnSearchPlay").addEventListener("click", function () {
+      unlockAudioForPlayback();
       stopVoiceIfAny();
       playNewsFlow().catch(showFetchError);
     });
@@ -1901,6 +1959,7 @@
     });
 
     $("btnPlay").addEventListener("click", function () {
+      unlockAudioForPlayback();
       var text = $("scriptText").value.trim();
       stopVoiceIfAny();
       if (!text) {
