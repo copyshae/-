@@ -112,7 +112,17 @@
     .search-item .sum { line-height: 1.5; margin-bottom: 0.35rem; }
     .search-item .acts, .ref-item .acts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .search-item button, .ref-item button { min-height: 2rem; font-size: 0.75rem; padding: 0.35rem 0.55rem; }
-    .ref-item .rm { color: var(--danger); border-color: rgba(180,35,24,0.35); }
+    .ref-item .quote {
+      margin-top: 0.25rem; padding: 0.35rem 0.45rem;
+      background: rgba(184,134,11,0.08); border-left: 3px solid var(--accent);
+      font-size: 0.8rem; line-height: 1.55;
+    }
+    .yin-preview {
+      margin-top: 0.55rem; padding: 0.65rem; background: #fff;
+      border: 1px solid var(--line); font-size: 0.82rem; line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word; max-height: 14rem; overflow: auto;
+    }
+    .yin-preview[hidden] { display: none !important; }
     @keyframes pulse { 50% { opacity: 0.75; } }
   </style>
 </head>
@@ -120,7 +130,7 @@
   <div class="wrap">
     <header>
       <h1>超碼修煉心得</h1>
-      <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片・導師網搜</p>
+      <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片・印證參考</p>
     </header>
 
     <section class="card">
@@ -140,7 +150,7 @@
         <button type="button" data-tab="photo">拍照</button>
         <button type="button" data-tab="image">圖片</button>
         <button type="button" data-tab="video">影片</button>
-        <button type="button" data-tab="search">網搜</button>
+        <button type="button" data-tab="search">印證</button>
       </div>
 
       <div id="panelText" class="panel show">
@@ -183,42 +193,50 @@
       </div>
 
       <div id="panelSearch" class="panel">
-        <p class="hint">搜尋太陽盛德導師相關影音、圖片或教誨，加入後會一併納入 Step3「古今印證」參考。</p>
-        <label for="searchKeyword">搜尋關鍵字</label>
-        <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、注入彩虹、GPS定位、感恩" />
+        <p class="hint"><strong>Step3 古今印證</strong>：搜集古聖先賢名言、太陽盛德導師教誨與參考文章，充實轉念段落。加入後會以「印證參考文章資訊」一併送入生成。</p>
+        <label for="searchKeyword">印證主題／關鍵字</label>
+        <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、三省吾身、GPS定位、感恩" />
         <div class="chip-row" id="searchChips">
           <button type="button" class="chip" data-q="秒秒轉念">秒秒轉念</button>
           <button type="button" class="chip" data-q="GPS定位">GPS定位</button>
           <button type="button" class="chip" data-q="注入彩虹">注入彩虹</button>
           <button type="button" class="chip" data-q="富有">富有</button>
-          <button type="button" class="chip" data-q="超級生命密碼">超級生命密碼</button>
+          <button type="button" class="chip" data-q="三省吾身">三省吾身</button>
           <button type="button" class="chip" data-q="事上磨">事上磨</button>
+          <button type="button" class="chip" data-q="大愛">大愛</button>
+          <button type="button" class="chip" data-q="弟子規">弟子規</button>
         </div>
-        <label for="searchType">搜尋類型</label>
+        <label for="searchType">參考類型</label>
         <select id="searchType">
-          <option value="all">全部（影音＋圖片＋文章）</option>
-          <option value="video">影音（YouTube 等）</option>
+          <option value="article" selected>文章／教誨（優先，供印證）</option>
+          <option value="all">全部（文章＋影音＋圖片）</option>
+          <option value="video">影音（YouTube 演講、歌曲）</option>
           <option value="image">圖片</option>
-          <option value="article">文章／教誨</option>
         </select>
         <div class="row">
-          <button type="button" id="btnSearchLocal" class="primary">📀 搜尋本機歌曲目錄</button>
-          <button type="button" id="btnSearchGemini">🌐 Gemini 網路搜尋</button>
+          <button type="button" id="btnAutoYinZheng" class="primary">📚 自動搜集印證資料</button>
+          <button type="button" id="btnSearchSage">📖 本機古籍／心法</button>
         </div>
         <div class="row">
-          <button type="button" id="btnOpenYt">開 YouTube 搜尋</button>
+          <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
+          <button type="button" id="btnSearchGemini">🌐 網搜導師文章／影音</button>
+          <button type="button" id="btnEnrichRefs">📝 充實已選參考</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btnOpenYt">開 YouTube</button>
           <button type="button" id="btnOpenImg">開 Google 圖片</button>
-          <button type="button" id="btnOpenWeb">開 Google 網頁</button>
+          <button type="button" id="btnOpenWeb">開 Google 文章</button>
         </div>
-        <label for="refUrl">貼上參考連結（YouTube／網址）</label>
-        <input id="refUrl" type="text" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" />
+        <label for="refUrl">貼上參考連結（文章／YouTube）</label>
+        <input id="refUrl" type="text" inputmode="url" placeholder="https://…" />
         <div class="row">
-          <button type="button" id="btnAddRefUrl">加入參考連結</button>
+          <button type="button" id="btnAddRefUrl">加入印證參考</button>
         </div>
         <div class="search-results" id="searchResults"></div>
-        <h3 style="font-size:0.9rem;color:var(--accent);margin-top:0.65rem;">已選參考資料</h3>
+        <h3 style="font-size:0.9rem;color:var(--accent);margin-top:0.65rem;">印證參考文章資訊</h3>
+        <div class="yin-preview" id="yinZhengPreview" hidden></div>
         <div class="ref-list" id="refList"></div>
-        <p class="hint" id="refEmpty">尚無參考資料。搜尋後按「加入參考」，或貼上連結。</p>
+        <p class="hint" id="refEmpty">尚無印證參考。按「自動搜集印證資料」，或搜尋後加入參考。</p>
       </div>
 
       <div class="media-preview" id="mediaPreview"></div>
@@ -276,6 +294,21 @@
     var catalogCache = null;
     var lastOutput = "";
 
+    /** 本機古籍／超碼心法，供 Step3 印證 */
+    var YINZHENG_LIB = [
+      { keywords: ["三省", "自省", "照見", "盲點", "吾日"], sage: "曾子《論語》", quote: "吾日三省吾身", plain: "每天要多次回頭檢視自己的念頭、言語與行為，誠實找盲點。", yinZheng: "遇境緣起情緒時，不向外指責，先問：我這一念是否又偏了？" },
+      { keywords: ["事上磨", "磨練", "境緣", "摩擦"], sage: "王陽明", quote: "人須在事上磨，方立得住。", plain: "真正的修練在日常生活瑣事裡磨心，不是只懂道理。", yinZheng: "生活小事正是練心場，摩擦處最照見慣性。" },
+      { keywords: ["大愛", "無私", "包容", "天地"], sage: "老子", quote: "天地所以能長且久者，以其不自生。", plain: "天地長久因無私承載；學習放下去我、寬容待人。", yinZheng: "像天地無私般，把領悟化為對家人的耐心與感恩。" },
+      { keywords: ["弟子規", "行持", "落實", "孝", "信"], sage: "《弟子規》", quote: "凡是人，皆須愛；同為類，勿讓性。", plain: "把經典落實在待人接物，先從身边小事做起。", yinZheng: "知道要愛人，就在今天一件小事上真正做到。" },
+      { keywords: ["GPS", "定位", "秒秒", "轉念", "念頭"], sage: "超碼心法", quote: "秒秒 GPS 定位，找盲點、轉念。", plain: "念頭一起就覺察位置，立刻調回愛與感恩。", yinZheng: "情緒浮現時，正是 GPS 定位修正的最佳時機。" },
+      { keywords: ["去我", "我執", "執著"], sage: "超碼心法", quote: "去我、去執著，心才鬆綁。", plain: "少抓「我對他錯」，心就多了空間裝愛。", yinZheng: "當覺得委屈時，問自己：是不是「我」在作怪？" },
+      { keywords: ["感恩", "秒秒感恩"], sage: "超碼心法", quote: "秒秒感恩，福氣自來。", plain: "在順逆境都能看見可感恩之處，心量自然擴大。", yinZheng: "對一件小事真心說謝謝，轉念就在當下完成。" },
+      { keywords: ["注入彩虹", "彩虹", "希望"], sage: "太陽盛德導師｜歌曲", quote: "注入彩虹，把希望帶進生命。", plain: "以正向願力為自己與他人注入光與希望。", yinZheng: "聽見旋律或看見彩虹色，提醒自己要成為別人的光。" },
+      { keywords: ["富有", "豐盛", "喜樂"], sage: "太陽盛德導師｜歌曲", quote: "富有不在外求，心豐盛即富有。", plain: "真正的豐盛來自心念轉換與感恩當下。", yinZheng: "少比較、多知足，就在日常品嚐富有的感覺。" },
+      { keywords: ["參悟空", "悟空", "空"], sage: "超碼心法", quote: "秒秒參悟空，不 cling 境相。", plain: "明白境緣無常，不讓外相牽著鼻子走。", yinZheng: "起煩惱時提醒自己：這境也會過去。" },
+      { keywords: ["懺悔", "發願"], sage: "超碼功課", quote: "誠懇懺悔、發願改過。", plain: "看見過失不遮掩，願心從今天具體改正。", yinZheng: "寫心得本身就是懺悔與發願的落實。" }
+    ];
+
     var GREETING = "敬愛的導師好\n超碼家人大家好";
     var CLOSING = "感恩宇宙，感恩天地\n感恩太陽盛德導師\n感恩蔡禮旭老師\n感恩一切有了交代";
 
@@ -291,6 +324,7 @@
       "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
       "Step2 自省照見（承）：誠實記錄自身慣性與情緒，點出「知道」與「做到」的差距，反求諸己\n" +
       "Step3 古今印證（轉）：結合古今聖賢名言白話意涵與太陽盛德導師／超碼心法教誨，完成轉念\n" +
+      "  ※ 若提供【印證參考文章資訊】，此段須自然融入其中的古籍原句／導師教誨／文章摘要，以白話完成印證，不可生硬堆砌\n" +
       "Step4 轉念合道（合）：連結太陽、天地無私普照，將領悟化為具體的愛與感恩行動\n\n" +
       "【潤飾要求】\n" +
       "- 白話、親切、像日常聊天，不要生硬術語與說教\n" +
@@ -578,10 +612,15 @@
         var blob = ((s.name || "") + " " + (s.title || "") + " " + (s.performerLabel || "")).toLowerCase();
         return blob.indexOf(q) >= 0 || q.split(/\s+/).some(function (w) { return w && blob.indexOf(w) >= 0; });
       }).slice(0, 10).map(function (s) {
+        var name = s.name || s.title || "歌曲";
         return {
-          title: s.name || s.title || "歌曲",
-          type: "影音",
-          summary: (s.title || "") + "（" + (s.performerLabel || "太陽盛德導師") + "）",
+          title: name,
+          type: "導師影音",
+          sage: "太陽盛德導師",
+          quote: "歌曲〈" + name + "〉",
+          plain: (s.title || "") + " — 可從歌词／意境中汲取感恩、轉念、希望等印證。",
+          yinZheng: "聆聽時把觸動連回今日境緣，用白話寫進 Step3，不逐字抄歌词。",
+          summary: s.title || "",
           url: "https://www.youtube.com/watch?v=" + encodeURIComponent(s.id),
           source: "本機歌曲目錄"
         };
@@ -600,7 +639,7 @@
           "<div class=\"meta\">" + escapeHtml(it.type) + "｜" + escapeHtml(it.source || "") + "</div>" +
           "<div class=\"sum\">" + escapeHtml(it.summary || "") + "</div>" +
           "<div class=\"acts\">" +
-          "<button type=\"button\" data-act=\"add\" data-idx=\"" + idx + "\">加入參考</button>" +
+          "<button type=\"button\" data-act=\"add\" data-idx=\"" + idx + "\">加入印證</button>" +
           "<button type=\"button\" data-act=\"open\" data-idx=\"" + idx + "\">開啟連結</button>" +
           "</div></div>";
       }).join("");
@@ -616,22 +655,58 @@
       });
     }
 
+    function matchYinZhengLib(keyword, material) {
+      var blob = (keyword + " " + (material || "")).toLowerCase();
+      return YINZHENG_LIB.filter(function (item) {
+        return item.keywords.some(function (k) { return blob.indexOf(k.toLowerCase()) >= 0; });
+      }).slice(0, 4);
+    }
+
+    function sageItemsToRefs(items) {
+      return items.map(function (it) {
+        return {
+          title: it.sage + "：" + it.quote,
+          type: "古籍／心法",
+          sage: it.sage,
+          quote: it.quote,
+          plain: it.plain,
+          yinZheng: it.yinZheng,
+          summary: it.plain,
+          url: "",
+          source: "本機印證資料庫"
+        };
+      });
+    }
+
     function addRefItem(item) {
-      if (!item || !item.url) return;
-      var dup = refItems.some(function (r) { return r.url === item.url; });
-      if (dup) {
-        setStatus($("materialStatus"), "此參考已在清單中", "warn");
-        return;
+      if (!item) return;
+      if (item.url) {
+        var dup = refItems.some(function (r) { return r.url && r.url === item.url; });
+        if (dup) {
+          setStatus($("materialStatus"), "此印證參考已在清單中", "warn");
+          return;
+        }
+      } else if (item.quote) {
+        var dupQ = refItems.some(function (r) { return r.quote === item.quote && r.sage === item.sage; });
+        if (dupQ) {
+          setStatus($("materialStatus"), "此古籍印證已在清單中", "warn");
+          return;
+        }
       }
       refItems.push({
-        title: item.title || "參考資料",
-        type: item.type || "參考",
-        summary: item.summary || "",
-        url: item.url,
+        title: item.title || "印證參考",
+        type: item.type || "文章",
+        sage: item.sage || "",
+        quote: item.quote || "",
+        plain: item.plain || item.summary || "",
+        yinZheng: item.yinZheng || "",
+        summary: item.summary || item.plain || "",
+        url: item.url || "",
         source: item.source || "手動"
       });
       renderRefList();
-      setStatus($("materialStatus"), "已加入參考：" + (item.title || ""), "");
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已加入印證：" + (item.title || item.quote || ""), "");
     }
 
     function renderRefList() {
@@ -644,12 +719,20 @@
       }
       empty.style.display = "none";
       box.innerHTML = refItems.map(function (it, idx) {
+        var quoteBlock = it.quote
+          ? "<div class=\"quote\">「" + escapeHtml(it.quote) + "」" +
+            (it.sage ? " — " + escapeHtml(it.sage) : "") +
+            (it.plain ? "<br/>白話：" + escapeHtml(it.plain) : "") +
+            (it.yinZheng ? "<br/>印證：" + escapeHtml(it.yinZheng) : "") +
+            "</div>"
+          : (it.summary ? "<div class=\"sum\">" + escapeHtml(it.summary) + "</div>" : "");
         return "<div class=\"ref-item\">" +
           "<strong>" + escapeHtml(it.title) + "</strong>" +
           "<div class=\"meta\">" + escapeHtml(it.type) + "｜" + escapeHtml(it.source || "") + "</div>" +
-          "<div class=\"sum\">" + escapeHtml(it.summary || it.url) + "</div>" +
+          quoteBlock +
+          (it.url ? "<div class=\"sum\" style=\"font-size:0.72rem;margin-top:0.25rem;\">" + escapeHtml(it.url) + "</div>" : "") +
           "<div class=\"acts\">" +
-          "<button type=\"button\" data-ref-open=\"" + idx + "\">開啟</button>" +
+          (it.url ? "<button type=\"button\" data-ref-open=\"" + idx + "\">開啟</button>" : "") +
           "<button type=\"button\" class=\"rm\" data-ref-rm=\"" + idx + "\">移除</button>" +
           "</div></div>";
       }).join("");
@@ -663,18 +746,36 @@
         btn.onclick = function () {
           refItems.splice(Number(btn.getAttribute("data-ref-rm")), 1);
           renderRefList();
+          renderYinZhengPreview();
         };
       });
     }
 
+    function renderYinZhengPreview() {
+      var el = $("yinZhengPreview");
+      if (!refItems.length) {
+        el.hidden = true;
+        el.textContent = "";
+        return;
+      }
+      el.hidden = false;
+      el.textContent = refsToMaterial();
+    }
+
     function refsToMaterial() {
       if (!refItems.length) return "";
-      return refItems.map(function (r) {
-        return "【導師參考｜" + r.type + "】" + r.title +
-          "\n重點：" + (r.summary || "（請參連結）") +
-          "\n連結：" + r.url +
-          "\n來源：" + (r.source || "");
-      }).join("\n\n");
+      var header = "【印證參考文章資訊｜供 Step3 古今印證充實使用】\n";
+      return header + refItems.map(function (r, i) {
+        var lines = [(i + 1) + ". " + r.title];
+        if (r.sage) lines.push("出處：" + r.sage);
+        if (r.quote) lines.push("可引用：" + r.quote);
+        if (r.plain) lines.push("白話意涵：" + r.plain);
+        if (r.yinZheng) lines.push("與今日境緣印證：" + r.yinZheng);
+        if (r.summary && r.summary !== r.plain) lines.push("文章摘要：" + r.summary);
+        if (r.url) lines.push("參考連結：" + r.url);
+        lines.push("資料來源：" + (r.source || ""));
+        return lines.join("\n");
+      }).join("\n\n---\n\n");
     }
 
     function parseGeminiSearchResults(text) {
@@ -682,28 +783,130 @@
       var blocks = String(text || "").split(/\n(?=\d+[\.\)、]|[-•*]\s)/);
       blocks.forEach(function (block) {
         var urlMatch = block.match(/https?:\/\/[^\s)\]】]+/);
-        if (!urlMatch) return;
         var titleMatch = block.match(/[「《]([^」》]+)[」》]/);
-        var title = titleMatch ? titleMatch[1] : extractSnippet(block.replace(urlMatch[0], ""), 40);
-        var type = /圖|照片|image/i.test(block) ? "圖片" : (/youtube|影音|影片|video/i.test(block) ? "影音" : "文章");
+        var title = titleMatch ? titleMatch[1] : extractSnippet(block.replace(urlMatch ? urlMatch[0] : "", ""), 40);
+        var sageMatch = block.match(/出處[：:]\s*(.+)/);
+        var quoteMatch = block.match(/(?:可引用|原句|教誨)[：:]\s*[「"]?([^」"\n]+)/);
+        var plainMatch = block.match(/白話[意涵]*[：:]\s*(.+)/);
+        var yzMatch = block.match(/印證[：:]\s*(.+)/);
+        var type = /圖|照片|image/i.test(block) ? "圖片" : (/youtube|影音|影片|video/i.test(block) ? "導師影音" : "文章");
+        if (!urlMatch && !quoteMatch && !titleMatch) return;
         items.push({
-          title: title || "太陽盛德導師參考",
+          title: title || "太陽盛德導師印證參考",
           type: type,
-          summary: extractSnippet(block.replace(urlMatch[0], "").replace(/^[0-9\.\)、\-•*\s]+/, ""), 120),
-          url: urlMatch[0].replace(/[.,;]+$/, ""),
+          sage: sageMatch ? sageMatch[1].trim() : "太陽盛德導師／網路資料",
+          quote: quoteMatch ? quoteMatch[1].trim() : "",
+          plain: plainMatch ? plainMatch[1].trim() : extractSnippet(block, 100),
+          yinZheng: yzMatch ? yzMatch[1].trim() : "",
+          summary: plainMatch ? plainMatch[1].trim() : extractSnippet(block.replace(urlMatch ? urlMatch[0] : "", ""), 120),
+          url: urlMatch ? urlMatch[0].replace(/[.,;]+$/, "") : "",
           source: "Gemini 網路搜尋"
         });
       });
       if (!items.length && text.trim()) {
         items.push({
-          title: "Gemini 搜尋摘要",
+          title: "Gemini 印證搜尋摘要",
           type: "摘要",
+          sage: "太陽盛德導師",
+          quote: "",
+          plain: extractSnippet(text, 300),
+          yinZheng: "請從摘要中擷取可白話化印證的句子寫入 Step3。",
           summary: extractSnippet(text, 300),
           url: buildExternalSearchUrls(getSearchKeyword(), $("searchType").value),
           source: "Gemini 網路搜尋"
         });
       }
       return items;
+    }
+
+    function searchSageLocal() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var items = sageItemsToRefs(matchYinZhengLib(keyword, material));
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機古籍／心法 " + items.length + " 筆（可加入印證）", items.length ? "" : "warn");
+    }
+
+    async function autoCollectYinZheng() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      setStatus($("materialStatus"), "正在搜集印證資料…", "warn");
+      var added = 0;
+      matchYinZhengLib(keyword, material).forEach(function (it) {
+        var before = refItems.length;
+        addRefItem(sageItemsToRefs([it])[0]);
+        if (refItems.length > before) added++;
+      });
+      var key = getGeminiKey();
+      if (key) {
+        try {
+          var prompt =
+            "請用 Google 搜尋，為超碼修煉心得 Step3「古今印證」搜集資料。\n" +
+            "主題關鍵字：「" + keyword + "」\n" +
+            "今日境緣摘要：「" + extractSnippet(material || "日常生活修煉", 150) + "」\n\n" +
+            "請找太陽盛德導師或超級生命密碼相關 **文章、教誨摘錄或演講** 2～3 筆，每筆繁體中文格式：\n" +
+            "1. 標題《…》\n" +
+            "2. 出處：…\n" +
+            "3. 可引用：…（一句教誨或摘要）\n" +
+            "4. 白話意涵：…\n" +
+            "5. 與今日境緣印證：…（反求諸己，不評判他人）\n" +
+            "6. 參考連結：https://…\n" +
+            "另補 1 則古聖先賢名言（曾子／王陽明／老子／弟子規擇一）含白話與印證。";
+          var res = await callGeminiText(prompt, key, { googleSearch: true });
+          parseGeminiSearchResults(res.text).forEach(function (it) {
+            var before = refItems.length;
+            addRefItem(it);
+            if (refItems.length > before) added++;
+          });
+        } catch (e) {
+          setStatus($("materialStatus"), "網搜印證失敗（本機古籍已加入）：" + (e.message || e), "warn");
+          renderYinZhengPreview();
+          return;
+        }
+      }
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已搜集 " + added + " 筆印證參考" + (key ? "（含網搜）" : "（本機古籍；填金鑰可加導師文章）"), added ? "" : "warn");
+    }
+
+    async function enrichSelectedRefs() {
+      var key = getGeminiKey();
+      if (!key) {
+        alert("充實參考文章資訊需 Gemini 金鑰。");
+        return;
+      }
+      if (!refItems.length) {
+        alert("請先加入至少一筆印證參考或連結。");
+        return;
+      }
+      var material = ($("materialText").value || "").trim();
+      setStatus($("materialStatus"), "正在充實印證文章資訊…", "warn");
+      try {
+        for (var i = 0; i < refItems.length; i++) {
+          var r = refItems[i];
+          if (r.quote && r.plain && r.yinZheng) continue;
+          var prompt =
+            "針對超碼修煉心得 Step3「古今印證」，充實以下參考為可寫入心得的 **印證參考文章資訊**（繁體中文）：\n" +
+            "標題：" + r.title + "\n" +
+            (r.url ? "連結：" + r.url + "\n" : "") +
+            "已有摘要：" + (r.summary || "無") + "\n" +
+            "今日境緣：" + extractSnippet(material || "日常修煉", 120) + "\n\n" +
+            "請輸出：\n出處：…\n可引用：…\n白話意涵：…\n與今日境緣印證：…\n（反求諸己，白話自然，不評判他人）";
+          var res = await callGeminiText(prompt, key, r.url ? { googleSearch: true } : {});
+          var sageM = res.text.match(/出處[：:]\s*(.+)/);
+          var quoteM = res.text.match(/可引用[：:]\s*(.+)/);
+          var plainM = res.text.match(/白話意涵[：:]\s*(.+)/);
+          var yzM = res.text.match(/(?:與今日境緣)?印證[：:]\s*(.+)/);
+          if (sageM) r.sage = sageM[1].trim();
+          if (quoteM) r.quote = quoteM[1].replace(/^[「"]|[」"]$/g, "").trim();
+          if (plainM) r.plain = r.summary = plainM[1].trim();
+          if (yzM) r.yinZheng = yzM[1].trim();
+        }
+        renderRefList();
+        renderYinZhengPreview();
+        setStatus($("materialStatus"), "已充實 " + refItems.length + " 筆印證參考文章資訊", "");
+      } catch (e) {
+        setStatus($("materialStatus"), "充實失敗：" + (e.message || e), "err");
+      }
     }
 
     async function searchLocalCatalog() {
@@ -726,24 +929,29 @@
       }
       var keyword = getSearchKeyword();
       var type = $("searchType").value;
-      var typeHint = type === "video" ? "影音（YouTube 演講、歌曲 MV）"
-        : type === "image" ? "圖片（官方照片、活動圖）"
-        : type === "article" ? "文章或教誨摘錄"
-        : "影音、圖片、文章皆可";
-      setStatus($("materialStatus"), "Gemini 正在搜尋「" + keyword + "」…", "warn");
+      var typeHint = type === "video" ? "演講、歌曲 MV（附教誨摘要供印證）"
+        : type === "image" ? "圖片（說明可聯想之教誨意境）"
+        : type === "article" ? "文章、導師教誨摘錄、博客、官方訊息"
+        : "文章、影音、圖片皆可";
+      setStatus($("materialStatus"), "正在網搜印證資料「" + keyword + "」…", "warn");
       try {
+        var material = ($("materialText").value || "").trim();
         var prompt =
-          "請用 Google 搜尋，找出「太陽盛德導師」或「超級生命密碼」與「" + keyword + "」相關的" + typeHint + "。\n" +
-          "列出 3～5 筆繁體中文結果。每筆格式：\n" +
-          "1. 【類型】影音／圖片／文章\n" +
-          "2. 標題\n" +
-          "3. 一句白話重點（可引用教誨精神，不要評判他人）\n" +
-          "4. 完整網址\n" +
-          "優先 YouTube 官方或天圓文化相關來源。";
+          "請用 Google 搜尋，為 **Step3 古今印證** 搜集「太陽盛德導師」或「超級生命密碼」與「" + keyword + "」相關的" + typeHint + "。\n" +
+          "今日寫作境緣：" + extractSnippet(material || "日常修煉", 100) + "\n\n" +
+          "列出 3～5 筆，每筆繁體中文必含：\n" +
+          "1. 標題《…》\n" +
+          "2. 【類型】文章／導師影音／圖片\n" +
+          "3. 出處：…\n" +
+          "4. 可引用：…（一句教誨或摘要，供心得引用）\n" +
+          "5. 白話意涵：…\n" +
+          "6. 與今日境緣印證：…（反求諸己）\n" +
+          "7. 參考連結：https://…\n" +
+          "優先官方、天圓文化、YouTube 太陽盛德導師相關來源。";
         var res = await callGeminiText(prompt, key, { googleSearch: true });
         var items = parseGeminiSearchResults(res.text);
         renderSearchResults(items);
-        setStatus($("materialStatus"), "Gemini 搜尋完成（" + res.model + "），共 " + items.length + " 筆", "");
+        setStatus($("materialStatus"), "印證網搜完成（" + res.model + "），共 " + items.length + " 筆", "");
       } catch (e) {
         setStatus($("materialStatus"), "Gemini 搜尋失敗：" + (e.message || e), "err");
       }
@@ -767,7 +975,11 @@
       addRefItem({
         title: title,
         type: type,
-        summary: "使用者貼上的參考連結",
+        sage: /youtube/i.test(url) ? "太陽盛德導師｜YouTube" : "",
+        quote: "",
+        plain: "使用者貼上的參考連結，可按「充實已選參考」自動補印證資訊。",
+        yinZheng: "",
+        summary: "待充實之印證參考",
         url: url,
         source: "手動貼上"
       });
@@ -790,9 +1002,9 @@
           mediaNotes = await analyzeAllMedia(key);
         }
         var refNotes = refsToMaterial();
-        var combined = [textMat, mediaNotes, refNotes].filter(Boolean).join("\n\n");
-        if (!combined.trim()) {
-          setStatus($("genStatus"), "請至少輸入文字、口說、圖片／影片，或加入導師參考資料。", "err");
+        var combined = [textMat, mediaNotes].filter(Boolean).join("\n\n");
+        if (!combined.trim() && !refNotes) {
+          setStatus($("genStatus"), "請至少輸入文字、口說、圖片／影片，或加入印證參考。", "err");
           return;
         }
         localStorage.setItem(KEY_AUTHOR, author);
@@ -801,13 +1013,15 @@
         if (key) {
           setStatus($("genStatus"), "正在依 SOP 生成…", "warn");
           var userBlock = "\n【作者署名行】\n" + authorLine +
-            "\n\n【寫作素材】\n" + combined;
+            "\n\n【寫作素材｜Step1–2 借境、自省】\n" + (combined || "（以印證參考為主）") +
+            (refNotes ? "\n\n" + refNotes : "") +
+            "\n\n【寫作指示】Step3 若有印證參考，須將古籍／導師教誨／文章摘要自然織入正文，以白話完成轉念，不可只列連結。";
           var res = await callGeminiText(SOP_PROMPT + userBlock, key);
           essay = res.text;
           setStatus($("genStatus"), "已用 Gemini（" + res.model + "）生成", "");
         } else {
           setStatus($("genStatus"), "未填金鑰，已用本機 SOP 模板生成（建議填金鑰潤飾）", "warn");
-          essay = buildLocalEssay(combined, authorLine);
+          essay = buildLocalEssay([combined, refNotes].filter(Boolean).join("\n\n"), authorLine);
         }
 
         lastOutput = essay;
@@ -924,6 +1138,9 @@
       };
       $("btnSearchLocal").onclick = searchLocalCatalog;
       $("btnSearchGemini").onclick = searchWithGemini;
+      $("btnSearchSage").onclick = searchSageLocal;
+      $("btnAutoYinZheng").onclick = autoCollectYinZheng;
+      $("btnEnrichRefs").onclick = enrichSelectedRefs;
       $("btnOpenYt").onclick = function () {
         window.open(buildExternalSearchUrls(getSearchKeyword(), "video"), "_blank", "noopener,noreferrer");
       };
@@ -940,6 +1157,7 @@
         };
       });
       renderRefList();
+      renderYinZhengPreview();
       $("btnCopy").onclick = function () {
         if (!lastOutput) { alert("請先生成心得"); return; }
         if (navigator.clipboard && navigator.clipboard.writeText) {
