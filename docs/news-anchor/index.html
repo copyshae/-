@@ -395,6 +395,7 @@
             <option value="world">國際</option>
             <option value="business">財經</option>
             <option value="technology">科技</option>
+            <option value="ai">AI／人工智慧</option>
             <option value="sports">體育</option>
             <option value="entertainment">娛樂</option>
             <option value="science">科學</option>
@@ -540,7 +541,7 @@
     ];
 
     var CATEGORY_ROTATION = [
-      "headlines", "nation", "world", "business", "technology",
+      "headlines", "nation", "world", "business", "technology", "ai",
       "sports", "entertainment", "science", "health", "education"
     ];
 
@@ -550,6 +551,7 @@
       "國際": "world", "世界": "world", "國際新聞": "world",
       "財經": "business", "經濟": "business",
       "科技": "technology", "tech": "technology",
+      "AI": "ai", "人工智慧": "ai", "生成式AI": "ai", "生成式 AI": "ai", "機器學習": "ai",
       "體育": "sports", "運動": "sports",
       "娛樂": "entertainment",
       "科學": "science",
@@ -572,12 +574,13 @@
       sports: "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
       science: "https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
       health: "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
-      education: "https://news.google.com/rss/headlines/section/topic/EDUCATION?hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+      education: "https://news.google.com/rss/headlines/section/topic/EDUCATION?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      ai: RSS_BASE + "/search?q=" + encodeURIComponent("AI 人工智慧") + "&" + RSS_LOCALE
     };
 
     var CATEGORY_LABELS = {
       headlines: "頭條", world: "國際", nation: "台灣", business: "財經",
-      technology: "科技", entertainment: "娛樂", sports: "體育", science: "科學",
+      technology: "科技", ai: "AI", entertainment: "娛樂", sports: "體育", science: "科學",
       health: "健康", education: "教育"
     };
 
