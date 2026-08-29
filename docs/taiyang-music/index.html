@@ -382,6 +382,7 @@
     const PRIORITY_IDS = { "hTEv2f-9WIM": 3, "tkYxdmQlhtQ": 3 };
     const CATALOG_URL = "./catalog.json";
     const PRACTICE_KEY = "taiyang-practice-log";
+    const LYRICS_CACHE_KEY = "taiyang-lyrics-cache";
     const MAX_HISTORY = 30;
 
     let catalog = { songs: [] };
@@ -396,6 +397,9 @@
     let captionLines = [];
     let captionTimer = null;
     let lastCaptionText = "";
+    let captionPlainLines = null;
+    let captionSource = "none";
+    let captionRetimed = false;
     let singSession = null;
     let playTickTimer = null;
     let pendingAutoNext = false;
@@ -730,20 +734,183 @@
       return out;
     }
 
-    async function fetchCaptions(videoId) {
+    async function fetchYouTubeCaptions(videoId) {
       const langs = ["zh-Hant", "zh-TW", "zh-Hans", "zh", "en"];
       for (const lang of langs) {
-        const url = "https://www.youtube.com/api/timedtext?v=" + encodeURIComponent(videoId) +
-          "&lang=" + encodeURIComponent(lang) + "&fmt=vtt";
-        try {
-          const res = await fetch(url);
-          if (!res.ok) continue;
-          const text = await res.text();
-          const lines = parseVtt(text);
-          if (lines.length) return lines;
-        } catch (_) {}
+        for (const fmt of ["vtt", "json3"]) {
+          const url = "https://www.youtube.com/api/timedtext?v=" + encodeURIComponent(videoId) +
+            "&lang=" + encodeURIComponent(lang) + "&fmt=" + fmt;
+          try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const text = await res.text();
+            if (!text) continue;
+            if (fmt === "vtt") {
+              const lines = parseVtt(text);
+              if (lines.length) return lines;
+            } else {
+              const lines = parseJson3Captions(text);
+              if (lines.length) return lines;
+            }
+          } catch (_) {}
+        }
       }
       return [];
+    }
+
+    function parseJson3Captions(raw) {
+      const out = [];
+      try {
+        const data = JSON.parse(raw);
+        const events = data.events || [];
+        for (const ev of events) {
+          if (!ev.segs) continue;
+          const text = ev.segs.map((s) => s.utf8 || "").join("").replace(/\n/g, " ").trim();
+          if (!text) continue;
+          const start = (ev.tStartMs || 0) / 1000;
+          const dur = (ev.dDurationMs || 2000) / 1000;
+          out.push({ start, end: start + dur, text });
+        }
+      } catch (_) {}
+      return out;
+    }
+
+    function getLyricsCache() {
+      try {
+        const raw = localStorage.getItem(LYRICS_CACHE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function saveLyricsCache(videoId, data) {
+      try {
+        const cache = getLyricsCache();
+        cache[videoId] = { ...data, savedAt: Date.now() };
+        localStorage.setItem(LYRICS_CACHE_KEY, JSON.stringify(cache));
+      } catch (_) {}
+    }
+
+    function buildTimedFromPlainLines(lines, durationSec) {
+      if (!lines || !lines.length) return [];
+      const dur = Math.max(60, durationSec || 300);
+      const intro = Math.min(10, dur * 0.04);
+      const outro = Math.min(8, dur * 0.03);
+      const usable = dur - intro - outro;
+      const weights = lines.map((l) => Math.max(4, (l || "").replace(/\s/g, "").length));
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let t = intro;
+      const out = [];
+      for (let i = 0; i < lines.length; i++) {
+        const seg = (weights[i] / totalWeight) * usable;
+        const text = (lines[i] || "").trim();
+        if (!text) continue;
+        out.push({ start: t, end: t + seg, text });
+        t += seg;
+      }
+      if (out.length) out[out.length - 1].end = dur - outro;
+      return out;
+    }
+
+    function packLyricsResult(data, durationSec) {
+      if (!data) return { lines: [], source: "none", plain: null };
+      if (data.timed && data.timed.length) {
+        return { lines: data.timed, source: data.source || "timed", plain: null };
+      }
+      const plain = data.lines || [];
+      if (!plain.length) return { lines: [], source: "none", plain: null };
+      const dur = durationSec || data.duration || 300;
+      return {
+        lines: buildTimedFromPlainLines(plain, dur),
+        source: data.source || "plain",
+        plain: plain.slice()
+      };
+    }
+
+    async function fetchBundledLyrics(videoId, item) {
+      const urls = [
+        "./lyrics/" + videoId + ".json",
+        "./lyrics/" + encodeURIComponent(item.name) + ".json"
+      ];
+      for (const url of urls) {
+        try {
+          const res = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
+          if (!res.ok) continue;
+          return await res.json();
+        } catch (_) {}
+      }
+      try {
+        const idx = await fetch("./lyrics/index.json?t=" + Date.now());
+        if (idx.ok) {
+          const meta = await idx.json();
+          const file = (meta.byVideoId || {})[videoId];
+          if (file) {
+            const res = await fetch("./lyrics/" + file + "?t=" + Date.now());
+            if (res.ok) return await res.json();
+          }
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    async function resolveLyrics(videoId, item) {
+      const cache = getLyricsCache();
+      if (cache[videoId]) {
+        const r = packLyricsResult(cache[videoId], cache[videoId].duration);
+        if (r.lines.length) return r;
+      }
+
+      const bundled = await fetchBundledLyrics(videoId, item);
+      if (bundled && (bundled.lines || bundled.timed)) {
+        saveLyricsCache(videoId, bundled);
+        const r = packLyricsResult(bundled, bundled.duration);
+        if (r.lines.length) return r;
+      }
+
+      const yt = await fetchYouTubeCaptions(videoId);
+      if (yt.length) {
+        saveLyricsCache(videoId, { source: "youtube", timed: yt, name: item.name });
+        return { lines: yt, source: "youtube", plain: null };
+      }
+
+      return { lines: [], source: "none", plain: null };
+    }
+
+    function maybeRetimeCaptions() {
+      if (!captionPlainLines || !captionPlainLines.length || !player || captionRetimed) return;
+      try {
+        const d = player.getDuration();
+        if (d && d > 30) {
+          captionLines = buildTimedFromPlainLines(captionPlainLines, d);
+          captionRetimed = true;
+          if (ktvMode && captionLines.length) {
+            const src = captionSource === "plain" || captionSource === "manual" ? "內建歌詞" : "歌詞";
+            $("ktvHint").textContent = src + "已依片長 " + formatTime(d) + " 同步（" + captionLines.length + " 段）";
+          }
+        }
+      } catch (_) {}
+    }
+
+    function applyLyricsResult(result, item) {
+      captionLines = result.lines || [];
+      captionPlainLines = result.plain;
+      captionSource = result.source;
+      captionRetimed = !result.plain;
+      if (ktvMode) {
+        if (captionLines.length) {
+          const label = { youtube: "YouTube", manual: "內建", plain: "內建", cache: "快取", timed: "內建" };
+          $("ktvHint").textContent = (label[captionSource] || "歌詞") + "字幕（" + captionLines.length + " 段，隨播放更新）";
+          startCaptionSync();
+        } else {
+          $("ktvLine").textContent = item.name;
+          $("ktvHint").textContent = "此曲暫無歌詞；可開 YouTube 播放器字幕";
+        }
+      }
+    }
+
+    async function fetchCaptions(videoId, item) {
+      return resolveLyrics(videoId, item);
     }
 
     function stopPlayTick() {
@@ -786,6 +953,7 @@
           if (d && d > 0) singSession.durationSec = d;
         } catch (_) {}
         checkAbLoop();
+        maybeRetimeCaptions();
       }, 500);
     }
 
@@ -1035,9 +1203,14 @@
           lastCaptionText = line.text;
           $("ktvLine").textContent = line.text;
           $("ktvNext").textContent = next && next !== line ? next.text : "";
+        } else if (next) {
+          $("ktvLine").textContent = next.text;
+          const ni = captionLines.indexOf(next);
+          $("ktvNext").textContent = ni >= 0 && captionLines[ni + 1] ? captionLines[ni + 1].text : "";
         } else if (captionLines.length) {
-          $("ktvLine").textContent = lastCaptionText || $("ktvTitle").textContent;
-          $("ktvNext").textContent = next ? next.text : "";
+          const last = captionLines[captionLines.length - 1];
+          $("ktvLine").textContent = last.text;
+          $("ktvNext").textContent = "";
         }
       }, 180);
     }
@@ -1085,8 +1258,6 @@
       if (!ktvMode) {
         clearAbLoop();
         hideScorePanel();
-      } else if (opts.showSummary !== false) {
-        hideSessionSummary();
       } else {
         hideSessionSummary();
       }
@@ -1296,6 +1467,9 @@
       $("ktvSession").classList.remove("on");
       const vid = resolveVideoId(item);
       captionLines = [];
+      captionPlainLines = null;
+      captionSource = "none";
+      captionRetimed = false;
       lastCaptionText = item.name;
       stopCaptionSync();
       stopPlayTick();
@@ -1309,15 +1483,8 @@
       } else if (apiReady) {
         createPlayer(vid, play);
       }
-      fetchCaptions(vid).then((lines) => {
-        captionLines = lines;
-        if (ktvMode && lines.length) {
-          $("ktvHint").textContent = "字幕已載入（共 " + lines.length + " 段）";
-          startCaptionSync();
-        } else if (ktvMode) {
-          $("ktvLine").textContent = item.name;
-          $("ktvHint").textContent = "此片無自動字幕，顯示歌名大字；可開 YouTube 播放器字幕";
-        }
+      fetchCaptions(vid, item).then((result) => {
+        applyLyricsResult(result, item);
         updateKtvUI();
       });
       updateNow();
@@ -1337,6 +1504,7 @@
           onReady: () => {
             enablePlayerCaptions();
             if (play) player.playVideo();
+            maybeRetimeCaptions();
             if (ktvMode) startCaptionSync();
           },
           onStateChange: onStateChange
@@ -1349,6 +1517,7 @@
         $("btnPlay").textContent = "⏸ 暫停";
         if (ktvMode) {
           if (singSession) singSession.hasPlayed = true;
+          maybeRetimeCaptions();
           startCaptionSync();
           startPlayTick();
         }
@@ -1480,7 +1649,7 @@
     });
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=20260907").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=20260908").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>

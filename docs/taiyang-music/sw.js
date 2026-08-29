@@ -1,11 +1,12 @@
 /* 太陽盛德導師｜歌曲連播 */
-const CACHE = "taiyang-music-v11";
+const CACHE = "taiyang-music-v12";
 const ASSETS = [
   "./",
   "./index.html",
   "./share.html",
   "./manifest.json",
   "./catalog.json",
+  "./lyrics/index.json",
   "./taiyang-icon-180.png",
   "./taiyang-icon-192.png",
   "./taiyang-icon-512.png"
@@ -34,7 +35,7 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const path = new URL(req.url).pathname;
 
-  if (/catalog\.json$/i.test(path) || /taiyang-icon-\d+\.png$/i.test(path)) {
+  if (/catalog\.json$/i.test(path) || /taiyang-icon-\d+\.png$/i.test(path) || /\/lyrics\/.+\.json$/i.test(path)) {
     event.respondWith(
       fetch(req).then((res) => {
         const copy = res.clone();
