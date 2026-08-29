@@ -927,8 +927,7 @@
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = exportFilename("zip").replace(/\.doc/, ".zip").replace("超碼心得", "超碼心得-含附件");
-        if (a.download.indexOf(".zip") < 0) a.download = "超碼心得-含附件-" + ( $("authorDate").value || todayInputValue()) + ".zip";
+        a.download = exportFilename("zip").replace(/^超碼心得/, "超碼心得-含附件");
         document.body.appendChild(a);
         a.click();
         a.remove();
