@@ -70,7 +70,18 @@
     }
     .song-item:last-child { border-bottom: none; }
     .song-item.active { background: rgba(196, 90, 16, 0.12); color: var(--accent); font-weight: 700; }
+    .filter-row { margin-top: 0.55rem; display: flex; gap: 0.35rem; }
+    .filter-row button { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.25rem; }
+    .filter-row button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .song-item .who { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 400; margin-top: 0.1rem; }
+    .song-item.active .who { color: rgba(255,255,255,0.85); }
     .song-item .tag { font-size: 0.68rem; color: var(--accent2); margin-left: 0.25rem; }
+    .song-item .tag-master { color: var(--ok); }
+    .group-head {
+      padding: 0.4rem 0.65rem; font-size: 0.72rem; font-weight: 700;
+      background: rgba(196, 90, 16, 0.08); color: var(--accent); border-bottom: 1px solid var(--line);
+      position: sticky; top: 0;
+    }
     .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); }
   </style>
 </head>
@@ -78,7 +89,7 @@
   <div class="wrap">
     <header>
       <h1 class="brand">太陽盛德導師</h1>
-      <p class="sub">注入彩虹、富有各連播 3 次 · 著作歌曲各 1 次</p>
+      <p class="sub">注入彩虹、富有各×3 · 導師親唱 · 其他演唱者</p>
       <div class="pill-row">
         <span class="pill">連續播放</span>
         <span class="pill">可更新曲庫</span>
@@ -115,10 +126,16 @@
     </div>
 
     <p class="hint">
-      <strong>播放順序：</strong>① 注入彩虹 ×3 → ② 富有 ×3 → ③ 其餘太陽盛德導師著作歌曲各 1 次（YouTube）。按「更新曲庫」會從網路重新抓取 catalog.json（含新上架歌曲）。
+      <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱各1次 → ④ 其他演唱者各1次。下方可篩選分類檢視。
     </p>
 
-    <h2 class="section">播放清單</h2>
+    <div class="filter-row" role="tablist" aria-label="歌曲分類">
+      <button type="button" class="active" data-filter="all" role="tab">全部</button>
+      <button type="button" data-filter="master" role="tab">導師親唱</button>
+      <button type="button" data-filter="other" role="tab">其他演唱者</button>
+    </div>
+
+    <h2 class="section">播放清單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
     <div class="song-list" id="queueList" aria-label="播放清單"></div>
     <p class="status" id="statusLine"></p>
   </div>
@@ -133,13 +150,15 @@
     let player = null;
     let apiReady = false;
     let autoPlay = false;
+    let listFilter = "all";
 
     const $ = (id) => document.getElementById(id);
 
     function buildQueue(songs) {
       const ordered = [];
       const pri = songs.filter((s) => s.repeat === 3 || PRIORITY_IDS[s.id]);
-      const rest = songs.filter((s) => !pri.includes(s));
+      const masters = songs.filter((s) => !pri.includes(s) && s.performer === "master");
+      const others = songs.filter((s) => !pri.includes(s) && s.performer === "other");
       const add = (s, times) => {
         const n = times || s.repeat || 1;
         for (let i = 0; i < n; i++) {
@@ -147,39 +166,48 @@
             id: s.id,
             name: s.name,
             title: s.title,
+            performer: s.performer || "master",
+            performerLabel: s.performerLabel || "太陽盛德導師",
             pass: i + 1,
             total: n
           });
         }
       };
       pri.forEach((s) => add(s, 3));
-      rest.forEach((s) => add(s, 1));
+      masters.forEach((s) => add(s, 1));
+      others.forEach((s) => add(s, 1));
       return ordered;
+    }
+
+    function sortSongs(songs) {
+      const pri = songs.filter((s) => s.repeat === 3);
+      const masters = songs.filter((s) => s.repeat !== 3 && s.performer === "master");
+      const others = songs.filter((s) => s.repeat !== 3 && s.performer === "other");
+      pri.sort((a, b) => {
+        if (a.id === "hTEv2f-9WIM") return -1;
+        if (b.id === "hTEv2f-9WIM") return 1;
+        if (a.id === "tkYxdmQlhtQ") return -1;
+        if (b.id === "tkYxdmQlhtQ") return 1;
+        return 0;
+      });
+      masters.sort((a, b) => (a.name || "").localeCompare(b.name || "", "zh-Hant"));
+      others.sort((a, b) => {
+        const c = (a.name || "").localeCompare(b.name || "", "zh-Hant");
+        return c !== 0 ? c : (a.performerLabel || "").localeCompare(b.performerLabel || "", "zh-Hant");
+      });
+      return [...pri, ...masters, ...others];
     }
 
     function mergeCatalog(remote, local) {
       const map = new Map();
       (local.songs || []).forEach((s) => map.set(s.id, s));
       (remote.songs || []).forEach((s) => map.set(s.id, s));
-      const songs = [...map.values()];
-      songs.sort((a, b) => {
-        const pa = a.repeat === 3 ? 0 : 1;
-        const pb = b.repeat === 3 ? 0 : 1;
-        if (pa !== pb) return pa - pb;
-        if (a.repeat === 3 && b.repeat === 3) {
-          if (a.id === "hTEv2f-9WIM") return -1;
-          if (b.id === "hTEv2f-9WIM") return 1;
-          if (a.id === "tkYxdmQlhtQ") return -1;
-          if (b.id === "tkYxdmQlhtQ") return 1;
-        }
-        return (a.name || "").localeCompare(b.name || "", "zh-Hant");
-      });
-      const pri = songs.filter((s) => s.repeat === 3);
-      const rest = songs.filter((s) => s.repeat !== 3);
+      const songs = sortSongs([...map.values()]);
       return {
         updatedAt: remote.updatedAt || local.updatedAt,
         artist: remote.artist || "太陽盛德導師",
-        songs: [...pri, ...rest]
+        counts: remote.counts || local.counts,
+        songs
       };
     }
 
@@ -206,9 +234,43 @@
         } catch (_) {}
       }
       rebuildQueue();
-      const n = catalog.songs ? catalog.songs.length : 0;
-      $("catalogMeta").textContent = n + " 首 · " + (catalog.updatedAt || "").slice(0, 10);
-      $("statusLine").textContent = remote ? "曲庫已更新（" + n + " 首）" : "使用離線／快取曲庫（" + n + " 首）";
+      const c = catalog.counts || {};
+      const mc = c.master || catalog.songs.filter((s) => s.performer === "master").length;
+      const oc = c.other || catalog.songs.filter((s) => s.performer === "other").length;
+      $("catalogMeta").textContent = "導師 " + mc + " · 其他 " + oc + " · " + (catalog.updatedAt || "").slice(0, 10);
+      $("statusLine").textContent = remote
+        ? "曲庫已更新（導師 " + mc + " 首、其他演唱 " + oc + " 首）"
+        : "使用快取曲庫（導師 " + mc + "、其他 " + oc + "）";
+    }
+
+    function renderQueueList() {
+      const parts = [];
+      let lastGroup = "";
+      queue.forEach((item, i) => {
+        if (listFilter !== "all" && item.performer !== listFilter) return;
+        let group = "";
+        if (item.total === 3) group = "優先連播 ×3";
+        else if (item.performer === "master") group = "導師親唱";
+        else group = "其他演唱者";
+        if (group !== lastGroup) {
+          parts.push('<div class="group-head">' + group + "</div>");
+          lastGroup = group;
+        }
+        const tag = item.total > 1 ? '<span class="tag">' + item.pass + "/" + item.total + "</span>" : "";
+        const who = item.performer === "master"
+          ? '<span class="who">太陽盛德導師 親唱</span>'
+          : '<span class="who">演唱：' + (item.performerLabel || "其他") + "</span>";
+        parts.push(
+          '<button type="button" class="song-item' + (i === qIndex ? " active" : "") + '" data-i="' + i + '">' +
+          (i + 1) + ". " + item.name + tag + who + "</button>"
+        );
+      });
+      $("queueList").innerHTML = parts.join("");
+      const shown = listFilter === "all" ? queue.length : queue.filter((x) => x.performer === listFilter).length;
+      $("listCount").textContent = "（顯示 " + shown + " 段）";
+      $("queueList").querySelectorAll(".song-item").forEach((btn) => {
+        btn.addEventListener("click", () => jumpTo(Number(btn.dataset.i), true));
+      });
     }
 
     function rebuildQueue() {
@@ -216,17 +278,6 @@
       if (qIndex >= queue.length) qIndex = 0;
       renderQueueList();
       updateNow();
-    }
-
-    function renderQueueList() {
-      $("queueList").innerHTML = queue.map((item, i) => {
-        const tag = item.total > 1 ? '<span class="tag">' + item.pass + "/" + item.total + "</span>" : "";
-        return '<button type="button" class="song-item' + (i === qIndex ? " active" : "") +
-          '" data-i="' + i + '">' + (i + 1) + ". " + item.name + tag + "</button>";
-      }).join("");
-      $("queueList").querySelectorAll(".song-item").forEach((btn) => {
-        btn.addEventListener("click", () => jumpTo(Number(btn.dataset.i), true));
-      });
     }
 
     function updateNow() {
@@ -239,8 +290,9 @@
         return;
       }
       const rep = item.total > 1 ? "（第 " + item.pass + " 次／共 " + item.total + " 次）" : "";
+      const who = item.performer === "master" ? "導師親唱" : ("演唱：" + (item.performerLabel || "其他"));
       $("nowTitle").textContent = item.name + rep;
-      $("nowMeta").textContent = "第 " + (qIndex + 1) + "／" + total + " 首 · " + item.title.slice(0, 42);
+      $("nowMeta").textContent = "第 " + (qIndex + 1) + "／" + total + " 段 · " + who + " · " + item.title.slice(0, 36);
       $("progressFill").style.width = total ? ((qIndex + 1) / total * 100) + "%" : "0%";
       $("btnPrev").disabled = qIndex <= 0;
       $("btnNext").disabled = qIndex >= total - 1;
@@ -304,6 +356,15 @@
     $("btnNext").addEventListener("click", () => jumpTo(qIndex + 1, true));
     $("btnRestart").addEventListener("click", () => jumpTo(0, true));
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
+
+    document.querySelectorAll(".filter-row button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        listFilter = btn.dataset.filter;
+        renderQueueList();
+      });
+    });
 
     window.onYouTubeIframeAPIReady = function () {
       apiReady = true;

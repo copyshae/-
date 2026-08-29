@@ -1,5 +1,5 @@
 /* 太陽盛德導師｜歌曲連播 */
-const CACHE = "taiyang-music-v1";
+const CACHE = "taiyang-music-v2";
 const ASSETS = [
   "./",
   "./index.html",
