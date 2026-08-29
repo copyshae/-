@@ -272,7 +272,7 @@
       </div>
 
       <div id="panelSearch" class="panel">
-        <p class="hint"><strong>Step3 古今印證</strong>：優先搜集<strong>太陽盛德導師《太陽心語》</strong>與導師教誨，再搭配古聖先賢名言。若需<strong>舉例佐證</strong>，生成時<strong>以太陽盛德導師相關言語為先</strong>，<strong>超級生命密碼學員</strong>事蹟為輔（可另搜「學員分享」）。</p>
+        <p class="hint"><strong>Step3 古今印證</strong>引用順序：①<strong>太陽盛德導師《太陽心語》</strong>與教誨 → ②<strong>超級生命密碼學員</strong>事蹟（輔助）→ ③<strong>古今中外正能量思維</strong>事例（聖賢名言、正向故事等）。</p>
         <details class="format-block" open>
           <summary>時事／天災新聞 → 導師預言與天地整理</summary>
           <div class="inner">
@@ -319,7 +319,7 @@
         </select>
         <div class="row" style="align-items:flex-end;">
           <div style="flex:1;min-width:7rem;">
-            <label for="quoteCountSage">中外聖賢話語（句）</label>
+            <label for="quoteCountSage">古今中外正能量（句）</label>
             <select id="quoteCountSage">
               <option value="0">0 句</option>
               <option value="1">1 句</option>
@@ -341,14 +341,14 @@
             </select>
           </div>
         </div>
-        <p class="hint">搜集與生成時，Step3 印證將依上方句數納入聖賢名言與導師教誨；<strong>導師話語優先搜尋《太陽心語》</strong>。若不滿意結果，可<strong>重新搜尋</strong>替換。</p>
+        <p class="hint">搜集與生成時，Step3 依序引用：<strong>導師話語（優先太陽心語）→ 學員事蹟 → 古今中外正能量思維</strong>。句數設定控制③的份量。若不滿意可<strong>重新搜尋</strong>替換。</p>
         <div class="row">
           <button type="button" id="btnAutoYinZheng" class="primary">📚 自動搜集印證資料</button>
           <button type="button" id="btnSearchXinyu" class="primary">☀️ 網搜太陽心語</button>
           <button type="button" id="btnSearchSage">📖 本機古籍／心法</button>
         </div>
         <div class="row">
-          <button type="button" id="btnResearchSage">🔄 重新搜尋聖賢話語</button>
+          <button type="button" id="btnResearchSage">🔄 重新搜尋古今中外正能量</button>
           <button type="button" id="btnResearchMaster">🔄 重新搜尋導師話語</button>
         </div>
         <div class="row">
@@ -356,7 +356,7 @@
           <button type="button" id="btnResearchStudent">🔄 重新搜尋學員佐證</button>
           <button type="button" id="btnStudentLocal">📖 本機學員案例提示</button>
         </div>
-        <p class="hint">Step3 舉例佐證時，<strong>優先引用導師話語（含太陽心語）</strong>；若需補充具體事例，可再搜<strong>超級生命密碼學員</strong>分享／轉念案例加入印證。</p>
+        <p class="hint">學員佐證為<strong>第二順位</strong>（在導師話語之後）；古今中外正能量事例為<strong>第三順位</strong>，可按「重新搜尋古今中外正能量」或本機古籍補充。</p>
         <div class="row">
           <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
           <button type="button" id="btnSearchGemini">🌐 網搜導師文章／影音</button>
@@ -551,9 +551,9 @@
       { category: "sage", keywords: ["天地", "災", "無常", "整理", "平衡"], sage: "《道德經》", quote: "天之道，損有餘而補不足。", plain: "天地運行自有平衡；面對災變，學習謙卑與順道，不執著掌控。", yinZheng: "遇天災境緣，先穩住心，把力氣用在能愛、能幫助的一念上。" }
     ];
 
-    /** 佐證優先順序：導師話語（含太陽心語）為先，學員事蹟為輔 */
+    /** 佐證引用順序：①導師話語（含太陽心語）→ ②學員事蹟 → ③古今中外正能量思維事例 */
     var EVIDENCE_PRIORITY_GUIDE =
-      "佐證舉例時**優先引用太陽盛德導師相關言語**（尤其《太陽心語》、超碼心法、演講教誨）；若【印證參考】含導師原句須優先使用。學員案例僅作**輔助**具體事例（可概括如「有位學員曾分享…」，不杜撰真實姓名；若無合適學員案例則不必強加）。";
+      "佐證引用順序：①**優先**太陽盛德導師相關言語（尤其《太陽心語》、超碼心法、演講教誨）；②其次可引用超級生命密碼**學員事蹟**作輔助（可概括如「有位學員曾分享…」，不杜撰姓名）；③**再來**才引用古今中外重要**正能量思維**事例（聖賢名言、歷史人物正向故事等，白話化印證）。若【印證參考】有對應內容須依此順序融入，勿顛倒。";
     var TAIYANG_XINYU_SEARCH_NOTE =
       "搜尋太陽盛德導師話語時，**優先查找《太陽心語》**（官方社群、天圓文化、超級生命密碼相關平台），其次才是一般演講、文章、歌曲。";
 
@@ -720,15 +720,15 @@
         "【內文四步法】\n" +
         "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
         "Step2 自省照見（承）：誠實記錄自身慣性與情緒，點出「知道」與「做到」的差距，反求諸己\n" +
-        "Step3 古今印證（轉）：結合太陽盛德導師教誨（**優先《太陽心語》**）與古今聖賢名言白話意涵，完成轉念\n" +
-        "  ※ 若提供【印證參考文章資訊】，此段須自然融入其中的導師原句／太陽心語／古籍原句／文章摘要，以白話完成印證，不可生硬堆砌\n" +
+        "Step3 古今印證（轉）：依序完成轉念——先融入太陽盛德導師教誨（**優先《太陽心語》**），可輔以學員事蹟，**再來**引用古今中外正能量思維事例（白話意涵，勿生硬堆砌）\n" +
+        "  ※ 若提供【印證參考文章資訊】，須依①導師→②學員→③古今中外順序自然融入，不可顛倒\n" +
         "  ※ " + EVIDENCE_PRIORITY_GUIDE + "\n" +
         "Step4 轉念合道（合）：連結太陽、天地無私普照，將領悟化為具體的愛與感恩行動\n\n" +
         "【潤飾要求】\n" +
         "- 白話、親切、像日常聊天，不要生硬術語與說教\n" +
         "- 通篇反求諸己、修正自心，絕不批評或評判外在人事\n" +
         "- 文字溫暖、平實、自帶正向能量\n" +
-        "- 舉例佐證時優先太陽盛德導師話語（含太陽心語），其次才是超級生命密碼學員案例或一般生活比喻\n\n" +
+        "- 舉例佐證順序：導師話語（含太陽心語）→ 學員事蹟 → 古今中外正能量思維事例 → 最後才是一般生活比喻\n\n" +
         "【標準結尾】（每句一行，須完整照寫）\n" + footerText + "\n\n" +
         "請直接輸出完整心得全文，不要加任何解說、前言或 markdown。";
     }
@@ -1712,7 +1712,7 @@
       if (title.length < 4) title = "《從日常照見自己》";
       var p1 = "清晨／剛才在" + scene + "，心裡突然浮現一些念頭，原來看似平常的一瞬，也在悄悄照見我內心的狀態。";
       var p2 = "以前總覺得自己「知道」該怎麼做，但遇到實際境緣才發現，情緒與慣性仍會牽著走；這份落差，正是我需要誠實面對、持續修正的地方。";
-      var p3 = "導師在《太陽心語》裡提醒我們：看見盲點，就是開始修正；這也契合秒秒 GPS 定位、在事上磨練——不在外面找理由，而是把念頭轉回來修正自己。古人說「吾日三省吾身」，白話就是時時回頭看自己。若再想起超級生命密碼裡，曾有學員在類似境緣中選擇先柔軟、先感恩，這份同伴的照見，也輔助提醒我今日可以這樣做。";
+      var p3 = "導師在《太陽心語》裡提醒我們：看見盲點，就是開始修正；這也契合秒秒 GPS 定位——不在外面找理由，而是把念頭轉回來修正自己。若再想起超級生命密碼裡，曾有學員在類似境緣中選擇先柔軟、先感恩，這份同伴的照見也輔助提醒我。古人曾說「吾日三省吾身」，白話就是時時回頭看自己，這正是古今中外都重視的正能量思維。";
       var p4 = "就像太陽每天無私普照、不求回報，天地也以寬容承載萬物；當我願意懷抱愛與感恩，把領悟落實在待人接物的一個微笑、一句好話裡，眼前的路便多了平安與力量。";
       return assembleEssay(title, authorLine, p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4);
     }
@@ -2051,7 +2051,7 @@
 
     function quoteCountHint() {
       var c = getQuoteCounts();
-      return "聖賢 " + c.sage + " 句＋導師 " + c.master + " 句";
+      return "導師 " + c.master + " 句＋古今中外正能量 " + c.sage + " 句";
     }
 
     function sageItemsToRefs(items) {
@@ -2059,7 +2059,7 @@
         var isMaster = it.category === "master";
         return {
           title: it.sage + "：" + it.quote,
-          type: isMaster ? "導師教誨" : "聖賢名言",
+          type: isMaster ? "導師教誨" : "古今中外正能量",
           category: it.category || (isMaster ? "master" : "sage"),
           sage: it.sage,
           quote: it.quote,
@@ -2153,7 +2153,7 @@
             "</div>"
           : (it.summary ? "<div class=\"sum\">" + escapeHtml(it.summary) + "</div>" : "");
         var catLabel = it.category === "student" ? "學員佐證"
-          : (it.category === "master" ? "導師教誨" : (it.category === "sage" ? "聖賢名言" : it.type));
+          : (it.category === "master" ? "導師教誨" : (it.category === "sage" ? "古今中外正能量" : it.type));
         return "<div class=\"ref-item\">" +
           "<strong>" + escapeHtml(it.title) + "</strong>" +
           "<div class=\"meta\">" + escapeHtml(catLabel) + "｜" + escapeHtml(it.source || "") + "</div>" +
@@ -2204,7 +2204,7 @@
       if (!refItems.length) return "";
       var c = getQuoteCounts();
       var header = "【印證參考文章資訊｜供 Step3 古今印證充實使用】\n" +
-        "（目標句數：太陽盛德導師 " + c.master + " 句【優先太陽心語】，中外聖賢 " + c.sage + " 句；學員案例為輔）\n";
+        "（引用順序：①導師 " + c.master + " 句【優先太陽心語】→ ②學員事蹟（輔助）→ ③古今中外正能量 " + c.sage + " 句）\n";
       var sageRefs = refItems.filter(function (r) { return r.category === "sage"; });
       var masterRefs = sortMasterRefsFirst(refItems.filter(function (r) { return r.category === "master"; }));
       var studentRefs = refItems.filter(function (r) { return r.category === "student"; });
@@ -2225,9 +2225,9 @@
           return lines.join("\n");
         }).join("\n\n---\n\n");
       }
-      return header + formatBlock(masterRefs, "太陽盛德導師話語（優先太陽心語）") +
-        formatBlock(sageRefs, "中外聖賢話語") +
-        formatBlock(studentRefs, "超級生命密碼學員佐證案例（輔助）") +
+      return header + formatBlock(masterRefs, "① 太陽盛德導師話語（優先太陽心語）") +
+        formatBlock(studentRefs, "② 超級生命密碼學員佐證（輔助）") +
+        formatBlock(sageRefs, "③ 古今中外正能量思維事例") +
         formatBlock(otherRefs, "其他印證參考");
     }
 
@@ -2360,17 +2360,17 @@
         "請嚴格依下列句數提供（每則含：標題《…》、出處、可引用、白話意涵、與今日境緣印證、參考連結）："
       ];
       if (opts.categoryOnly === "sage") {
-        lines.push("- **僅搜尋中外聖賢話語** exactly " + counts.sage + " 則（含中國古籍如論語、老子、弟子規，及西方聖賢如蘇格拉底、亞里士多德、聖經等，擇合主題者）");
+        lines.push("- **僅搜尋古今中外正能量思維事例** exactly " + counts.sage + " 則（含中外聖賢名言、歷史人物正向故事；作為導師教誨與學員案例**之後**的補充，擇合主題者）");
         lines.push("- 不需要太陽盛德導師話語");
       } else if (opts.categoryOnly === "master") {
         lines.push("- **僅搜尋太陽盛德導師話語** exactly " + counts.master + " 則（**優先《太陽心語》**；其次超碼心法、演講、歌曲；優先官方或天圓文化來源）");
-        lines.push("- 不需要中外聖賢話語");
+        lines.push("- 不需要古今中外正能量事例");
       } else {
         if (counts.master > 0) {
           lines.push("- **太陽盛德導師話語** exactly " + counts.master + " 則（**優先《太陽心語》**；其次教誨、演講、歌曲；優先官方或天圓文化來源）");
         }
         if (counts.sage > 0) {
-          lines.push("- **中外聖賢話語** exactly " + counts.sage + " 則（含中國古籍如論語、老子、弟子規，及西方聖賢如蘇格拉底、亞里士多德、聖經等，擇合主題者）");
+          lines.push("- **古今中外正能量思維事例** exactly " + counts.sage + " 則（含聖賢名言、正向人物故事；在導師話語與學員事蹟之後作補充）");
         }
       }
       if (counts.sage === 0 && counts.master === 0 && !opts.categoryOnly) {
@@ -2442,7 +2442,7 @@
         "主題關鍵字：「" + keyword + "」",
         "今日境緣摘要：「" + extractSnippet(material || keyword, 150) + "」",
         "",
-        "請搜尋學員分享、修煉心得、境緣轉念、見證、共修分享等，找出與主題相關、可寫入心得作為**輔助佐證**的案例（須在已引用導師話語／太陽心語之後才使用）。",
+        "請搜尋學員分享、修煉心得、境緣轉念、見證、共修分享等，找出與主題相關、可寫入心得作為**第二順位輔助佐證**的案例（須在已引用導師話語／太陽心語之後；**古今中外正能量事例排在學員之後**）。",
         "優先來源：超級生命密碼、天圓文化、官方社群、YouTube 學員分享、部落格心得等。",
         "",
         "請輸出 " + count + "–5 則，每則含：",
@@ -2602,9 +2602,9 @@
     async function researchQuotes(category) {
       var counts = getQuoteCounts();
       var limit = category === "sage" ? counts.sage : counts.master;
-      var label = category === "sage" ? "中外聖賢" : "太陽盛德導師";
+      var label = category === "sage" ? "古今中外正能量" : "太陽盛德導師";
       if (!limit) {
-        alert("請先設定「" + (category === "sage" ? "中外聖賢" : "太陽盛德導師") + "話語」至少 1 句");
+        alert("請先設定「" + (category === "sage" ? "古今中外正能量" : "太陽盛德導師") + "」至少 1 句");
         return;
       }
       saveQuoteCounts();
@@ -2665,7 +2665,7 @@
       var counts = getQuoteCounts();
       saveQuoteCounts();
       if (counts.sage === 0 && counts.master === 0) {
-        setStatus($("materialStatus"), "請至少選 1 句聖賢或導師話語", "err");
+        setStatus($("materialStatus"), "請至少選 1 句導師話語或古今中外正能量事例", "err");
         return;
       }
       setStatus($("materialStatus"), "正在搜集印證資料（" + quoteCountHint() + "）…", "warn");
@@ -2768,7 +2768,7 @@
         var prompt = buildYinZhengSearchPrompt(keyword, material, counts) +
           "\n\n補充：" + TAIYANG_XINYU_SEARCH_NOTE +
           " 亦搜尋與「" + keyword + "」相關的" + typeHint + "。" +
-          "總筆數仍以導師 " + counts.master + " 句（優先太陽心語）、聖賢 " + counts.sage + " 句為準。";
+          "總筆數仍以導師 " + counts.master + " 句（優先太陽心語）、古今中外正能量 " + counts.sage + " 句為準。";
         var res = await callGeminiText(prompt, key, { googleSearch: true });
         var items = parseGeminiSearchResults(res.text).slice(0, counts.sage + counts.master);
         renderSearchResults(items);
@@ -2839,7 +2839,7 @@
           var userBlock = "\n【作者署名行】\n" + authorLine +
             "\n\n【寫作素材｜Step1–2 借境、自省】\n" + (combined || "（以印證參考為主）") +
             (refNotes ? "\n\n" + refNotes : "") +
-            "\n\n【寫作指示】Step3 古今印證須**優先**自然融入太陽盛德導師話語（尤其《太陽心語》）約 " + counts.master + " 則，再搭配中外聖賢話語約 " + counts.sage + " 則（依印證參考，白話轉念，不可只列連結或堆砌）。" +
+            "\n\n【寫作指示】Step3 古今印證依序：①太陽盛德導師話語（尤其《太陽心語》）約 " + counts.master + " 則 → ②可輔以學員事蹟 → ③古今中外正能量思維約 " + counts.sage + " 則（依印證參考，白話轉念，不可只列連結或堆砌）。" +
             "\n" + EVIDENCE_PRIORITY_GUIDE;
           var res = await callGeminiText(buildSopPrompt() + userBlock, key);
           essay = res.text;
