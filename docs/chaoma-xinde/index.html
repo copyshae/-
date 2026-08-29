@@ -339,10 +339,14 @@
             </select>
           </div>
         </div>
-        <p class="hint">搜集與生成時，Step3 印證將依上方句數分別納入聖賢名言與導師教誨。</p>
+        <p class="hint">搜集與生成時，Step3 印證將依上方句數分別納入聖賢名言與導師教誨。若不滿意結果，可<strong>重新搜尋</strong>替換。</p>
         <div class="row">
           <button type="button" id="btnAutoYinZheng" class="primary">📚 自動搜集印證資料</button>
           <button type="button" id="btnSearchSage">📖 本機古籍／心法</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btnResearchSage">🔄 重新搜尋聖賢話語</button>
+          <button type="button" id="btnResearchMaster">🔄 重新搜尋導師話語</button>
         </div>
         <div class="row">
           <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
@@ -503,6 +507,8 @@
     var lastOutput = "";
     var formatModule = null;
     var formatSaveTimer = null;
+    var sageSearchOffset = 0;
+    var masterSearchOffset = 0;
 
     /** 本機印證資料庫：category = sage（中外聖賢）| master（太陽盛德導師／超碼） */
     var YINZHENG_LIB = [
@@ -1144,7 +1150,7 @@
     function downloadWord() {
       var text = getOutputText();
       if (!text) { alert("請先生成或輸入心得"); return; }
-      var attachN = prepareExportWithAttachments();
+      prepareExportWithAttachments();
       downloadBlob(exportFilename("doc"), buildDocHtml(text), "application/msword");
       var n = getExportAttachments().length;
       setStatus($("genStatus"), "已下載 Word" + (n ? "（正文＋文末 " + n + " 張附件圖）" : "（僅正文）"), "");
@@ -1153,7 +1159,7 @@
     function exportPdf() {
       var text = getOutputText();
       if (!text) { alert("請先生成或輸入心得"); return; }
-      var attachN = prepareExportWithAttachments();
+      prepareExportWithAttachments();
       var fname = exportFilename("pdf");
       var html = buildDocHtml(text).replace("</body>",
         '<p style="margin-top:2em;font-size:10pt;color:#888;text-align:center">— 超碼修煉心得 —</p></body>');
@@ -1959,14 +1965,31 @@
       opts = opts || {};
       var counts = opts.counts || getQuoteCounts();
       var blob = (keyword + " " + (material || "")).toLowerCase();
-      var sagePool = YINZHENG_LIB.filter(function (i) { return i.category === "sage"; });
-      var masterPool = YINZHENG_LIB.filter(function (i) { return i.category === "master"; });
+      var excludeQuotes = opts.excludeQuotes || [];
+      var offset = opts.offset || 0;
+
+      function pickFromPool(category, limit) {
+        if (!limit) return [];
+        var pool = YINZHENG_LIB.filter(function (i) { return i.category === category; });
+        pool = pool.filter(function (it) {
+          return !excludeQuotes.some(function (q) {
+            return q === it.quote || (it.quote && q.indexOf(it.quote) >= 0);
+          });
+        });
+        var ranked = rankYinZhengPool(pool, blob);
+        if (offset && ranked.length) {
+          var off = offset % ranked.length;
+          ranked = ranked.slice(off).concat(ranked.slice(0, off));
+        }
+        return ranked.slice(0, limit);
+      }
+
       var out = [];
       if (opts.category === "sage" || !opts.category) {
-        out = out.concat(rankYinZhengPool(sagePool, blob).slice(0, counts.sage));
+        out = out.concat(pickFromPool("sage", counts.sage));
       }
       if (opts.category === "master" || !opts.category) {
-        out = out.concat(rankYinZhengPool(masterPool, blob).slice(0, counts.master));
+        out = out.concat(pickFromPool("master", counts.master));
       }
       return out;
     }
@@ -1998,19 +2021,19 @@
       });
     }
 
-    function addRefItem(item) {
-      if (!item) return;
+    function addRefItem(item, silent) {
+      if (!item) return false;
       if (item.url) {
         var dup = refItems.some(function (r) { return r.url && r.url === item.url; });
         if (dup) {
-          setStatus($("materialStatus"), "此印證參考已在清單中", "warn");
-          return;
+          if (!silent) setStatus($("materialStatus"), "此印證參考已在清單中", "warn");
+          return false;
         }
       } else if (item.quote) {
         var dupQ = refItems.some(function (r) { return r.quote === item.quote && r.sage === item.sage; });
         if (dupQ) {
-          setStatus($("materialStatus"), "此古籍印證已在清單中", "warn");
-          return;
+          if (!silent) setStatus($("materialStatus"), "此古籍印證已在清單中", "warn");
+          return false;
         }
       }
       refItems.push({
@@ -2025,9 +2048,40 @@
         url: item.url || "",
         source: item.source || "手動"
       });
+      if (!silent) {
+        renderRefList();
+        renderYinZhengPreview();
+        setStatus($("materialStatus"), "已加入印證：" + (item.title || item.quote || ""), "");
+      }
+      return true;
+    }
+
+    function addRefItems(items, silent) {
+      var added = 0;
+      (items || []).forEach(function (it) {
+        if (addRefItem(it, true)) added++;
+      });
+      if (added || silent) {
+        renderRefList();
+        renderYinZhengPreview();
+      }
+      return added;
+    }
+
+    function removeRefsByCategory(category) {
+      refItems = refItems.filter(function (r) { return r.category !== category; });
       renderRefList();
       renderYinZhengPreview();
-      setStatus($("materialStatus"), "已加入印證：" + (item.title || item.quote || ""), "");
+    }
+
+    function getExcludedQuotes(category) {
+      return refItems.filter(function (r) { return r.category === category; })
+        .map(function (r) {
+          var parts = [];
+          if (r.quote) parts.push(r.quote);
+          if (r.title) parts.push(r.title);
+          return parts.join(" ");
+        }).filter(Boolean);
     }
 
     function renderRefList() {
@@ -2227,7 +2281,8 @@
       setStatus($("materialStatus"), "本機印證 " + items.length + " 筆（" + quoteCountHint() + "）", items.length ? "" : "warn");
     }
 
-    function buildYinZhengSearchPrompt(keyword, material, counts) {
+    function buildYinZhengSearchPrompt(keyword, material, counts, opts) {
+      opts = opts || {};
       var lines = [
         "請用 Google 搜尋，為超碼修煉心得 Step3「古今印證」搜集資料。",
         "主題關鍵字：「" + keyword + "」",
@@ -2235,17 +2290,92 @@
         "",
         "請嚴格依下列句數提供（每則含：標題《…》、出處、可引用、白話意涵、與今日境緣印證、參考連結）："
       ];
-      if (counts.sage > 0) {
-        lines.push("- **中外聖賢話語** exactly " + counts.sage + " 則（含中國古籍如論語、老子、弟子規，及西方聖賢如蘇格拉底、亞里士多德、聖經等，擇合主題者）");
+      if (opts.categoryOnly === "sage") {
+        lines.push("- **僅搜尋中外聖賢話語** exactly " + counts.sage + " 則（含中國古籍如論語、老子、弟子規，及西方聖賢如蘇格拉底、亞里士多德、聖經等，擇合主題者）");
+        lines.push("- 不需要太陽盛德導師話語");
+      } else if (opts.categoryOnly === "master") {
+        lines.push("- **僅搜尋太陽盛德導師話語** exactly " + counts.master + " 則（教誨、演講、歌曲、超級生命密碼相關，優先官方或天圓文化來源）");
+        lines.push("- 不需要中外聖賢話語");
+      } else {
+        if (counts.sage > 0) {
+          lines.push("- **中外聖賢話語** exactly " + counts.sage + " 則（含中國古籍如論語、老子、弟子規，及西方聖賢如蘇格拉底、亞里士多德、聖經等，擇合主題者）");
+        }
+        if (counts.master > 0) {
+          lines.push("- **太陽盛德導師話語** exactly " + counts.master + " 則（教誨、演講、歌曲、超級生命密碼相關，優先官方或天圓文化來源）");
+        }
       }
-      if (counts.master > 0) {
-        lines.push("- **太陽盛德導師話語** exactly " + counts.master + " 則（教誨、演講、歌曲、超級生命密碼相關，優先官方或天圓文化來源）");
-      }
-      if (counts.sage === 0 && counts.master === 0) {
+      if (counts.sage === 0 && counts.master === 0 && !opts.categoryOnly) {
         lines.push("- 各 0 則（略過網搜印證）");
+      }
+      if (opts.exclude && opts.exclude.length) {
+        lines.push("", "【重要】請勿重複以下已選話語，必須另找不同出處、不同原句：");
+        opts.exclude.forEach(function (q) { lines.push("- " + q); });
+      }
+      if (opts.research) {
+        lines.push("", "這是**重新搜尋**請求：請提供與先前不同、但同樣合適主題的替代話語。");
       }
       lines.push("繁體中文，反求諸己，不評判他人。");
       return lines.join("\n");
+    }
+
+    async function researchQuotes(category) {
+      var counts = getQuoteCounts();
+      var limit = category === "sage" ? counts.sage : counts.master;
+      var label = category === "sage" ? "中外聖賢" : "太陽盛德導師";
+      if (!limit) {
+        alert("請先設定「" + (category === "sage" ? "中外聖賢" : "太陽盛德導師") + "話語」至少 1 句");
+        return;
+      }
+      saveQuoteCounts();
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var exclude = getExcludedQuotes(category);
+      removeRefsByCategory(category);
+
+      var offset = category === "sage" ? ++sageSearchOffset : ++masterSearchOffset;
+      setStatus($("materialStatus"), "正在重新搜尋" + label + "話語…", "warn");
+
+      var localPicked = pickYinZhengItems(keyword, material, {
+        category: category,
+        counts: counts,
+        offset: offset,
+        excludeQuotes: exclude
+      });
+      var finalItems = sageItemsToRefs(localPicked);
+      var key = getGeminiKey();
+
+      if (key) {
+        try {
+          var res = await callGeminiText(buildYinZhengSearchPrompt(keyword, material, counts, {
+            categoryOnly: category,
+            exclude: exclude,
+            research: true
+          }), key, { googleSearch: true });
+          var webItems = parseGeminiSearchResults(res.text).filter(function (it) {
+            return it.category === category;
+          });
+          if (webItems.length) finalItems = webItems.slice(0, limit);
+        } catch (e) {
+          if (!finalItems.length) {
+            setStatus($("materialStatus"), "重新搜尋失敗：" + (e.message || e), "err");
+            return;
+          }
+        }
+      }
+
+      var added = addRefItems(finalItems, true);
+      renderSearchResults(finalItems);
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已重新搜尋" + label + "話語 " + added + " 則" +
+        (key ? "（已排除先前結果）" : "（本機輪替；填金鑰可加網搜）"), added ? "" : "warn");
+    }
+
+    function researchSageQuotes() {
+      return researchQuotes("sage");
+    }
+
+    function researchMasterQuotes() {
+      return researchQuotes("master");
     }
 
     async function autoCollectYinZheng() {
@@ -2584,6 +2714,8 @@
         };
       });
       $("btnSearchSage").onclick = searchSageLocal;
+      $("btnResearchSage").onclick = researchSageQuotes;
+      $("btnResearchMaster").onclick = researchMasterQuotes;
       $("btnAutoYinZheng").onclick = autoCollectYinZheng;
       $("btnEnrichRefs").onclick = enrichSelectedRefs;
       $("btnOpenYt").onclick = function () {
