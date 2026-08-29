@@ -271,10 +271,21 @@ def should_skip(title: str, name: str) -> bool:
     return False
 
 
-def song_entry(vid: str, title: str, repeat: int = 1) -> dict:
+def published_at_from_ytdlp(d: dict) -> str | None:
+    ts = d.get("timestamp") or d.get("release_timestamp")
+    if ts:
+        return datetime.fromtimestamp(int(ts), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ud = d.get("upload_date")
+    if ud and len(str(ud)) == 8:
+        ud = str(ud)
+        return f"{ud[:4]}-{ud[4:6]}-{ud[6:8]}T00:00:00Z"
+    return None
+
+
+def song_entry(vid: str, title: str, repeat: int = 1, meta: dict | None = None) -> dict:
     name = clean_name(song_name(title))
     performer, label = classify_performer(title)
-    return {
+    entry = {
         "id": vid,
         "name": name,
         "repeat": repeat,
@@ -282,12 +293,82 @@ def song_entry(vid: str, title: str, repeat: int = 1) -> dict:
         "performer": performer,
         "performerLabel": label,
     }
+    if meta:
+        published = published_at_from_ytdlp(meta)
+        if published:
+            entry["publishedAt"] = published
+    return entry
+
+
+def published_from_title(title: str) -> str | None:
+    m = re.search(r"(20\d{2})年", title)
+    if m:
+        return f"{m.group(1)}-07-01T00:00:00Z"
+    m = re.search(r"(20\d{2})[-/.](\d{1,2})(?:[-/.](\d{1,2}))?", title)
+    if m:
+        y, mo = int(m.group(1)), int(m.group(2))
+        day = int(m.group(3)) if m.group(3) else 15
+        return f"{y}-{mo:02d}-{day:02d}T00:00:00Z"
+    return None
+
+
+def sort_date(s: dict) -> str:
+    return s.get("publishedAt") or s.get("addedAt") or "0000-01-01T00:00:00Z"
+
+
+def load_existing_catalog() -> dict[str, dict]:
+    if not OUT.exists():
+        return {}
+    try:
+        data = json.loads(OUT.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return {s["id"]: s for s in data.get("songs", []) if s.get("id")}
+
+
+def apply_catalog_dates(songs: list[dict], existing: dict[str, dict]) -> None:
+    """保留舊曲 addedAt；本次新收錄的曲 marked now → 更新曲庫後會排在前面（注入彩虹、富有除外）。"""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    pri_ids = {p["id"] for p in PRIORITY}
+    for s in songs:
+        if not s.get("publishedAt"):
+            pub = published_from_title(s.get("title") or "")
+            if pub:
+                s["publishedAt"] = pub
+        if s["id"] in pri_ids:
+            old = existing.get(s["id"])
+            s["addedAt"] = (old or {}).get("addedAt") or "2015-01-01T00:00:00Z"
+            s.pop("_discoverRank", None)
+            continue
+        old = existing.get(s["id"])
+        if old:
+            if old.get("addedAt"):
+                s["addedAt"] = old["addedAt"]
+            elif old.get("publishedAt") and not s.get("publishedAt"):
+                s["publishedAt"] = old["publishedAt"]
+            else:
+                rank = s.pop("_discoverRank", 9999)
+                # 較晚出現在搜尋結果的視為較新（首次建檔用）
+                s["addedAt"] = f"2026-08-01T{min(rank // 60, 23):02d}:{min(rank % 60, 59):02d}:00Z"
+        else:
+            s.pop("_discoverRank", None)
+            s["addedAt"] = now
+
+
+def sort_newest_first(songs: list[dict]) -> list[dict]:
+    return sorted(
+        songs,
+        key=lambda s: (sort_date(s), s.get("name") or ""),
+        reverse=True,
+    )
 
 
 def build_catalog() -> dict:
+    existing = load_existing_catalog()
     seen_ids: set[str] = {p["id"] for p in PRIORITY}
     # key: (name, performer, performerLabel) for dedup
     pool: dict[tuple[str, str, str], dict] = {}
+    discover_rank = 0
 
     for q in QUERIES:
         for d in yt_search(q):
@@ -295,27 +376,32 @@ def build_catalog() -> dict:
             title = d.get("title") or ""
             if not vid or vid in seen_ids:
                 continue
-            entry = song_entry(vid, title, 1)
+            entry = song_entry(vid, title, 1, d)
             if should_skip(title, entry["name"]):
                 continue
             # 跳過與優先曲同名的非導師版（仍可在 other 搜尋中收錄）
             if entry["name"] in ("注入彩虹", "富有") and entry["performer"] == "master":
                 continue
             seen_ids.add(vid)
+            entry["_discoverRank"] = discover_rank
+            discover_rank += 1
             key = (entry["name"], entry["performer"], entry["performerLabel"])
             prev = pool.get(key)
             if not prev or score(title, entry["performer"]) > score(prev["title"], prev["performer"]):
                 pool[key] = entry
 
-    masters = sorted(
-        [s for s in pool.values() if s["performer"] == "master"],
-        key=lambda x: x["name"],
-    )
-    others = sorted(
-        [s for s in pool.values() if s["performer"] == "other"],
-        key=lambda x: (x["name"], x["performerLabel"]),
-    )
-    songs = PRIORITY + masters + others
+    masters = [s for s in pool.values() if s["performer"] == "master"]
+    others = [s for s in pool.values() if s["performer"] == "other"]
+    apply_catalog_dates(masters, existing)
+    apply_catalog_dates(others, existing)
+    masters = sort_newest_first(masters)
+    others = sort_newest_first(others)
+    for s in masters + others:
+        s.pop("_discoverRank", None)
+    songs = [dict(p) for p in PRIORITY]
+    apply_catalog_dates(songs, existing)
+    songs.extend(masters)
+    songs.extend(others)
     karaoke_index = build_karaoke_index()
     attach_karaoke(songs, karaoke_index)
     mc = sum(1 for s in songs if s["performer"] == "master")
@@ -325,7 +411,7 @@ def build_catalog() -> dict:
         "artist": "太陽盛德導師",
         "songs": songs,
         "counts": {"master": mc, "other": oc, "total": len(songs)},
-        "queueNote": "注入彩虹、富有各×3 → 導師親唱各×1 → 其他演唱者各×1",
+        "queueNote": "注入彩虹、富有各×3（置頂）→ 導師親唱（新→舊）→ 其他演唱者（新→舊）",
     }
 
 
