@@ -1,5 +1,5 @@
 /* 超碼修煉心得｜離線快取 */
-const CACHE = "chaoma-xinde-v4";
+const CACHE = "chaoma-xinde-v5";
 const ASSETS = [
   "./",
   "./index.html",

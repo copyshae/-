@@ -80,11 +80,17 @@
       font-size: 0.62rem; background: rgba(0,0,0,0.55); color: #fff;
       text-align: center; padding: 0.1rem;
     }
-    .output {
+    .output, #outputEdit {
       white-space: pre-wrap; word-break: break-word;
       background: #fff; border: 1px solid var(--line);
       padding: 0.85rem; min-height: 12rem; font-size: 0.95rem; line-height: 1.75;
+      width: 100%; font: inherit; resize: vertical;
+      -webkit-user-select: text; user-select: text;
     }
+    #outputEdit:focus { outline: 2px solid rgba(184,134,11,0.45); outline-offset: 1px; }
+    .output-toolbar { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+    .output-toolbar button { font-size: 0.82rem; min-height: 2.5rem; padding: 0.45rem 0.65rem; }
+    .sel-hint { font-size: 0.76rem; color: var(--muted); margin-top: 0.35rem; }
     .checklist { margin-top: 0.55rem; font-size: 0.82rem; }
     .checklist li { list-style: none; padding: 0.2rem 0; }
     .checklist li.ok::before { content: "✓ "; color: var(--ok); font-weight: 800; }
@@ -283,11 +289,19 @@
       <h2>生成心得</h2>
       <div class="row">
         <button type="button" id="btnGenerate" class="primary">✨ 依 SOP 生成心得</button>
-        <button type="button" id="btnCopy">複製全文</button>
         <button type="button" id="btnShare">分享</button>
       </div>
       <p class="status" id="genStatus"></p>
-      <div class="output" id="output" aria-live="polite">（生成後會顯示在這裡）</div>
+      <label for="outputEdit">心得全文（可直接編輯修改）</label>
+      <textarea id="outputEdit" class="output" rows="14" placeholder="（生成後會顯示在這裡，可直接修改）" aria-live="polite"></textarea>
+      <p class="sel-hint">💡 部分複製：在方框內長按／拖曳選取文字 → 按「複製選取」；或用手機系統「複製」。</p>
+      <div class="output-toolbar">
+        <button type="button" id="btnCopySel">複製選取</button>
+        <button type="button" id="btnCopy">複製全文</button>
+        <button type="button" id="btnSaveEdit">儲存修改</button>
+        <button type="button" id="btnWord">下載 Word</button>
+        <button type="button" id="btnPdf">匯出 PDF</button>
+      </div>
       <ul class="checklist" id="checklist" hidden></ul>
     </section>
 
@@ -366,6 +380,147 @@
       "感恩蔡禮旭老師\n" +
       "感恩一切有了交代\n\n" +
       "請直接輸出完整心得全文，不要加任何解說、前言或 markdown。";
+
+    function getOutputText() {
+      return ($("outputEdit").value || "").trim();
+    }
+
+    function setOutputText(text) {
+      var t = String(text || "");
+      lastOutput = t;
+      $("outputEdit").value = t;
+    }
+
+    function syncOutputFromEdit() {
+      lastOutput = $("outputEdit").value || "";
+    }
+
+    function copyTextToClipboard(text, okMsg) {
+      if (!text || !String(text).trim()) {
+        alert("沒有可複製的內容");
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          setStatus($("genStatus"), okMsg || "已複製", "");
+        }).catch(function () {
+          prompt("長按全選複製：", text);
+        });
+      } else {
+        prompt("長按全選複製：", text);
+      }
+    }
+
+    function copySelectedText() {
+      var el = $("outputEdit");
+      var sel = "";
+      if (el && el.selectionStart != null && el.selectionEnd != null && el.selectionStart !== el.selectionEnd) {
+        sel = el.value.slice(el.selectionStart, el.selectionEnd);
+      }
+      if (!sel.trim() && window.getSelection) {
+        sel = String(window.getSelection()) || "";
+      }
+      if (!sel.trim()) {
+        alert("請先在心得方框內選取要複製的文字（長按拖曳或雙擊段落）。");
+        try { el.focus(); } catch (e) {}
+        return;
+      }
+      copyTextToClipboard(sel, "已複製選取文字（" + sel.length + " 字）");
+    }
+
+    function exportFilename(ext) {
+      var text = getOutputText() || lastOutput;
+      var titleMatch = text.match(/《([^》]+)》/);
+      var title = titleMatch ? titleMatch[1].replace(/[\\/:*?"<>|]/g, "") : "修煉心得";
+      var dateVal = $("authorDate").value || todayInputValue();
+      return "超碼心得-" + title + "-" + dateVal + "." + ext;
+    }
+
+    function essayToHtmlBody(text) {
+      var esc = function (s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      };
+      var paras = String(text || "").split(/\n\n+/);
+      var html = "";
+      paras.forEach(function (p, i) {
+        var t = p.trim();
+        if (!t) return;
+        if (/^《.+》$/.test(t) && !html) {
+          html += '<h1 style="text-align:center;font-size:18pt;font-weight:700;margin:0.2em 0 0.6em">' + esc(t) + "</h1>";
+        } else if (/^\d{4}\/\d{1,2}\/\d{1,2}/.test(t) && i <= 2) {
+          html += '<p style="text-align:right;margin:0.35em 0;color:#555">' + esc(t) + "</p>";
+        } else {
+          html += '<p style="text-indent:2em;line-height:1.85;margin:0.55em 0">' + esc(t).replace(/\n/g, "<br/>") + "</p>";
+        }
+      });
+      return html || "<p>" + esc(text) + "</p>";
+    }
+
+    function buildDocHtml(text) {
+      var esc = function (s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      };
+      var titleMatch = String(text || "").match(/《([^》]+)》/);
+      var docTitle = titleMatch ? titleMatch[0] : "超碼修煉心得";
+      return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="zh-Hant"><head><meta charset="UTF-8" />' +
+        "<title>" + esc(docTitle) + "</title>" +
+        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->' +
+        '<style>body{font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;font-size:12pt;line-height:1.75;color:#222;padding:2cm}' +
+        "h1{text-align:center;font-size:18pt;color:#b8860b}</style></head><body>" +
+        essayToHtmlBody(text) +
+        "</body></html>";
+    }
+
+    function downloadBlob(filename, content, mime) {
+      var blob = new Blob(["\ufeff", content], { type: mime || "text/plain;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function downloadWord() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成或輸入心得"); return; }
+      syncOutputFromEdit();
+      downloadBlob(exportFilename("doc"), buildDocHtml(text), "application/msword");
+      setStatus($("genStatus"), "已下載 Word（.doc，可用 Word／WPS 開啟）", "");
+    }
+
+    function exportPdf() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成或輸入心得"); return; }
+      syncOutputFromEdit();
+      var fname = exportFilename("pdf");
+      var html = buildDocHtml(text).replace("</body>", '<p style="margin-top:2em;font-size:10pt;color:#888;text-align:center">— 超碼修煉心得 —</p></body>');
+      var w = window.open("", "_blank", "noopener,noreferrer,width=820,height=900");
+      if (!w) {
+        alert("請允許彈出視窗以匯出 PDF");
+        return;
+      }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.document.title = fname;
+      setTimeout(function () {
+        try { w.focus(); w.print(); } catch (e) {}
+      }, 400);
+      setStatus($("genStatus"), "已開啟列印視窗 → 選「另存為 PDF」或「儲存為 PDF」", "");
+    }
+
+    function saveEditedOutput() {
+      syncOutputFromEdit();
+      var text = getOutputText();
+      if (!text) { alert("內容為空"); return; }
+      renderChecklist(validateEssay(text));
+      var titleMatch = text.match(/《[^》]+》/);
+      saveHistory(text, titleMatch ? titleMatch[0] : "心得（已修改）");
+      setStatus($("genStatus"), "已儲存修改並更新檢核", "");
+    }
 
     function $(id) { return document.getElementById(id); }
 
@@ -590,8 +745,7 @@
         btn.onclick = function () {
           var it = list[Number(btn.getAttribute("data-idx"))];
           if (it) {
-            lastOutput = it.text;
-            $("output").textContent = it.text;
+            setOutputText(it.text);
             renderChecklist(validateEssay(it.text));
           }
         };
@@ -1142,8 +1296,7 @@
           essay = buildLocalEssay([combined, refNotes].filter(Boolean).join("\n\n"), authorLine);
         }
 
-        lastOutput = essay;
-        $("output").textContent = essay;
+        setOutputText(essay);
         renderChecklist(validateEssay(essay));
         var titleMatch = essay.match(/《[^》]+》/);
         saveHistory(essay, titleMatch ? titleMatch[0] : "心得");
@@ -1279,20 +1432,21 @@
       });
       renderRefList();
       renderYinZhengPreview();
+      $("btnCopySel").onclick = copySelectedText;
       $("btnCopy").onclick = function () {
-        if (!lastOutput) { alert("請先生成心得"); return; }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(lastOutput).then(function () {
-            setStatus($("genStatus"), "已複製到剪貼簿", "");
-          }).catch(function () { alert(lastOutput); });
-        } else {
-          prompt("長按全選複製：", lastOutput);
-        }
+        syncOutputFromEdit();
+        if (!getOutputText()) { alert("請先生成心得"); return; }
+        copyTextToClipboard(getOutputText(), "已複製全文");
       };
+      $("btnSaveEdit").onclick = saveEditedOutput;
+      $("btnWord").onclick = downloadWord;
+      $("btnPdf").onclick = exportPdf;
+      $("outputEdit").addEventListener("input", syncOutputFromEdit);
       $("btnShare").onclick = function () {
-        if (!lastOutput) { alert("請先生成心得"); return; }
+        syncOutputFromEdit();
+        if (!getOutputText()) { alert("請先生成心得"); return; }
         if (navigator.share) {
-          navigator.share({ title: "超碼修煉心得", text: lastOutput }).catch(function () {});
+          navigator.share({ title: "超碼修煉心得", text: getOutputText() }).catch(function () {});
         } else {
           $("btnCopy").click();
         }
