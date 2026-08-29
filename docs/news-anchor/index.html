@@ -84,19 +84,8 @@
     .anchor-photo-stage {
       position: relative; width: 100%; overflow: hidden;
       border-radius: 0.35rem 0.35rem 0 0;
-    }
-    .face-layer { position: absolute; left: 0; right: 0; overflow: hidden; }
-    .face-jaw {
-      position: relative; z-index: 1;
-      -webkit-clip-path: inset(var(--jaw-split, 52%) 0 0 0);
-      clip-path: inset(var(--jaw-split, 52%) 0 0 0);
-      will-change: transform;
-      transform: translate3d(0, 0, 0);
-    }
-    .face-upper {
-      top: 0; z-index: 2;
-      height: var(--jaw-split, 52%);
-      pointer-events: none;
+      transform-origin: 50% 32%;
+      will-change: transform, filter;
     }
     .anchor-photo {
       width: 100%; height: auto; max-height: 14.5rem; object-fit: cover;
@@ -104,26 +93,15 @@
       display: block;
       transform: translate3d(0, 0, 0);
     }
-    .anchor-photo-jaw {
-      transform-origin: 50% var(--jaw-split, 52%);
-      will-change: transform;
+    .anchor-photo-wrap.fx-blink .anchor-photo {
+      animation: portraitBlink 0.13s ease-in-out;
     }
-    .anchor-photo-wrap.speaking .face-jaw {
-      animation: jawPulse 0.32s ease-in-out infinite alternate;
-    }
-    @keyframes jawPulse {
-      from { transform: translate3d(0, 0, 0); }
-      to { transform: translate3d(0, 3px, 0); }
-    }
-    .face-upper.fx-blink .anchor-photo-upper {
-      animation: naturalBlink 0.13s ease-in-out;
-    }
-    @keyframes naturalBlink {
+    @keyframes portraitBlink {
       0%, 100% { filter: brightness(1); }
       45% { filter: brightness(0.78); }
     }
     .anchor-photo-wrap.speaking .anchor-photo {
-      filter: brightness(1.02) saturate(1.03);
+      filter: brightness(1.03) saturate(1.04);
     }
 
     /* ===== 影片播報（idle / talk 雙層交叉） ===== */
@@ -251,7 +229,7 @@
     .studio-ticker { will-change: transform; }
     @media (prefers-reduced-motion: reduce) {
       .studio-ticker { animation: none !important; }
-      .anchor-photo-wrap.speaking .face-jaw { animation: none !important; }
+      .anchor-photo-stage { transform: none !important; filter: none !important; }
     }
     .lower-third .headline-tag {
       display: inline-block; font-size: 0.62rem; background: var(--desk);
@@ -483,8 +461,8 @@
         <div>
           <label for="visualMode">畫面模式</label>
           <select id="visualMode">
-            <option value="photo">相片＋口型特效</option>
-            <option value="video">影片播報（idle／talk）</option>
+            <option value="video">影片播報（idle／talk，建議）</option>
+            <option value="photo">相片＋整張微動（不切半）</option>
           </select>
         </div>
         <div>
@@ -982,7 +960,7 @@
         var v = localStorage.getItem(KEY_VISUAL_MODE);
         if (v === "photo" || v === "video") return v;
       } catch (e) {}
-      return "photo";
+      return "video";
     }
 
     function saveVisualMode() {
@@ -1075,11 +1053,6 @@
     function naturalOpen(anchor, catLabel) { return proOpen(anchor, catLabel); }
     function naturalClose(anchor, catLabel, nextCats) { return proClose(anchor, catLabel, nextCats); }
 
-    function portraitStyle(anchor) {
-      var f = anchor.face || {};
-      return "--jaw-split:" + (f.jawSplit || 52) + "%;";
-    }
-
     function buildAnchorVideo(anchor, objPos) {
       var pos = "object-position:center " + objPos + "%";
       var idle = anchor.videoIdle || "";
@@ -1102,14 +1075,9 @@
         var pos = "object-position:center " + objPos + "%";
         var src = anchor.portrait;
         var alt = anchor.name;
-        return '<div class="anchor-photo-wrap" style="' + portraitStyle(anchor) + '">'
+        return '<div class="anchor-photo-wrap">'
           + '<div class="anchor-photo-stage">'
-          + '<div class="face-layer face-jaw">'
-          + '<img class="anchor-photo anchor-photo-jaw" src="' + src + '" alt="' + alt + '" style="' + pos + '"/>'
-          + '</div>'
-          + '<div class="face-layer face-upper">'
-          + '<img class="anchor-photo anchor-photo-upper" src="' + src + '" alt="" aria-hidden="true" style="' + pos + '"/>'
-          + '</div>'
+          + '<img class="anchor-photo" src="' + src + '" alt="' + alt + '" style="' + pos + '"/>'
           + '</div></div>';
       }
       return buildAnchorSvg(anchor, mini);
@@ -1202,8 +1170,8 @@
         return;
       }
       state.blinkTimer = setInterval(function () {
-        if (!document.querySelector(".face-upper")) return;
-        if (state.motionActive && Math.random() > 0.25) triggerPortraitBlink();
+        if (!document.querySelector(".anchor-photo-wrap")) return;
+        if (state.motionActive && Math.random() > 0.2) triggerPortraitBlink();
       }, 2800 + Math.random() * 2200);
     }
 
@@ -1250,32 +1218,31 @@
     }
 
     function triggerPortraitBlink() {
-      var upper = document.querySelector(".face-upper");
-      if (!upper) return;
-      upper.classList.remove("fx-blink");
-      void upper.offsetWidth;
-      upper.classList.add("fx-blink");
-      setTimeout(function () { upper.classList.remove("fx-blink"); }, 140);
+      var wrap = document.querySelector(".anchor-photo-wrap");
+      if (!wrap) return;
+      wrap.classList.remove("fx-blink");
+      void wrap.offsetWidth;
+      wrap.classList.add("fx-blink");
+      setTimeout(function () { wrap.classList.remove("fx-blink"); }, 140);
     }
 
     function pickMouthTarget() {
       var r = Math.random();
-      if (r < 0.2) return 0.02 + Math.random() * 0.06;
-      if (r < 0.55) return 0.1 + Math.random() * 0.15;
-      if (r < 0.85) return 0.22 + Math.random() * 0.2;
-      return 0.38 + Math.random() * 0.22;
+      if (r < 0.25) return 0.04 + Math.random() * 0.08;
+      if (r < 0.6) return 0.12 + Math.random() * 0.18;
+      return 0.22 + Math.random() * 0.2;
     }
 
-    function applyJawMotion(openness) {
+    function applyPortraitMotion(openness, ts) {
       if (useVideoMode()) return;
-      var jawLayer = document.querySelector(".face-jaw");
-      var jawImg = document.querySelector(".anchor-photo-jaw");
-      if (!jawLayer) return;
+      var stage = document.querySelector(".anchor-photo-stage");
+      if (!stage) return;
       var o = Math.max(0, Math.min(1, openness));
-      var drop = o * 6;
-      var rot = o * 1.2;
-      jawLayer.style.transform = "translate3d(0," + drop.toFixed(2) + "px,0)";
-      if (jawImg) jawImg.style.transform = "rotate(" + rot.toFixed(2) + "deg)";
+      var t = ts || performance.now();
+      var bob = Math.sin(t * 0.0011) * 0.3 + o * 1.1;
+      var tilt = Math.sin(t * 0.00075) * 0.1;
+      stage.style.transform = "translate3d(0," + bob.toFixed(2) + "px,0) rotate(" + tilt.toFixed(3) + "deg)";
+      stage.style.filter = "brightness(" + (1 + o * 0.045).toFixed(3) + ")";
     }
 
     function liveMotionTick(ts) {
@@ -1289,7 +1256,7 @@
         }
       }
       state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * (state.visemeDrive ? 0.32 : 0.18);
-      applyJawMotion(state.mouthCurrent);
+      applyPortraitMotion(state.mouthCurrent, ts);
 
       if (ts >= state.nextBlink && !useVideoMode()) {
         triggerPortraitBlink();
@@ -1319,12 +1286,13 @@
       }
       state.mouthCurrent = 0;
       state.mouthTarget = 0;
-      var jawLayer = document.querySelector(".face-jaw");
-      var jawImg = document.querySelector(".anchor-photo-jaw");
-      var upper = document.querySelector(".face-upper");
-      if (jawLayer) jawLayer.style.transform = "";
-      if (jawImg) jawImg.style.transform = "";
-      if (upper) upper.classList.remove("fx-blink");
+      var stage = document.querySelector(".anchor-photo-stage");
+      var wrap = document.querySelector(".anchor-photo-wrap");
+      if (stage) {
+        stage.style.transform = "";
+        stage.style.filter = "";
+      }
+      if (wrap) wrap.classList.remove("fx-blink");
     }
 
     function enterBroadcastFullscreen() {
@@ -1801,6 +1769,10 @@
 
       if (useAzureTts() && window.TtsAzure) {
         return TtsAzure.speakQueued(text, opts);
+      }
+      if ($("ttsEngine") && $("ttsEngine").value === "azure" && window.TtsAzure && !TtsAzure.hasKey()) {
+        alert("已選 Azure 對嘴，請先在下方填寫並儲存 Speech 金鑰；或改回「系統語音」。");
+        return false;
       }
       if (!window.TtsVoices) return false;
       var vEl = $("ttsVoice");
