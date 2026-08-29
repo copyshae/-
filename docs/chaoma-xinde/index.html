@@ -53,6 +53,9 @@
     textarea { min-height: 5.5rem; resize: vertical; }
     #materialText { min-height: 7rem; }
     .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+    .author-date-row { align-items: stretch; }
+    .author-date-row input[type="date"] { flex: 1 1 10rem; width: auto; min-width: 0; margin: 0; }
+    .author-date-row button { flex: 0 0 auto; white-space: nowrap; }
     button, .file-btn {
       font: inherit; cursor: pointer; border: 1px solid var(--line);
       background: #fff; color: var(--accent); padding: 0.55rem 0.75rem;
@@ -200,8 +203,11 @@
       <label for="authorName">姓名／地區（例：正本／彰化）</label>
       <input id="authorName" type="text" placeholder="正本／彰化" autocomplete="name" />
       <label for="authorDate">日期</label>
-      <input id="authorDate" type="date" />
-      <p class="hint" id="authorDateHint">開啟時自動以<strong>網路時間</strong>（台灣時區）帶入今日；若無法連線則改用本機日期。仍可手動修改。</p>
+      <div class="row author-date-row">
+        <input id="authorDate" type="date" />
+        <button type="button" id="btnRefetchAuthorDate">🌐 重新抓取</button>
+      </div>
+      <p class="hint" id="authorDateHint">先由<strong>網路時間</strong>（台灣時區）帶入今日；<strong>若需修正，再手動校正</strong>日期欄。</p>
       <p class="hint">署名格式：姓名／地區 年／月／日（可在下方「格式框架」調整模板）</p>
     </section>
 
@@ -544,6 +550,8 @@
     var KEY_EXPORT_ATTACH = "chaoma-xinde-export-attach";
     var KEY_FORMAT = "chaoma-xinde-format";
     var KEY_NETWORK_DATE = "chaoma-xinde-network-date";
+    var KEY_AUTHOR_DATE = "chaoma-xinde-author-date";
+    var KEY_AUTHOR_DATE_MANUAL = "chaoma-xinde-author-date-manual";
     var NETWORK_DATE_TZ = "Asia/Taipei";
 
     var DEFAULT_FORMAT = {
@@ -1420,9 +1428,41 @@
       } catch (e) {}
     }
 
-    async function fetchNetworkDateInputValue() {
-      var cached = readNetworkDateCache();
-      if (cached) return cached;
+    function loadManualAuthorDate() {
+      try {
+        if (localStorage.getItem(KEY_AUTHOR_DATE_MANUAL) !== "1") return null;
+        var d = localStorage.getItem(KEY_AUTHOR_DATE);
+        return d || null;
+      } catch (e) {}
+      return null;
+    }
+
+    function saveManualAuthorDate(dateStr) {
+      if (!dateStr) return;
+      try {
+        localStorage.setItem(KEY_AUTHOR_DATE, dateStr);
+        localStorage.setItem(KEY_AUTHOR_DATE_MANUAL, "1");
+      } catch (e) {}
+    }
+
+    function clearManualAuthorDate() {
+      try {
+        localStorage.removeItem(KEY_AUTHOR_DATE);
+        localStorage.removeItem(KEY_AUTHOR_DATE_MANUAL);
+        sessionStorage.removeItem(KEY_NETWORK_DATE);
+      } catch (e) {}
+    }
+
+    function setAuthorDateHint(html) {
+      var hint = $("authorDateHint");
+      if (hint) hint.innerHTML = html;
+    }
+
+    async function fetchNetworkDateInputValue(forceRefresh) {
+      if (!forceRefresh) {
+        var cached = readNetworkDateCache();
+        if (cached) return { date: cached, source: "cache" };
+      }
 
       var taipeiDate = "";
 
@@ -1442,22 +1482,59 @@
         } catch (e2) {}
       }
 
-      if (!taipeiDate) taipeiDate = todayInputValue();
+      var source = "network";
+      if (!taipeiDate) {
+        taipeiDate = todayInputValue();
+        source = "local";
+      }
       saveNetworkDateCache(taipeiDate);
-      return taipeiDate;
+      return { date: taipeiDate, source: source };
+    }
+
+    async function applyNetworkAuthorDate(forceRefresh) {
+      var input = $("authorDate");
+      var btn = $("btnRefetchAuthorDate");
+      if (btn) btn.disabled = true;
+      setAuthorDateHint("正在以網路取得今日日期（台灣時區）…");
+      try {
+        var result = await fetchNetworkDateInputValue(forceRefresh);
+        input.value = result.date;
+        if (result.source === "local") {
+          setAuthorDateHint("無法連線取得網路日期，已改用本機日期。<strong>若需修正，再手動校正</strong>日期欄。");
+        } else {
+          setAuthorDateHint("已以<strong>網路時間</strong>（台灣時區）帶入今日；<strong>若需修正，再手動校正</strong>日期欄。");
+        }
+      } catch (e) {
+        input.value = todayInputValue();
+        setAuthorDateHint("無法連線取得網路日期，已改用本機日期。<strong>若需修正，再手動校正</strong>日期欄。");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     async function initAuthorDate() {
-      var input = $("authorDate");
-      var hint = $("authorDateHint");
-      if (hint) hint.textContent = "正在以網路取得今日日期（台灣時區）…";
-      try {
-        input.value = await fetchNetworkDateInputValue();
-        if (hint) hint.innerHTML = "已以<strong>網路時間</strong>（台灣時區）帶入今日；若無法連線則改用本機日期。仍可手動修改。";
-      } catch (e) {
-        input.value = todayInputValue();
-        if (hint) hint.innerHTML = "無法連線取得網路日期，已改用本機日期。仍可手動修改。";
+      var manualDate = loadManualAuthorDate();
+      if (manualDate) {
+        $("authorDate").value = manualDate;
+        setAuthorDateHint("已沿用<strong>手動校正</strong>的日期。若要改回網路日期，請按「重新抓取」。");
+        return;
       }
+      await applyNetworkAuthorDate(false);
+    }
+
+    async function refetchAuthorDate() {
+      clearManualAuthorDate();
+      await applyNetworkAuthorDate(true);
+    }
+
+    function setupAuthorDateControls() {
+      $("authorDate").addEventListener("change", function () {
+        var v = ($("authorDate").value || "").trim();
+        if (!v) return;
+        saveManualAuthorDate(v);
+        setAuthorDateHint("已<strong>手動校正</strong>日期，下次開啟仍會沿用。若要改回網路日期，請按「重新抓取」。");
+      });
+      $("btnRefetchAuthorDate").onclick = function () { refetchAuthorDate(); };
     }
 
     function fileToBase64(file) {
@@ -3269,6 +3346,7 @@
 
     function init() {
       initAuthorDate();
+      setupAuthorDateControls();
       var savedAuthor = localStorage.getItem(KEY_AUTHOR);
       if (savedAuthor) $("authorName").value = savedAuthor;
       var k = localStorage.getItem(KEY_LOCAL) || localStorage.getItem(KEY_GEMINI);
