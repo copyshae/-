@@ -63,6 +63,7 @@
     }
     button.primary, .file-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     button.recording { background: var(--danger); color: #fff; border-color: var(--danger); animation: pulse 1s infinite; }
+    button.speaking { background: var(--ok); color: #fff; border-color: var(--ok); }
     button:disabled { opacity: 0.45; cursor: default; }
     input[type="file"] { display: none; }
     .status { font-size: 0.84rem; font-weight: 700; min-height: 1.2rem; margin-top: 0.35rem; color: var(--ok); }
@@ -438,7 +439,7 @@
         <button type="button" id="btnSaveEdit">儲存修改</button>
         <button type="button" id="btnShare">📤 分享</button>
       </div>
-      <p class="hint">生成篇幅依印證句數自動調整上限；編輯時上方即時顯示正文／全文字數。生成後可<strong>直接打字修改</strong>，或按<strong>口說修改</strong>。</p>
+      <p class="hint">生成篇幅依印證句數自動調整上限；編輯時上方即時顯示正文／全文字數。生成後可<strong>直接打字修改</strong>、<strong>口說修改</strong>，或按<strong>誦讀心得</strong>全文朗讀。</p>
       <p class="status" id="genStatus"></p>
       <label for="outputEdit">心得全文（可手動或口說修改）</label>
       <p class="hint" id="essayLengthHint" aria-live="polite">正文 —／— 字 · 全文 —／— 字（上限隨印證句數調整）</p>
@@ -446,6 +447,9 @@
       <p class="sel-hint">💡 部分複製：在方框內長按／拖曳選取 → 按「複製選取」。口說前可先選取要改寫的段落。</p>
       <div class="output-toolbar">
         <button type="button" id="btnOutputVoice">🎤 口說修改</button>
+        <button type="button" id="btnSpeakEssay">🔊 誦讀心得</button>
+        <button type="button" id="btnPauseSpeak" hidden>⏸ 暫停</button>
+        <button type="button" id="btnStopSpeak" hidden>■ 停止誦讀</button>
         <button type="button" id="btnCopy">複製全文</button>
         <details class="format-block" style="flex:1 1 100%;">
           <summary>更多匯出（特別需要時）</summary>
@@ -538,6 +542,7 @@
     </div>
   </div>
 
+  <script src="../shared/tts-voices.js?v=1"></script>
   <script>
   (function () {
     "use strict";
@@ -567,6 +572,7 @@
     var recognition = null;
     var voiceTarget = null;
     var voiceKeepListening = false;
+    var speakUiBound = false;
     var mediaItems = [];
     var refItems = [];
     var essayImages = [];
@@ -3228,6 +3234,140 @@
       syncOutputFromEdit();
     }
 
+    function stopEssaySpeak() {
+      if (window.TtsVoices && window.TtsVoices.stopSpeakQueue) {
+        window.TtsVoices.stopSpeakQueue();
+      } else {
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      updateSpeakUi(false);
+    }
+
+    function updateSpeakUi(active) {
+      var speakBtn = $("btnSpeakEssay");
+      var pauseBtn = $("btnPauseSpeak");
+      var stopBtn = $("btnStopSpeak");
+      if (speakBtn) {
+        speakBtn.disabled = !!active;
+        speakBtn.classList.toggle("speaking", !!active);
+      }
+      if (pauseBtn) {
+        pauseBtn.hidden = !active;
+        pauseBtn.textContent = "⏸ 暫停";
+      }
+      if (stopBtn) stopBtn.hidden = !active;
+    }
+
+    function pickEssaySpeakText() {
+      var el = $("outputEdit");
+      var text = "";
+      try {
+        var start = el.selectionStart;
+        var end = el.selectionEnd;
+        if (start != null && end != null && start !== end) {
+          text = el.value.slice(start, end).trim();
+        }
+      } catch (e) {}
+      if (!text) text = getOutputText() || lastOutput;
+      return text;
+    }
+
+    function speakEssayFallback(text) {
+      if (!window.speechSynthesis) {
+        alert("此瀏覽器不支援語音誦讀，請用 Chrome／Edge／Safari。");
+        return false;
+      }
+      stopEssaySpeak();
+      var settings = (window.TtsVoices && window.TtsVoices.getSpeakSettings)
+        ? window.TtsVoices.getSpeakSettings()
+        : { rate: 0.92, pitch: 1, lang: "zh-TW" };
+      var u = new SpeechSynthesisUtterance(String(text || ""));
+      u.rate = settings.rate || 0.92;
+      u.pitch = settings.pitch || 1;
+      if (settings.voice) {
+        u.voice = settings.voice;
+        u.lang = settings.voice.lang || settings.lang || "zh-TW";
+      } else {
+        u.lang = settings.lang || "zh-TW";
+      }
+      u.onend = function () {
+        updateSpeakUi(false);
+        setStatus($("genStatus"), "誦讀完成。", "");
+      };
+      u.onerror = function () {
+        updateSpeakUi(false);
+        setStatus($("genStatus"), "誦讀失敗或已取消。", "err");
+      };
+      updateSpeakUi(true);
+      window.speechSynthesis.speak(u);
+      return true;
+    }
+
+    function startEssaySpeak() {
+      var text = pickEssaySpeakText();
+      if (!text) {
+        setStatus($("genStatus"), "請先生成或輸入心得，再按誦讀。", "err");
+        return;
+      }
+      if (recognition) stopVoice();
+      stopEssaySpeak();
+      if (window.TtsVoices && window.TtsVoices.speakQueued) {
+        window.TtsVoices.speakQueued(text, { rate: 0.92 });
+        updateSpeakUi(true);
+        setStatus($("genStatus"), "正在誦讀心得（可暫停或停止）…", "");
+        return;
+      }
+      if (speakEssayFallback(text)) {
+        setStatus($("genStatus"), "正在誦讀心得…", "");
+      }
+    }
+
+    function pauseEssaySpeak() {
+      if (window.TtsVoices && window.TtsVoices.togglePauseSpeakQueue) {
+        window.TtsVoices.togglePauseSpeakQueue();
+        var st = window.TtsVoices.getSpeakState ? window.TtsVoices.getSpeakState() : {};
+        var btn = $("btnPauseSpeak");
+        if (btn) btn.textContent = st.paused ? "▶ 繼續" : "⏸ 暫停";
+        return;
+      }
+      try {
+        if (!window.speechSynthesis) return;
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        else window.speechSynthesis.pause();
+        var btn2 = $("btnPauseSpeak");
+        if (btn2) btn2.textContent = window.speechSynthesis.paused ? "▶ 繼續" : "⏸ 暫停";
+      } catch (e) {}
+    }
+
+    function setupEssaySpeak() {
+      $("btnSpeakEssay").onclick = startEssaySpeak;
+      $("btnPauseSpeak").onclick = pauseEssaySpeak;
+      $("btnStopSpeak").onclick = function () {
+        stopEssaySpeak();
+        setStatus($("genStatus"), "已停止誦讀。", "");
+      };
+      if (window.TtsVoices && window.TtsVoices.onSpeakStatus && !speakUiBound) {
+        speakUiBound = true;
+        window.TtsVoices.onSpeakStatus(function (ev) {
+          if (!ev) return;
+          if (ev.reason === "done") {
+            updateSpeakUi(false);
+            setStatus($("genStatus"), "誦讀完成。", "");
+          } else if (ev.reason === "stop") {
+            updateSpeakUi(false);
+          } else if (ev.reason === "pause") {
+            var pauseBtn = $("btnPauseSpeak");
+            if (pauseBtn) pauseBtn.textContent = "▶ 繼續";
+          } else if (ev.reason === "resume") {
+            var pauseBtn2 = $("btnPauseSpeak");
+            if (pauseBtn2) pauseBtn2.textContent = "⏸ 暫停";
+          } else if (ev.reason === "start" || ev.reason === "speaking") {
+            updateSpeakUi(true);
+          }
+        });
+      }
+    }
+
     function stopVoice() {
       voiceKeepListening = false;
       if (!recognition) {
@@ -3257,6 +3397,7 @@
         return;
       }
       if (recognition) stopVoice();
+      stopEssaySpeak();
 
       voiceTarget = target;
       voiceKeepListening = target === "output";
@@ -3377,6 +3518,7 @@
       $("btnGenerate").onclick = generateEssay;
       $("btnVoice").onclick = startVoice;
       $("btnOutputVoice").onclick = startOutputVoice;
+      setupEssaySpeak();
       $("inputCamera").onchange = function (e) { handleImageFiles(e.target.files, "拍照"); e.target.value = ""; };
       $("inputImage").onchange = function (e) { handleImageFiles(e.target.files, "圖片"); e.target.value = ""; };
       $("inputVideoCapture").onchange = function (e) {
