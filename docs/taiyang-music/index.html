@@ -154,6 +154,15 @@
       border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; cursor: pointer;
     }
     .ktv-caption-mode.on { background: rgba(45,106,79,0.55); border-color: rgba(149,213,178,0.5); }
+    .ktv-offset-bar {
+      margin-top: 0.45rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.35rem;
+      font-size: 0.72rem; color: rgba(255,248,232,0.75);
+    }
+    .ktv-offset-bar button {
+      padding: 0.25rem 0.55rem; font-size: 0.72rem; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;
+    }
+    .ktv-offset-bar button:active { background: rgba(45,106,79,0.45); }
     body.ktv-mode .normal-only { display: none !important; }
     body.ktv-mode .player-shell { margin-top: 0.5rem; }
     body.ktv-mode.sync-youtube .player-shell { outline: 2px solid rgba(149,213,178,0.35); }
@@ -323,6 +332,13 @@
       <div id="ktvNext" class="ktv-next"></div>
       <p id="ktvHint" class="ktv-hint">伴唱：有伴奏版時自動切換；也可按「伴唱」切換</p>
       <button type="button" id="btnCaptionMode" class="ktv-caption-mode">字幕：原字幕優先</button>
+      <div id="ktvOffsetBar" class="ktv-offset-bar" aria-label="字幕時間微調">
+        <span>字幕快慢：</span>
+        <button type="button" id="btnOffsetEarlier" title="字幕提前（唱快時用）">◀ 提前</button>
+        <span id="ktvOffsetLabel">0.0 秒</span>
+        <button type="button" id="btnOffsetLater" title="字幕延後（唱慢時用）">延後 ▶</button>
+        <button type="button" id="btnOffsetReset">重設</button>
+      </div>
       <div id="ktvLoopBar" class="ktv-loop-bar">
         <button type="button" id="btnSetA">A 點</button>
         <button type="button" id="btnSetB">B 點</button>
@@ -417,6 +433,7 @@
     let useKaraoke = localStorage.getItem("taiyang-karaoke") !== "0";
     let captionLines = [];
     let captionTimer = null;
+    let captionRaf = null;
     let lastCaptionText = "";
     let captionPlainLines = null;
     let captionSource = "none";
@@ -426,6 +443,8 @@
     let captionFetchGen = 0;
     let captionRetryTimers = [];
     let lastSyncedLineIndex = -1;
+    let captionOffsetMs = parseInt(localStorage.getItem("taiyang-caption-offset-ms") || "-150", 10);
+    if (Number.isNaN(captionOffsetMs)) captionOffsetMs = -150;
     let singSession = null;
     let playTickTimer = null;
     let pendingAutoNext = false;
@@ -1457,11 +1476,85 @@
       downloadShareCard(url, "盛德KTV本場小結.png");
     }
 
+    function getPlaybackTimeSec() {
+      if (!player || !player.getCurrentTime) return 0;
+      try {
+        // 預設 -150ms：大字幕略提前，補 API／網路延遲（負值＝字幕提前出現）
+        return player.getCurrentTime() + captionOffsetMs / 1000;
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    function updateOffsetLabel() {
+      const el = $("ktvOffsetLabel");
+      if (!el) return;
+      const sec = captionOffsetMs / 1000;
+      const sign = sec > 0 ? "+" : "";
+      el.textContent = sign + sec.toFixed(1) + " 秒";
+    }
+
+    function setCaptionOffset(deltaMs) {
+      captionOffsetMs = Math.max(-2000, Math.min(2000, captionOffsetMs + deltaMs));
+      localStorage.setItem("taiyang-caption-offset-ms", String(captionOffsetMs));
+      updateOffsetLabel();
+    }
+
+    function resetCaptionOffset() {
+      captionOffsetMs = -150;
+      localStorage.setItem("taiyang-caption-offset-ms", String(captionOffsetMs));
+      updateOffsetLabel();
+    }
+
+    function tickCaptionSync() {
+      if (!ktvMode || !captionLines.length) return;
+      const t = getPlaybackTimeSec();
+      let line = null;
+      let lineIndex = -1;
+      let next = null;
+      for (let i = 0; i < captionLines.length; i++) {
+        const L = captionLines[i];
+        if (t >= L.start && t < L.end) {
+          line = L;
+          lineIndex = i;
+          next = captionLines[i + 1] || null;
+          break;
+        }
+        if (t < L.start) {
+          next = L;
+          break;
+        }
+      }
+      const lineEl = $("ktvLine");
+      if (line) {
+        if (lineIndex !== lastSyncedLineIndex) {
+          lastSyncedLineIndex = lineIndex;
+          lineEl.classList.remove("sync-flash");
+          void lineEl.offsetWidth;
+          lineEl.classList.add("sync-flash");
+        }
+        lastCaptionText = line.text;
+        lineEl.textContent = line.text;
+        $("ktvNext").textContent = next && next !== line ? next.text : "";
+      } else if (next) {
+        lineEl.textContent = next.text;
+        const ni = captionLines.indexOf(next);
+        $("ktvNext").textContent = ni >= 0 && captionLines[ni + 1] ? captionLines[ni + 1].text : "";
+      } else if (captionLines.length) {
+        lineEl.textContent = captionLines[captionLines.length - 1].text;
+        $("ktvNext").textContent = "";
+      }
+    }
+
     function stopCaptionSync() {
       clearCaptionRetries();
       if (captionTimer) {
         clearInterval(captionTimer);
         captionTimer = null;
+      }
+      if (captionRaf) {
+        cancelAnimationFrame(captionRaf);
+        captionRaf = null;
       }
     }
 
@@ -1469,47 +1562,21 @@
       stopCaptionSync();
       if (!ktvMode || !captionLines.length) return;
       lastSyncedLineIndex = -1;
+      const loop = () => {
+        if (!ktvMode || !captionLines.length) return;
+        let st = -1;
+        try { st = player && player.getPlayerState ? player.getPlayerState() : -1; } catch (_) {}
+        if (st === YT.PlayerState.PLAYING) tickCaptionSync();
+        captionRaf = requestAnimationFrame(loop);
+      };
+      captionRaf = requestAnimationFrame(loop);
+      // 暫停時仍偶爾更新（seek 後對位）
       captionTimer = setInterval(() => {
-        if (!player || !player.getCurrentTime) return;
-        let t = 0;
-        try { t = player.getCurrentTime(); } catch (_) { return; }
-        let line = null;
-        let lineIndex = -1;
-        let next = null;
-        for (let i = 0; i < captionLines.length; i++) {
-          const L = captionLines[i];
-          if (t >= L.start && t < L.end) {
-            line = L;
-            lineIndex = i;
-            next = captionLines[i + 1] || null;
-            break;
-          }
-          if (t < L.start) {
-            next = L;
-            break;
-          }
-        }
-        const lineEl = $("ktvLine");
-        if (line) {
-          if (lineIndex !== lastSyncedLineIndex) {
-            lastSyncedLineIndex = lineIndex;
-            lineEl.classList.remove("sync-flash");
-            void lineEl.offsetWidth;
-            lineEl.classList.add("sync-flash");
-          }
-          lastCaptionText = line.text;
-          lineEl.textContent = line.text;
-          $("ktvNext").textContent = next && next !== line ? next.text : "";
-        } else if (next) {
-          lineEl.textContent = next.text;
-          const ni = captionLines.indexOf(next);
-          $("ktvNext").textContent = ni >= 0 && captionLines[ni + 1] ? captionLines[ni + 1].text : "";
-        } else if (captionLines.length) {
-          const last = captionLines[captionLines.length - 1];
-          lineEl.textContent = last.text;
-          $("ktvNext").textContent = "";
-        }
-      }, 50);
+        if (!player) return;
+        try {
+          if (player.getPlayerState() !== YT.PlayerState.PLAYING) tickCaptionSync();
+        } catch (_) {}
+      }, 200);
     }
 
     function updateSyncIndicator(mode) {
@@ -1518,10 +1585,10 @@
       document.body.classList.toggle("sync-youtube", mode === "youtube");
       if (mode === "youtube") {
         dot.className = "ktv-sync-dot youtube";
-        dot.textContent = "● 螢幕字幕同步中";
+        dot.textContent = "● 原字幕同步（可微調快慢）";
       } else if (mode === "estimated") {
         dot.className = "ktv-sync-dot estimated";
-        dot.textContent = "● 估算同步（非原字幕）";
+        dot.textContent = "● 估算同步（難以零差距）";
       } else if (mode === "timed") {
         dot.className = "ktv-sync-dot youtube";
         dot.textContent = "● 時間軸同步";
