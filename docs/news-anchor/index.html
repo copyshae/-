@@ -105,10 +105,23 @@
       border: 1px solid var(--line); background: rgba(255,255,255,.06); color: #fff;
     }
     textarea { min-height: 5.5rem; resize: vertical; line-height: 1.55; }
+    .kw-row textarea { width: 100%; min-height: 5.5rem; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
     .kw-row { display: flex; gap: 0.4rem; align-items: stretch; }
     .kw-row input { flex: 1 1 auto; min-width: 0; }
     .kw-row button { flex: 0 0 auto; white-space: nowrap; }
+    .input-mode {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-bottom: 0.5rem;
+    }
+    .input-mode .mode-btn {
+      min-height: 2.5rem; font-size: 0.88rem;
+      background: rgba(255,255,255,.05); color: var(--muted);
+    }
+    .input-mode .mode-btn.active {
+      background: rgba(232,197,71,.18); color: var(--accent); border-color: var(--accent);
+    }
+    .voice-main { width: 100%; font-size: 1rem; min-height: 3rem; }
+    .input-panel[hidden] { display: none !important; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
     button {
       cursor: pointer; border: 1px solid var(--line);
@@ -161,7 +174,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">抓取 Google 新聞頭條；關鍵字可<strong>口說或打字</strong>，由虛擬主播語音播報。</p>
+    <p class="sub">抓取 Google 新聞；<strong>文字或口說</strong>輸入關鍵字／分類，由虛擬主播語音播報。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -182,13 +195,26 @@
 
     <section class="card">
       <h2>📰 新聞來源</h2>
-      <label for="keyword">關鍵字搜尋（優先）</label>
-      <div class="kw-row">
-        <input id="keyword" type="text" autocomplete="off" placeholder="打字或按麥克風口說，例如：台積電、颱風…" />
-        <button type="button" id="btnKwVoice" title="口說關鍵字">🎤 口說</button>
+      <div class="input-mode" role="tablist" aria-label="輸入方式">
+        <button type="button" class="mode-btn active" id="modeText" data-mode="text">⌨️ 文字輸入</button>
+        <button type="button" class="mode-btn" id="modeVoice" data-mode="voice">🎤 口說輸入</button>
       </div>
+
+      <div class="input-panel" id="panelText">
+        <label for="keyword">關鍵字（可留空改抓分類）</label>
+        <div class="kw-row">
+          <input id="keyword" type="text" autocomplete="off" placeholder="打字輸入，例如：台積電、颱風…" />
+          <button type="button" id="btnKwVoice" title="也可口說填入">🎤 口說</button>
+        </div>
+      </div>
+
+      <div class="input-panel" id="panelVoice" hidden>
+        <button type="button" class="primary voice-main" id="btnVoiceMain">🎤 點一下開始說</button>
+        <p class="hint" id="voiceMainHint">口說範例：「台積電」「播報科技新聞」「頭條五則」「更新國際新聞」</p>
+      </div>
+
       <div class="kw-chips" id="kwChips" hidden></div>
-      <p class="hint" id="kwHint">關鍵字可<strong>打字</strong>或按<strong>口說</strong>填入；按 Enter 或「搜尋並播報」開始。留空則依下方分類抓取。</p>
+      <p class="hint" id="kwHint">文字與口說皆可；有關鍵字則搜尋，留空則依下方分類抓取。</p>
       <div class="row2">
         <div>
           <label for="category">分類（無關鍵字時）</label>
@@ -210,8 +236,7 @@
         </div>
       </div>
       <div class="actions">
-        <button type="button" class="primary" id="btnVoiceSearch">🎤 口說搜尋並播報</button>
-        <button type="button" class="primary" id="btnSearchPlay">🔍 搜尋並播報</button>
+        <button type="button" class="primary" id="btnSearchPlay">▶ 開始播報</button>
         <button type="button" class="primary" id="btnFetch">更新新聞</button>
         <button type="button" class="accent" id="btnScript">產生播報稿</button>
       </div>
@@ -221,8 +246,11 @@
 
     <section class="card">
       <h2>🎙️ 播報控制</h2>
-      <label for="scriptText">播報稿（可編輯）</label>
-      <textarea id="scriptText" placeholder="按「產生播報稿」後會出現文字，也可自行貼上。"></textarea>
+      <label for="scriptText">播報稿（文字或口說皆可）</label>
+      <textarea id="scriptText" placeholder="按「產生播報稿」後會出現文字；也可打字或口說自行輸入。"></textarea>
+      <div class="actions" style="margin-top:0.35rem">
+        <button type="button" id="btnScriptVoice">🎤 口說填入播報稿</button>
+      </div>
       <div class="actions">
         <button type="button" class="primary" id="btnPlay">▶ 開始播報</button>
         <button type="button" id="btnPause" data-tts-pause disabled>⏸ 暫停</button>
@@ -272,7 +300,22 @@
     var KEY_ANCHOR = "news-anchor-character-v1";
     var KEY_GEMINI = "news-anchor-gemini-key";
     var KEY_RECENT_KW = "news-anchor-recent-keywords-v1";
+    var KEY_INPUT_MODE = "news-anchor-input-mode-v1";
     var GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+
+    var CAT_ALIASES = {
+      "頭條": "headlines", "焦點": "headlines", "要聞": "headlines",
+      "台灣": "nation", "國內": "nation", "國內新聞": "nation",
+      "國際": "world", "世界": "world", "國際新聞": "world",
+      "財經": "business", "经济": "business", "經濟": "business",
+      "科技": "technology", "tech": "technology",
+      "體育": "sports", "運動": "sports",
+      "娛樂": "entertainment",
+      "科學": "science",
+      "健康": "health", "醫療": "health"
+    };
+
+    var CN_NUM = { "一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 };
 
     var RSS_BASE = "https://news.google.com/rss";
     var RSS_LOCALE = "hl=zh-TW&gl=TW&ceid=TW:zh-Hant";
@@ -336,7 +379,8 @@
       speakWatch: null,
       searchKeyword: "",
       recognition: null,
-      voiceAutoSearch: false
+      voiceHandler: null,
+      inputMode: "text"
     };
 
     function $(id) { return document.getElementById(id); }
@@ -348,14 +392,93 @@
     function cleanVoiceKeyword(text) {
       var s = String(text || "").trim();
       s = s.replace(/[。，、！？!?,.]+$/g, "");
-      s = s.replace(/^(搜尋|找一下|找|查|查詢|我要看|我想看|請播報|播報|关于|關於|有关|有關)\s*/i, "");
-      s = s.replace(/(的新聞|新聞|消息|資訊|報導)$/i, "");
+      s = s.replace(/^(搜尋|找一下|找|查|查詢|我要看|我想看|請播報|播報|关于|關於|有关|有關|给我|給我|我要|我想聽|我想听)\s*/i, "");
+      s = s.replace(/(的新聞|新聞|消息|資訊|報導|快報)$/i, "");
       return s.trim();
     }
 
+    function parseCountFromSpeech(text) {
+      var m = String(text || "").match(/(\d+)\s*則/);
+      if (m) return Math.max(1, Math.min(10, parseInt(m[1], 10)));
+      var m2 = String(text || "").match(/([一二兩三四五六七八九十])\s*則/);
+      if (m2 && CN_NUM[m2[1]]) return CN_NUM[m2[1]];
+      return null;
+    }
+
+    function parseVoiceNewsCommand(raw) {
+      var original = String(raw || "").trim();
+      var s = original;
+      var out = { keyword: "", category: "", count: null, action: "play", raw: original };
+      out.count = parseCountFromSpeech(s);
+
+      var foundCat = "";
+      Object.keys(CAT_ALIASES).forEach(function (label) {
+        if (s.indexOf(label) >= 0 && label.length >= foundCat.length) {
+          foundCat = label;
+          out.category = CAT_ALIASES[label];
+        }
+      });
+
+      var work = s
+        .replace(/(\d+|[一二兩三四五六七八九十])\s*則/g, "")
+        .replace(/搜尋|查詢|播報|更新|開始|我要|給我|我想聽|我想看/g, "")
+        .replace(/新聞|快報|消息|頭條/g, "");
+
+      Object.keys(CAT_ALIASES).forEach(function (label) {
+        work = work.split(label).join("");
+      });
+      work = cleanVoiceKeyword(work);
+
+      if (work.length >= 2) out.keyword = work;
+      else if (!out.category) out.keyword = cleanVoiceKeyword(original);
+
+      if (/更新|刷新|重新抓/i.test(original) && !/播報|開始/i.test(original)) {
+        out.action = "fetch";
+      }
+      return out;
+    }
+
+    function applyVoiceNewsCommand(cmd) {
+      if (cmd.count) $("newsCount").value = String(cmd.count);
+      if (cmd.category) {
+        $("category").value = cmd.category;
+        if (!cmd.keyword) $("keyword").value = "";
+      }
+      if (cmd.keyword) $("keyword").value = cmd.keyword;
+      var hint = $("kwHint");
+      if (hint) {
+        if (cmd.keyword && cmd.category) {
+          hint.textContent = "已口說：關鍵字「" + cmd.keyword + "」＋分類「" + (CATEGORY_LABELS[cmd.category] || cmd.category) + "」（有關鍵字時以搜尋為主）。";
+        } else if (cmd.keyword) {
+          hint.textContent = "已口說關鍵字「" + cmd.keyword + "」。可再打字微調。";
+        } else if (cmd.category) {
+          hint.textContent = "已口說分類「" + (CATEGORY_LABELS[cmd.category] || cmd.category) + "」。可再打字輸入關鍵字覆蓋。";
+        }
+      }
+    }
+
+    function loadInputMode() {
+      try {
+        var m = localStorage.getItem(KEY_INPUT_MODE);
+        if (m === "voice" || m === "text") return m;
+      } catch (e) {}
+      return "text";
+    }
+
+    function setInputMode(mode) {
+      state.inputMode = mode === "voice" ? "voice" : "text";
+      try { localStorage.setItem(KEY_INPUT_MODE, state.inputMode); } catch (e) {}
+      $("modeText").classList.toggle("active", state.inputMode === "text");
+      $("modeVoice").classList.toggle("active", state.inputMode === "voice");
+      $("panelText").hidden = state.inputMode !== "text";
+      $("panelVoice").hidden = state.inputMode !== "voice";
+    }
+
     function voiceIdleLabel(btn) {
+      if (!btn) return "🎤 口說";
       if (btn.id === "btnKwVoice") return "🎤 口說";
-      if (btn.id === "btnVoiceSearch") return "🎤 口說搜尋並播報";
+      if (btn.id === "btnVoiceMain") return "🎤 點一下開始說";
+      if (btn.id === "btnScriptVoice") return "🎤 口說填入播報稿";
       return "🎤 口說";
     }
 
@@ -363,17 +486,26 @@
       if (!state.recognition) return;
       try { state.recognition.stop(); } catch (e) {}
       state.recognition = null;
-      state.voiceAutoSearch = false;
+      state.voiceHandler = null;
       document.querySelectorAll("button.recording").forEach(function (btn) {
         btn.classList.remove("recording");
         btn.textContent = voiceIdleLabel(btn);
       });
     }
 
-    function startVoiceKeyword(btn, autoSearch) {
+    function appendFieldText(el, text, sep) {
+      if (!el) return;
+      var add = String(text || "").trim();
+      if (!add) return;
+      sep = sep || "\n";
+      el.value = el.value ? el.value.replace(/\s+$/, "") + sep + add : add;
+      try { el.focus(); } catch (e) {}
+    }
+
+    function startVoiceInput(btn, handler, listeningText) {
       var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) {
-        alert("此瀏覽器不支援語音辨識，請改用打字，或用 Chrome／Edge。");
+        alert("此瀏覽器不支援語音辨識，請改用文字輸入，或用 Chrome／Edge。");
         return;
       }
       if (state.recognition) {
@@ -381,53 +513,38 @@
         return;
       }
       if (window.TtsVoices) TtsVoices.stopSpeakQueue();
-      state.voiceAutoSearch = !!autoSearch;
+      state.voiceHandler = handler;
       state.recognition = new SR();
       state.recognition.lang = "zh-TW";
       state.recognition.continuous = false;
       state.recognition.interimResults = false;
       btn.classList.add("recording");
-      btn.textContent = autoSearch ? "■ 請說關鍵字…" : "■ 停止";
-      $("fetchStatus").textContent = autoSearch ? "請說出關鍵字，例如：台積電、颱風…" : "正在聽您說關鍵字…";
+      btn.textContent = "■ 請說話…";
+      $("fetchStatus").textContent = listeningText || "正在聽您說話…";
       $("fetchStatus").className = "status warn";
 
       state.recognition.onresult = function (ev) {
         var raw = (ev.results[0] && ev.results[0][0] && ev.results[0][0].transcript) || "";
-        var kw = cleanVoiceKeyword(raw);
-        if (!kw) {
-          $("fetchStatus").textContent = "聽不清楚，請再試一次或改用打字";
-          $("fetchStatus").className = "status err";
-          return;
-        }
-        $("keyword").value = kw;
-        var hint = $("kwHint");
-        if (hint) hint.textContent = "已用口說填入「" + kw + "」。可再打字微調，或按搜尋並播報。";
-        if (state.voiceAutoSearch) {
-          searchAndPlay().catch(showFetchError);
-        } else {
-          $("fetchStatus").textContent = "已口說填入：「" + kw + "」";
-          $("fetchStatus").className = "status";
-          try { $("keyword").focus(); } catch (e) {}
-        }
+        if (state.voiceHandler) state.voiceHandler(raw, btn);
       };
 
       state.recognition.onerror = function (ev) {
         var msg = "語音辨識失敗";
-        if (ev && ev.error === "not-allowed") msg = "請允許麥克風權限後再試";
-        else if (ev && ev.error === "no-speech") msg = "沒聽到聲音，請再說一次或改用打字";
+        if (ev && ev.error === "not-allowed") msg = "請允許麥克風權限後再試，或改用文字輸入";
+        else if (ev && ev.error === "no-speech") msg = "沒聽到聲音，請再說一次或改用文字輸入";
         $("fetchStatus").textContent = msg;
         $("fetchStatus").className = "status err";
         btn.classList.remove("recording");
         btn.textContent = voiceIdleLabel(btn);
         state.recognition = null;
-        state.voiceAutoSearch = false;
+        state.voiceHandler = null;
       };
 
       state.recognition.onend = function () {
         btn.classList.remove("recording");
         btn.textContent = voiceIdleLabel(btn);
         state.recognition = null;
-        state.voiceAutoSearch = false;
+        state.voiceHandler = null;
       };
 
       try { state.recognition.start(); } catch (e) {
@@ -435,6 +552,51 @@
         $("fetchStatus").textContent = "無法啟動語音辨識：" + e.message;
         $("fetchStatus").className = "status err";
       }
+    }
+
+    function startVoiceKeyword(btn, autoPlay) {
+      startVoiceInput(btn, function (raw) {
+        var kw = cleanVoiceKeyword(raw);
+        if (!kw) {
+          $("fetchStatus").textContent = "聽不清楚，請再試一次或改用文字輸入";
+          $("fetchStatus").className = "status err";
+          return;
+        }
+        $("keyword").value = kw;
+        $("kwHint").textContent = "已口說填入「" + kw + "」。可再打字微調。";
+        if (autoPlay) {
+          playNewsFlow().catch(showFetchError);
+        } else {
+          $("fetchStatus").textContent = "已口說填入：「" + kw + "」";
+          $("fetchStatus").className = "status";
+        }
+      }, "請說出關鍵字，例如：台積電、颱風…");
+    }
+
+    function startVoiceNewsCommand(btn) {
+      startVoiceInput(btn, function (raw) {
+        var cmd = parseVoiceNewsCommand(raw);
+        applyVoiceNewsCommand(cmd);
+        if (cmd.action === "fetch") {
+          fetchNews().catch(showFetchError);
+          return;
+        }
+        playNewsFlow().catch(showFetchError);
+      }, "請說關鍵字或分類，例如：台積電、播報科技新聞、頭條五則");
+    }
+
+    function startVoiceScript(btn) {
+      startVoiceInput(btn, function (raw) {
+        var text = String(raw || "").trim();
+        if (!text) {
+          $("fetchStatus").textContent = "沒聽到內容，請再試一次或改用打字";
+          $("fetchStatus").className = "status err";
+          return;
+        }
+        appendFieldText($("scriptText"), text, "\n");
+        $("fetchStatus").textContent = "已口說加入播報稿，可再打字微調後按開始播報";
+        $("fetchStatus").className = "status";
+      }, "請說出要加入播報稿的文字…");
     }
 
 
@@ -903,11 +1065,7 @@
       if (k) $("geminiKey").value = "••••••••";
     }
 
-    async function searchAndPlay() {
-      var kw = getKeyword();
-      if (!kw) {
-        throw new Error("請先輸入關鍵字，例如：台積電、颱風、奧運");
-      }
+    async function playNewsFlow() {
       TtsVoices.stopSpeakQueue();
       $("btnSearchPlay").disabled = true;
       try {
@@ -927,22 +1085,29 @@
 
     $("btnSearchPlay").addEventListener("click", function () {
       stopVoiceIfAny();
-      searchAndPlay().catch(showFetchError);
+      playNewsFlow().catch(showFetchError);
     });
 
-    $("btnVoiceSearch").addEventListener("click", function () {
-      startVoiceKeyword($("btnVoiceSearch"), true);
+    $("modeText").addEventListener("click", function () { setInputMode("text"); });
+    $("modeVoice").addEventListener("click", function () { setInputMode("voice"); });
+
+    $("btnVoiceMain").addEventListener("click", function () {
+      startVoiceNewsCommand($("btnVoiceMain"));
     });
 
     $("btnKwVoice").addEventListener("click", function () {
       startVoiceKeyword($("btnKwVoice"), false);
     });
 
+    $("btnScriptVoice").addEventListener("click", function () {
+      startVoiceScript($("btnScriptVoice"));
+    });
+
     $("keyword").addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
         stopVoiceIfAny();
-        searchAndPlay().catch(showFetchError);
+        playNewsFlow().catch(showFetchError);
       }
     });
 
