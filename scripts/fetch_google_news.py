@@ -87,7 +87,12 @@ def parse_rss(xml_text: str, limit: int = 12) -> list[dict]:
     return items
 
 
-def build_cache(categories: list[str] | None, per_feed: int) -> dict:
+def build_search_url(keyword: str) -> str:
+    q = urllib.parse.quote(keyword.strip())
+    return f"https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+
+
+def build_cache(categories: list[str] | None, per_feed: int, keywords: list[str] | None = None) -> dict:
     cats = categories or list(FEEDS.keys())
     payload: dict = {
         "updatedAt": datetime.now(timezone.utc).isoformat(),
@@ -112,6 +117,31 @@ def build_cache(categories: list[str] | None, per_feed: int) -> dict:
             payload["feeds"][key] = {
                 "label": CATEGORY_LABELS.get(key, key),
                 "url": url,
+                "items": [],
+                "error": str(exc),
+            }
+    for kw in keywords or []:
+        kw = kw.strip()
+        if not kw:
+            continue
+        url = build_search_url(kw)
+        feed_key = "search:" + kw
+        try:
+            xml_text = fetch_rss(url)
+            items = parse_rss(xml_text, limit=per_feed)
+            payload["feeds"][feed_key] = {
+                "label": f"「{kw}」相關",
+                "url": url,
+                "keyword": kw,
+                "items": items,
+            }
+            print(f"✓ 關鍵字「{kw}」：{len(items)} 則", file=sys.stderr)
+        except (urllib.error.URLError, ET.ParseError, TimeoutError) as exc:
+            print(f"✗ 關鍵字「{kw}」抓取失敗：{exc}", file=sys.stderr)
+            payload["feeds"][feed_key] = {
+                "label": f"「{kw}」相關",
+                "url": url,
+                "keyword": kw,
                 "items": [],
                 "error": str(exc),
             }
@@ -142,8 +172,19 @@ def main() -> int:
         default=10,
         help="每個分類最多幾則（預設 10）",
     )
+    parser.add_argument(
+        "-k",
+        "--keyword",
+        action="append",
+        dest="keywords",
+        help="搜尋關鍵字（Google 新聞 RSS），可重複指定",
+    )
     args = parser.parse_args()
-    cache = build_cache(args.categories, max(1, min(args.limit, 30)))
+    cache = build_cache(
+        args.categories,
+        max(1, min(args.limit, 30)),
+        args.keywords,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"已寫入 {args.output}", file=sys.stderr)

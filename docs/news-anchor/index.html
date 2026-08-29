@@ -100,7 +100,7 @@
     select, input, textarea, button {
       font: inherit; font-size: 16px;
     }
-    select, input[type="password"], input[type="number"], textarea {
+    select, input[type="password"], input[type="number"], input[type="text"], textarea {
       width: 100%; padding: 0.5rem 0.55rem;
       border: 1px solid var(--line); background: rgba(255,255,255,.06); color: #fff;
     }
@@ -145,6 +145,11 @@
     .news-list li:hover { background: rgba(255,255,255,.06); }
     .news-list li.on { background: rgba(232,197,71,.12); border-left: 3px solid var(--accent); }
     .news-list .src { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
+    .kw-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
+    .kw-chips button {
+      font-size: 0.76rem; padding: 0.28rem 0.55rem; min-height: auto; font-weight: 600;
+      background: rgba(232,197,71,.12); border-color: rgba(232,197,71,.35); color: var(--accent);
+    }
     footer { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 0.8rem; }
     footer a { color: var(--accent); }
   </style>
@@ -152,7 +157,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">抓取 Google 新聞頭條，選擇主播人物，以語音播報（可選 Gemini 生成播報稿）。</p>
+    <p class="sub">抓取 Google 新聞頭條，或輸入關鍵字搜尋相關新聞，由虛擬主播語音播報。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -173,9 +178,13 @@
 
     <section class="card">
       <h2>📰 新聞來源</h2>
+      <label for="keyword">關鍵字搜尋（優先）</label>
+      <input id="keyword" type="text" autocomplete="off" placeholder="例如：台積電、颱風、奧運、人工智慧…" />
+      <div class="kw-chips" id="kwChips" hidden></div>
+      <p class="hint">有輸入關鍵字時，會搜尋 Google 新聞相關報導；留空則依下方分類抓取。</p>
       <div class="row2">
         <div>
-          <label for="category">分類</label>
+          <label for="category">分類（無關鍵字時）</label>
           <select id="category">
             <option value="headlines">頭條</option>
             <option value="nation">台灣</option>
@@ -194,6 +203,7 @@
         </div>
       </div>
       <div class="actions">
+        <button type="button" class="primary" id="btnSearchPlay">🔍 搜尋並播報</button>
         <button type="button" class="primary" id="btnFetch">更新新聞</button>
         <button type="button" class="accent" id="btnScript">產生播報稿</button>
       </div>
@@ -253,7 +263,11 @@
 
     var KEY_ANCHOR = "news-anchor-character-v1";
     var KEY_GEMINI = "news-anchor-gemini-key";
+    var KEY_RECENT_KW = "news-anchor-recent-keywords-v1";
     var GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+
+    var RSS_BASE = "https://news.google.com/rss";
+    var RSS_LOCALE = "hl=zh-TW&gl=TW&ceid=TW:zh-Hant";
 
     var FEEDS = {
       headlines: "https://news.google.com/rss?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
@@ -311,10 +325,69 @@
       news: [],
       cache: null,
       blinkTimer: null,
-      speakWatch: null
+      speakWatch: null,
+      searchKeyword: ""
     };
 
     function $(id) { return document.getElementById(id); }
+
+    function getKeyword() {
+      return ($("keyword").value || "").trim();
+    }
+
+    function buildSearchRssUrl(keyword) {
+      return RSS_BASE + "/search?q=" + encodeURIComponent(keyword) + "&" + RSS_LOCALE;
+    }
+
+    function buildCategoryRssUrl(category) {
+      return FEEDS[category] || FEEDS.headlines;
+    }
+
+    function getFeedLabel() {
+      if (state.searchKeyword) return "「" + state.searchKeyword + "」相關";
+      return CATEGORY_LABELS[$("category").value] || "頭條";
+    }
+
+    function loadRecentKeywords() {
+      try {
+        var raw = localStorage.getItem(KEY_RECENT_KW);
+        if (!raw) return [];
+        var list = JSON.parse(raw);
+        return Array.isArray(list) ? list.filter(function (k) { return typeof k === "string" && k.trim(); }).slice(0, 8) : [];
+      } catch (e) { return []; }
+    }
+
+    function saveRecentKeyword(keyword) {
+      keyword = (keyword || "").trim();
+      if (!keyword) return;
+      var list = loadRecentKeywords().filter(function (k) { return k !== keyword; });
+      list.unshift(keyword);
+      list = list.slice(0, 8);
+      try { localStorage.setItem(KEY_RECENT_KW, JSON.stringify(list)); } catch (e) {}
+      renderRecentKeywords();
+    }
+
+    function renderRecentKeywords() {
+      var wrap = $("kwChips");
+      var list = loadRecentKeywords();
+      if (!list.length) {
+        wrap.hidden = true;
+        wrap.innerHTML = "";
+        return;
+      }
+      wrap.hidden = false;
+      wrap.innerHTML = "";
+      list.forEach(function (kw) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = kw;
+        btn.addEventListener("click", function () {
+          $("keyword").value = kw;
+          searchAndPlay().catch(showFetchError);
+        });
+        wrap.appendChild(btn);
+      });
+    }
 
     function loadAnchorPref() {
       try {
@@ -480,8 +553,11 @@
       return res.json();
     }
 
-    async function fetchLiveRss(category) {
-      var rssUrl = FEEDS[category] || FEEDS.headlines;
+    async function fetchLiveRss(opts) {
+      opts = opts || {};
+      var rssUrl = opts.keyword
+        ? buildSearchRssUrl(opts.keyword)
+        : buildCategoryRssUrl(opts.category || "headlines");
       var apiUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl);
       var res = await fetch(apiUrl);
       if (!res.ok) throw new Error("即時抓取失敗（" + res.status + "）");
@@ -490,34 +566,56 @@
       return normalizeItems(data.items || []);
     }
 
+    function showFetchError(e) {
+      $("fetchStatus").textContent = (e && e.message) ? e.message : "操作失敗";
+      $("fetchStatus").className = "status err";
+    }
+
     async function fetchNews() {
+      var keyword = getKeyword();
       var cat = $("category").value;
       var status = $("fetchStatus");
       status.className = "status";
-      status.textContent = "正在更新新聞…";
+      status.textContent = keyword ? ("正在搜尋「" + keyword + "」…") : "正在更新新聞…";
       var items = [];
-      try {
-        if (!state.cache) state.cache = await loadCacheFile();
-        var cached = state.cache.feeds && state.cache.feeds[cat];
-        if (cached && cached.items && cached.items.length) {
-          items = normalizeItems(cached.items);
-          status.textContent = "已載入快取（" + (cached.label || cat) + "），正在嘗試即時更新…";
+
+      if (keyword) {
+        state.searchKeyword = keyword;
+        saveRecentKeyword(keyword);
+        try {
+          items = await fetchLiveRss({ keyword: keyword });
+        } catch (e) {
+          throw new Error("關鍵字搜尋失敗：" + e.message);
+        }
+        if (!items.length) throw new Error("找不到「" + keyword + "」相關新聞，請換個關鍵字試試");
+        status.textContent = "已搜尋「" + keyword + "」共 " + items.length + " 則";
+        status.className = "status";
+      } else {
+        state.searchKeyword = "";
+        try {
+          if (!state.cache) state.cache = await loadCacheFile();
+          var cached = state.cache.feeds && state.cache.feeds[cat];
+          if (cached && cached.items && cached.items.length) {
+            items = normalizeItems(cached.items);
+            status.textContent = "已載入快取（" + (cached.label || cat) + "），正在嘗試即時更新…";
+            status.className = "status warn";
+          }
+        } catch (e) {}
+        try {
+          var live = await fetchLiveRss({ category: cat });
+          if (live.length) {
+            items = live;
+            status.textContent = "已更新「" + (CATEGORY_LABELS[cat] || cat) + "」共 " + items.length + " 則（即時）";
+            status.className = "status";
+          }
+        } catch (e) {
+          if (!items.length) throw e;
+          status.textContent = "使用離線快取（即時更新失敗：" + e.message + "）";
           status.className = "status warn";
         }
-      } catch (e) {}
-      try {
-        var live = await fetchLiveRss(cat);
-        if (live.length) {
-          items = live;
-          status.textContent = "已更新「" + (CATEGORY_LABELS[cat] || cat) + "」共 " + items.length + " 則（即時）";
-          status.className = "status";
-        }
-      } catch (e) {
-        if (!items.length) throw e;
-        status.textContent = "使用離線快取（即時更新失敗：" + e.message + "）";
-        status.className = "status warn";
+        if (!items.length) throw new Error("沒有取得任何新聞");
       }
-      if (!items.length) throw new Error("沒有取得任何新聞");
+
       state.news = items;
       renderNewsList();
       return items;
@@ -544,8 +642,8 @@
     }
 
     /* ===== 播報稿 ===== */
-    function buildTemplateScript(items, anchor, category) {
-      var catLabel = CATEGORY_LABELS[category] || "頭條";
+    function buildTemplateScript(items, anchor) {
+      var catLabel = getFeedLabel();
       var lines = [
         "各位觀眾您好，歡迎收看 Google 新聞" + catLabel + "快報。",
         anchor.intro,
@@ -554,7 +652,7 @@
       items.forEach(function (it, i) {
         lines.push("第 " + (i + 1) + " 則：" + it.title + (it.source ? "。消息來源：" + it.source : "") + "。");
       });
-      lines.push("以上為今日" + catLabel + "摘要，我是" + anchor.name + "，感謝您的收看。");
+      lines.push("以上為" + catLabel + "新聞摘要，我是" + anchor.name + "，感謝您的收看。");
       return lines.join("\n");
     }
 
@@ -562,10 +660,10 @@
       try { return localStorage.getItem(KEY_GEMINI) || ""; } catch (e) { return ""; }
     }
 
-    async function geminiScript(items, anchor, category) {
+    async function geminiScript(items, anchor) {
       var key = getGeminiKey();
       if (!key) return null;
-      var catLabel = CATEGORY_LABELS[category] || "頭條";
+      var catLabel = getFeedLabel();
       var bullet = items.map(function (it, i) {
         return (i + 1) + ". " + it.title + (it.source ? "（" + it.source + "）" : "");
       }).join("\n");
@@ -604,16 +702,15 @@
       var count = Math.max(1, Math.min(10, parseInt($("newsCount").value, 10) || 5));
       if (!state.news.length) await fetchNews();
       var items = state.news.slice(0, count);
-      if (!items.length) throw new Error("請先更新新聞");
+      if (!items.length) throw new Error("請先更新新聞或輸入關鍵字搜尋");
       var anchor = getAnchor();
-      var cat = $("category").value;
       var status = $("fetchStatus");
       status.textContent = "正在產生播報稿…";
       status.className = "status warn";
       var script = null;
       if (getGeminiKey()) {
         try {
-          script = await geminiScript(items, anchor, cat);
+          script = await geminiScript(items, anchor);
           status.textContent = "已用 Gemini 產生播報稿";
         } catch (e) {
           status.textContent = "Gemini 失敗，改用內建模板（" + e.message + "）";
@@ -621,7 +718,7 @@
         }
       }
       if (!script) {
-        script = buildTemplateScript(items, anchor, cat);
+        script = buildTemplateScript(items, anchor);
         if (!getGeminiKey()) status.textContent = "已用內建模板產生播報稿（可填 Gemini 金鑰升級）";
       }
       status.className = "status";
@@ -688,19 +785,41 @@
       if (k) $("geminiKey").value = "••••••••";
     }
 
+    async function searchAndPlay() {
+      var kw = getKeyword();
+      if (!kw) {
+        throw new Error("請先輸入關鍵字，例如：台積電、颱風、奧運");
+      }
+      TtsVoices.stopSpeakQueue();
+      $("btnSearchPlay").disabled = true;
+      try {
+        await fetchNews();
+        var script = await generateScript();
+        speakText(script);
+        watchSpeakSubtitle(script);
+      } finally {
+        $("btnSearchPlay").disabled = false;
+      }
+    }
+
     /* ===== 事件 ===== */
     $("btnFetch").addEventListener("click", function () {
-      fetchNews().catch(function (e) {
-        $("fetchStatus").textContent = "更新失敗：" + e.message;
-        $("fetchStatus").className = "status err";
-      });
+      fetchNews().catch(showFetchError);
+    });
+
+    $("btnSearchPlay").addEventListener("click", function () {
+      searchAndPlay().catch(showFetchError);
+    });
+
+    $("keyword").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        searchAndPlay().catch(showFetchError);
+      }
     });
 
     $("btnScript").addEventListener("click", function () {
-      generateScript().catch(function (e) {
-        $("fetchStatus").textContent = "產稿失敗：" + e.message;
-        $("fetchStatus").className = "status err";
-      });
+      generateScript().catch(showFetchError);
     });
 
     $("btnPlay").addEventListener("click", function () {
@@ -709,10 +828,7 @@
         generateScript().then(function (s) {
           speakText(s);
           watchSpeakSubtitle(s);
-        }).catch(function (e) {
-          $("fetchStatus").textContent = e.message;
-          $("fetchStatus").className = "status err";
-        });
+        }).catch(showFetchError);
         return;
       }
       speakText(text);
@@ -747,6 +863,7 @@
     renderMainAnchor();
     bindTts();
     initGeminiKey();
+    renderRecentKeywords();
     fetchNews().catch(function () {});
 
     if ("serviceWorker" in navigator) {
