@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-29T18:33:02.686059+00:00",
+  "updatedAt": "2026-08-29T18:34:10.762898+00:00",
   "feeds": {
     "headlines": {
       "label": "頭條",
@@ -1229,6 +1229,105 @@
           "publisherUrl": "https://hk.on.cc/hk/bkn/cnt/news/20260823/bkn-20260823040133757-0823_00822_001.html",
           "articleText": "繼早前爆出「做雞校長」風波，令外界側目後，孔教學院大成何郭佩珍中學近期更先後爆出兩宗因發放文憑試成績表安排的爭議。有應屆",
           "articleSummary": "繼早前爆出「做雞校長」風波，令外界側目後，孔教學院大成何郭佩珍中學近期更先後爆出兩宗因發放文憑試成績表安排的爭議。有應屆"
+        }
+      ]
+    },
+    "ai": {
+      "label": "AI",
+      "url": "https://news.google.com/rss/search?q=AI%20%E4%BA%BA%E5%B7%A5%E6%99%BA%E6%85%A7&hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      "items": [
+        {
+          "title": "從救世主到滅絕者：面對「AI三難困境」，美中角力下的全球治理算盤",
+          "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTFBES0g0ZVNfZEVSaHJEMUhLRWo1R2pjUmxzbnVCN3I4MVhXdEJHTDllYmR5TWpLV0Y3dmFXYVpxZUw1N0EtdWtwRnZOakpjd2R3bjhJQQ?oc=5",
+          "pubDate": "Fri, 28 Aug 2026 23:57:00 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiVEFVX3lxTFBES0g0ZVNfZEVSaHJEMUhLRWo1R2pjUmxzbnVCN3I4MVhXdEJHTDllYmR5TWpLV0Y3dmFXYVpxZUw1N0EtdWtwRnZOakpjd2R3bjhJQQ?oc=5\" target=\"_blank\">從救世主到滅絕者：面對「AI三難困境」，美中角力下的全球治理算盤</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">TNL The News Lens 關鍵評論網</font>",
+          "relatedTitles": [],
+          "source": "TNL The News Lens 關鍵評論網",
+          "publisherUrl": "https://www.thenewslens.com/article/269789",
+          "articleText": "Sebastian Mallaby 剖析 AI 引發之人類定位危機與文明挑戰，並提出「AI 三難困境」——於創新、國安與公眾焦慮間平衡，警示現有治理框架不足應對。",
+          "articleSummary": "Sebastian Mallaby 剖析 AI 引發之人類定位危機與文明挑戰，並提出「AI 三難困境」——於創新、國安與公眾焦慮間平衡，警示現有治理框架不足應對。"
+        },
+        {
+          "title": "北榮鳳林分院長照機構 導入AI助精準照護服務社區|新創臺灣",
+          "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE9EcHl1RkZ5clZ1bExncFc1TGZEaXZYT050ejczaFREUEtTUE5EZnIxMHNpc29oTWxLN2wyY2Q1V1FieTM3WG1Id1F6WQ?oc=5",
+          "pubDate": "Fri, 28 Aug 2026 06:00:00 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiS0FVX3lxTE9EcHl1RkZ5clZ1bExncFc1TGZEaXZYT050ejczaFREUEtTUE5EZnIxMHNpc29oTWxLN2wyY2Q1V1FieTM3WG1Id1F6WQ?oc=5\" target=\"_blank\">北榮鳳林分院長照機構 導入AI助精準照護服務社區|新創臺灣</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">僑新聞</font>",
+          "relatedTitles": [],
+          "source": "僑新聞",
+          "publisherUrl": "https://ocacnews.net/article/430676"
+        },
+        {
+          "title": "擁抱AI的音樂家周善祥：在數學、音樂與人工智慧的交會中，展現「自由人」的博雅精神| 文化視角",
+          "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTFBaZDFUS1hVX1gzRjBJSGU4Yk50UkpMMUk3TUJCZzNIdkJtbDhyMktNaWMxclNYTzd2Ni1tMXdIT3JlNmdfSnVrV240ZUpwQk1FczVWMWZnT2ZsY1gxZmZ4b2s2U2R3dw?oc=5",
+          "pubDate": "Thu, 27 Aug 2026 08:08:54 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiZkFVX3lxTFBaZDFUS1hVX1gzRjBJSGU4Yk50UkpMMUk3TUJCZzNIdkJtbDhyMktNaWMxclNYTzd2Ni1tMXdIT3JlNmdfSnVrV240ZUpwQk1FczVWMWZnT2ZsY1gxZmZ4b2s2U2R3dw?oc=5\" target=\"_blank\">擁抱AI的音樂家周善祥：在數學、音樂與人工智慧的交會中，展現「自由人」的博雅精神| 文化視角</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">轉角國際udn Global</font>",
+          "relatedTitles": [],
+          "source": "轉角國際udn Global",
+          "publisherUrl": "https://global.udn.com/global_vision/story/8664/9717782",
+          "articleText": "本文為《周善祥Kit Armstrong：天賦與音樂的多重變奏》書評。此書由德國記者、作家柯英嘉（Inge Kloepfer）所撰寫，柯英嘉以貼身採訪，記錄下美籍音樂家周善祥的極高音樂造詣、豐富學習歷程，以及將音樂與人工智慧相結合的反思與實作。",
+          "articleSummary": "本文為《周善祥Kit Armstrong：天賦與音樂的多重變奏》書評。此書由德國記者、作家柯英嘉（Inge Kloepfer）所撰寫，柯英嘉以貼身採訪，記錄下美籍音樂家周善祥的極高音樂造詣、豐富學習歷程，以及將音樂與人工智慧相結合的反思與實作。"
+        },
+        {
+          "title": "出席台灣人工智慧年會 副總統盼強化AI自主與國際共創 讓臺灣成為AI創新與價值的共和國",
+          "link": "https://news.google.com/rss/articles/CBMiUEFVX3lxTE1YSzg4Nnk3R3NuWnEzaWs2djRNX25pcmJxbktTOUZRZmZpRUljZmRIWnY5Vml2NFF5MmFHUWw2ZWFnd05CZGp1ZktSV01DWHln?oc=5",
+          "pubDate": "Tue, 18 Aug 2026 06:01:07 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiUEFVX3lxTE1YSzg4Nnk3R3NuWnEzaWs2djRNX25pcmJxbktTOUZRZmZpRUljZmRIWnY5Vml2NFF5MmFHUWw2ZWFnd05CZGp1ZktSV01DWHln?oc=5\" target=\"_blank\">出席台灣人工智慧年會 副總統盼強化AI自主與國際共創 讓臺灣成為AI創新與價值的共和國</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">president.gov.tw</font>",
+          "relatedTitles": [],
+          "source": "president.gov.tw",
+          "publisherUrl": "https://www.president.gov.tw/News/40276",
+          "articleText": "蕭美琴副總統今（18）日上午出席「2026台灣人工智慧年會」開幕式時表示，面對AI快速發展，臺灣應強化AI自主應用及資料治理，並積極參與國際共創及全球AI治理，兼顧科技創新、安全韌性與以人為本的價值。...",
+          "articleSummary": "蕭美琴副總統今（18）日上午出席「2026台灣人工智慧年會」開幕式時表示，面對AI快速發展，臺灣應強化AI自主應用及資料治理，並積極參與國際共創及全球AI治理，兼顧科技創新、安全韌性與以人為本的價值。..."
+        },
+        {
+          "title": "人工智慧（AI）：日本企業應用為何如此緩慢",
+          "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE01NkpRZDhZemhTbjkzeXJBY2pYUlB6QWQtSUdLb0xNTmZFUmNXeVZJMDQ2YUlMUDlXbzhCMUNDWkI1cmNVQ0ZrR2t4eXVnWU9VaEtvd3FGVU1ibkY4Y0VhSG1rYjJ1Z9IBa0FVX3lxTFA0TTFXaGc4c0VDd1ZocFRmMDZWcHNGenpBbXFuNlVvdmp0RXVqMVRnbFdkdDV3eVZFMUl2c2hic0dYM3E4TjhkX0gwWXAwa1FLdHdmejNPZDMyZ0p0ZWJkMHB4a1pHTXpxWDNZ?oc=5",
+          "pubDate": "Tue, 18 Aug 2026 07:00:00 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiZkFVX3lxTE01NkpRZDhZemhTbjkzeXJBY2pYUlB6QWQtSUdLb0xNTmZFUmNXeVZJMDQ2YUlMUDlXbzhCMUNDWkI1cmNVQ0ZrR2t4eXVnWU9VaEtvd3FGVU1ibkY4Y0VhSG1rYjJ1Z9IBa0FVX3lxTFA0TTFXaGc4c0VDd1ZocFRmMDZWcHNGenpBbXFuNlVvdmp0RXVqMVRnbFdkdDV3eVZFMUl2c2hic0dYM3E4TjhkX0gwWXAwa1FLdHdmejNPZDMyZ0p0ZWJkMHB4a1pHTXpxWDNZ?oc=5\" target=\"_blank\">人工智慧（AI）：日本企業應用為何如此緩慢</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">BBC</font>",
+          "relatedTitles": [],
+          "source": "BBC",
+          "publisherUrl": "https://www.bbc.com/zhongwen/articles/cy74z6ln0m2o/trad",
+          "articleText": "BBC News, 中文 跳過此內容 简 主頁 目前頁面, 觀看 分類 主頁 國際 中國 香港 台灣 英國 財經 影片 日本企業應用人工智慧為何如此緩慢？ 圖像來源， AFP via Getty Images 面對嚴重的勞動力短缺、人口老化和長期存在的生產力問題，日本企業本應是人工智慧（artificial intelligence, AI；人工智能）應用的沃土。 舞台上所有戴著面具的角色都一致認為行動刻不容緩，他們莊嚴地重複著這呼籲。然而，演員們卻依然僵立不動。 數據顯示，日本在工作場所使用人工智慧方面已經落後。根據經濟合作與發展組織（OECD）去年底發布的 報告 ，只有8.4%的日本員工在工作中使用人工智慧。 相較之下，其他 統計數據顯示， 美國的比例為50%，英國為32%。據稱，新加坡是繼阿聯酋之後人工智慧應用率 第二高 、亞洲最高的國家。該國有56% 的員工據說 「每週多次」使用人工智慧 。 2026年8月11日 中國對日本軍工管制升級：面對稀土牌，高市早苗如何應對？ 2026年7月2日 你的工作會被AI取代嗎？哪些職位受到的影響最大 2026年7月24日 End of content 對此，美國新創公司Kuse AI的共同創辦人徐宇豪（Austin Xu）認為，這是因為日本企業較為保守，規避風險。他的公司最近在日本設立了辦事處，旨在向日本企業銷售其人工智慧系統。 他向BBC分析：「有些組織，其流程和共識文化確實會拖慢工作進度。在這些組織中，對人工智慧錯誤的容忍度幾乎為零，尤其是在任何需要與客戶直接接觸的領域。 徐先生又解釋，美國的情況截然不同，一些企業已經給予人工智慧代理更大的自主權來提高生產力。 「在美國，AI同事最初是以助手的身份加入的，並逐漸融入工作流程。美國老闆的態度通常是先試一試，然後再糾正。」 對此，京都先端科學大學國際管理學教授帕麗莎·哈吉里安（Prof Parrisa Haghirian）也向BBC解釋，許多日本公司過於規避風險，不願考慮人工智慧。 「採用AI所面臨的挑戰，與日本企業導入任何形式的變革都是一樣的。這也是為什麼，AI 的使用仍相當有限且相對謹慎，尤其是在職場中。」 哈吉里安也將此情況與美國更具創業精神的文化進行了對比，認為日本公司對錯誤、不確定性和聲譽風險非常敏感。 「由於生成式人工智慧（Generative AI）仍不完全可靠，因此（在日本）主要用於寫作、總結或資訊收集等低風險任務，但很少用於核心營運或決策以及改進整體流程，」她說。 據稱，日本醫療保健產業在人工智慧應用方面進展尤為緩慢，一些醫院甚至尚未實現病患檔案的全面數位化。 一位不願透露姓名的日本醫院員工表示「紙質文件堆積如山，簡直就像石器時代一樣。」 日本政府意識到人工智慧普及率低這一普遍存在的問題，並正努力促使更多企業採用這項技術。去年，日本國會通過了 《AI推進法》 。 日本政府認為，人工智慧的廣泛應用可以幫助日本提高生產力。目前，日本的生產力水準在七國集團（G7） 已開發國家中仍墊底 。",
+          "articleSummary": "BBC News, 中文 跳過此內容 简 主頁 目前頁面, 觀看 分類 主頁 國際 中國 香港 台灣 英國 財經 影片 日本企業應用人工智慧為何如此緩慢？圖像來源， AFP via Getty Images 面對嚴重的勞動力短缺、人口老化和長期存在的生產力問題，日本企業本應是人工智慧（artificial intelligence, AI；人工智能）應用的沃土。舞台上所有戴著面具的角色都一致認為行動刻不容緩，他們莊嚴地重複著這呼籲。"
+        },
+        {
+          "title": "輝達聯手 Perplexity AI 打造本地端人工智慧代理",
+          "link": "https://news.google.com/rss/articles/CBMiOkFVX3lxTFBuSy1seDNMZ19OQjd6ZG90eEtlOUx4ZWVOeWxhZG9KZEZnQ3pzUHl4Q1VCa3lQd0lEOGc?oc=5",
+          "pubDate": "Sat, 29 Aug 2026 15:15:23 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiOkFVX3lxTFBuSy1seDNMZ19OQjd6ZG90eEtlOUx4ZWVOeWxhZG9KZEZnQ3pzUHl4Q1VCa3lQd0lEOGc?oc=5\" target=\"_blank\">輝達聯手 Perplexity AI 打造本地端人工智慧代理</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">ENN台灣電報</font>",
+          "relatedTitles": [],
+          "source": "ENN台灣電報"
+        },
+        {
+          "title": "Agentic Finance：面向人工智慧的金融體系",
+          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFBLcVBqaUlXLVJOcjVVYWtCNWhHQkdKNzdPZkxBeHBtOW9UV09FSklFOTc5WW9Xd0VWSjNIaFhDdDJyTWJKVzJGTXkyWDNCR0k?oc=5",
+          "pubDate": "Fri, 28 Aug 2026 02:00:18 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiT0FVX3lxTFBLcVBqaUlXLVJOcjVVYWtCNWhHQkdKNzdPZkxBeHBtOW9UV09FSklFOTc5WW9Xd0VWSjNIaFhDdDJyTWJKVzJGTXkyWDNCR0k?oc=5\" target=\"_blank\">Agentic Finance：面向人工智慧的金融體系</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">news.cnyes.com</font>",
+          "relatedTitles": [],
+          "source": "news.cnyes.com"
+        },
+        {
+          "title": "中國人為何熱情擁抱人工智慧？ - 紐約時報中文網",
+          "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTE1mWWZZT2lqMzFQVGxac1hfMVBTdFc3Y0VMZ0hfOExqcnIwOVkwWXJtcFYwZUtfV3dhRzB2RHJWNDllcHA3b0VOWndsN2tsekFtcmVOVXFpVUdZN0s4LURpSHhYVUJQbmVSMks3TlBCTU4wRk9DcnJrOXV0OHRlUQ?oc=5",
+          "pubDate": "Thu, 27 Aug 2026 02:44:50 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMifkFVX3lxTE1mWWZZT2lqMzFQVGxac1hfMVBTdFc3Y0VMZ0hfOExqcnIwOVkwWXJtcFYwZUtfV3dhRzB2RHJWNDllcHA3b0VOWndsN2tsekFtcmVOVXFpVUdZN0s4LURpSHhYVUJQbmVSMks3TlBCTU4wRk9DcnJrOXV0OHRlUQ?oc=5\" target=\"_blank\">中國人為何熱情擁抱人工智慧？ - 紐約時報中文網</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">纽约时报中文网</font>",
+          "relatedTitles": [],
+          "source": "纽约时报中文网"
+        },
+        {
+          "title": "企業硬推AI恐降低員工效率！專家提3大改善方法",
+          "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE1UQ3M3cFBFYTNrMnVXZm1MTGRJa3g5ZTZGTVp6VnRmODVMUDFrb0tOWkRiNDBPM0g3emxYTjQxRUVhZ3ZzQXlKNjdLaXdEUk9vbHZBWlVIb24?oc=5",
+          "pubDate": "Thu, 27 Aug 2026 03:00:59 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMiWEFVX3lxTE1UQ3M3cFBFYTNrMnVXZm1MTGRJa3g5ZTZGTVp6VnRmODVMUDFrb0tOWkRiNDBPM0g3emxYTjQxRUVhZ3ZzQXlKNjdLaXdEUk9vbHZBWlVIb24?oc=5\" target=\"_blank\">企業硬推AI恐降低員工效率！專家提3大改善方法</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">科技島</font>",
+          "relatedTitles": [],
+          "source": "科技島"
+        },
+        {
+          "title": "主持「國家人工智慧戰略特別委員會」首次會議 卓揆：積極建構主權AI 讓臺灣成為立基於自由民主價值的「AI良善應用典範」",
+          "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNTGl1aU9tdDRqcUo4WW9HdXNyMmhIVjY1T2Fsc29zRXpMbjVVaXh3V2J5VGR2TUhxZHFzZmlmdTVVSDRwUlBiQy15VUpBbjVHTy0wTVlRWi1XR0ZoaDk1Z1huNXMzc2pqZkNqNEt5VG9uamo2cEdMV2E4OG5ObG51bFZ5bjRPQUE?oc=5",
+          "pubDate": "Tue, 23 Jun 2026 09:54:48 GMT",
+          "description": "<a href=\"https://news.google.com/rss/articles/CBMihwFBVV95cUxNTGl1aU9tdDRqcUo4WW9HdXNyMmhIVjY1T2Fsc29zRXpMbjVVaXh3V2J5VGR2TUhxZHFzZmlmdTVVSDRwUlBiQy15VUpBbjVHTy0wTVlRWi1XR0ZoaDk1Z1huNXMzc2pqZkNqNEt5VG9uamo2cEdMV2E4OG5ObG51bFZ5bjRPQUE?oc=5\" target=\"_blank\">主持「國家人工智慧戰略特別委員會」首次會議 卓揆：積極建構主權AI 讓臺灣成為立基於自由民主價值的「AI良善應用典範」</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">ey.gov.tw</font>",
+          "relatedTitles": [],
+          "source": "ey.gov.tw"
         }
       ]
     }
