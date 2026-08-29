@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#c45a10" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="盛德歌曲" />
+  <meta name="description" content="太陽盛德導師：注入彩虹、富有各連播三次；著作歌曲各一次。可更新 YouTube 曲庫。" />
+  <link rel="manifest" href="manifest.json?v=20260829" />
+  <link rel="icon" href="taiyang-icon-192.png?v=20260829" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="taiyang-icon-180.png?v=20260829" sizes="180x180" />
+  <link rel="apple-touch-icon" href="taiyang-icon-192.png?v=20260829" sizes="192x192" />
+  <title>太陽盛德導師｜歌曲連播</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #3a2208;
+      --muted: #7a5c3a;
+      --paper: #fff8e8;
+      --accent: #c45a10;
+      --accent2: #e8a020;
+      --line: rgba(196, 90, 16, 0.2);
+      --card: rgba(255, 255, 255, 0.78);
+      --ok: #2d6a4f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background: linear-gradient(180deg, #fffbf0 0%, var(--paper) 45%, #ffe8c4 100%);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .wrap { max-width: 28rem; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    header { text-align: center; }
+    .brand { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .sub { margin-top: 0.3rem; font-size: 0.86rem; color: var(--muted); }
+    .pill-row { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; }
+    .pill { font-size: 0.72rem; color: var(--accent); background: var(--card); border: 1px solid var(--line); padding: 0.2rem 0.5rem; border-radius: 999px; }
+    .home-card {
+      margin-top: 0.85rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line);
+      border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: center;
+    }
+    .home-icon { width: 3.6rem; height: 3.6rem; border-radius: 0.85rem; flex-shrink: 0; }
+    .home-card p { font-size: 0.78rem; color: var(--muted); }
+    .player-shell { margin-top: 0.85rem; background: #111; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; }
+    #player { width: 100%; height: 100%; }
+    .now { margin-top: 0.7rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line); border-radius: 0.45rem; }
+    .now h2 { font-size: 1rem; color: var(--accent); font-weight: 700; }
+    .now p { margin-top: 0.2rem; font-size: 0.8rem; color: var(--muted); }
+    .progress-bar { margin-top: 0.5rem; height: 0.35rem; background: rgba(196,90,16,0.15); border-radius: 999px; overflow: hidden; }
+    .progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.3s; }
+    .controls { margin-top: 0.6rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.35rem; }
+    button {
+      font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
+      color: var(--ink); padding: 0.55rem 0.3rem; border-radius: 0.35rem; font-weight: 600; font-size: 0.82rem;
+    }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .toolbar { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .toolbar .meta { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+    .hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--muted); padding: 0.65rem; background: rgba(255,255,255,0.5); border: 1px dashed var(--line); border-radius: 0.35rem; }
+    .section { margin-top: 1rem; font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+    .song-list { margin-top: 0.45rem; max-height: 14rem; overflow: auto; border: 1px solid var(--line); border-radius: 0.35rem; background: var(--card); }
+    .song-item {
+      display: block; width: 100%; text-align: left; border: none; border-bottom: 1px solid var(--line);
+      border-radius: 0; padding: 0.55rem 0.65rem; font-size: 0.78rem; background: transparent;
+    }
+    .song-item:last-child { border-bottom: none; }
+    .song-item.active { background: rgba(196, 90, 16, 0.12); color: var(--accent); font-weight: 700; }
+    .song-item .tag { font-size: 0.68rem; color: var(--accent2); margin-left: 0.25rem; }
+    .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="brand">太陽盛德導師</h1>
+      <p class="sub">注入彩虹、富有各連播 3 次 · 著作歌曲各 1 次</p>
+      <div class="pill-row">
+        <span class="pill">連續播放</span>
+        <span class="pill">可更新曲庫</span>
+        <span class="pill">加入主畫面</span>
+      </div>
+    </header>
+
+    <section class="home-card">
+      <img class="home-icon" src="taiyang-icon-192.png?v=20260829" width="192" height="192" alt="盛德歌曲圖示" />
+      <div>
+        <p><strong>主畫面圖示：盛德歌曲</strong></p>
+        <p>Safari／Chrome → 加入主畫面</p>
+      </div>
+    </section>
+
+    <div class="player-shell"><div id="player"></div></div>
+
+    <div class="now">
+      <h2 id="nowTitle">準備播放</h2>
+      <p id="nowMeta">載入曲庫中…</p>
+      <div class="progress-bar" aria-hidden="true"><i id="progressFill"></i></div>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="btnPrev" disabled>◀ 上一首</button>
+      <button type="button" id="btnPlay" class="primary">▶ 開始連播</button>
+      <button type="button" id="btnNext">下一首 ▶</button>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" id="btnRefresh">🔄 更新曲庫</button>
+      <button type="button" id="btnRestart">從頭播放</button>
+      <span class="meta" id="catalogMeta">—</span>
+    </div>
+
+    <p class="hint">
+      <strong>播放順序：</strong>① 注入彩虹 ×3 → ② 富有 ×3 → ③ 其餘太陽盛德導師著作歌曲各 1 次（YouTube）。按「更新曲庫」會從網路重新抓取 catalog.json（含新上架歌曲）。
+    </p>
+
+    <h2 class="section">播放清單</h2>
+    <div class="song-list" id="queueList" aria-label="播放清單"></div>
+    <p class="status" id="statusLine"></p>
+  </div>
+
+  <script>
+    const PRIORITY_IDS = { "hTEv2f-9WIM": 3, "tkYxdmQlhtQ": 3 };
+    const CATALOG_URL = "./catalog.json";
+
+    let catalog = { songs: [] };
+    let queue = [];
+    let qIndex = 0;
+    let player = null;
+    let apiReady = false;
+    let autoPlay = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    function buildQueue(songs) {
+      const ordered = [];
+      const pri = songs.filter((s) => s.repeat === 3 || PRIORITY_IDS[s.id]);
+      const rest = songs.filter((s) => !pri.includes(s));
+      const add = (s, times) => {
+        const n = times || s.repeat || 1;
+        for (let i = 0; i < n; i++) {
+          ordered.push({
+            id: s.id,
+            name: s.name,
+            title: s.title,
+            pass: i + 1,
+            total: n
+          });
+        }
+      };
+      pri.forEach((s) => add(s, 3));
+      rest.forEach((s) => add(s, 1));
+      return ordered;
+    }
+
+    function mergeCatalog(remote, local) {
+      const map = new Map();
+      (local.songs || []).forEach((s) => map.set(s.id, s));
+      (remote.songs || []).forEach((s) => map.set(s.id, s));
+      const songs = [...map.values()];
+      songs.sort((a, b) => {
+        const pa = a.repeat === 3 ? 0 : 1;
+        const pb = b.repeat === 3 ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        if (a.repeat === 3 && b.repeat === 3) {
+          if (a.id === "hTEv2f-9WIM") return -1;
+          if (b.id === "hTEv2f-9WIM") return 1;
+          if (a.id === "tkYxdmQlhtQ") return -1;
+          if (b.id === "tkYxdmQlhtQ") return 1;
+        }
+        return (a.name || "").localeCompare(b.name || "", "zh-Hant");
+      });
+      const pri = songs.filter((s) => s.repeat === 3);
+      const rest = songs.filter((s) => s.repeat !== 3);
+      return {
+        updatedAt: remote.updatedAt || local.updatedAt,
+        artist: remote.artist || "太陽盛德導師",
+        songs: [...pri, ...rest]
+      };
+    }
+
+    async function loadCatalog(force) {
+      $("statusLine").textContent = force ? "正在更新曲庫…" : "載入曲庫…";
+      let remote = null;
+      try {
+        const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) remote = await res.json();
+      } catch (_) {}
+      if (!remote) {
+        try {
+          const res = await fetch(CATALOG_URL);
+          if (res.ok) remote = await res.json();
+        } catch (_) {}
+      }
+      if (remote) {
+        catalog = mergeCatalog(remote, catalog);
+        localStorage.setItem("taiyang-catalog", JSON.stringify(catalog));
+      } else {
+        try {
+          const saved = localStorage.getItem("taiyang-catalog");
+          if (saved) catalog = JSON.parse(saved);
+        } catch (_) {}
+      }
+      rebuildQueue();
+      const n = catalog.songs ? catalog.songs.length : 0;
+      $("catalogMeta").textContent = n + " 首 · " + (catalog.updatedAt || "").slice(0, 10);
+      $("statusLine").textContent = remote ? "曲庫已更新（" + n + " 首）" : "使用離線／快取曲庫（" + n + " 首）";
+    }
+
+    function rebuildQueue() {
+      queue = buildQueue(catalog.songs || []);
+      if (qIndex >= queue.length) qIndex = 0;
+      renderQueueList();
+      updateNow();
+    }
+
+    function renderQueueList() {
+      $("queueList").innerHTML = queue.map((item, i) => {
+        const tag = item.total > 1 ? '<span class="tag">' + item.pass + "/" + item.total + "</span>" : "";
+        return '<button type="button" class="song-item' + (i === qIndex ? " active" : "") +
+          '" data-i="' + i + '">' + (i + 1) + ". " + item.name + tag + "</button>";
+      }).join("");
+      $("queueList").querySelectorAll(".song-item").forEach((btn) => {
+        btn.addEventListener("click", () => jumpTo(Number(btn.dataset.i), true));
+      });
+    }
+
+    function updateNow() {
+      const item = queue[qIndex];
+      const total = queue.length;
+      if (!item) {
+        $("nowTitle").textContent = "尚無曲目";
+        $("nowMeta").textContent = "請更新曲庫";
+        $("progressFill").style.width = "0%";
+        return;
+      }
+      const rep = item.total > 1 ? "（第 " + item.pass + " 次／共 " + item.total + " 次）" : "";
+      $("nowTitle").textContent = item.name + rep;
+      $("nowMeta").textContent = "第 " + (qIndex + 1) + "／" + total + " 首 · " + item.title.slice(0, 42);
+      $("progressFill").style.width = total ? ((qIndex + 1) / total * 100) + "%" : "0%";
+      $("btnPrev").disabled = qIndex <= 0;
+      $("btnNext").disabled = qIndex >= total - 1;
+      renderQueueList();
+    }
+
+    function loadVideo(item, play) {
+      if (!item) return;
+      if (player && player.loadVideoById) {
+        player.loadVideoById(item.id);
+        if (play) setTimeout(() => player.playVideo && player.playVideo(), 400);
+      } else if (apiReady) {
+        createPlayer(item.id, play);
+      }
+      updateNow();
+    }
+
+    function createPlayer(videoId, play) {
+      player = new YT.Player("player", {
+        height: "100%", width: "100%", videoId,
+        playerVars: { playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1, origin: location.origin },
+        events: {
+          onReady: () => { if (play) player.playVideo(); },
+          onStateChange: onStateChange
+        }
+      });
+    }
+
+    function onStateChange(e) {
+      if (e.data === YT.PlayerState.PLAYING) {
+        $("btnPlay").textContent = "⏸ 暫停";
+      } else if (e.data === YT.PlayerState.PAUSED) {
+        $("btnPlay").textContent = "▶ 播放";
+      } else if (e.data === YT.PlayerState.ENDED) {
+        $("btnPlay").textContent = "▶ 播放";
+        if (autoPlay && qIndex < queue.length - 1) {
+          qIndex += 1;
+          loadVideo(queue[qIndex], true);
+        } else if (autoPlay) {
+          $("statusLine").textContent = "全部播放完畢";
+          autoPlay = false;
+        }
+      }
+    }
+
+    function jumpTo(i, play) {
+      if (i < 0 || i >= queue.length) return;
+      qIndex = i;
+      autoPlay = !!play;
+      loadVideo(queue[qIndex], play);
+    }
+
+    $("btnPlay").addEventListener("click", () => {
+      if (!queue.length) return;
+      if (!player) { autoPlay = true; loadVideo(queue[qIndex], true); return; }
+      const st = player.getPlayerState();
+      if (st === YT.PlayerState.PLAYING) player.pauseVideo();
+      else { autoPlay = true; player.playVideo(); }
+    });
+    $("btnPrev").addEventListener("click", () => jumpTo(qIndex - 1, true));
+    $("btnNext").addEventListener("click", () => jumpTo(qIndex + 1, true));
+    $("btnRestart").addEventListener("click", () => jumpTo(0, true));
+    $("btnRefresh").addEventListener("click", () => loadCatalog(true));
+
+    window.onYouTubeIframeAPIReady = function () {
+      apiReady = true;
+      if (queue.length && autoPlay) loadVideo(queue[qIndex], true);
+    };
+
+    loadCatalog(false).then(() => {
+      if (queue.length) $("nowMeta").textContent = "共 " + queue.length + " 段連播 · 按「開始連播」";
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js?v=20260829").catch(() => {});
+    }
+  </script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
+</body>
+</html>
