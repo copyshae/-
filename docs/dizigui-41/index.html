@@ -11,7 +11,9 @@
   <meta name="description" content="蔡禮旭老師細講《弟子規》第1～41集，可選1.75倍或2倍速播放。" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
-  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
+  <link rel="apple-touch-icon" href="icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="icon-512.png" sizes="512x512" />
   <title>蔡禮旭老師｜細講弟子規</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -224,6 +226,41 @@
       text-align: center;
     }
     .footer-note a { color: var(--accent); }
+    .home-card {
+      margin-top: 1rem;
+      padding: 0.9rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.55rem;
+      display: flex;
+      gap: 0.85rem;
+      align-items: center;
+    }
+    .home-icon {
+      width: 4.5rem;
+      height: 4.5rem;
+      border-radius: 1rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(42, 24, 16, 0.15);
+    }
+    .home-card-body { flex: 1; min-width: 0; }
+    .home-card-body h3 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .home-card-body p {
+      margin-top: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .home-card-body .name {
+      margin-top: 0.35rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
     @media (max-width: 360px) {
       .ep-grid { grid-template-columns: repeat(3, 1fr); }
     }
@@ -240,6 +277,15 @@
         <span class="pill">可加入主畫面</span>
       </div>
     </header>
+
+    <section class="home-card" aria-label="主畫面圖示預覽">
+      <img class="home-icon" src="icon-192.png" width="192" height="192" alt="弟子規主畫面圖示" />
+      <div class="home-card-body">
+        <h3>加到主畫面</h3>
+        <p>加入後主畫面會顯示左側這個圖示（弟子規卷軸）。</p>
+        <p class="name">圖示名稱：弟子規41集</p>
+      </div>
+    </section>
 
     <div class="player-shell">
       <div id="player"></div>
@@ -274,7 +320,7 @@
     </div>
 
     <p class="hint">
-      <strong>加入主畫面：</strong>iPhone 用 Safari 開啟本頁 → 分享 →「加入主畫面」。Android 用 Chrome → 選單 →「加入主畫面」或「安裝應用程式」。需連網才能播放 YouTube 影片。
+      <strong>加入主畫面：</strong>iPhone 請用 <strong>Safari</strong> 開啟 → 分享 →「加入主畫面」。Android 請用 <strong>Chrome</strong> → ⋮ →「加入主畫面」。若圖示仍是舊的，請先刪除主畫面捷徑再重新加入。需連網播放 YouTube。
     </p>
 
     <h2 class="section-title">選集（第 1～41 集）</h2>
