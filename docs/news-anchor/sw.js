@@ -1,8 +1,9 @@
 /* Google 新聞虛擬主播｜離線快取 */
-const CACHE = "news-anchor-v5";
+const CACHE = "news-anchor-v6";
 const ASSETS = [
   "./",
   "./index.html",
+  "./share.html",
   "./tts-voices.js",
   "./news-cache.json",
   "./manifest.json",
