@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="新聞主播" />
-  <meta name="description" content="寫實主播、專業演播室播報；文字或口說搜尋，無關鍵字依 Google 新聞排序逐則直播，結束可一鍵繼續收聽。" />
+  <meta name="description" content="寫實主播即時口型表情、全螢幕播報；流暢不卡頓，像真人當下在說話，魅力十足。" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
@@ -41,11 +41,17 @@
       position: relative;
       border: 1px solid var(--line);
       background:
+        radial-gradient(ellipse 55% 48% at 50% 28%, rgba(232,197,71,.14), transparent 62%),
         radial-gradient(ellipse 80% 60% at 50% 0%, rgba(180,30,45,.35), transparent 60%),
         linear-gradient(180deg, #142850, var(--studio));
       overflow: hidden;
       aspect-ratio: 16 / 11;
       margin-bottom: 0.65rem;
+    }
+    .studio::after {
+      content: "";
+      position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background: radial-gradient(ellipse 70% 55% at 50% 40%, transparent 45%, rgba(0,0,0,.28) 100%);
     }
     .studio-badge {
       position: absolute; top: 0.45rem; left: 0.55rem; z-index: 3;
@@ -70,19 +76,129 @@
     .anchor-photo-wrap {
       width: 62%; max-height: 88%; position: relative;
       filter: drop-shadow(0 10px 24px rgba(0,0,0,.45));
+      transition: filter 0.35s ease;
+    }
+    .anchor-photo-wrap.speaking {
+      filter: drop-shadow(0 14px 30px rgba(0,0,0,.5)) drop-shadow(0 0 22px rgba(232,197,71,.18));
+    }
+    .anchor-photo-stage {
+      position: relative; width: 100%; overflow: hidden;
+      border-radius: 0.35rem 0.35rem 0 0;
+      contain: layout style paint;
     }
     .anchor-photo {
       width: 100%; height: auto; max-height: 14.5rem; object-fit: cover; object-position: center 15%;
-      border-radius: 0.35rem 0.35rem 0 0;
       background: linear-gradient(180deg, #1a3058, #0a1020);
+      display: block;
+      transform: translateZ(0);
+      transition: filter 0.3s ease;
     }
     .anchor-photo-wrap.speaking .anchor-photo {
-      animation: photoSpeak 0.45s ease-in-out infinite alternate;
+      filter: brightness(1.06) saturate(1.1) contrast(1.02);
     }
-    @keyframes photoSpeak {
-      from { transform: scale(1); filter: brightness(1); }
-      to { transform: scale(1.012) translateY(-1px); filter: brightness(1.06); }
+    .anchor-photo-wrap.speaking .anchor-photo-stage {
+      animation: headSway 5.2s ease-in-out infinite;
+      will-change: transform;
     }
+    .anchor-photo-wrap.speaking.fx-nod .anchor-photo-stage {
+      animation: headNod 0.34s ease-out, headSway 5.2s ease-in-out infinite;
+    }
+    @keyframes headSway {
+      0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+      35% { transform: translate3d(1px, -1px, 0) rotate(0.22deg); }
+      70% { transform: translate3d(-1px, 0, 0) rotate(-0.18deg); }
+    }
+    @keyframes headNod {
+      0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+      40% { transform: translate3d(0, -2px, 0) rotate(0.45deg); }
+      100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    }
+    /* 臉部口型／表情疊層（播報時同步） */
+    .anchor-face-fx {
+      position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    }
+    .fx-mouth {
+      position: absolute;
+      top: var(--fx-mouth-top, 58%); left: var(--fx-mouth-left, 50%);
+      width: var(--fx-mouth-w, 11%); height: calc(var(--fx-mouth-w, 11%) * 0.38);
+      transform: translate3d(-50%, -50%, 0) scaleY(var(--lip-open, 0.25)) scaleX(var(--lip-wide, 1));
+      background: radial-gradient(ellipse at 50% 55%,
+        rgba(45, 12, 18, 0.55) 0%, rgba(95, 35, 42, 0.32) 55%, transparent 78%);
+      border-radius: 46% 46% 52% 52%;
+      opacity: 0;
+      will-change: transform, opacity;
+      pointer-events: none;
+    }
+    .anchor-photo-wrap.speaking .fx-mouth { opacity: 0.78; }
+    .fx-lid {
+      position: absolute; top: var(--fx-eye-top, 36%);
+      width: var(--fx-eye-w, 5%); height: calc(var(--fx-eye-w, 5%) * 0.85);
+      background: linear-gradient(180deg, rgba(25,18,14,.88), rgba(25,18,14,.55));
+      border-radius: 50%; opacity: 0; transform: scaleY(0);
+    }
+    .fx-lid-l { left: calc(var(--fx-eye-l, 42%) - var(--fx-eye-w, 5%) / 2); }
+    .fx-lid-r { left: calc(var(--fx-eye-r, 58%) - var(--fx-eye-w, 5%) / 2); }
+    .anchor-photo-wrap.fx-blink .fx-lid {
+      animation: lidBlink 0.14s ease-in-out forwards;
+    }
+    @keyframes lidBlink {
+      0%, 100% { opacity: 0; transform: scaleY(0); }
+      45%, 55% { opacity: 0.92; transform: scaleY(1); }
+    }
+    .fx-brow {
+      position: absolute; top: var(--fx-brow-top, 31%);
+      width: calc(var(--fx-eye-w, 5%) * 1.6); height: 2px;
+      background: rgba(30, 20, 15, 0.25); border-radius: 2px;
+      opacity: 0; transition: transform 0.12s, opacity 0.12s;
+    }
+    .fx-brow-l { left: calc(var(--fx-eye-l, 42%) - var(--fx-eye-w, 5%) * 0.3); }
+    .fx-brow-r { left: calc(var(--fx-eye-r, 58%) - var(--fx-eye-w, 5%) * 0.3); }
+    .anchor-photo-wrap.fx-emphasis .fx-brow { opacity: 0.55; transform: translateY(-2px); }
+
+    /* ===== 全螢幕播報 ===== */
+    body.broadcast-fullscreen {
+      overflow: hidden;
+      padding: 0;
+      background: #060c18;
+    }
+    body.broadcast-fullscreen .wrap { max-width: none; margin: 0; }
+    body.broadcast-fullscreen .wrap > h1,
+    body.broadcast-fullscreen .wrap > .sub,
+    body.broadcast-fullscreen .wrap > .card,
+    body.broadcast-fullscreen .wrap > footer { display: none !important; }
+    body.broadcast-fullscreen .studio {
+      position: fixed; inset: 0; z-index: 9000;
+      aspect-ratio: unset; margin: 0; border: none;
+      display: flex; flex-direction: column;
+    }
+    body.broadcast-fullscreen .anchor-wrap { padding-bottom: 18%; flex: 1; }
+    body.broadcast-fullscreen .anchor-photo-wrap { width: min(92vw, 26rem); max-height: none; }
+    body.broadcast-fullscreen .anchor-photo {
+      max-height: none; height: min(76vh, 50rem); width: 100%;
+      object-position: center 10%;
+    }
+    body.broadcast-fullscreen .lower-third {
+      bottom: calc(3.6rem + env(safe-area-inset-bottom));
+      left: 0.75rem; right: 0.75rem;
+    }
+    body.broadcast-fullscreen .lower-third .caption {
+      font-size: 0.95rem; -webkit-line-clamp: 3;
+    }
+    body.broadcast-fullscreen .studio-ticker-wrap { bottom: 24%; }
+    body.broadcast-fullscreen .desk-bar { height: 20%; }
+    .broadcast-bar {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 6;
+      display: none; gap: 0.4rem; padding: 0.45rem 0.65rem calc(0.45rem + env(safe-area-inset-bottom));
+      background: linear-gradient(0deg, rgba(0,0,0,.82), rgba(0,0,0,.45));
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+    body.broadcast-fullscreen .broadcast-bar { display: flex; }
+    .broadcast-bar button {
+      flex: 1; min-height: 2.75rem; font-size: 0.88rem;
+      background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.22);
+    }
+    .broadcast-bar button.danger { background: rgba(180,30,45,.75); border-color: #d42a3a; }
+    .broadcast-bar button.ghost { flex: 0 0 auto; padding: 0.45rem 0.7rem; }
     .anchor-thumb {
       width: 100%; height: 100%; object-fit: cover; object-position: center 18%;
       border-radius: 50%; background: #1a3058;
@@ -111,6 +227,7 @@
     .lower-third .caption {
       font-size: 0.82rem; line-height: 1.45; color: #fff;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      transition: opacity 0.2s ease;
     }
     .studio-brand {
       position: absolute; top: 0.45rem; left: 50%; transform: translateX(-50%); z-index: 3;
@@ -131,8 +248,14 @@
       padding: 0.28rem 0; animation: ticker 32s linear infinite;
     }
     @keyframes ticker {
-      from { transform: translateX(100vw); }
-      to { transform: translateX(-100%); }
+      from { transform: translate3d(100%, 0, 0); }
+      to { transform: translate3d(-100%, 0, 0); }
+    }
+    .studio-ticker { will-change: transform; }
+    @media (prefers-reduced-motion: reduce) {
+      .anchor-photo-wrap.speaking .anchor-photo-stage,
+      .studio-ticker { animation: none !important; }
+      .anchor-photo-wrap.speaking .fx-mouth { opacity: 0.5; }
     }
     .lower-third .headline-tag {
       display: inline-block; font-size: 0.62rem; background: var(--desk);
@@ -236,7 +359,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">寫實主播、<strong>專業演播室</strong>質感；口吻自然又穩，讓您想持續收聽。文字或口說皆可。</p>
+    <p class="sub">寫實主播<strong>即時口型表情</strong>，播報<strong>全螢幕</strong>沉浸；流暢不卡頓，像真人當下在說話，魅力十足。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -249,6 +372,11 @@
       <div class="lower-third">
         <div class="name" id="anchorNameTag">主播・雅婷</div>
         <div class="caption" id="subtitle"><span class="headline-tag">快報</span>歡迎收看，請按「更新新聞」取得今日頭條。</div>
+      </div>
+      <div class="broadcast-bar" id="broadcastBar" aria-label="全螢幕播報控制">
+        <button type="button" id="btnFsPause">⏸ 暫停</button>
+        <button type="button" class="danger" id="btnFsStop">⏹ 停止</button>
+        <button type="button" class="ghost" id="btnFsExit">✕ 結束全螢幕</button>
       </div>
     </section>
 
@@ -392,9 +520,9 @@
     ];
 
     var OPEN_HOOKS = [
-      "各位觀眾朋友好，歡迎鎖定 Google 新聞快報。",
-      "您好，歡迎收看，現在為您連線最新動態。",
-      "現場為您報導，請您繼續鎖定。"
+      "各位好，歡迎鎖定 Google 新聞快報，我是您的主播。",
+      "您好，現場為您連線，請繼續鎖定。",
+      "歡迎收看，接下來由我為您播報最新動態。"
     ];
 
     var CATEGORY_ROTATION = [
@@ -442,36 +570,42 @@
         id: "yating", name: "雅婷", tag: "氣質女主播",
         portrait: "./portraits/anchor-yating.jpg",
         gender: "F", style: "formal",
+        face: { mouthTop: 57, mouthLeft: 50, mouthW: 10, eyeTop: 35, eyeLeft: 43, eyeRight: 57, eyeW: 4.8, browTop: 30 },
         intro: "我是雅婷，很高興陪伴您，一起關心今天的重要消息。"
       },
       zihao: {
         id: "zihao", name: "志豪", tag: "帥氣男主播",
         portrait: "./portraits/anchor-zihao.jpg",
         gender: "M", style: "formal",
+        face: { mouthTop: 59, mouthLeft: 50, mouthW: 11, eyeTop: 36, eyeLeft: 42, eyeRight: 58, eyeW: 5, browTop: 31 },
         intro: "我是志豪，用清楚好懂的方式，帶您快速掌握今日要聞。"
       },
       xiaoguang: {
         id: "xiaoguang", name: "小光", tag: "科技女主播",
         portrait: "./portraits/anchor-xiaoguang.jpg",
         gender: "F", style: "tech",
+        face: { mouthTop: 58, mouthLeft: 50, mouthW: 10, eyeTop: 35, eyeLeft: 43, eyeRight: 57, eyeW: 4.6, browTop: 30 },
         intro: "科技快報時間，我是小光，帶您看看今天有哪些新動態。"
       },
       ajie: {
         id: "ajie", name: "阿杰", tag: "體育男主播",
         portrait: "./portraits/anchor-ajie.jpg",
         gender: "M", style: "sports",
+        face: { mouthTop: 60, mouthLeft: 50, mouthW: 11.5, eyeTop: 37, eyeLeft: 41, eyeRight: 59, eyeW: 5.2, browTop: 32 },
         intro: "體壇最新消息，我是阿杰，馬上為您整理重點。"
       },
       xiaoxin: {
         id: "xiaoxin", name: "小新", tag: "親切女主播",
         portrait: "./portraits/anchor-xiaoxin.jpg",
         gender: "F", style: "warm",
+        face: { mouthTop: 57, mouthLeft: 50, mouthW: 10.5, eyeTop: 35, eyeLeft: 43, eyeRight: 57, eyeW: 5, browTop: 30 },
         intro: "哈囉大家好，我是小新，讓我們輕鬆一起看新聞。"
       },
       nova: {
         id: "nova", name: "Nova", tag: "AI 主播",
         portrait: "./portraits/anchor-nova.jpg",
         gender: "F", style: "robot",
+        face: { mouthTop: 58, mouthLeft: 50, mouthW: 9.5, eyeTop: 34, eyeLeft: 44, eyeRight: 56, eyeW: 4.5, browTop: 29 },
         intro: "您好，我是 Nova，會用自然口吻為您播報即時新聞。"
       }
     };
@@ -487,7 +621,14 @@
       voiceHandler: null,
       inputMode: "text",
       liveSession: 0,
-      continueCountdown: null
+      continueCountdown: null,
+      motionActive: false,
+      motionRaf: null,
+      motionLast: 0,
+      lipPhase: 0,
+      nextBlink: 0,
+      nextEmphasis: 0,
+      broadcastFullscreen: false
     };
 
     function $(id) { return document.getElementById(id); }
@@ -824,20 +965,44 @@
       var base = "以上就是本節" + catLabel + "重點摘要。";
       if (nextCats && nextCats.length) {
         var names = nextCats.map(function (c) { return CATEGORY_LABELS[c] || c; }).join("、");
-        return base + "別轉台，接下來還有" + names + "等您關心。" + "我是" + anchor.name + "，感謝您的收看，我們馬上回來。";
+        return base + "別轉台，" + names + " 還在後頭等您。" + "我是" + anchor.name + "，謝謝您的陪伴，我們馬上回來。";
       }
-      return base + "我是" + anchor.name + "，感謝您的收看。想持續掌握消息，歡迎隨時回來，再會。";
+      return base + "我是" + anchor.name + "，謝謝您的收看。想持續掌握消息，歡迎隨時回來，再會。";
     }
 
     function naturalOpen(anchor, catLabel) { return proOpen(anchor, catLabel); }
     function naturalClose(anchor, catLabel, nextCats) { return proClose(anchor, catLabel, nextCats); }
+
+    function faceStyle(anchor) {
+      var f = anchor.face || {};
+      return "--fx-mouth-top:" + (f.mouthTop || 58) + "%;"
+        + "--fx-mouth-left:" + (f.mouthLeft || 50) + "%;"
+        + "--fx-mouth-w:" + (f.mouthW || 11) + "%;"
+        + "--fx-eye-top:" + (f.eyeTop || 36) + "%;"
+        + "--fx-eye-l:" + (f.eyeLeft || 42) + "%;"
+        + "--fx-eye-r:" + (f.eyeRight || 58) + "%;"
+        + "--fx-eye-w:" + (f.eyeW || 5) + "%;"
+        + "--fx-brow-top:" + (f.browTop || 31) + "%;"
+        + "--fx-jaw-origin:" + (f.mouthLeft || 50) + "% " + (f.mouthTop || 58) + "%;";
+    }
+
+    function buildFaceFx() {
+      return '<div class="anchor-face-fx" aria-hidden="true">'
+        + '<span class="fx-lid fx-lid-l"></span><span class="fx-lid fx-lid-r"></span>'
+        + '<span class="fx-brow fx-brow-l"></span><span class="fx-brow fx-brow-r"></span>'
+        + '<span class="fx-mouth"></span></div>';
+    }
 
     function buildAnchorVisual(anchor, mini) {
       if (anchor.portrait) {
         if (mini) {
           return '<img class="anchor-thumb" src="' + anchor.portrait + '" alt="' + anchor.name + '" loading="lazy"/>';
         }
-        return '<div class="anchor-photo-wrap"><img class="anchor-photo" src="' + anchor.portrait + '" alt="' + anchor.name + '"/></div>';
+        return '<div class="anchor-photo-wrap" style="' + faceStyle(anchor) + '">'
+          + '<div class="anchor-photo-stage">'
+          + '<img class="anchor-photo" src="' + anchor.portrait + '" alt="' + anchor.name + '"/>'
+          + buildFaceFx()
+          + '</div></div>';
       }
       return buildAnchorSvg(anchor, mini);
     }
@@ -902,7 +1067,11 @@
       wrap.innerHTML = buildAnchorVisual(anchor, false);
       $("anchorNameTag").textContent = "主播・" + anchor.name + "｜" + anchor.tag;
       applyAnchorGenderToTts(anchor.gender);
-      if (!anchor.portrait) startBlink();
+      if (anchor.portrait) {
+        var preload = new Image();
+        preload.src = anchor.portrait;
+      }
+      startPortraitBlink();
     }
 
     function renderAnchorGrid() {
@@ -945,6 +1114,134 @@
         svg.classList.add("blink");
         setTimeout(function () { svg.classList.remove("blink"); }, 180);
       }, 3200 + Math.random() * 2000);
+    }
+
+    function triggerPortraitBlink() {
+      var wrap = document.querySelector(".anchor-photo-wrap");
+      if (!wrap) return;
+      wrap.classList.remove("fx-blink");
+      void wrap.offsetWidth;
+      wrap.classList.add("fx-blink");
+      setTimeout(function () { wrap.classList.remove("fx-blink"); }, 160);
+    }
+
+    function startPortraitBlink() {
+      if (state.blinkTimer) clearInterval(state.blinkTimer);
+      var anchor = getAnchor();
+      if (!anchor.portrait) {
+        startBlink();
+        return;
+      }
+      state.blinkTimer = setInterval(function () {
+        if (!document.querySelector(".anchor-photo-wrap")) return;
+        triggerPortraitBlink();
+      }, 2800 + Math.random() * 2400);
+    }
+
+    function pulseLipSync(intensity) {
+      var mouth = document.querySelector(".fx-mouth");
+      if (!mouth) return;
+      var base = typeof intensity === "number" ? intensity : (0.2 + Math.random() * 0.72);
+      var wide = base > 0.72 ? (1.08 + Math.random() * 0.28) : (0.9 + Math.random() * 0.16);
+      mouth.style.setProperty("--lip-open", base.toFixed(3));
+      mouth.style.setProperty("--lip-wide", wide.toFixed(3));
+    }
+
+    function liveMotionTick(ts) {
+      if (!state.motionActive) return;
+      if (!state.motionLast) state.motionLast = ts;
+      var elapsed = ts - state.motionLast;
+      var speaking = window.TtsVoices && TtsVoices.getSpeakState().active;
+
+      if (speaking && elapsed >= 68) {
+        state.motionLast = ts;
+        state.lipPhase += 0.18 + Math.random() * 0.12;
+        var wave = Math.sin(state.lipPhase * 7.2) * 0.5 + 0.5;
+        pulseLipSync(0.2 + wave * 0.68);
+      }
+
+      if (ts >= state.nextBlink) {
+        triggerPortraitBlink();
+        state.nextBlink = ts + 2600 + Math.random() * 2400;
+      }
+
+      if (speaking && ts >= state.nextEmphasis) {
+        var wrap = document.querySelector(".anchor-photo-wrap");
+        if (wrap) {
+          if (Math.random() > 0.45) {
+            wrap.classList.add("fx-emphasis");
+            setTimeout(function () { wrap.classList.remove("fx-emphasis"); }, 380);
+          } else {
+            wrap.classList.add("fx-nod");
+            setTimeout(function () { wrap.classList.remove("fx-nod"); }, 300);
+          }
+        }
+        state.nextEmphasis = ts + 1000 + Math.random() * 700;
+      }
+
+      state.motionRaf = requestAnimationFrame(liveMotionTick);
+    }
+
+    function startLiveMotion() {
+      setSpeaking(true);
+      state.motionActive = true;
+      state.motionLast = 0;
+      state.lipPhase = Math.random() * 6;
+      var now = performance.now();
+      state.nextBlink = now + 1800 + Math.random() * 1200;
+      state.nextEmphasis = now + 900;
+      pulseLipSync(0.42);
+      if (state.motionRaf) cancelAnimationFrame(state.motionRaf);
+      state.motionRaf = requestAnimationFrame(liveMotionTick);
+    }
+
+    function stopLiveMotion() {
+      setSpeaking(false);
+      state.motionActive = false;
+      if (state.motionRaf) {
+        cancelAnimationFrame(state.motionRaf);
+        state.motionRaf = null;
+      }
+      state.motionLast = 0;
+      var mouth = document.querySelector(".fx-mouth");
+      if (mouth) {
+        mouth.style.setProperty("--lip-open", "0.12");
+        mouth.style.setProperty("--lip-wide", "1");
+      }
+    }
+
+    function enterBroadcastFullscreen() {
+      if (state.broadcastFullscreen) return;
+      state.broadcastFullscreen = true;
+      document.body.classList.add("broadcast-fullscreen");
+      var root = document.documentElement;
+      var req = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (req) {
+        try {
+          var p = req.call(root);
+          if (p && p.catch) p.catch(function () {});
+        } catch (e) {}
+      }
+    }
+
+    function exitBroadcastFullscreen() {
+      if (!state.broadcastFullscreen) return;
+      state.broadcastFullscreen = false;
+      document.body.classList.remove("broadcast-fullscreen");
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        var ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if (ex) try { ex.call(document); } catch (e) {}
+      }
+    }
+
+    function onBroadcastStart() {
+      enterBroadcastFullscreen();
+      startLiveMotion();
+    }
+
+    function onBroadcastEnd() {
+      stopLiveMotion();
+      exitBroadcastFullscreen();
     }
 
     function setSpeaking(on) {
@@ -1242,35 +1539,41 @@
       $("fetchStatus").textContent = "直播中｜依 Google 新聞排序，共 " + items.length + " 則";
       $("fetchStatus").className = "status warn";
       setStudioLive(true);
-      setSpeaking(true);
+      onBroadcastStart();
 
-      await speakOneAndWait(naturalOpen(anchor, catLabel) + "以下依 Google 新聞排序，為您逐則播報。");
-      if (session !== state.liveSession) return;
+      try {
+        await speakOneAndWait(naturalOpen(anchor, catLabel) + "以下依 Google 新聞排序，為您逐則播報。");
+        if (session !== state.liveSession) return;
 
-      for (var i = 0; i < items.length; i++) {
+        for (var i = 0; i < items.length; i++) {
+          if (session !== state.liveSession) return;
+          highlightLiveNews(i);
+          var it = items[i];
+          await speakOneAndWait(naturalNewsLine(it, i, items.length));
+          if (session !== state.liveSession) return;
+          if (i < items.length - 1) await sleep(520);
+        }
+
         if (session !== state.liveSession) return;
-        highlightLiveNews(i);
-        var it = items[i];
-        await speakOneAndWait(naturalNewsLine(it, i, items.length));
-        if (session !== state.liveSession) return;
-        if (i < items.length - 1) await sleep(650);
+        highlightLiveNews(-1);
+        await speakOneAndWait(naturalClose(anchor, catLabel, nextCats));
+        setSubtitle("本節播報結束，感謝收看。", "快報");
+        $("fetchStatus").textContent = "直播結束（共播報 " + items.length + " 則，依 Google 新聞排序）";
+        $("fetchStatus").className = "status";
+        showContinuePanel(currentCat);
+      } finally {
+        if (session === state.liveSession) {
+          setStudioLive(false);
+          onBroadcastEnd();
+        }
       }
-
-      if (session !== state.liveSession) return;
-      highlightLiveNews(-1);
-      await speakOneAndWait(naturalClose(anchor, catLabel, nextCats));
-      setSpeaking(false);
-      setStudioLive(false);
-      setSubtitle("本節播報結束，感謝收看。", "快報");
-      $("fetchStatus").textContent = "直播結束（共播報 " + items.length + " 則，依 Google 新聞排序）";
-      $("fetchStatus").className = "status";
-      showContinuePanel(currentCat);
     }
 
     function stopLiveStream() {
       state.liveSession += 1;
       setStudioLive(false);
       highlightLiveNews(-1);
+      onBroadcastEnd();
     }
 
     function escapeHtml(s) {
@@ -1390,15 +1693,14 @@
       var style = getSpeakStyleOpts();
       var chunks = TtsVoices.splitSpeechChunks(text, style.maxLen);
       var idx = 0;
-      setSpeaking(true);
       setSubtitle(chunks[0] || text.slice(0, 60), "播報");
       state.speakWatch = setInterval(function () {
         var st = TtsVoices.getSpeakState();
         if (!st.active) {
           clearInterval(state.speakWatch);
           state.speakWatch = null;
-          setSpeaking(false);
           setSubtitle("播報結束，感謝收看。", "快報");
+          onBroadcastEnd();
           if (isLiveStreamMode()) showContinuePanel($("category").value);
           return;
         }
@@ -1417,12 +1719,16 @@
         styleEl.addEventListener("change", saveTtsStyle);
       }
       TtsVoices.bindVoicePicker({
-        speak: function (say) {
-          speakText("您好，這是專業主播播報示範。歡迎鎖定 Google 新聞快報，我們一起關心今日要聞。");
+        speak: function () {
+          onBroadcastStart();
+          speakText("您好，這是有魅力的主播播報示範。歡迎鎖定 Google 新聞快報，我們一起關心今日要聞。");
+          setTimeout(function () {
+            if (!TtsVoices.getSpeakState().active) onBroadcastEnd();
+          }, 12000);
         }
       });
-      TtsVoices.onSpeakStatus(function (st) {
-        if (!st.active) setSpeaking(false);
+      TtsVoices.onSpeakStatus(function (ev) {
+        if (ev && ev.reason === "progress") pulseLipSync(0.72 + Math.random() * 0.22);
       });
     }
 
@@ -1443,6 +1749,7 @@
           await playLiveStream();
         } else {
           var script = await generateScript();
+          onBroadcastStart();
           speakText(script);
           watchSpeakSubtitle(script);
         }
@@ -1496,6 +1803,7 @@
         return;
       }
       stopLiveStream();
+      onBroadcastStart();
       speakText(text);
       watchSpeakSubtitle(text);
     });
@@ -1507,8 +1815,24 @@
       stopLiveStream();
       hideContinuePanel();
       TtsVoices.stopSpeakQueue();
-      setSpeaking(false);
       setSubtitle("已停止播報。", "快報");
+    });
+
+    $("btnFsPause").addEventListener("click", function () {
+      TtsVoices.togglePauseSpeakQueue();
+    });
+    $("btnFsStop").addEventListener("click", function () {
+      $("btnStop").click();
+    });
+    $("btnFsExit").addEventListener("click", function () {
+      exitBroadcastFullscreen();
+    });
+
+    document.addEventListener("fullscreenchange", function () {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        state.broadcastFullscreen = false;
+        document.body.classList.remove("broadcast-fullscreen");
+      }
     });
 
     $("btnSaveKey").addEventListener("click", function () {
