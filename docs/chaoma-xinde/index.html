@@ -148,6 +148,10 @@
     }
     .check-row input { width: 1.1rem; height: 1.1rem; flex-shrink: 0; accent-color: var(--accent); }
     .attach-summary { font-size: 0.8rem; color: var(--accent); font-weight: 700; margin-top: 0.35rem; }
+    details.format-block { margin-top: 0.55rem; border: 1px solid var(--line); background: #fff; padding: 0.55rem 0.65rem; }
+    details.format-block summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: 0.88rem; }
+    details.format-block .inner { margin-top: 0.45rem; }
+    #formatHeader, #formatFooter { min-height: 4.5rem; font-size: 0.92rem; }
     .share-sheet {
       position: fixed; inset: 0; z-index: 1000;
       display: flex; align-items: flex-end; justify-content: center;
@@ -180,7 +184,40 @@
       <input id="authorName" type="text" placeholder="正本／彰化" autocomplete="name" />
       <label for="authorDate">日期</label>
       <input id="authorDate" type="date" />
-      <p class="hint">署名格式：姓名／地區 年／月／日</p>
+      <p class="hint">署名格式：姓名／地區 年／月／日（可在下方「格式框架」調整模板）</p>
+    </section>
+
+    <section class="card">
+      <h2>格式框架</h2>
+      <p class="hint">可修改<strong>内文之前</strong>（標題規則、署名、問候）與<strong>内文之後</strong>（感恩迴向）的固定格式；生成、本機模板與格式检核皆依此設定。</p>
+      <details class="format-block" open>
+        <summary>内文前（標題、署名、問候）</summary>
+        <div class="inner">
+          <label for="formatTitleRule">標題格式（提示 AI）</label>
+          <input id="formatTitleRule" type="text" value="6–15 字，用《》包住，以具象生活或核心主題破題" />
+          <label for="formatAuthorTemplate">署名行模板</label>
+          <input id="formatAuthorTemplate" type="text" value="{name} {date}" placeholder="{name} {date}" />
+          <p class="hint">可用 {name}（姓名／地區）、{date}（年/月/日）、{year}、{month}、{day}</p>
+          <label for="formatHeader">問候語（一行一句）</label>
+          <textarea id="formatHeader" rows="3">敬愛的導師好
+超碼家人大家好</textarea>
+        </div>
+      </details>
+      <details class="format-block" open>
+        <summary>内文后（感恩迴向）</summary>
+        <div class="inner">
+          <label for="formatFooter">結尾感恩（一行一句）</label>
+          <textarea id="formatFooter" rows="5">感恩宇宙，感恩天地
+感恩太陽盛德導師
+感恩蔡禮旭老師
+感恩一切有了交代</textarea>
+        </div>
+      </details>
+      <div class="row">
+        <button type="button" id="btnSaveFormat">儲存格式框架</button>
+        <button type="button" id="btnResetFormat">還原預設</button>
+      </div>
+      <p class="status" id="formatStatus"></p>
     </section>
 
     <section class="card">
@@ -422,6 +459,14 @@
     var KEY_HISTORY = "chaoma-xinde-history";
     var KEY_QUOTE_COUNTS = "chaoma-xinde-quote-counts";
     var KEY_EXPORT_ATTACH = "chaoma-xinde-export-attach";
+    var KEY_FORMAT = "chaoma-xinde-format";
+
+    var DEFAULT_FORMAT = {
+      titleRule: "6–15 字，用《》包住，以具象生活或核心主題破題",
+      authorTemplate: "{name} {date}",
+      header: "敬愛的導師好\n超碼家人大家好",
+      footer: "感恩宇宙，感恩天地\n感恩太陽盛德導師\n感恩蔡禮旭老師\n感恩一切有了交代"
+    };
     var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
     var IMAGE_MODEL = "gemini-2.5-flash-image";
     var MAX_VIDEO_MB = 50;
@@ -452,33 +497,101 @@
       { category: "master", keywords: ["懺悔", "發願"], sage: "太陽盛德導師｜超碼功課", quote: "誠懇懺悔、發願改過。", plain: "看見過失不遮掩，願心從今天具體改正。", yinZheng: "寫心得本身就是懺悔與發願的落實。" }
     ];
 
-    var GREETING = "敬愛的導師好\n超碼家人大家好";
-    var CLOSING = "感恩宇宙，感恩天地\n感恩太陽盛德導師\n感恩蔡禮旭老師\n感恩一切有了交代";
+    function getFormatHeaderLines() {
+      var raw = ($("formatHeader") && $("formatHeader").value) || DEFAULT_FORMAT.header;
+      return String(raw).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
 
-    var SOP_PROMPT =
-      "你是超碼修煉心得寫作助手。請依下列 SOP，用繁體中文產出一篇完整、可直接繳交的心得。\n\n" +
-      "【外相格式】\n" +
-      "1. 第一行：標題 6–15 字，用《》包住，以具象生活或核心主題破題\n" +
-      "2. 第二行：作者署名「姓名/地區 年/月/日」（斜線分隔姓名地區，空格後接日期）\n" +
-      "3. 空一行後寫兩句問候：「敬愛的導師好」「超碼家人大家好」\n" +
-      "4. 正文 4–5 個自然段，依內文四步法（不必標 Step 編號）\n" +
-      "5. 空一行後寫四句感恩迴向（每句一行）\n\n" +
-      "【內文四步法】\n" +
-      "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
-      "Step2 自省照見（承）：誠實記錄自身慣性與情緒，點出「知道」與「做到」的差距，反求諸己\n" +
-      "Step3 古今印證（轉）：結合古今聖賢名言白話意涵與太陽盛德導師／超碼心法教誨，完成轉念\n" +
-      "  ※ 若提供【印證參考文章資訊】，此段須自然融入其中的古籍原句／導師教誨／文章摘要，以白話完成印證，不可生硬堆砌\n" +
-      "Step4 轉念合道（合）：連結太陽、天地無私普照，將領悟化為具體的愛與感恩行動\n\n" +
-      "【潤飾要求】\n" +
-      "- 白話、親切、像日常聊天，不要生硬術語與說教\n" +
-      "- 通篇反求諸己、修正自心，絕不批評或評判外在人事\n" +
-      "- 文字溫暖、平實、自帶正向能量\n\n" +
-      "【標準結尾四句】\n" +
-      "感恩宇宙，感恩天地\n" +
-      "感恩太陽盛德導師\n" +
-      "感恩蔡禮旭老師\n" +
-      "感恩一切有了交代\n\n" +
-      "請直接輸出完整心得全文，不要加任何解說、前言或 markdown。";
+    function getFormatFooterLines() {
+      var raw = ($("formatFooter") && $("formatFooter").value) || DEFAULT_FORMAT.footer;
+      return String(raw).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+
+    function getGreetingText() {
+      return getFormatHeaderLines().join("\n");
+    }
+
+    function getClosingText() {
+      return getFormatFooterLines().join("\n");
+    }
+
+    function applyFormatToFields(fmt) {
+      var f = fmt || DEFAULT_FORMAT;
+      if ($("formatTitleRule")) $("formatTitleRule").value = f.titleRule || DEFAULT_FORMAT.titleRule;
+      if ($("formatAuthorTemplate")) $("formatAuthorTemplate").value = f.authorTemplate || DEFAULT_FORMAT.authorTemplate;
+      if ($("formatHeader")) $("formatHeader").value = f.header || DEFAULT_FORMAT.header;
+      if ($("formatFooter")) $("formatFooter").value = f.footer || DEFAULT_FORMAT.footer;
+    }
+
+    function loadFormatSettings() {
+      try {
+        var raw = localStorage.getItem(KEY_FORMAT);
+        if (raw) applyFormatToFields(JSON.parse(raw));
+      } catch (e) {
+        applyFormatToFields(DEFAULT_FORMAT);
+      }
+    }
+
+    function saveFormatSettings() {
+      var fmt = {
+        titleRule: ($("formatTitleRule").value || DEFAULT_FORMAT.titleRule).trim(),
+        authorTemplate: ($("formatAuthorTemplate").value || DEFAULT_FORMAT.authorTemplate).trim(),
+        header: ($("formatHeader").value || DEFAULT_FORMAT.header).trim(),
+        footer: ($("formatFooter").value || DEFAULT_FORMAT.footer).trim()
+      };
+      try { localStorage.setItem(KEY_FORMAT, JSON.stringify(fmt)); } catch (e) {}
+      setStatus($("formatStatus"), "已儲存格式框架", "");
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+    }
+
+    function resetFormatSettings() {
+      applyFormatToFields(DEFAULT_FORMAT);
+      try { localStorage.removeItem(KEY_FORMAT); } catch (e) {}
+      setStatus($("formatStatus"), "已還原預設格式", "");
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+    }
+
+    function buildAuthorLine(name, d) {
+      var tpl = ($("formatAuthorTemplate") && $("formatAuthorTemplate").value.trim()) || DEFAULT_FORMAT.authorTemplate;
+      var dateStr = formatAuthorDate(d);
+      return tpl
+        .replace(/\{name\}/g, name)
+        .replace(/\{date\}/g, dateStr)
+        .replace(/\{year\}/g, String(d.getFullYear()))
+        .replace(/\{month\}/g, String(d.getMonth() + 1))
+        .replace(/\{day\}/g, String(d.getDate()));
+    }
+
+    function buildSopPrompt() {
+      var titleRule = ($("formatTitleRule") && $("formatTitleRule").value.trim()) || DEFAULT_FORMAT.titleRule;
+      var authorTpl = ($("formatAuthorTemplate") && $("formatAuthorTemplate").value.trim()) || DEFAULT_FORMAT.authorTemplate;
+      var headerLines = getFormatHeaderLines();
+      var footerLines = getFormatFooterLines();
+      var headerDesc = headerLines.length
+        ? headerLines.map(function (l, i) { return "  第 " + (i + 1) + " 句：「" + l + "」"; }).join("\n")
+        : "  （依使用者設定，可省略問候）";
+      var footerText = footerLines.length ? footerLines.join("\n") : "（依使用者設定）";
+      var authorExample = authorTpl.replace(/\{name\}/g, "姓名/地區").replace(/\{date\}/g, "年/月/日");
+      return "你是超碼修煉心得寫作助手。請依下列 SOP，用繁體中文產出一篇完整、可直接繳交的心得。\n\n" +
+        "【外相格式】\n" +
+        "1. 第一行：標題 " + titleRule + "\n" +
+        "2. 第二行：作者署名「" + authorExample + "」（依【作者署名行】填入）\n" +
+        "3. 空一行後寫問候（每句一行）：\n" + headerDesc + "\n" +
+        "4. 正文 4–5 個自然段，依內文四步法（不必標 Step 編號）\n" +
+        "5. 空一行後寫感恩迴向（每句一行，依下列標準結尾）\n\n" +
+        "【內文四步法】\n" +
+        "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
+        "Step2 自省照見（承）：誠實記錄自身慣性與情緒，點出「知道」與「做到」的差距，反求諸己\n" +
+        "Step3 古今印證（轉）：結合古今聖賢名言白話意涵與太陽盛德導師／超碼心法教誨，完成轉念\n" +
+        "  ※ 若提供【印證參考文章資訊】，此段須自然融入其中的古籍原句／導師教誨／文章摘要，以白話完成印證，不可生硬堆砌\n" +
+        "Step4 轉念合道（合）：連結太陽、天地無私普照，將領悟化為具體的愛與感恩行動\n\n" +
+        "【潤飾要求】\n" +
+        "- 白話、親切、像日常聊天，不要生硬術語與說教\n" +
+        "- 通篇反求諸己、修正自心，絕不批評或評判外在人事\n" +
+        "- 文字溫暖、平實、自帶正向能量\n\n" +
+        "【標準結尾】（每句一行，須完整照寫）\n" + footerText + "\n\n" +
+        "請直接輸出完整心得全文，不要加任何解說、前言或 markdown。";
+    }
 
     function getOutputText() {
       return ($("outputEdit").value || "").trim();
@@ -1418,7 +1531,7 @@
       var p2 = "以前總覺得自己「知道」該怎麼做，但遇到實際境緣才發現，情緒與慣性仍會牽著走；這份落差，正是我需要誠實面對、持續修正的地方。";
       var p3 = "古人說「吾日三省吾身」，白話就是時時回頭看自己；這也契合導師教導我們秒秒 GPS 定位、在事上磨練——不在外面找理由，而是把念頭轉回來修正自己。";
       var p4 = "就像太陽每天無私普照、不求回報，天地也以寬容承載萬物；當我願意懷抱愛與感恩，把領悟落實在待人接物的一個微笑、一句好話裡，眼前的路便多了平安與力量。";
-      return title + "\n" + authorLine + "\n\n" + GREETING + "\n\n" + p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + CLOSING;
+      return title + "\n" + authorLine + "\n\n" + getGreetingText() + "\n\n" + p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + getClosingText();
     }
 
     function validateEssay(text) {
@@ -1427,15 +1540,16 @@
       checks.push({ label: "標題（《》6–15 字意象）", ok: hasTitle });
       var hasAuthor = /\d{4}\/\d{1,2}\/\d{1,2}/.test(text);
       checks.push({ label: "作者署名含日期", ok: hasAuthor });
-      var hasGreeting = text.indexOf("敬愛的導師好") >= 0 && text.indexOf("超碼家人大家好") >= 0;
-      checks.push({ label: "標準問候語", ok: hasGreeting });
+      var headerLines = getFormatHeaderLines();
+      var hasGreeting = !headerLines.length || headerLines.every(function (line) { return text.indexOf(line) >= 0; });
+      checks.push({ label: headerLines.length ? "問候語（" + headerLines.length + " 句）" : "問候語（已省略）", ok: hasGreeting });
       var paras = text.split(/\n\n+/).filter(function (p) {
         return p.trim() && p.indexOf("感恩") !== 0 && p.indexOf("《") !== 0 && !/\d{4}\/\d/.test(p.slice(0, 20));
       });
       checks.push({ label: "正文約 4–5 段", ok: paras.length >= 3 && paras.length <= 7 });
-      var hasClosing = text.indexOf("感恩宇宙") >= 0 && text.indexOf("感恩太陽盛德導師") >= 0 &&
-        text.indexOf("感恩蔡禮旭老師") >= 0 && text.indexOf("感恩一切有了交代") >= 0;
-      checks.push({ label: "四句感恩迴向", ok: hasClosing });
+      var footerLines = getFormatFooterLines();
+      var hasClosing = !footerLines.length || footerLines.every(function (line) { return text.indexOf(line) >= 0; });
+      checks.push({ label: footerLines.length ? "感恩迴向（" + footerLines.length + " 句）" : "感恩迴向（已省略）", ok: hasClosing });
       var noBlame = !/(都是.*的錯|怪.*不好|評判|指責)/.test(text);
       checks.push({ label: "反求諸己、少評判外在", ok: noBlame });
       return checks;
@@ -2037,7 +2151,7 @@
         var author = ($("authorName").value || "家人").trim();
         var dateVal = $("authorDate").value;
         var d = dateVal ? new Date(dateVal + "T12:00:00") : new Date();
-        var authorLine = author + " " + formatAuthorDate(d);
+        var authorLine = buildAuthorLine(author, d);
         var textMat = ($("materialText").value || "").trim();
         var key = getGeminiKey();
         var mediaNotes = "";
@@ -2062,7 +2176,7 @@
             (refNotes ? "\n\n" + refNotes : "") +
             "\n\n【寫作指示】Step3 古今印證須自然融入約 " + counts.sage + " 則中外聖賢話語、" +
             counts.master + " 則太陽盛德導師教誨（依印證參考，白話轉念，不可只列連結或堆砌）。";
-          var res = await callGeminiText(SOP_PROMPT + userBlock, key);
+          var res = await callGeminiText(buildSopPrompt() + userBlock, key);
           essay = res.text;
           setStatus($("genStatus"), "已用 Gemini（" + res.model + "）生成", "");
         } else {
@@ -2161,6 +2275,9 @@
       renderHistory();
       loadQuoteCounts();
       loadExportAttachPref();
+      loadFormatSettings();
+      $("btnSaveFormat").onclick = saveFormatSettings;
+      $("btnResetFormat").onclick = resetFormatSettings;
       $("exportWithAttachments").onchange = function () { syncExportAttachCheckboxes(this.checked); };
       $("exportWithAttachments2").onchange = function () { syncExportAttachCheckboxes(this.checked); };
       $("quoteCountSage").onchange = saveQuoteCounts;
