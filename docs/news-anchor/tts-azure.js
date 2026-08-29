@@ -124,7 +124,8 @@
     if (currentAudio) {
       try {
         currentAudio.pause();
-        currentAudio.src = "";
+        currentAudio.removeAttribute("src");
+        currentAudio.load();
       } catch (e) {}
       currentAudio = null;
     }
@@ -133,6 +134,22 @@
       audioCtx = null;
       analyser = null;
     }
+  }
+
+  function unlockAudio() {
+    try {
+      if (!audioCtx || audioCtx.state === "closed") {
+        audioCtx = new (global.AudioContext || global.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume().catch(function () {});
+      }
+      var buf = audioCtx.createBuffer(1, 1, 22050);
+      var src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    } catch (e) {}
   }
 
   function synthesizeChunk(text, voiceName, styleOpts) {
@@ -196,6 +213,7 @@
       var audio = new Audio();
       currentAudio = audio;
       audio.preload = "auto";
+      audio.src = url;
 
       var visemeTimers = [];
       function clearVisemeTimers() {
@@ -215,15 +233,18 @@
         reject(new Error("音訊播放失敗"));
       };
 
+      var useAnalyser = false;
       try {
-        audioCtx = new (global.AudioContext || global.webkitAudioContext)();
+        if (!audioCtx || audioCtx.state === "closed") {
+          audioCtx = new (global.AudioContext || global.webkitAudioContext)();
+        }
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
         var source = audioCtx.createMediaElementSource(audio);
         source.connect(analyser);
         analyser.connect(audioCtx.destination);
+        useAnalyser = true;
       } catch (e) {
-        audioCtx = null;
         analyser = null;
       }
 
@@ -235,9 +256,22 @@
         visemeTimers.push(timer);
       });
 
-      audio.play().then(function () {
-        startAmpLoop(sessionId);
-      }).catch(reject);
+      function beginPlay() {
+        var playPromise = audio.play();
+        if (!playPromise || typeof playPromise.then !== "function") {
+          if (useAnalyser) startAmpLoop(sessionId);
+          return;
+        }
+        playPromise.then(function () {
+          if (useAnalyser) startAmpLoop(sessionId);
+        }).catch(reject);
+      }
+
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().then(beginPlay).catch(beginPlay);
+      } else {
+        beginPlay();
+      }
     });
   }
 
@@ -285,8 +319,17 @@
       })
       .catch(function (err) {
         if (sessionId !== speakSession) return;
+        var failedAt = speakIndex;
         speakIndex += 1;
-        notify({ reason: "error", message: err && err.message ? err.message : String(err) });
+        notify({
+          reason: failedAt === 0 ? "fatal" : "error",
+          message: err && err.message ? err.message : String(err)
+        });
+        if (failedAt === 0) {
+          speakActive = false;
+          stopAudio();
+          return;
+        }
         return speakQueueAsync(sessionId);
       });
   }
@@ -375,6 +418,7 @@
     togglePauseSpeakQueue: togglePauseSpeakQueue,
     getSpeakState: getSpeakState,
     onSpeakStatus: onSpeakStatus,
-    visemeToOpen: visemeToOpen
+    visemeToOpen: visemeToOpen,
+    unlockAudio: unlockAudio
   };
 })(typeof window !== "undefined" ? window : this);

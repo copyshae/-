@@ -679,6 +679,19 @@
     notifySpeakStatus({ reason: "speaking" });
   }
 
+  function unlockSpeech() {
+    if (!global.speechSynthesis) return false;
+    try {
+      global.speechSynthesis.getVoices();
+      var u = new SpeechSynthesisUtterance("\u200b");
+      u.volume = 0.01;
+      u.rate = 1;
+      u.lang = "zh-TW";
+      global.speechSynthesis.speak(u);
+    } catch (e) {}
+    return true;
+  }
+
   function speakQueued(text, opts) {
     if (!global.speechSynthesis) {
       alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
@@ -729,6 +742,7 @@
     togglePauseSpeakQueue: togglePauseSpeakQueue,
     getSpeakState: getSpeakState,
     onSpeakStatus: onSpeakStatus,
+    unlockSpeech: unlockSpeech,
     listEnVoices: listEnVoices,
     pickEnVoice: pickEnVoice,
     resolveSpeakSettings: resolveSpeakSettings
