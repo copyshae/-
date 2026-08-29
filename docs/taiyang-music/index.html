@@ -336,7 +336,7 @@
         </select>
       </div>
       <div id="playModePick" class="play-mode-pick" aria-live="polite">
-        <p>〈<span id="playModeSongName" class="song-name">—</span>〉要如何播放？</p>
+        <p>選好歌曲後會<strong>立即播放</strong>。若要改模式，先按 KTV 再選歌，或選歌後按下方按鈕。</p>
         <div class="play-mode-actions">
           <button type="button" id="btnPickKtv" class="ktv-pick">🎤 KTV 模式</button>
           <button type="button" id="btnPickNormal">▶ 一般播放</button>
@@ -1753,12 +1753,34 @@
       $("playModePick").classList.add("on");
     }
 
+    function queueItemFromSong(s) {
+      return {
+        id: s.id,
+        name: s.name,
+        title: s.title,
+        performer: s.performer || "master",
+        performerLabel: s.performerLabel || "太陽盛德導師",
+        karaokeId: s.karaokeId || null,
+        karaokeTitle: s.karaokeTitle || null,
+        pass: 1,
+        total: s.repeat === 3 ? 3 : 1
+      };
+    }
+
     function playSongWithMode(songId, useKtv) {
+      const song = (catalog.songs || []).find((s) => s.id === songId);
+      if (!song) return;
       const i = queue.findIndex((q) => q.id === songId);
-      if (i < 0) return;
+      if (i >= 0) qIndex = i;
       hidePlayModePick();
+      pendingSongId = null;
       applyKtvMode(useKtv, { reload: false, showSummary: false });
-      jumpTo(i, true);
+      autoPlay = true;
+      pendingAutoNext = false;
+      const item = i >= 0 ? queue[qIndex] : queueItemFromSong(song);
+      loadVideo(item, true);
+      const sel = $("songSelect");
+      if (sel) sel.value = songId;
     }
 
     function toggleKaraoke() {
@@ -1889,9 +1911,12 @@
       if (!html) html = '<option value="">此分類尚無歌曲</option>';
       sel.innerHTML = html;
 
-      const current = queue[qIndex];
-      if (current && filtered.some((s) => s.id === current.id)) {
-        sel.value = current.id;
+      const playingId = queue[qIndex] && queue[qIndex].id;
+      const preferId = pendingSongId || playingId;
+      if (preferId && filtered.some((s) => s.id === preferId)) {
+        sel.value = preferId;
+      } else if (filtered.length) {
+        sel.value = "";
       }
 
       $("listCount").textContent = "（共 " + filtered.length + " 首）";
@@ -1951,7 +1976,7 @@
       }
       if (ktvMode) resetSingSession(item);
       if (player && player.loadVideoById) {
-        player.loadVideoById(vid);
+        player.loadVideoById({ videoId: vid, startSeconds: 0 });
         if (play) setTimeout(() => {
           if (player.playVideo) player.playVideo();
           enablePlayerCaptions();
@@ -2003,7 +2028,8 @@
         if (ktvMode) {
           if (singSession) singSession.hasPlayed = true;
           maybeRetimeCaptions();
-          startCaptionSync();
+          if (shouldUseNativeCaptions()) enablePlayerCaptions(true);
+          else startCaptionSync();
           startPlayTick();
         }
       } else if (e.data === YT.PlayerState.PAUSED) {
@@ -2117,7 +2143,8 @@
         hidePlayModePick();
         return;
       }
-      showPlayModePick(id);
+      // 選歌即播（含其他演唱者）；模式依目前是否 KTV
+      playSongWithMode(id, ktvMode);
     });
 
     $("btnPickKtv").addEventListener("click", () => {
