@@ -78,6 +78,20 @@
       z-index: 2;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
+    .play-mode-pick {
+      margin-top: 0.65rem;
+      padding: 0.65rem;
+      background: rgba(196, 90, 16, 0.08);
+      border: 1px dashed var(--accent);
+      border-radius: 0.4rem;
+      display: none;
+    }
+    .play-mode-pick.on { display: block; }
+    .play-mode-pick p { font-size: 0.82rem; color: var(--ink); font-weight: 600; }
+    .play-mode-pick .song-name { color: var(--accent); }
+    .play-mode-actions { margin-top: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; }
+    .play-mode-actions button { padding: 0.6rem 0.4rem; font-size: 0.82rem; }
+    .play-mode-actions .ktv-pick { background: linear-gradient(135deg, #e8a020, #c45a10); color: #fff; border-color: #c45a10; }
     .picker-label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500; }
     .song-select {
       width: 100%;
@@ -267,10 +281,17 @@
         <button type="button" data-filter="other" role="tab">其他演唱者</button>
       </div>
       <div class="song-picker">
-        <label for="songSelect" class="picker-label">選擇歌曲播放（曲庫全部歌曲）</label>
+        <label for="songSelect" class="picker-label">選擇歌曲，再決定 KTV 或一般播放</label>
         <select id="songSelect" class="song-select" aria-label="歌曲選單">
-          <option value="">載入曲庫中…</option>
+          <option value="">— 請選擇歌曲 —</option>
         </select>
+      </div>
+      <div id="playModePick" class="play-mode-pick" aria-live="polite">
+        <p>〈<span id="playModeSongName" class="song-name">—</span>〉要如何播放？</p>
+        <div class="play-mode-actions">
+          <button type="button" id="btnPickKtv" class="ktv-pick">🎤 KTV 模式</button>
+          <button type="button" id="btnPickNormal">▶ 一般播放</button>
+        </div>
       </div>
     </section>
 
@@ -386,6 +407,7 @@
     let abLoopEnd = null;
     let abLoopActive = false;
     let ktvSession = null;
+    let pendingSongId = null;
 
     const SONG_TIPS = {
       "注入彩虹": [
@@ -1053,25 +1075,52 @@
       }
     }
 
-    function setKtvMode(on) {
-      if (!on && ktvSession && ktvSession.songs.length) {
+    function applyKtvMode(useKtv, options) {
+      const opts = options || {};
+      if (!useKtv && ktvSession && ktvSession.songs.length && opts.showSummary !== false) {
         showSessionSummary();
       }
-      ktvMode = !!on;
+      ktvMode = !!useKtv;
       localStorage.setItem("taiyang-ktv", ktvMode ? "1" : "0");
-      if (!on) {
+      if (!ktvMode) {
         clearAbLoop();
         hideScorePanel();
+      } else if (opts.showSummary !== false) {
+        hideSessionSummary();
       } else {
         hideSessionSummary();
       }
       stopPlayTick();
       updateKtvUI();
-      if (ktvMode && queue[qIndex]) {
+      if (opts.reload && ktvMode && queue[qIndex]) {
         loadVideo(queue[qIndex], autoPlay || false);
-      } else {
+      } else if (!ktvMode) {
         stopCaptionSync();
       }
+    }
+
+    function setKtvMode(on) {
+      applyKtvMode(on, { reload: true, showSummary: true });
+    }
+
+    function hidePlayModePick() {
+      $("playModePick").classList.remove("on");
+      pendingSongId = null;
+    }
+
+    function showPlayModePick(songId) {
+      const song = (catalog.songs || []).find((s) => s.id === songId);
+      pendingSongId = songId;
+      $("playModeSongName").textContent = song ? song.name : "—";
+      $("playModePick").classList.add("on");
+    }
+
+    function playSongWithMode(songId, useKtv) {
+      const i = queue.findIndex((q) => q.id === songId);
+      if (i < 0) return;
+      hidePlayModePick();
+      applyKtvMode(useKtv, { reload: false, showSummary: false });
+      jumpTo(i, true);
     }
 
     function toggleKaraoke() {
@@ -1404,7 +1453,19 @@
     });
 
     $("songSelect").addEventListener("change", () => {
-      jumpToSongId($("songSelect").value);
+      const id = $("songSelect").value;
+      if (!id) {
+        hidePlayModePick();
+        return;
+      }
+      showPlayModePick(id);
+    });
+
+    $("btnPickKtv").addEventListener("click", () => {
+      if (pendingSongId) playSongWithMode(pendingSongId, true);
+    });
+    $("btnPickNormal").addEventListener("click", () => {
+      if (pendingSongId) playSongWithMode(pendingSongId, false);
     });
 
     window.onYouTubeIframeAPIReady = function () {
@@ -1419,7 +1480,7 @@
     });
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=20260906").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=20260907").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
