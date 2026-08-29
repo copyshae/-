@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#b8860b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="修煉心得" />
+  <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
+  <link rel="manifest" href="manifest.json" />
+  <title>加入主畫面｜超碼修煉心得</title>
+  <style>
+    :root { --accent: #b8860b; --muted: #7a5c3a; --ok: #2f6b3a; }
+    body {
+      font-family: "PingFang TC", "Noto Sans TC", sans-serif;
+      margin: 0; padding: 2rem 1.2rem;
+      background: #fff8e8; color: #3a2208; line-height: 1.6;
+    }
+    .wrap { max-width: 22rem; margin: 0 auto; text-align: center; }
+    h1 { color: var(--accent); font-size: 1.45rem; }
+    p, ol { text-align: left; color: var(--muted); font-size: 0.92rem; }
+    .icon { width: 5.5rem; height: 5.5rem; border-radius: 1.1rem; margin: 1rem auto 0; }
+    a.btn, button.btn {
+      display: block; width: 100%; margin-top: 0.55rem; background: var(--accent); color: #fff;
+      text-decoration: none; font-weight: 700; padding: 1rem; border-radius: 0.35rem;
+      border: none; font: inherit; cursor: pointer;
+    }
+    button.btn.secondary {
+      background: #fff; color: var(--accent); border: 1px solid var(--accent);
+    }
+    .url {
+      margin-top: 0.75rem; padding: 0.75rem; background: #fff;
+      font-size: 0.8rem; word-break: break-all; text-align: left;
+    }
+    .status { font-size: 0.84rem; font-weight: 700; color: var(--ok); margin-top: 0.5rem; text-align: center; }
+    .installed { color: var(--ok); font-weight: 700; text-align: center; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>超碼修煉心得<br />加入主畫面</h1>
+    <img class="icon" src="icon-192.png" alt="修煉心得圖示" />
+    <p id="intro">依 SOP 四步法生成心得：文字、口說、印證搜尋、配圖匯出。加入主畫面後可像 App 獨立開啟。</p>
+    <p class="installed" id="standaloneMsg" hidden>✓ 已從主畫面開啟</p>
+    <div class="url" id="url">https://copyshae.github.io/-/chaoma-xinde/</div>
+    <a class="btn" id="open" href="./index.html">打開修煉心得</a>
+    <button type="button" class="btn secondary" id="copyUrl">📋 複製網址</button>
+    <button type="button" class="btn secondary" id="btnInstall" hidden>📲 安裝到主畫面</button>
+    <p class="status" id="status"></p>
+    <ol>
+      <li><strong>iPhone</strong>：Safari 開啟上方網址 → 分享 → <strong>加入主畫面</strong>（圖示名稱：修煉心得）</li>
+      <li><strong>Android</strong>：Chrome 開啟 → ⋮ → <strong>加入主畫面</strong>或<strong>安裝應用程式</strong></li>
+      <li>合併上線後正式網址：<code>https://copyshae.github.io/-/chaoma-xinde/</code></li>
+    </ol>
+  </div>
+  <script>
+    var deferredPrompt = null;
+    var u = location.href.replace(/share\.html.*$/, "");
+    if (u.indexOf("http") !== 0) u = "https://copyshae.github.io/-/chaoma-xinde/";
+    document.getElementById("url").textContent = u;
+    document.getElementById("open").href = u;
+    if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+      document.getElementById("standaloneMsg").hidden = false;
+    }
+    document.getElementById("copyUrl").onclick = function () {
+      var t = document.getElementById("url").textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(function () {
+          document.getElementById("status").textContent = "已複製，請貼到 Safari／Chrome";
+        });
+      } else {
+        prompt("長按全選複製：", t);
+      }
+    };
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById("btnInstall").hidden = false;
+    });
+    document.getElementById("btnInstall").onclick = function () {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function (r) {
+        document.getElementById("status").textContent = r.outcome === "accepted" ? "已加入主畫面" : "已取消";
+        deferredPrompt = null;
+        document.getElementById("btnInstall").hidden = true;
+      });
+    };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>
