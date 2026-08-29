@@ -1,7 +1,7 @@
 {
   "name": "超碼修煉心得",
   "short_name": "修煉心得",
-  "description": "依超碼 SOP 自動生成修煉心得：文字、口說、拍照、圖片、影片皆可當素材。",
+  "description": "依超碼 SOP 自動生成修煉心得：文字、口說、拍照、圖片、影片、太陽盛德導師影音圖片網搜參考。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

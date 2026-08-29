@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="修煉心得" />
-  <meta name="description" content="超碼修煉心得 SOP 生成：文字、口說、拍照、圖片、影片皆可當素材，一鍵產出四步法心得。" />
+  <meta name="description" content="超碼修煉心得 SOP 生成：文字、口說、拍照、圖片、影片、太陽盛德導師影音圖片網搜參考，一鍵產出四步法心得。" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
@@ -95,6 +95,24 @@
     .history-item button { font-size: 0.78rem; padding: 0.35rem 0.55rem; min-height: auto; }
     footer { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
     footer a { color: var(--accent); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
+    .chip {
+      font: inherit; font-size: 0.75rem; cursor: pointer;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.7);
+      color: var(--muted); padding: 0.28rem 0.55rem; font-weight: 700;
+    }
+    .chip:active { background: var(--accent); color: #fff; }
+    .search-results, .ref-list { margin-top: 0.55rem; display: grid; gap: 0.45rem; }
+    .search-item, .ref-item {
+      border: 1px solid var(--line); background: #fff; padding: 0.55rem 0.6rem;
+      font-size: 0.82rem;
+    }
+    .search-item strong, .ref-item strong { color: var(--accent); display: block; margin-bottom: 0.15rem; }
+    .search-item .meta, .ref-item .meta { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .search-item .sum { line-height: 1.5; margin-bottom: 0.35rem; }
+    .search-item .acts, .ref-item .acts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .search-item button, .ref-item button { min-height: 2rem; font-size: 0.75rem; padding: 0.35rem 0.55rem; }
+    .ref-item .rm { color: var(--danger); border-color: rgba(180,35,24,0.35); }
     @keyframes pulse { 50% { opacity: 0.75; } }
   </style>
 </head>
@@ -102,7 +120,7 @@
   <div class="wrap">
     <header>
       <h1>超碼修煉心得</h1>
-      <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片</p>
+      <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片・導師網搜</p>
     </header>
 
     <section class="card">
@@ -122,6 +140,7 @@
         <button type="button" data-tab="photo">拍照</button>
         <button type="button" data-tab="image">圖片</button>
         <button type="button" data-tab="video">影片</button>
+        <button type="button" data-tab="search">網搜</button>
       </div>
 
       <div id="panelText" class="panel show">
@@ -161,6 +180,45 @@
           <label class="file-btn" for="inputVideoFile">📁 選擇影片</label>
           <input id="inputVideoFile" type="file" accept="video/*" />
         </div>
+      </div>
+
+      <div id="panelSearch" class="panel">
+        <p class="hint">搜尋太陽盛德導師相關影音、圖片或教誨，加入後會一併納入 Step3「古今印證」參考。</p>
+        <label for="searchKeyword">搜尋關鍵字</label>
+        <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、注入彩虹、GPS定位、感恩" />
+        <div class="chip-row" id="searchChips">
+          <button type="button" class="chip" data-q="秒秒轉念">秒秒轉念</button>
+          <button type="button" class="chip" data-q="GPS定位">GPS定位</button>
+          <button type="button" class="chip" data-q="注入彩虹">注入彩虹</button>
+          <button type="button" class="chip" data-q="富有">富有</button>
+          <button type="button" class="chip" data-q="超級生命密碼">超級生命密碼</button>
+          <button type="button" class="chip" data-q="事上磨">事上磨</button>
+        </div>
+        <label for="searchType">搜尋類型</label>
+        <select id="searchType">
+          <option value="all">全部（影音＋圖片＋文章）</option>
+          <option value="video">影音（YouTube 等）</option>
+          <option value="image">圖片</option>
+          <option value="article">文章／教誨</option>
+        </select>
+        <div class="row">
+          <button type="button" id="btnSearchLocal" class="primary">📀 搜尋本機歌曲目錄</button>
+          <button type="button" id="btnSearchGemini">🌐 Gemini 網路搜尋</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btnOpenYt">開 YouTube 搜尋</button>
+          <button type="button" id="btnOpenImg">開 Google 圖片</button>
+          <button type="button" id="btnOpenWeb">開 Google 網頁</button>
+        </div>
+        <label for="refUrl">貼上參考連結（YouTube／網址）</label>
+        <input id="refUrl" type="text" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" />
+        <div class="row">
+          <button type="button" id="btnAddRefUrl">加入參考連結</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+        <h3 style="font-size:0.9rem;color:var(--accent);margin-top:0.65rem;">已選參考資料</h3>
+        <div class="ref-list" id="refList"></div>
+        <p class="hint" id="refEmpty">尚無參考資料。搜尋後按「加入參考」，或貼上連結。</p>
       </div>
 
       <div class="media-preview" id="mediaPreview"></div>
@@ -214,6 +272,8 @@
     var MAX_VIDEO_MB = 50;
     var recognition = null;
     var mediaItems = [];
+    var refItems = [];
+    var catalogCache = null;
     var lastOutput = "";
 
     var GREETING = "敬愛的導師好\n超碼家人大家好";
@@ -284,19 +344,20 @@
       });
     }
 
-    async function callGeminiText(prompt, apiKey) {
+    async function callGeminiText(prompt, apiKey, opts) {
+      opts = opts || {};
       var lastErr = null;
       for (var i = 0; i < MODELS.length; i++) {
         var model = MODELS[i];
         try {
           var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
             encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          var body = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+          if (opts.googleSearch) body.tools = [{ google_search: {} }];
           var res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify(body)
           });
           var data = await res.json();
           if (!res.ok) {
@@ -306,7 +367,7 @@
           var text = (((data.candidates || [])[0] || {}).content || {}).parts
             ? data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("")
             : "";
-          if (text.trim()) return { text: text.trim(), model: model };
+          if (text.trim()) return { text: text.trim(), model: model, raw: data };
         } catch (e) {
           lastErr = e;
         }
@@ -477,6 +538,242 @@
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    function getSearchKeyword() {
+      var q = ($("searchKeyword").value || "").trim();
+      if (q) return q;
+      var mat = ($("materialText").value || "").trim();
+      if (mat) return extractSnippet(mat, 24);
+      return "太陽盛德導師 超級生命密碼";
+    }
+
+    function buildExternalSearchUrls(keyword, type) {
+      var q = encodeURIComponent("太陽盛德導師 " + keyword);
+      var urls = {
+        video: "https://www.youtube.com/results?search_query=" + q,
+        image: "https://www.google.com/search?tbm=isch&q=" + q,
+        web: "https://www.google.com/search?q=" + q
+      };
+      if (type === "video") return urls.video;
+      if (type === "image") return urls.image;
+      return urls.web;
+    }
+
+    async function loadCatalog() {
+      if (catalogCache) return catalogCache;
+      try {
+        var res = await fetch("../taiyang-music/catalog.json");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        catalogCache = await res.json();
+        return catalogCache;
+      } catch (e) {
+        throw new Error("無法載入歌曲目錄（需連網）");
+      }
+    }
+
+    function searchCatalog(catalog, keyword) {
+      var q = String(keyword || "").toLowerCase();
+      var songs = catalog.songs || [];
+      if (!q) q = "太陽";
+      return songs.filter(function (s) {
+        var blob = ((s.name || "") + " " + (s.title || "") + " " + (s.performerLabel || "")).toLowerCase();
+        return blob.indexOf(q) >= 0 || q.split(/\s+/).some(function (w) { return w && blob.indexOf(w) >= 0; });
+      }).slice(0, 10).map(function (s) {
+        return {
+          title: s.name || s.title || "歌曲",
+          type: "影音",
+          summary: (s.title || "") + "（" + (s.performerLabel || "太陽盛德導師") + "）",
+          url: "https://www.youtube.com/watch?v=" + encodeURIComponent(s.id),
+          source: "本機歌曲目錄"
+        };
+      });
+    }
+
+    function renderSearchResults(items) {
+      var box = $("searchResults");
+      if (!items.length) {
+        box.innerHTML = "<p class=\"hint\">沒有找到結果，可改關鍵字或開外部搜尋。</p>";
+        return;
+      }
+      box.innerHTML = items.map(function (it, idx) {
+        return "<div class=\"search-item\" data-idx=\"" + idx + "\">" +
+          "<strong>" + escapeHtml(it.title) + "</strong>" +
+          "<div class=\"meta\">" + escapeHtml(it.type) + "｜" + escapeHtml(it.source || "") + "</div>" +
+          "<div class=\"sum\">" + escapeHtml(it.summary || "") + "</div>" +
+          "<div class=\"acts\">" +
+          "<button type=\"button\" data-act=\"add\" data-idx=\"" + idx + "\">加入參考</button>" +
+          "<button type=\"button\" data-act=\"open\" data-idx=\"" + idx + "\">開啟連結</button>" +
+          "</div></div>";
+      }).join("");
+      box._items = items;
+      box.querySelectorAll("button[data-act]").forEach(function (btn) {
+        btn.onclick = function () {
+          var idx = Number(btn.getAttribute("data-idx"));
+          var item = box._items[idx];
+          if (!item) return;
+          if (btn.getAttribute("data-act") === "add") addRefItem(item);
+          else window.open(item.url, "_blank", "noopener,noreferrer");
+        };
+      });
+    }
+
+    function addRefItem(item) {
+      if (!item || !item.url) return;
+      var dup = refItems.some(function (r) { return r.url === item.url; });
+      if (dup) {
+        setStatus($("materialStatus"), "此參考已在清單中", "warn");
+        return;
+      }
+      refItems.push({
+        title: item.title || "參考資料",
+        type: item.type || "參考",
+        summary: item.summary || "",
+        url: item.url,
+        source: item.source || "手動"
+      });
+      renderRefList();
+      setStatus($("materialStatus"), "已加入參考：" + (item.title || ""), "");
+    }
+
+    function renderRefList() {
+      var box = $("refList");
+      var empty = $("refEmpty");
+      if (!refItems.length) {
+        box.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      box.innerHTML = refItems.map(function (it, idx) {
+        return "<div class=\"ref-item\">" +
+          "<strong>" + escapeHtml(it.title) + "</strong>" +
+          "<div class=\"meta\">" + escapeHtml(it.type) + "｜" + escapeHtml(it.source || "") + "</div>" +
+          "<div class=\"sum\">" + escapeHtml(it.summary || it.url) + "</div>" +
+          "<div class=\"acts\">" +
+          "<button type=\"button\" data-ref-open=\"" + idx + "\">開啟</button>" +
+          "<button type=\"button\" class=\"rm\" data-ref-rm=\"" + idx + "\">移除</button>" +
+          "</div></div>";
+      }).join("");
+      box.querySelectorAll("[data-ref-open]").forEach(function (btn) {
+        btn.onclick = function () {
+          var it = refItems[Number(btn.getAttribute("data-ref-open"))];
+          if (it) window.open(it.url, "_blank", "noopener,noreferrer");
+        };
+      });
+      box.querySelectorAll("[data-ref-rm]").forEach(function (btn) {
+        btn.onclick = function () {
+          refItems.splice(Number(btn.getAttribute("data-ref-rm")), 1);
+          renderRefList();
+        };
+      });
+    }
+
+    function refsToMaterial() {
+      if (!refItems.length) return "";
+      return refItems.map(function (r) {
+        return "【導師參考｜" + r.type + "】" + r.title +
+          "\n重點：" + (r.summary || "（請參連結）") +
+          "\n連結：" + r.url +
+          "\n來源：" + (r.source || "");
+      }).join("\n\n");
+    }
+
+    function parseGeminiSearchResults(text) {
+      var items = [];
+      var blocks = String(text || "").split(/\n(?=\d+[\.\)、]|[-•*]\s)/);
+      blocks.forEach(function (block) {
+        var urlMatch = block.match(/https?:\/\/[^\s)\]】]+/);
+        if (!urlMatch) return;
+        var titleMatch = block.match(/[「《]([^」》]+)[」》]/);
+        var title = titleMatch ? titleMatch[1] : extractSnippet(block.replace(urlMatch[0], ""), 40);
+        var type = /圖|照片|image/i.test(block) ? "圖片" : (/youtube|影音|影片|video/i.test(block) ? "影音" : "文章");
+        items.push({
+          title: title || "太陽盛德導師參考",
+          type: type,
+          summary: extractSnippet(block.replace(urlMatch[0], "").replace(/^[0-9\.\)、\-•*\s]+/, ""), 120),
+          url: urlMatch[0].replace(/[.,;]+$/, ""),
+          source: "Gemini 網路搜尋"
+        });
+      });
+      if (!items.length && text.trim()) {
+        items.push({
+          title: "Gemini 搜尋摘要",
+          type: "摘要",
+          summary: extractSnippet(text, 300),
+          url: buildExternalSearchUrls(getSearchKeyword(), $("searchType").value),
+          source: "Gemini 網路搜尋"
+        });
+      }
+      return items;
+    }
+
+    async function searchLocalCatalog() {
+      setStatus($("materialStatus"), "搜尋本機歌曲目錄…", "warn");
+      try {
+        var catalog = await loadCatalog();
+        var items = searchCatalog(catalog, getSearchKeyword());
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "找到 " + items.length + " 筆歌曲／MV", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), e.message || String(e), "err");
+      }
+    }
+
+    async function searchWithGemini() {
+      var key = getGeminiKey();
+      if (!key) {
+        alert("Gemini 網路搜尋需先填金鑰。可先按「開 YouTube 搜尋」手動找資料，再貼連結加入參考。");
+        return;
+      }
+      var keyword = getSearchKeyword();
+      var type = $("searchType").value;
+      var typeHint = type === "video" ? "影音（YouTube 演講、歌曲 MV）"
+        : type === "image" ? "圖片（官方照片、活動圖）"
+        : type === "article" ? "文章或教誨摘錄"
+        : "影音、圖片、文章皆可";
+      setStatus($("materialStatus"), "Gemini 正在搜尋「" + keyword + "」…", "warn");
+      try {
+        var prompt =
+          "請用 Google 搜尋，找出「太陽盛德導師」或「超級生命密碼」與「" + keyword + "」相關的" + typeHint + "。\n" +
+          "列出 3～5 筆繁體中文結果。每筆格式：\n" +
+          "1. 【類型】影音／圖片／文章\n" +
+          "2. 標題\n" +
+          "3. 一句白話重點（可引用教誨精神，不要評判他人）\n" +
+          "4. 完整網址\n" +
+          "優先 YouTube 官方或天圓文化相關來源。";
+        var res = await callGeminiText(prompt, key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text);
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "Gemini 搜尋完成（" + res.model + "），共 " + items.length + " 筆", "");
+      } catch (e) {
+        setStatus($("materialStatus"), "Gemini 搜尋失敗：" + (e.message || e), "err");
+      }
+    }
+
+    function addRefFromUrl() {
+      var url = ($("refUrl").value || "").trim();
+      if (!/^https?:\/\//i.test(url)) {
+        alert("請貼上有效的 http 或 https 連結");
+        return;
+      }
+      var title = "參考連結";
+      var type = "文章";
+      if (/youtube\.com|youtu\.be/i.test(url)) {
+        type = "影音";
+        title = "YouTube 參考";
+      } else if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)) {
+        type = "圖片";
+        title = "圖片參考";
+      }
+      addRefItem({
+        title: title,
+        type: type,
+        summary: "使用者貼上的參考連結",
+        url: url,
+        source: "手動貼上"
+      });
+      $("refUrl").value = "";
+    }
+
     async function generateEssay() {
       var btn = $("btnGenerate");
       btn.disabled = true;
@@ -492,9 +789,10 @@
         if (mediaItems.length) {
           mediaNotes = await analyzeAllMedia(key);
         }
-        var combined = [textMat, mediaNotes].filter(Boolean).join("\n\n");
+        var refNotes = refsToMaterial();
+        var combined = [textMat, mediaNotes, refNotes].filter(Boolean).join("\n\n");
         if (!combined.trim()) {
-          setStatus($("genStatus"), "請至少輸入文字、口說，或加入圖片／影片素材。", "err");
+          setStatus($("genStatus"), "請至少輸入文字、口說、圖片／影片，或加入導師參考資料。", "err");
           return;
         }
         localStorage.setItem(KEY_AUTHOR, author);
@@ -624,6 +922,24 @@
         if (e.target.files && e.target.files[0]) handleVideoFile(e.target.files[0], "影片");
         e.target.value = "";
       };
+      $("btnSearchLocal").onclick = searchLocalCatalog;
+      $("btnSearchGemini").onclick = searchWithGemini;
+      $("btnOpenYt").onclick = function () {
+        window.open(buildExternalSearchUrls(getSearchKeyword(), "video"), "_blank", "noopener,noreferrer");
+      };
+      $("btnOpenImg").onclick = function () {
+        window.open(buildExternalSearchUrls(getSearchKeyword(), "image"), "_blank", "noopener,noreferrer");
+      };
+      $("btnOpenWeb").onclick = function () {
+        window.open(buildExternalSearchUrls(getSearchKeyword(), "web"), "_blank", "noopener,noreferrer");
+      };
+      $("btnAddRefUrl").onclick = addRefFromUrl;
+      document.querySelectorAll("#searchChips .chip").forEach(function (chip) {
+        chip.onclick = function () {
+          $("searchKeyword").value = chip.getAttribute("data-q") || "";
+        };
+      });
+      renderRefList();
       $("btnCopy").onclick = function () {
         if (!lastOutput) { alert("請先生成心得"); return; }
         if (navigator.clipboard && navigator.clipboard.writeText) {
