@@ -106,6 +106,9 @@
     }
     textarea { min-height: 5.5rem; resize: vertical; line-height: 1.55; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+    .kw-row { display: flex; gap: 0.4rem; align-items: stretch; }
+    .kw-row input { flex: 1 1 auto; min-width: 0; }
+    .kw-row button { flex: 0 0 auto; white-space: nowrap; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
     button {
       cursor: pointer; border: 1px solid var(--line);
@@ -114,6 +117,7 @@
     }
     button.primary { background: var(--desk); border-color: #d42a3a; }
     button.accent { background: #1a4a8a; border-color: #2a6ab8; }
+    button.recording { background: #8b1a1a; border-color: #ff6b6b; color: #fff; }
     button:disabled { opacity: .4; cursor: default; }
     .hint { font-size: 0.76rem; color: var(--muted); margin-top: 0.35rem; }
     .status { font-size: 0.82rem; font-weight: 700; min-height: 1.15rem; margin-top: 0.35rem; color: #7ddea8; }
@@ -157,7 +161,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">抓取 Google 新聞頭條，或輸入關鍵字搜尋相關新聞，由虛擬主播語音播報。</p>
+    <p class="sub">抓取 Google 新聞頭條；關鍵字可<strong>口說或打字</strong>，由虛擬主播語音播報。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -179,9 +183,12 @@
     <section class="card">
       <h2>📰 新聞來源</h2>
       <label for="keyword">關鍵字搜尋（優先）</label>
-      <input id="keyword" type="text" autocomplete="off" placeholder="例如：台積電、颱風、奧運、人工智慧…" />
+      <div class="kw-row">
+        <input id="keyword" type="text" autocomplete="off" placeholder="打字或按麥克風口說，例如：台積電、颱風…" />
+        <button type="button" id="btnKwVoice" title="口說關鍵字">🎤 口說</button>
+      </div>
       <div class="kw-chips" id="kwChips" hidden></div>
-      <p class="hint">有輸入關鍵字時，會搜尋 Google 新聞相關報導；留空則依下方分類抓取。</p>
+      <p class="hint" id="kwHint">關鍵字可<strong>打字</strong>或按<strong>口說</strong>填入；按 Enter 或「搜尋並播報」開始。留空則依下方分類抓取。</p>
       <div class="row2">
         <div>
           <label for="category">分類（無關鍵字時）</label>
@@ -203,6 +210,7 @@
         </div>
       </div>
       <div class="actions">
+        <button type="button" class="primary" id="btnVoiceSearch">🎤 口說搜尋並播報</button>
         <button type="button" class="primary" id="btnSearchPlay">🔍 搜尋並播報</button>
         <button type="button" class="primary" id="btnFetch">更新新聞</button>
         <button type="button" class="accent" id="btnScript">產生播報稿</button>
@@ -326,7 +334,9 @@
       cache: null,
       blinkTimer: null,
       speakWatch: null,
-      searchKeyword: ""
+      searchKeyword: "",
+      recognition: null,
+      voiceAutoSearch: false
     };
 
     function $(id) { return document.getElementById(id); }
@@ -334,6 +344,99 @@
     function getKeyword() {
       return ($("keyword").value || "").trim();
     }
+
+    function cleanVoiceKeyword(text) {
+      var s = String(text || "").trim();
+      s = s.replace(/[。，、！？!?,.]+$/g, "");
+      s = s.replace(/^(搜尋|找一下|找|查|查詢|我要看|我想看|請播報|播報|关于|關於|有关|有關)\s*/i, "");
+      s = s.replace(/(的新聞|新聞|消息|資訊|報導)$/i, "");
+      return s.trim();
+    }
+
+    function voiceIdleLabel(btn) {
+      if (btn.id === "btnKwVoice") return "🎤 口說";
+      if (btn.id === "btnVoiceSearch") return "🎤 口說搜尋並播報";
+      return "🎤 口說";
+    }
+
+    function stopVoiceIfAny() {
+      if (!state.recognition) return;
+      try { state.recognition.stop(); } catch (e) {}
+      state.recognition = null;
+      state.voiceAutoSearch = false;
+      document.querySelectorAll("button.recording").forEach(function (btn) {
+        btn.classList.remove("recording");
+        btn.textContent = voiceIdleLabel(btn);
+      });
+    }
+
+    function startVoiceKeyword(btn, autoSearch) {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert("此瀏覽器不支援語音辨識，請改用打字，或用 Chrome／Edge。");
+        return;
+      }
+      if (state.recognition) {
+        stopVoiceIfAny();
+        return;
+      }
+      if (window.TtsVoices) TtsVoices.stopSpeakQueue();
+      state.voiceAutoSearch = !!autoSearch;
+      state.recognition = new SR();
+      state.recognition.lang = "zh-TW";
+      state.recognition.continuous = false;
+      state.recognition.interimResults = false;
+      btn.classList.add("recording");
+      btn.textContent = autoSearch ? "■ 請說關鍵字…" : "■ 停止";
+      $("fetchStatus").textContent = autoSearch ? "請說出關鍵字，例如：台積電、颱風…" : "正在聽您說關鍵字…";
+      $("fetchStatus").className = "status warn";
+
+      state.recognition.onresult = function (ev) {
+        var raw = (ev.results[0] && ev.results[0][0] && ev.results[0][0].transcript) || "";
+        var kw = cleanVoiceKeyword(raw);
+        if (!kw) {
+          $("fetchStatus").textContent = "聽不清楚，請再試一次或改用打字";
+          $("fetchStatus").className = "status err";
+          return;
+        }
+        $("keyword").value = kw;
+        var hint = $("kwHint");
+        if (hint) hint.textContent = "已用口說填入「" + kw + "」。可再打字微調，或按搜尋並播報。";
+        if (state.voiceAutoSearch) {
+          searchAndPlay().catch(showFetchError);
+        } else {
+          $("fetchStatus").textContent = "已口說填入：「" + kw + "」";
+          $("fetchStatus").className = "status";
+          try { $("keyword").focus(); } catch (e) {}
+        }
+      };
+
+      state.recognition.onerror = function (ev) {
+        var msg = "語音辨識失敗";
+        if (ev && ev.error === "not-allowed") msg = "請允許麥克風權限後再試";
+        else if (ev && ev.error === "no-speech") msg = "沒聽到聲音，請再說一次或改用打字";
+        $("fetchStatus").textContent = msg;
+        $("fetchStatus").className = "status err";
+        btn.classList.remove("recording");
+        btn.textContent = voiceIdleLabel(btn);
+        state.recognition = null;
+        state.voiceAutoSearch = false;
+      };
+
+      state.recognition.onend = function () {
+        btn.classList.remove("recording");
+        btn.textContent = voiceIdleLabel(btn);
+        state.recognition = null;
+        state.voiceAutoSearch = false;
+      };
+
+      try { state.recognition.start(); } catch (e) {
+        stopVoiceIfAny();
+        $("fetchStatus").textContent = "無法啟動語音辨識：" + e.message;
+        $("fetchStatus").className = "status err";
+      }
+    }
+
 
     function buildSearchRssUrl(keyword) {
       return RSS_BASE + "/search?q=" + encodeURIComponent(keyword) + "&" + RSS_LOCALE;
@@ -585,11 +688,26 @@
         try {
           items = await fetchLiveRss({ keyword: keyword });
         } catch (e) {
-          throw new Error("關鍵字搜尋失敗：" + e.message);
+          try {
+            if (!state.cache) state.cache = await loadCacheFile();
+            var cacheKey = "search:" + keyword;
+            var cachedSearch = state.cache.feeds && state.cache.feeds[cacheKey];
+            if (cachedSearch && cachedSearch.items && cachedSearch.items.length) {
+              items = normalizeItems(cachedSearch.items);
+              status.textContent = "使用離線快取（「" + keyword + "」即時搜尋失敗）";
+              status.className = "status warn";
+            } else {
+              throw e;
+            }
+          } catch (e2) {
+            throw new Error("關鍵字搜尋失敗：" + e.message);
+          }
         }
         if (!items.length) throw new Error("找不到「" + keyword + "」相關新聞，請換個關鍵字試試");
-        status.textContent = "已搜尋「" + keyword + "」共 " + items.length + " 則";
-        status.className = "status";
+        if (status.className !== "status warn") {
+          status.textContent = "已搜尋「" + keyword + "」共 " + items.length + " 則";
+          status.className = "status";
+        }
       } else {
         state.searchKeyword = "";
         try {
@@ -808,12 +926,22 @@
     });
 
     $("btnSearchPlay").addEventListener("click", function () {
+      stopVoiceIfAny();
       searchAndPlay().catch(showFetchError);
+    });
+
+    $("btnVoiceSearch").addEventListener("click", function () {
+      startVoiceKeyword($("btnVoiceSearch"), true);
+    });
+
+    $("btnKwVoice").addEventListener("click", function () {
+      startVoiceKeyword($("btnKwVoice"), false);
     });
 
     $("keyword").addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
+        stopVoiceIfAny();
         searchAndPlay().catch(showFetchError);
       }
     });
