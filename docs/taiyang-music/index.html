@@ -83,11 +83,42 @@
       position: sticky; top: 0;
     }
     .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); }
+    .controls-extra { margin-top: 0.4rem; grid-template-columns: 1fr 1fr; display: grid; gap: 0.35rem; }
+    button.ktv-on { background: linear-gradient(135deg, #e8a020, #c45a10); color: #fff; border-color: #c45a10; }
+    button.karaoke-on { background: #2d6a4f; color: #fff; border-color: #2d6a4f; }
+    .ktv-panel {
+      margin-top: 0.65rem;
+      padding: 1rem 0.85rem 1.1rem;
+      border-radius: 0.55rem;
+      background: linear-gradient(180deg, #1a1208 0%, #2d1f0a 100%);
+      color: #fff8e8;
+      min-height: 9rem;
+      text-align: center;
+      display: none;
+    }
+    .ktv-panel.on { display: block; }
+    .ktv-badge { font-size: 0.72rem; letter-spacing: 0.15em; color: #e8a020; font-weight: 700; }
+    .ktv-title { margin-top: 0.35rem; font-size: clamp(1.1rem, 4.5vw, 1.35rem); font-weight: 700; color: #ffd88a; }
+    .ktv-line {
+      margin-top: 0.85rem;
+      font-size: clamp(1.65rem, 7.5vw, 2.75rem);
+      font-weight: 700;
+      line-height: 1.35;
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.45);
+      min-height: 3.2em;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ktv-next { margin-top: 0.35rem; font-size: clamp(0.95rem, 4vw, 1.15rem); color: rgba(255,248,232,0.45); min-height: 1.4em; }
+    .ktv-hint { margin-top: 0.55rem; font-size: 0.72rem; color: rgba(255,248,232,0.55); }
+    body.ktv-mode .normal-only { display: none !important; }
+    body.ktv-mode .player-shell { margin-top: 0.5rem; }
+    body.ktv-mode .wrap { max-width: 32rem; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <header>
+    <header class="normal-only">
       <h1 class="brand">太陽盛德導師</h1>
       <p class="sub">注入彩虹、富有各×3 · 導師親唱 · 其他演唱者</p>
       <div class="pill-row">
@@ -97,7 +128,7 @@
       </div>
     </header>
 
-    <section class="home-card">
+    <section class="home-card normal-only">
       <img class="home-icon" src="taiyang-icon-192.png?v=20260829" width="192" height="192" alt="盛德歌曲圖示" />
       <div>
         <p><strong>主畫面圖示：盛德歌曲</strong></p>
@@ -107,7 +138,15 @@
 
     <div class="player-shell"><div id="player"></div></div>
 
-    <div class="now">
+    <div id="ktvPanel" class="ktv-panel" aria-live="polite">
+      <div class="ktv-badge">KTV 大字幕</div>
+      <div id="ktvTitle" class="ktv-title">—</div>
+      <div id="ktvLine" class="ktv-line">按下 KTV 後開始播放，字幕會自動顯示</div>
+      <div id="ktvNext" class="ktv-next"></div>
+      <p id="ktvHint" class="ktv-hint">伴唱：有伴奏版時自動切換；也可按「伴唱」切換</p>
+    </div>
+
+    <div class="now normal-only">
       <h2 id="nowTitle">準備播放</h2>
       <p id="nowMeta">載入曲庫中…</p>
       <div class="progress-bar" aria-hidden="true"><i id="progressFill"></i></div>
@@ -119,24 +158,29 @@
       <button type="button" id="btnNext">下一首 ▶</button>
     </div>
 
-    <div class="toolbar">
+    <div class="controls controls-extra">
+      <button type="button" id="btnKtv" title="快捷鍵 K">🎤 KTV 模式</button>
+      <button type="button" id="btnKaraoke" title="切換伴唱／原唱">🎵 伴唱</button>
+    </div>
+
+    <div class="toolbar normal-only">
       <button type="button" id="btnRefresh">🔄 更新曲庫</button>
       <button type="button" id="btnRestart">從頭播放</button>
       <span class="meta" id="catalogMeta">—</span>
     </div>
 
-    <p class="hint">
-      <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱各1次 → ④ 其他演唱者各1次。下方可篩選分類檢視。
+    <p class="hint normal-only">
+      <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱 → ④ 其他演唱者。按 <strong>KTV</strong> 可大字幕＋伴唱（快捷鍵 <strong>K</strong>）。
     </p>
 
-    <div class="filter-row" role="tablist" aria-label="歌曲分類">
+    <div class="filter-row normal-only" role="tablist" aria-label="歌曲分類">
       <button type="button" class="active" data-filter="all" role="tab">全部</button>
       <button type="button" data-filter="master" role="tab">導師親唱</button>
       <button type="button" data-filter="other" role="tab">其他演唱者</button>
     </div>
 
-    <h2 class="section">播放清單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
-    <div class="song-list" id="queueList" aria-label="播放清單"></div>
+    <h2 class="section normal-only">播放清單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
+    <div class="song-list normal-only" id="queueList" aria-label="播放清單"></div>
     <p class="status" id="statusLine"></p>
   </div>
 
@@ -151,8 +195,169 @@
     let apiReady = false;
     let autoPlay = false;
     let listFilter = "all";
+    let ktvMode = localStorage.getItem("taiyang-ktv") === "1";
+    let useKaraoke = localStorage.getItem("taiyang-karaoke") !== "0";
+    let captionLines = [];
+    let captionTimer = null;
+    let lastCaptionText = "";
 
     const $ = (id) => document.getElementById(id);
+
+    function normName(s) {
+      return (s || "").replace(/\s/g, "");
+    }
+
+    function findKaraokeInCatalog(item) {
+      if (item.karaokeId) return item.karaokeId;
+      const n = normName(item.name);
+      for (const s of catalog.songs || []) {
+        if (s.id === item.id) continue;
+        const t = s.title || "";
+        if (!/伴奏|演奏版|伴奏版/.test(t)) continue;
+        if (/導師演唱版|导师演唱版/.test(t) && !/伴奏/.test(t)) continue;
+        const sn = normName(s.name);
+        if (sn === n || sn.includes(n) || n.includes(sn)) return s.id;
+      }
+      return null;
+    }
+
+    function resolveVideoId(item) {
+      if (ktvMode && useKaraoke) {
+        const kid = findKaraokeInCatalog(item);
+        if (kid) return kid;
+      }
+      return item.id;
+    }
+
+    function parseVttTime(s) {
+      const p = s.trim().split(":");
+      if (p.length === 3) return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
+      if (p.length === 2) return parseFloat(p[0]) * 60 + parseFloat(p[1]);
+      return parseFloat(s) || 0;
+    }
+
+    function parseVtt(vtt) {
+      const out = [];
+      if (!vtt || vtt.indexOf("-->") < 0) return out;
+      const blocks = vtt.replace(/\r/g, "").split(/\n\n+/);
+      for (const block of blocks) {
+        const lines = block.split("\n");
+        let i = 0;
+        if (/^\d+$/.test(lines[0])) i = 1;
+        const timeLine = lines[i];
+        if (!timeLine || timeLine.indexOf("-->") < 0) continue;
+        const m = timeLine.match(/([\d:.]+)\s*-->\s*([\d:.]+)/);
+        if (!m) continue;
+        const text = lines.slice(i + 1).join(" ").replace(/<[^>]+>/g, "").trim();
+        if (!text) continue;
+        out.push({ start: parseVttTime(m[1]), end: parseVttTime(m[2]), text });
+      }
+      return out;
+    }
+
+    async function fetchCaptions(videoId) {
+      const langs = ["zh-Hant", "zh-TW", "zh-Hans", "zh", "en"];
+      for (const lang of langs) {
+        const url = "https://www.youtube.com/api/timedtext?v=" + encodeURIComponent(videoId) +
+          "&lang=" + encodeURIComponent(lang) + "&fmt=vtt";
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const text = await res.text();
+          const lines = parseVtt(text);
+          if (lines.length) return lines;
+        } catch (_) {}
+      }
+      return [];
+    }
+
+    function stopCaptionSync() {
+      if (captionTimer) {
+        clearInterval(captionTimer);
+        captionTimer = null;
+      }
+    }
+
+    function startCaptionSync() {
+      stopCaptionSync();
+      if (!ktvMode) return;
+      captionTimer = setInterval(() => {
+        if (!player || !player.getCurrentTime) return;
+        let t = 0;
+        try { t = player.getCurrentTime(); } catch (_) { return; }
+        let line = null;
+        let next = null;
+        for (let i = 0; i < captionLines.length; i++) {
+          const L = captionLines[i];
+          if (t >= L.start && t < L.end) {
+            line = L;
+            next = captionLines[i + 1] || null;
+            break;
+          }
+          if (t < L.start) {
+            next = L;
+            break;
+          }
+        }
+        if (line) {
+          lastCaptionText = line.text;
+          $("ktvLine").textContent = line.text;
+          $("ktvNext").textContent = next && next !== line ? next.text : "";
+        } else if (captionLines.length) {
+          $("ktvLine").textContent = lastCaptionText || $("ktvTitle").textContent;
+          $("ktvNext").textContent = next ? next.text : "";
+        }
+      }, 180);
+    }
+
+    function enablePlayerCaptions() {
+      if (!player || !player.loadModule) return;
+      try {
+        player.loadModule("captions");
+        player.setOption("captions", "track", { languageCode: "zh-Hant" });
+        player.setOption("captions", "fontSize", 3);
+      } catch (_) {}
+    }
+
+    function updateKtvUI() {
+      document.body.classList.toggle("ktv-mode", ktvMode);
+      $("ktvPanel").classList.toggle("on", ktvMode);
+      $("btnKtv").classList.toggle("ktv-on", ktvMode);
+      $("btnKtv").textContent = ktvMode ? "🎤 KTV 開" : "🎤 KTV 模式";
+      const item = queue[qIndex];
+      const hasK = item && findKaraokeInCatalog(item);
+      $("btnKaraoke").disabled = !ktvMode;
+      $("btnKaraoke").classList.toggle("karaoke-on", ktvMode && useKaraoke && !!hasK);
+      $("btnKaraoke").textContent = useKaraoke ? "🎵 伴唱中" : "🎵 原唱";
+      if (item && ktvMode) {
+        $("ktvTitle").textContent = item.name + (useKaraoke && hasK ? " · 伴唱" : " · 原唱");
+        if (!captionLines.length) {
+          $("ktvLine").textContent = item.name;
+          $("ktvHint").textContent = hasK
+            ? "已切換伴奏版（若無字幕將顯示歌名大字）"
+            : "此曲暫無伴奏版，使用原唱；字幕取自 YouTube";
+        }
+      }
+    }
+
+    function setKtvMode(on) {
+      ktvMode = !!on;
+      localStorage.setItem("taiyang-ktv", ktvMode ? "1" : "0");
+      updateKtvUI();
+      if (ktvMode && queue[qIndex]) {
+        loadVideo(queue[qIndex], autoPlay || false);
+      } else {
+        stopCaptionSync();
+      }
+    }
+
+    function toggleKaraoke() {
+      if (!ktvMode) return;
+      useKaraoke = !useKaraoke;
+      localStorage.setItem("taiyang-karaoke", useKaraoke ? "1" : "0");
+      updateKtvUI();
+      if (queue[qIndex]) loadVideo(queue[qIndex], true);
+    }
 
     function buildQueue(songs) {
       const ordered = [];
@@ -168,6 +373,8 @@
             title: s.title,
             performer: s.performer || "master",
             performerLabel: s.performerLabel || "太陽盛德導師",
+            karaokeId: s.karaokeId || null,
+            karaokeTitle: s.karaokeTitle || null,
             pass: i + 1,
             total: n
           });
@@ -276,7 +483,6 @@
     function rebuildQueue() {
       queue = buildQueue(catalog.songs || []);
       if (qIndex >= queue.length) qIndex = 0;
-      renderQueueList();
       updateNow();
     }
 
@@ -301,21 +507,49 @@
 
     function loadVideo(item, play) {
       if (!item) return;
+      const vid = resolveVideoId(item);
+      captionLines = [];
+      lastCaptionText = item.name;
+      stopCaptionSync();
       if (player && player.loadVideoById) {
-        player.loadVideoById(item.id);
-        if (play) setTimeout(() => player.playVideo && player.playVideo(), 400);
+        player.loadVideoById(vid);
+        if (play) setTimeout(() => {
+          if (player.playVideo) player.playVideo();
+          enablePlayerCaptions();
+        }, 400);
       } else if (apiReady) {
-        createPlayer(item.id, play);
+        createPlayer(vid, play);
       }
+      fetchCaptions(vid).then((lines) => {
+        captionLines = lines;
+        if (ktvMode && lines.length) {
+          $("ktvHint").textContent = "字幕已載入（共 " + lines.length + " 段）";
+          startCaptionSync();
+        } else if (ktvMode) {
+          $("ktvLine").textContent = item.name;
+          $("ktvHint").textContent = "此片無自動字幕，顯示歌名大字；可開 YouTube 播放器字幕";
+        }
+        updateKtvUI();
+      });
       updateNow();
+      updateKtvUI();
     }
 
     function createPlayer(videoId, play) {
       player = new YT.Player("player", {
         height: "100%", width: "100%", videoId,
-        playerVars: { playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1, origin: location.origin },
+        playerVars: {
+          playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1,
+          cc_load_policy: ktvMode ? 1 : 0,
+          cc_lang_pref: "zh-Hant",
+          origin: location.origin
+        },
         events: {
-          onReady: () => { if (play) player.playVideo(); },
+          onReady: () => {
+            enablePlayerCaptions();
+            if (play) player.playVideo();
+            if (ktvMode) startCaptionSync();
+          },
           onStateChange: onStateChange
         }
       });
@@ -324,6 +558,7 @@
     function onStateChange(e) {
       if (e.data === YT.PlayerState.PLAYING) {
         $("btnPlay").textContent = "⏸ 暫停";
+        if (ktvMode) startCaptionSync();
       } else if (e.data === YT.PlayerState.PAUSED) {
         $("btnPlay").textContent = "▶ 播放";
       } else if (e.data === YT.PlayerState.ENDED) {
@@ -356,6 +591,16 @@
     $("btnNext").addEventListener("click", () => jumpTo(qIndex + 1, true));
     $("btnRestart").addEventListener("click", () => jumpTo(0, true));
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
+    $("btnKtv").addEventListener("click", () => setKtvMode(!ktvMode));
+    $("btnKaraoke").addEventListener("click", toggleKaraoke);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+      if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        setKtvMode(!ktvMode);
+      }
+    });
 
     document.querySelectorAll(".filter-row button").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -372,11 +617,12 @@
     };
 
     loadCatalog(false).then(() => {
-      if (queue.length) $("nowMeta").textContent = "共 " + queue.length + " 段連播 · 按「開始連播」";
+      updateKtvUI();
+      if (queue.length) $("nowMeta").textContent = "共 " + queue.length + " 段連播 · 按「開始連播」或 KTV";
     });
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=20260829").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=20260830").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>

@@ -20,6 +20,8 @@ PRIORITY = [
         "title": "〈注入彩虹〉太陽盛德導師演唱版",
         "performer": "master",
         "performerLabel": "太陽盛德導師",
+        "karaokeId": "EOSl5jSDApY",
+        "karaokeTitle": "〈注入彩虹〉伴奏版",
     },
     {
         "id": "tkYxdmQlhtQ",
@@ -28,8 +30,28 @@ PRIORITY = [
         "title": "〈富有〉太陽盛德導師演唱版",
         "performer": "master",
         "performerLabel": "太陽盛德導師",
+        "karaokeId": "nwsjXvl5pUY",
+        "karaokeTitle": "〈富 有〉伴奏版",
     },
 ]
+
+KARAOKE_QUERIES = [
+    "太陽盛德 伴奏版",
+    "太阳盛德 伴奏",
+    "太陽盛德導師 演奏版",
+]
+
+NAME_ALIASES: dict[str, list[str]] = {
+    "富有": ["富 有", "金富有"],
+    "富 有": ["富有", "金富有"],
+}
+
+# yt-dlp 搜尋失敗時的已知伴奏（可手動擴充）
+KARAOKE_FALLBACK: dict[str, tuple[str, str]] = {
+    "注入彩虹": ("EOSl5jSDApY", "〈注入彩虹〉伴奏版"),
+    "富有": ("nwsjXvl5pUY", "〈富 有〉伴奏版"),
+    "富 有": ("nwsjXvl5pUY", "〈富 有〉伴奏版"),
+}
 
 QUERIES = [
     "太陽盛德導師 演唱版",
@@ -170,6 +192,58 @@ def classify_performer(title: str) -> tuple[str, str]:
     return "other", "其他演唱者"
 
 
+def norm_name(name: str) -> str:
+    return re.sub(r"\s+", "", name)
+
+
+def is_karaoke_title(title: str) -> bool:
+    if any(x in title for x in ("伴奏", "演奏版", "伴奏版", "Instrumental")):
+        if "導師演唱" in title or "导师演唱" in title:
+            return False
+        return True
+    return False
+
+
+def build_karaoke_index() -> dict[str, tuple[str, str]]:
+    """歌名（正規化）-> (video_id, title)"""
+    index: dict[str, tuple[str, str]] = {}
+    seen: set[str] = set()
+    for q in KARAOKE_QUERIES:
+        for d in yt_search(q, limit=40):
+            vid = d.get("id")
+            title = d.get("title") or ""
+            if not vid or vid in seen or not is_karaoke_title(title):
+                continue
+            if not any(k in title for k in ("太陽盛德", "太阳盛德", "盛德")):
+                continue
+            seen.add(vid)
+            name = norm_name(clean_name(song_name(title)))
+            if name and name not in index:
+                index[name] = (vid, title)
+    return index
+
+
+def attach_karaoke(songs: list[dict], karaoke_index: dict[str, tuple[str, str]]) -> None:
+    for s in songs:
+        if s.get("karaokeId"):
+            continue
+        keys = [norm_name(s["name"])] + [norm_name(a) for a in NAME_ALIASES.get(s["name"], [])]
+        for key in keys:
+            hit = karaoke_index.get(key)
+            if hit:
+                s["karaokeId"] = hit[0]
+                s["karaokeTitle"] = hit[1]
+                break
+        if s.get("karaokeId"):
+            continue
+        for key in keys:
+            hit = KARAOKE_FALLBACK.get(key) or KARAOKE_FALLBACK.get(s["name"])
+            if hit:
+                s["karaokeId"] = hit[0]
+                s["karaokeTitle"] = hit[1]
+                break
+
+
 def score(title: str, performer: str) -> int:
     s = 0
     if performer == "master":
@@ -242,6 +316,8 @@ def build_catalog() -> dict:
         key=lambda x: (x["name"], x["performerLabel"]),
     )
     songs = PRIORITY + masters + others
+    karaoke_index = build_karaoke_index()
+    attach_karaoke(songs, karaoke_index)
     mc = sum(1 for s in songs if s["performer"] == "master")
     oc = sum(1 for s in songs if s["performer"] == "other")
     return {
