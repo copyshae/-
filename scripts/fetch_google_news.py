@@ -38,6 +38,7 @@ FEEDS: dict[str, str] = {
     "sports": "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
     "science": "https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
     "health": "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+    "education": "https://news.google.com/rss/headlines/section/topic/EDUCATION?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
 }
 
 CATEGORY_LABELS: dict[str, str] = {
@@ -50,6 +51,7 @@ CATEGORY_LABELS: dict[str, str] = {
     "sports": "體育",
     "science": "科學",
     "health": "健康",
+    "education": "教育",
 }
 
 
