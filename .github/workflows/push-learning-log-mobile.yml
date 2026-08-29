@@ -1,0 +1,20 @@
+name: 推學習日誌（手機可跑）
+
+# GitHub 手機 App：Actions → 選此 workflow → Run workflow
+# 等同手動跑「鏡射學習日誌到 Pages」，把 _export 同步到 dash Pages（有 HELLO_WORLD_TOKEN 也推正式站）
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 觸發鏡射 workflow
+        run: gh workflow run mirror-learning-log-pages.yml --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
