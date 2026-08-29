@@ -148,6 +148,22 @@
     }
     .check-row input { width: 1.1rem; height: 1.1rem; flex-shrink: 0; accent-color: var(--accent); }
     .attach-summary { font-size: 0.8rem; color: var(--accent); font-weight: 700; margin-top: 0.35rem; }
+    .share-sheet {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .share-sheet[hidden] { display: none !important; }
+    .share-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+    .share-panel {
+      position: relative; width: 100%; max-width: 26rem;
+      background: #fff9eb; border: 1px solid var(--line);
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+      max-height: 88vh; overflow: auto;
+    }
+    .share-panel h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .share-actions { display: grid; gap: 0.4rem; margin-top: 0.55rem; }
+    .share-actions button { width: 100%; text-align: left; }
+    .share-close { width: 100%; margin-top: 0.55rem; }
     @keyframes pulse { 50% { opacity: 0.75; } }
   </style>
 </head>
@@ -308,8 +324,9 @@
       <h2>生成心得</h2>
       <div class="row">
         <button type="button" id="btnGenerate" class="primary">✨ 依 SOP 生成心得</button>
-        <button type="button" id="btnShare">分享</button>
+        <button type="button" id="btnShare">📤 分享到其他 App</button>
       </div>
+      <p class="hint">可分享至 LINE、Email、訊息、雲端硬碟等（文字、Word、圖片、ZIP）</p>
       <p class="status" id="genStatus"></p>
       <label for="outputEdit">心得全文（可直接編輯修改）</label>
       <textarea id="outputEdit" class="output" rows="14" placeholder="（生成後會顯示在這裡，可直接修改）" aria-live="polite"></textarea>
@@ -321,6 +338,7 @@
         <button type="button" id="btnSaveEdit">儲存修改</button>
         <button type="button" id="btnWord">下載 Word</button>
         <button type="button" id="btnPdf">匯出 PDF</button>
+        <button type="button" id="btnShare2">📤 分享</button>
       </div>
       <ul class="checklist" id="checklist" hidden></ul>
     </section>
@@ -374,6 +392,24 @@
       <a href="./share.html">加入主畫面</a>｜
       <a href="../">回習作工具</a>
     </footer>
+  </div>
+
+  <div class="share-sheet" id="shareSheet" hidden>
+    <div class="share-backdrop" id="shareBackdrop"></div>
+    <div class="share-panel" role="dialog" aria-labelledby="shareTitle">
+      <h3 id="shareTitle">分享到其他 App</h3>
+      <p class="hint" id="shareHint">可分享至 LINE、Email、訊息、雲端硬碟、檔案 App 等</p>
+      <div class="share-actions">
+        <button type="button" id="btnShareSystem">📤 系統分享（文字）</button>
+        <button type="button" id="btnShareWord">📄 分享 Word 檔</button>
+        <button type="button" id="btnShareImages">🖼 分享圖片</button>
+        <button type="button" id="btnShareZip">📦 分享 ZIP 附件包</button>
+        <button type="button" id="btnShareLine">💬 LINE 分享文字</button>
+        <button type="button" id="btnShareEmail">✉️ Email 分享</button>
+        <button type="button" id="btnShareCopy">📋 複製全文</button>
+      </div>
+      <button type="button" class="share-close" id="btnShareClose">關閉</button>
+    </div>
   </div>
 
   <script>
@@ -657,6 +693,184 @@
       a.click();
       a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function canWebShare(data) {
+      if (!navigator.share) return false;
+      if (navigator.canShare) {
+        try { return navigator.canShare(data); } catch (e) { return false; }
+      }
+      return true;
+    }
+
+    async function tryWebShare(data, okMsg) {
+      if (!navigator.share) throw new Error("此裝置不支援系統分享");
+      if (!canWebShare(data)) throw new Error("此格式無法由系統分享");
+      await navigator.share(data);
+      setStatus($("genStatus"), okMsg || "已分享", "");
+      closeShareSheet();
+    }
+
+    function closeShareSheet() {
+      var sheet = $("shareSheet");
+      if (sheet) sheet.hidden = true;
+    }
+
+    function openShareSheet() {
+      syncOutputFromEdit();
+      var hasText = !!getOutputText();
+      var exportImgs = getExportAttachments();
+      var anyImgs = essayImages.filter(function (im) { return im.b64; });
+      if (!hasText && !anyImgs.length) {
+        alert("請先生成心得或加入圖片");
+        return;
+      }
+      var hint = $("shareHint");
+      if (hint) {
+        hint.textContent = navigator.share
+          ? "可分享至 LINE、Email、訊息、雲端硬碟、檔案 App 等"
+          : "此瀏覽器不支援系統分享檔案，可改用 LINE、Email 或複製全文";
+      }
+      $("btnShareSystem").disabled = !hasText || !navigator.share;
+      $("btnShareWord").disabled = !hasText;
+      $("btnShareImages").disabled = !exportImgs.length && !anyImgs.length;
+      $("btnShareZip").disabled = !hasText && !exportImgs.length;
+      $("btnShareLine").disabled = !hasText;
+      $("btnShareEmail").disabled = !hasText;
+      $("btnShareCopy").disabled = !hasText;
+      $("shareSheet").hidden = false;
+    }
+
+    async function shareTextToApps() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      try {
+        await tryWebShare({ title: "超碼修煉心得", text: text }, "已開啟系統分享選單");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        copyTextToClipboard(text, "已改為複製全文（可貼到其他 App）");
+        closeShareSheet();
+      }
+    }
+
+    async function shareWordToApps() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      syncOutputFromEdit();
+      var fname = exportFilename("doc");
+      var blob = new Blob(["\ufeff", buildDocHtml(text)], { type: "application/msword" });
+      var file = new File([blob], fname, { type: "application/msword" });
+      try {
+        await tryWebShare({ files: [file], title: "超碼修煉心得" }, "已分享 Word 檔");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        downloadBlob(fname, buildDocHtml(text), "application/msword");
+        setStatus($("genStatus"), "已改為下載 Word，請從檔案 App 再分享", "warn");
+        closeShareSheet();
+      }
+    }
+
+    async function shareImagesToApps() {
+      var imgs = getExportAttachments().length
+        ? getExportAttachments()
+        : essayImages.filter(function (im) { return im.b64; });
+      if (!imgs.length) { alert("尚無可分享的圖片"); return; }
+      var files = imgs.map(function (im) {
+        var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
+        var idx = essayImages.indexOf(im);
+        var exportIdx = selectedExportIndex(idx);
+        var prefix = exportIdx >= 0 ? attachmentLabel(exportIdx) : ("圖片" + (idx + 1));
+        var name = prefix + "-" + sanitizeFilename(im.caption) + "." + ext;
+        var blob = new Blob([base64ToBytes(im.b64)], { type: im.mime || "image/png" });
+        return new File([blob], name, { type: im.mime || "image/png" });
+      });
+      try {
+        await tryWebShare({ files: files, title: "超碼修煉心得配圖" }, "已分享 " + files.length + " 張圖片");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        downloadAllAttachments();
+        setStatus($("genStatus"), "已改為下載圖片，請從相簿或檔案 App 再分享", "warn");
+        closeShareSheet();
+      }
+    }
+
+    async function buildAttachmentZipBlob() {
+      var text = getOutputText();
+      syncOutputFromEdit();
+      var imgs = getExportAttachments();
+      if (!text && !imgs.length) throw new Error("請先有心得內容，或勾選要附加的圖片");
+      await loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
+      var zip = new window.JSZip();
+      if (text) {
+        zip.file("心得正文.txt", text);
+        zip.file("心得全文.doc", buildDocHtml(text));
+      }
+      if (imgs.length) {
+        var folder = zip.folder("附件");
+        imgs.forEach(function (im, i) {
+          var idx = essayImages.indexOf(im);
+          var exportIdx = selectedExportIndex(idx);
+          var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
+          var name = attachmentLabel(exportIdx >= 0 ? exportIdx : i) + "-" + sanitizeFilename(im.caption) + "." + ext;
+          folder.file(name, base64ToBytes(im.b64), { binary: true });
+        });
+      }
+      return zip.generateAsync({ type: "blob" });
+    }
+
+    async function shareZipToApps() {
+      setStatus($("genStatus"), "正在打包…", "warn");
+      try {
+        var blob = await buildAttachmentZipBlob();
+        var fname = exportFilename("zip").replace(/^超碼心得/, "超碼心得-含附件");
+        var file = new File([blob], fname, { type: "application/zip" });
+        await tryWebShare({ files: [file], title: "超碼修煉心得" }, "已分享 ZIP 附件包");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        await downloadAttachmentZip();
+        setStatus($("genStatus"), "已改為下載 ZIP，請從檔案 App 再分享", "warn");
+        closeShareSheet();
+      }
+    }
+
+    function shareLineText() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      var url = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
+      window.open(url, "_blank", "noopener,noreferrer");
+      closeShareSheet();
+      setStatus($("genStatus"), "已開啟 LINE 分享", "");
+    }
+
+    function shareEmailText() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      var titleMatch = text.match(/《([^》]+)》/);
+      var subj = titleMatch ? titleMatch[0] : "超碼修煉心得";
+      window.location.href = "mailto:?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text);
+      closeShareSheet();
+      setStatus($("genStatus"), "已開啟 Email", "");
+    }
+
+    function shareCopyText() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      copyTextToClipboard(text, "已複製全文，可貼到 LINE、訊息等 App");
+      closeShareSheet();
+    }
+
+    function setupShareSheet() {
+      $("btnShare").onclick = openShareSheet;
+      $("btnShare2").onclick = openShareSheet;
+      $("btnShareClose").onclick = closeShareSheet;
+      $("shareBackdrop").onclick = closeShareSheet;
+      $("btnShareSystem").onclick = shareTextToApps;
+      $("btnShareWord").onclick = shareWordToApps;
+      $("btnShareImages").onclick = shareImagesToApps;
+      $("btnShareZip").onclick = shareZipToApps;
+      $("btnShareLine").onclick = shareLineText;
+      $("btnShareEmail").onclick = shareEmailText;
+      $("btnShareCopy").onclick = shareCopyText;
     }
 
     function downloadWord() {
@@ -1119,31 +1333,9 @@
     }
 
     async function downloadAttachmentZip() {
-      var text = getOutputText();
-      syncOutputFromEdit();
-      var imgs = getExportAttachments();
-      if (!text && !imgs.length) {
-        alert("請先有心得內容，或勾選要附加的圖片");
-        return;
-      }
       setStatus($("imgStatus"), "正在打包附件…", "warn");
       try {
-        await loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
-        var zip = new window.JSZip();
-        if (text) {
-          zip.file("心得正文.txt", text);
-          zip.file("心得全文.doc", buildDocHtml(text));
-        }
-        if (imgs.length) {
-          var folder = zip.folder("附件");
-          imgs.forEach(function (im) {
-            var idx = essayImages.indexOf(im);
-            var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
-            var name = attachmentLabel(idx >= 0 ? idx : 0) + "-" + sanitizeFilename(im.caption) + "." + ext;
-            folder.file(name, base64ToBytes(im.b64), { binary: true });
-          });
-        }
-        var blob = await zip.generateAsync({ type: "blob" });
+        var blob = await buildAttachmentZipBlob();
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
@@ -1152,7 +1344,8 @@
         a.click();
         a.remove();
         setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-        setStatus($("imgStatus"), "已下載 ZIP（正文＋" + imgs.length + " 附件）", "");
+        var n = getExportAttachments().length;
+        setStatus($("imgStatus"), "已下載 ZIP（正文＋" + n + " 附件）", "");
       } catch (e) {
         setStatus($("imgStatus"), "附件包失敗：" + (e.message || e), "err");
       }
@@ -2043,15 +2236,7 @@
       $("btnAddFromMaterial").onclick = addAttachmentsFromMaterial;
       renderEssayImages();
       $("outputEdit").addEventListener("input", syncOutputFromEdit);
-      $("btnShare").onclick = function () {
-        syncOutputFromEdit();
-        if (!getOutputText()) { alert("請先生成心得"); return; }
-        if (navigator.share) {
-          navigator.share({ title: "超碼修煉心得", text: getOutputText() }).catch(function () {});
-        } else {
-          $("btnCopy").click();
-        }
-      };
+      setupShareSheet();
 
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("./sw.js").catch(function () {});
