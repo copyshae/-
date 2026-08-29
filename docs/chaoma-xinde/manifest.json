@@ -1,0 +1,28 @@
+{
+  "name": "超碼修煉心得",
+  "short_name": "修煉心得",
+  "description": "依超碼 SOP 自動生成修煉心得：文字、口說、拍照、圖片、影片皆可當素材。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff6e6",
+  "theme_color": "#b8860b",
+  "lang": "zh-Hant",
+  "categories": ["education", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

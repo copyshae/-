@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#b8860b" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="修煉心得" />
+  <meta name="description" content="超碼修煉心得 SOP 生成：文字、口說、拍照、圖片、影片皆可當素材，一鍵產出四步法心得。" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>超碼修煉心得</title>
+  <style>
+    :root {
+      --ink: #3a2214; --muted: #7a5640; --paper: #fff6e6;
+      --accent: #b8860b; --heart: #c45c26; --line: rgba(184, 134, 11, 0.25);
+      --ok: #2f6b3a; --warn: #b54708; --danger: #b42318;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--ink); line-height: 1.55;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -10%, rgba(255, 232, 163, 0.95), transparent 60%),
+        linear-gradient(180deg, #fff9eb 0%, #f7e4c0 48%, #efd2a0 100%);
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    .wrap { max-width: 26rem; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    header { text-align: center; margin-bottom: 0.85rem; }
+    header h1 {
+      font-size: clamp(1.35rem, 6vw, 1.75rem); color: var(--heart);
+      font-weight: 800; letter-spacing: 0.04em;
+    }
+    header .sub { font-size: 0.88rem; color: var(--muted); margin-top: 0.25rem; }
+    .card {
+      background: rgba(255, 252, 245, 0.82); border: 1px solid var(--line);
+      padding: 0.85rem; margin: 0.65rem 0;
+    }
+    .card h2 { font-size: 1rem; color: var(--accent); margin-bottom: 0.4rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
+    label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 0.45rem 0 0.2rem; }
+    input[type="text"], input[type="date"], input[type="password"], textarea, select {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.55rem 0.6rem;
+      border: 1px solid var(--line); background: #fff; line-height: 1.5;
+    }
+    textarea { min-height: 5.5rem; resize: vertical; }
+    #materialText { min-height: 7rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+    button, .file-btn {
+      font: inherit; cursor: pointer; border: 1px solid var(--line);
+      background: #fff; color: var(--accent); padding: 0.55rem 0.75rem;
+      font-weight: 700; min-height: 2.75rem; touch-action: manipulation;
+    }
+    button.primary, .file-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.recording { background: var(--danger); color: #fff; border-color: var(--danger); animation: pulse 1s infinite; }
+    button:disabled { opacity: 0.45; cursor: default; }
+    input[type="file"] { display: none; }
+    .status { font-size: 0.84rem; font-weight: 700; min-height: 1.2rem; margin-top: 0.35rem; color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .status.err { color: var(--danger); }
+    .tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.45rem; }
+    .tabs button { flex: 1 1 auto; min-width: 4.5rem; font-size: 0.82rem; padding: 0.45rem 0.5rem; }
+    .tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .panel { display: none; }
+    .panel.show { display: block; }
+    .media-preview { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+    .media-preview .item {
+      position: relative; width: 5rem; height: 5rem; border: 1px solid var(--line);
+      background: #fff; overflow: hidden;
+    }
+    .media-preview img, .media-preview video {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .media-preview .tag {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      font-size: 0.62rem; background: rgba(0,0,0,0.55); color: #fff;
+      text-align: center; padding: 0.1rem;
+    }
+    .output {
+      white-space: pre-wrap; word-break: break-word;
+      background: #fff; border: 1px solid var(--line);
+      padding: 0.85rem; min-height: 12rem; font-size: 0.95rem; line-height: 1.75;
+    }
+    .checklist { margin-top: 0.55rem; font-size: 0.82rem; }
+    .checklist li { list-style: none; padding: 0.2rem 0; }
+    .checklist li.ok::before { content: "✓ "; color: var(--ok); font-weight: 800; }
+    .checklist li.fail::before { content: "○ "; color: var(--warn); }
+    .history-item {
+      border-top: 1px solid var(--line); padding: 0.55rem 0; font-size: 0.82rem;
+    }
+    .history-item button { font-size: 0.78rem; padding: 0.35rem 0.55rem; min-height: auto; }
+    footer { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
+    footer a { color: var(--accent); }
+    @keyframes pulse { 50% { opacity: 0.75; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>超碼修煉心得</h1>
+      <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片</p>
+    </header>
+
+    <section class="card">
+      <h2>作者資訊</h2>
+      <label for="authorName">姓名／地區（例：正本／彰化）</label>
+      <input id="authorName" type="text" placeholder="正本／彰化" autocomplete="name" />
+      <label for="authorDate">日期</label>
+      <input id="authorDate" type="date" />
+      <p class="hint">署名格式：姓名／地區 年／月／日</p>
+    </section>
+
+    <section class="card">
+      <h2>寫作素材</h2>
+      <div class="tabs" role="tablist">
+        <button type="button" class="active" data-tab="text">文字</button>
+        <button type="button" data-tab="voice">口說</button>
+        <button type="button" data-tab="photo">拍照</button>
+        <button type="button" data-tab="image">圖片</button>
+        <button type="button" data-tab="video">影片</button>
+      </div>
+
+      <div id="panelText" class="panel show">
+        <label for="materialText">今日感觸、境緣、想分享的事</label>
+        <textarea id="materialText" placeholder="例：清晨煮咖啡時，看著蒸氣升起，心裡浮現對家人的著急……"></textarea>
+      </div>
+
+      <div id="panelVoice" class="panel">
+        <p class="hint">按下方麥克風，用說的補充素材（Chrome／Edge／Safari 較穩）。</p>
+        <div class="row">
+          <button type="button" id="btnVoice" class="primary">🎤 開始口說</button>
+        </div>
+        <p class="hint" id="voiceHint">口說內容會追加到「文字」區，可再微調。</p>
+      </div>
+
+      <div id="panelPhoto" class="panel">
+        <p class="hint">直接開啟相機拍照，作為借境入心的場景素材。</p>
+        <div class="row">
+          <label class="file-btn primary" for="inputCamera">📷 拍照</label>
+          <input id="inputCamera" type="file" accept="image/*" capture="environment" />
+        </div>
+      </div>
+
+      <div id="panelImage" class="panel">
+        <p class="hint">從相簿選擇圖片（截圖、手寫筆記、書頁皆可）。</p>
+        <div class="row">
+          <label class="file-btn primary" for="inputImage">🖼 選擇圖片</label>
+          <input id="inputImage" type="file" accept="image/*" multiple />
+        </div>
+      </div>
+
+      <div id="panelVideo" class="panel">
+        <p class="hint">錄影或選擇影片（建議 3 分鐘內、50MB 以下；需 Gemini 金鑰解析畫面與語音）。</p>
+        <div class="row">
+          <label class="file-btn primary" for="inputVideoCapture">🎬 錄影</label>
+          <input id="inputVideoCapture" type="file" accept="video/*" capture="environment" />
+          <label class="file-btn" for="inputVideoFile">📁 選擇影片</label>
+          <input id="inputVideoFile" type="file" accept="video/*" />
+        </div>
+      </div>
+
+      <div class="media-preview" id="mediaPreview"></div>
+      <p class="status" id="materialStatus"></p>
+    </section>
+
+    <section class="card">
+      <h2>Gemini 金鑰（選填）</h2>
+      <p class="hint">有金鑰可解析圖片／影片並潤飾成完整心得；若此裝置曾在「習作批改」存過金鑰會自動帶入。純文字也可用本機模板生成。</p>
+      <label for="geminiKey">Gemini 金鑰</label>
+      <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（選填）" />
+      <div class="row">
+        <button type="button" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" id="btnClearKey">清除</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>生成心得</h2>
+      <div class="row">
+        <button type="button" id="btnGenerate" class="primary">✨ 依 SOP 生成心得</button>
+        <button type="button" id="btnCopy">複製全文</button>
+        <button type="button" id="btnShare">分享</button>
+      </div>
+      <p class="status" id="genStatus"></p>
+      <div class="output" id="output" aria-live="polite">（生成後會顯示在這裡）</div>
+      <ul class="checklist" id="checklist" hidden></ul>
+    </section>
+
+    <section class="card">
+      <h2>最近生成</h2>
+      <div id="history"></div>
+      <p class="hint" id="historyEmpty">尚無紀錄</p>
+    </section>
+
+    <footer>
+      <a href="./share.html">加入主畫面</a>｜
+      <a href="../">回習作工具</a>
+    </footer>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var KEY_GEMINI = "math-grader-gemini-key";
+    var KEY_LOCAL = "chaoma-xinde-gemini-key";
+    var KEY_AUTHOR = "chaoma-xinde-author";
+    var KEY_HISTORY = "chaoma-xinde-history";
+    var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+    var MAX_VIDEO_MB = 50;
+    var recognition = null;
+    var mediaItems = [];
+    var lastOutput = "";
+
+    var GREETING = "敬愛的導師好\n超碼家人大家好";
+    var CLOSING = "感恩宇宙，感恩天地\n感恩太陽盛德導師\n感恩蔡禮旭老師\n感恩一切有了交代";
+
+    var SOP_PROMPT =
+      "你是超碼修煉心得寫作助手。請依下列 SOP，用繁體中文產出一篇完整、可直接繳交的心得。\n\n" +
+      "【外相格式】\n" +
+      "1. 第一行：標題 6–15 字，用《》包住，以具象生活或核心主題破題\n" +
+      "2. 第二行：作者署名「姓名/地區 年/月/日」（斜線分隔姓名地區，空格後接日期）\n" +
+      "3. 空一行後寫兩句問候：「敬愛的導師好」「超碼家人大家好」\n" +
+      "4. 正文 4–5 個自然段，依內文四步法（不必標 Step 編號）\n" +
+      "5. 空一行後寫四句感恩迴向（每句一行）\n\n" +
+      "【內文四步法】\n" +
+      "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
+      "Step2 自省照見（承）：誠實記錄自身慣性與情緒，點出「知道」與「做到」的差距，反求諸己\n" +
+      "Step3 古今印證（轉）：結合古今聖賢名言白話意涵與太陽盛德導師／超碼心法教誨，完成轉念\n" +
+      "Step4 轉念合道（合）：連結太陽、天地無私普照，將領悟化為具體的愛與感恩行動\n\n" +
+      "【潤飾要求】\n" +
+      "- 白話、親切、像日常聊天，不要生硬術語與說教\n" +
+      "- 通篇反求諸己、修正自心，絕不批評或評判外在人事\n" +
+      "- 文字溫暖、平實、自帶正向能量\n\n" +
+      "【標準結尾四句】\n" +
+      "感恩宇宙，感恩天地\n" +
+      "感恩太陽盛德導師\n" +
+      "感恩蔡禮旭老師\n" +
+      "感恩一切有了交代\n\n" +
+      "請直接輸出完整心得全文，不要加任何解說、前言或 markdown。";
+
+    function $(id) { return document.getElementById(id); }
+
+    function setStatus(el, msg, kind) {
+      el.textContent = msg || "";
+      el.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function getGeminiKey() {
+      return ($("geminiKey").value || "").trim()
+        || localStorage.getItem(KEY_LOCAL)
+        || localStorage.getItem(KEY_GEMINI)
+        || "";
+    }
+
+    function formatAuthorDate(d) {
+      var y = d.getFullYear();
+      var m = d.getMonth() + 1;
+      var day = d.getDate();
+      return y + "/" + m + "/" + day;
+    }
+
+    function todayInputValue() {
+      var d = new Date();
+      var mm = String(d.getMonth() + 1).padStart(2, "0");
+      var dd = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + mm + "-" + dd;
+    }
+
+    function fileToBase64(file) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var res = reader.result || "";
+          var idx = String(res).indexOf(",");
+          resolve(idx >= 0 ? res.slice(idx + 1) : res);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function callGeminiText(prompt, apiKey) {
+      var lastErr = null;
+      for (var i = 0; i < MODELS.length; i++) {
+        var model = MODELS[i];
+        try {
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          var res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: prompt }] }]
+            })
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            lastErr = new Error((data.error && data.error.message) || ("HTTP " + res.status));
+            continue;
+          }
+          var text = (((data.candidates || [])[0] || {}).content || {}).parts
+            ? data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("")
+            : "";
+          if (text.trim()) return { text: text.trim(), model: model };
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("Gemini 無回應");
+    }
+
+    async function callGeminiMultimodal(prompt, file, apiKey) {
+      var b64 = await fileToBase64(file);
+      var mime = file.type || (file.name && /\.png$/i.test(file.name) ? "image/png" : "image/jpeg");
+      var isVideo = /^video\//i.test(mime);
+      var analyzePrompt = isVideo
+        ? "這是一段影片。請用繁體中文條列：1) 畫面場景與動作 2) 若有語音請摘要重點 3) 可聯想修煉／生活借境的觸動點。精簡白話。"
+        : "這是一張照片。請用繁體中文條列：1) 場景與感官細節 2) 若有文字請抄出 3) 可當修煉心得借境的觸動點。精簡白話。";
+      var parts = [{ text: analyzePrompt + "\n\n" + prompt }];
+      parts.push({ inline_data: { mime_type: mime, data: b64 } });
+      var lastErr = null;
+      for (var i = 0; i < MODELS.length; i++) {
+        var model = MODELS[i];
+        try {
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          var res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ role: "user", parts: parts }] })
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            lastErr = new Error((data.error && data.error.message) || ("HTTP " + res.status));
+            continue;
+          }
+          var text = (((data.candidates || [])[0] || {}).content || {}).parts
+            ? data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("")
+            : "";
+          if (text.trim()) return { text: text.trim(), model: model };
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("Gemini 無回應");
+    }
+
+    function extractSnippet(text, maxLen) {
+      var t = String(text || "").replace(/\s+/g, " ").trim();
+      if (t.length <= maxLen) return t;
+      return t.slice(0, maxLen) + "…";
+    }
+
+    function buildLocalEssay(material, authorLine) {
+      var scene = extractSnippet(material, 80) || "今日尋常生活裡的一件小事";
+      var title = "《" + extractSnippet(scene.replace(/[《》]/g, ""), 12) + "》";
+      if (title.length < 4) title = "《從日常照見自己》";
+      var p1 = "清晨／剛才在" + scene + "，心裡突然浮現一些念頭，原來看似平常的一瞬，也在悄悄照見我內心的狀態。";
+      var p2 = "以前總覺得自己「知道」該怎麼做，但遇到實際境緣才發現，情緒與慣性仍會牽著走；這份落差，正是我需要誠實面對、持續修正的地方。";
+      var p3 = "古人說「吾日三省吾身」，白話就是時時回頭看自己；這也契合導師教導我們秒秒 GPS 定位、在事上磨練——不在外面找理由，而是把念頭轉回來修正自己。";
+      var p4 = "就像太陽每天無私普照、不求回報，天地也以寬容承載萬物；當我願意懷抱愛與感恩，把領悟落實在待人接物的一個微笑、一句好話裡，眼前的路便多了平安與力量。";
+      return title + "\n" + authorLine + "\n\n" + GREETING + "\n\n" + p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + CLOSING;
+    }
+
+    function validateEssay(text) {
+      var checks = [];
+      var hasTitle = /《[^》]{2,}》/.test(text);
+      checks.push({ label: "標題（《》6–15 字意象）", ok: hasTitle });
+      var hasAuthor = /\d{4}\/\d{1,2}\/\d{1,2}/.test(text);
+      checks.push({ label: "作者署名含日期", ok: hasAuthor });
+      var hasGreeting = text.indexOf("敬愛的導師好") >= 0 && text.indexOf("超碼家人大家好") >= 0;
+      checks.push({ label: "標準問候語", ok: hasGreeting });
+      var paras = text.split(/\n\n+/).filter(function (p) {
+        return p.trim() && p.indexOf("感恩") !== 0 && p.indexOf("《") !== 0 && !/\d{4}\/\d/.test(p.slice(0, 20));
+      });
+      checks.push({ label: "正文約 4–5 段", ok: paras.length >= 3 && paras.length <= 7 });
+      var hasClosing = text.indexOf("感恩宇宙") >= 0 && text.indexOf("感恩太陽盛德導師") >= 0 &&
+        text.indexOf("感恩蔡禮旭老師") >= 0 && text.indexOf("感恩一切有了交代") >= 0;
+      checks.push({ label: "四句感恩迴向", ok: hasClosing });
+      var noBlame = !/(都是.*的錯|怪.*不好|評判|指責)/.test(text);
+      checks.push({ label: "反求諸己、少評判外在", ok: noBlame });
+      return checks;
+    }
+
+    function renderChecklist(checks) {
+      var ul = $("checklist");
+      ul.innerHTML = checks.map(function (c) {
+        return "<li class=\"" + (c.ok ? "ok" : "fail") + "\">" + c.label + "</li>";
+      }).join("");
+      ul.hidden = false;
+    }
+
+    function renderMediaPreview() {
+      var box = $("mediaPreview");
+      box.innerHTML = mediaItems.map(function (it, idx) {
+        var inner = it.kind === "video"
+          ? "<video src=\"" + it.url + "\" muted playsinline></video>"
+          : "<img src=\"" + it.url + "\" alt=\"素材\" />";
+        return "<div class=\"item\">" + inner + "<span class=\"tag\">" + it.label + "</span></div>";
+      }).join("");
+    }
+
+    function addMediaItem(file, kind, label) {
+      var url = URL.createObjectURL(file);
+      mediaItems.push({ file: file, kind: kind, label: label, url: url });
+      renderMediaPreview();
+    }
+
+    async function analyzeAllMedia(apiKey) {
+      var notes = [];
+      for (var i = 0; i < mediaItems.length; i++) {
+        var it = mediaItems[i];
+        setStatus($("materialStatus"), "正在解析「" + it.label + "」…（" + (i + 1) + "/" + mediaItems.length + "）", "warn");
+        if (!apiKey) {
+          notes.push("【" + it.label + "】（未填 Gemini 金鑰，請用文字描述此" + (it.kind === "video" ? "影片" : "圖片") + "）");
+          continue;
+        }
+        if (it.kind === "video" && it.file.size > MAX_VIDEO_MB * 1024 * 1024) {
+          notes.push("【" + it.label + "】檔案過大，請改短一點或改以文字描述重點。");
+          continue;
+        }
+        try {
+          var res = await callGeminiMultimodal("", it.file, apiKey);
+          notes.push("【" + it.label + "】\n" + res.text);
+        } catch (e) {
+          notes.push("【" + it.label + "】解析失敗：" + (e.message || e));
+        }
+      }
+      return notes.join("\n\n");
+    }
+
+    function saveHistory(text, title) {
+      try {
+        var list = JSON.parse(localStorage.getItem(KEY_HISTORY) || "[]");
+        list.unshift({ ts: Date.now(), title: title || "心得", text: text.slice(0, 4000) });
+        if (list.length > 8) list.length = 8;
+        localStorage.setItem(KEY_HISTORY, JSON.stringify(list));
+        renderHistory();
+      } catch (e) {}
+    }
+
+    function renderHistory() {
+      var list = [];
+      try { list = JSON.parse(localStorage.getItem(KEY_HISTORY) || "[]"); } catch (e) {}
+      var box = $("history");
+      var empty = $("historyEmpty");
+      if (!list.length) {
+        box.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      box.innerHTML = list.map(function (it, idx) {
+        var d = new Date(it.ts);
+        return "<div class=\"history-item\"><strong>" + escapeHtml(it.title) + "</strong> " +
+          d.toLocaleDateString("zh-TW") +
+          " <button type=\"button\" data-idx=\"" + idx + "\">載入</button></div>";
+      }).join("");
+      box.querySelectorAll("button[data-idx]").forEach(function (btn) {
+        btn.onclick = function () {
+          var it = list[Number(btn.getAttribute("data-idx"))];
+          if (it) {
+            lastOutput = it.text;
+            $("output").textContent = it.text;
+            renderChecklist(validateEssay(it.text));
+          }
+        };
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    async function generateEssay() {
+      var btn = $("btnGenerate");
+      btn.disabled = true;
+      setStatus($("genStatus"), "準備素材…", "warn");
+      try {
+        var author = ($("authorName").value || "家人").trim();
+        var dateVal = $("authorDate").value;
+        var d = dateVal ? new Date(dateVal + "T12:00:00") : new Date();
+        var authorLine = author + " " + formatAuthorDate(d);
+        var textMat = ($("materialText").value || "").trim();
+        var key = getGeminiKey();
+        var mediaNotes = "";
+        if (mediaItems.length) {
+          mediaNotes = await analyzeAllMedia(key);
+        }
+        var combined = [textMat, mediaNotes].filter(Boolean).join("\n\n");
+        if (!combined.trim()) {
+          setStatus($("genStatus"), "請至少輸入文字、口說，或加入圖片／影片素材。", "err");
+          return;
+        }
+        localStorage.setItem(KEY_AUTHOR, author);
+
+        var essay = "";
+        if (key) {
+          setStatus($("genStatus"), "正在依 SOP 生成…", "warn");
+          var userBlock = "\n【作者署名行】\n" + authorLine +
+            "\n\n【寫作素材】\n" + combined;
+          var res = await callGeminiText(SOP_PROMPT + userBlock, key);
+          essay = res.text;
+          setStatus($("genStatus"), "已用 Gemini（" + res.model + "）生成", "");
+        } else {
+          setStatus($("genStatus"), "未填金鑰，已用本機 SOP 模板生成（建議填金鑰潤飾）", "warn");
+          essay = buildLocalEssay(combined, authorLine);
+        }
+
+        lastOutput = essay;
+        $("output").textContent = essay;
+        renderChecklist(validateEssay(essay));
+        var titleMatch = essay.match(/《[^》]+》/);
+        saveHistory(essay, titleMatch ? titleMatch[0] : "心得");
+      } catch (e) {
+        setStatus($("genStatus"), "生成失敗：" + (e.message || e), "err");
+      } finally {
+        btn.disabled = false;
+        setStatus($("materialStatus"), "", "");
+      }
+    }
+
+    function setupTabs() {
+      document.querySelectorAll(".tabs button[data-tab]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".tabs button").forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          var tab = btn.getAttribute("data-tab");
+          document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("show"); });
+          $("panel" + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add("show");
+        });
+      });
+    }
+
+    function stopVoice() {
+      if (!recognition) return;
+      try { recognition.stop(); } catch (e) {}
+      recognition = null;
+      $("btnVoice").classList.remove("recording");
+      $("btnVoice").textContent = "🎤 開始口說";
+    }
+
+    function startVoice() {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert("此瀏覽器不支援語音辨識，請改用打字，或用 Chrome／Edge。");
+        return;
+      }
+      if (recognition) { stopVoice(); return; }
+      recognition = new SR();
+      recognition.lang = "zh-TW";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      $("btnVoice").classList.add("recording");
+      $("btnVoice").textContent = "■ 停止口說";
+      recognition.onresult = function (ev) {
+        var text = (ev.results[0] && ev.results[0][0] && ev.results[0][0].transcript) || "";
+        var el = $("materialText");
+        el.value = (el.value ? el.value.replace(/\s+$/, "") + " " : "") + text;
+        $("voiceHint").textContent = "已加入口說內容，可切到「文字」微調。";
+        document.querySelector(".tabs button[data-tab=\"text\"]").click();
+      };
+      recognition.onerror = stopVoice;
+      recognition.onend = stopVoice;
+      recognition.start();
+    }
+
+    function handleImageFiles(files, label) {
+      if (!files || !files.length) return;
+      Array.prototype.forEach.call(files, function (file) {
+        if (!/^image\//i.test(file.type)) return;
+        addMediaItem(file, "image", label);
+      });
+      setStatus($("materialStatus"), "已加入 " + files.length + " 張圖片", "");
+    }
+
+    function handleVideoFile(file, label) {
+      if (!file) return;
+      if (!/^video\//i.test(file.type)) {
+        setStatus($("materialStatus"), "請選擇影片檔", "err");
+        return;
+      }
+      if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+        setStatus($("materialStatus"), "影片超過 " + MAX_VIDEO_MB + "MB，請改短或壓縮", "err");
+        return;
+      }
+      addMediaItem(file, "video", label);
+      setStatus($("materialStatus"), "已加入影片：" + (file.name || label), "");
+    }
+
+    function init() {
+      $("authorDate").value = todayInputValue();
+      var savedAuthor = localStorage.getItem(KEY_AUTHOR);
+      if (savedAuthor) $("authorName").value = savedAuthor;
+      var k = localStorage.getItem(KEY_LOCAL) || localStorage.getItem(KEY_GEMINI);
+      if (k) $("geminiKey").value = k;
+
+      setupTabs();
+      renderHistory();
+
+      $("btnSaveKey").onclick = function () {
+        var v = $("geminiKey").value.trim();
+        if (v) localStorage.setItem(KEY_LOCAL, v);
+        alert(v ? "已儲存金鑰（僅此裝置）" : "金鑰為空");
+      };
+      $("btnClearKey").onclick = function () {
+        localStorage.removeItem(KEY_LOCAL);
+        $("geminiKey").value = "";
+      };
+      $("btnGenerate").onclick = generateEssay;
+      $("btnVoice").onclick = startVoice;
+      $("inputCamera").onchange = function (e) { handleImageFiles(e.target.files, "拍照"); e.target.value = ""; };
+      $("inputImage").onchange = function (e) { handleImageFiles(e.target.files, "圖片"); e.target.value = ""; };
+      $("inputVideoCapture").onchange = function (e) {
+        if (e.target.files && e.target.files[0]) handleVideoFile(e.target.files[0], "錄影");
+        e.target.value = "";
+      };
+      $("inputVideoFile").onchange = function (e) {
+        if (e.target.files && e.target.files[0]) handleVideoFile(e.target.files[0], "影片");
+        e.target.value = "";
+      };
+      $("btnCopy").onclick = function () {
+        if (!lastOutput) { alert("請先生成心得"); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(lastOutput).then(function () {
+            setStatus($("genStatus"), "已複製到剪貼簿", "");
+          }).catch(function () { alert(lastOutput); });
+        } else {
+          prompt("長按全選複製：", lastOutput);
+        }
+      };
+      $("btnShare").onclick = function () {
+        if (!lastOutput) { alert("請先生成心得"); return; }
+        if (navigator.share) {
+          navigator.share({ title: "超碼修煉心得", text: lastOutput }).catch(function () {});
+        } else {
+          $("btnCopy").click();
+        }
+      };
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js").catch(function () {});
+      }
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
