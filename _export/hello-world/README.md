@@ -36,3 +36,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\pull-export-from-dash-repo.ps
 - 0823 看書文件：https://copyshae.github.io/hello-world/directory/apps/doc-reader/
 
 （手機免開電腦也可用 dash 鏡射：https://copyshae.github.io/-/directory/202608/）
+
+## 手機 Cursor 推日誌／連日誌
+
+1. 手機 Cursor 開倉庫 **copyshae/-**，新開對話。
+2. 說 **連日誌**、**日誌首頁**、**推日誌**（可加日期，如 `推日誌 0830`）。
+3. Agent push 到 main 後，CI 約 1–2 分鐘同步 dash Pages。
+4. 快捷詞說明：https://copyshae.github.io/-/directory/logs/prompts/
+5. GitHub 手機 App 可手動跑 Actions → **推學習日誌（手機可跑）**。
+
+hello-world 正式站：在 copyshae/- 的 Settings → Secrets 設 **HELLO_WORLD_TOKEN**，或電腦雙擊 `推學習日誌.bat`。

@@ -11,6 +11,8 @@ on:
       - "docs/dizigui-41/**"
       - "docs/taiyang-music/**"
       - "docs/directory/**"
+      - "docs/learning-log.html"
+      - ".github/workflows/push-learning-log-mobile.yml"
       - ".github/workflows/mirror-learning-log-pages.yml"
   workflow_dispatch:
 
@@ -31,12 +33,14 @@ jobs:
           rsync -a docs/doc-reader/ docs/directory/apps/doc-reader/
           rsync -a --delete docs/dizigui-41/ docs/directory/apps/dizigui-41/
           rsync -a --delete docs/taiyang-music/ docs/directory/apps/taiyang-music/
-          for n in 21 22 23 24 25 26 27 28 29; do
+          for n in 20 21 22 23 24 25 26 27 28 29; do
             cp -f "_export/hello-world/directory/202608/202608${n}-learning-log.html" docs/directory/202608/ 2>/dev/null || true
           done
           cp -f _export/hello-world/directory/202608/index.html docs/directory/202608/index.html
           cp -f _export/hello-world/directory/index.html docs/directory/index.html
           cp -f _export/hello-world/directory/learning-log.html docs/directory/learning-log.html
+          mkdir -p docs/directory/logs/prompts
+          cp -f _export/hello-world/directory/logs/prompts/index.html docs/directory/logs/prompts/index.html 2>/dev/null || true
           # rewrite hello-world absolute URLs to dash mirror for hosted copies
           find docs/directory -name '*.html' -print0 | xargs -0 sed -i \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/habits-7/#https://copyshae.github.io/-/directory/apps/habits-7/#g' \
@@ -44,7 +48,7 @@ jobs:
             -e 's#https://copyshae.github.io/hello-world/directory/apps/doc-reader/#https://copyshae.github.io/-/directory/apps/doc-reader/#g' \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/dizigui-41/#https://copyshae.github.io/-/directory/apps/dizigui-41/#g' \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/taiyang-music/#https://copyshae.github.io/-/directory/apps/taiyang-music/#g'
-          for n in 21 22 23 24 25 26 27 28 29; do
+          for n in 20 21 22 23 24 25 26 27 28 29; do
             find docs/directory -name '*.html' -print0 | xargs -0 sed -i \
               -e "s#https://copyshae.github.io/hello-world/directory/202608/202608${n}-learning-log.html#https://copyshae.github.io/-/directory/202608/202608${n}-learning-log.html#g"
           done
@@ -53,7 +57,7 @@ jobs:
           HELLO_WORLD_TOKEN: ${{ secrets.HELLO_WORLD_TOKEN }}
         run: |
           if [ -z "$HELLO_WORLD_TOKEN" ]; then
-            echo "No HELLO_WORLD_TOKEN; skip push to hello-world (mirror on dash Pages is enough for phone)."
+            echo "No HELLO_WORLD_TOKEN; skip push to hello-world (dash 鏡射已足夠供手機開啟)。"
             exit 0
           fi
           git clone --depth 1 --branch master "https://x-access-token:${HELLO_WORLD_TOKEN}@github.com/copyshae/hello-world.git" /tmp/hw
@@ -64,13 +68,14 @@ jobs:
           rsync -a docs/doc-reader/ /tmp/hw/directory/apps/doc-reader/
           rsync -a --delete docs/dizigui-41/ /tmp/hw/directory/apps/dizigui-41/
           rsync -a --delete docs/taiyang-music/ /tmp/hw/directory/apps/taiyang-music/
-          for n in 21 22 23 24 25 26 27 28 29; do
+          for n in 20 21 22 23 24 25 26 27 28 29; do
             cp -f "_export/hello-world/directory/202608/202608${n}-learning-log.html" /tmp/hw/directory/202608/ 2>/dev/null || true
           done
           cp -f _export/hello-world/directory/learning-log.html /tmp/hw/directory/learning-log.html
           cp -f _export/hello-world/directory/index.html /tmp/hw/directory/index.html
           cp -f _export/hello-world/directory/202608/index.html /tmp/hw/directory/202608/index.html
-          cp -f _export/hello-world/directory/202608/20260820-learning-log.html /tmp/hw/directory/202608/ 2>/dev/null || true
+          mkdir -p /tmp/hw/directory/logs/prompts
+          cp -f _export/hello-world/directory/logs/prompts/index.html /tmp/hw/directory/logs/prompts/index.html 2>/dev/null || true
           cd /tmp/hw
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -78,7 +83,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No hello-world changes"
           else
-            git commit -m "同步學習日誌 0824–0829 與弟子規／盛德歌曲 KTV（免開電腦）"
+            git commit -m "同步學習日誌 0820–0829 與 App 匯出（CI／手機免開電腦）"
             git push origin master
             echo "Pushed hello-world"
           fi
@@ -90,6 +95,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "mirror already current"
           else
-            git commit -m "chore: 鏡射學習日誌 0824–0829 到 docs/directory（Pages）"
+            git commit -m "chore: 鏡射學習日誌到 docs/directory（Pages）"
             git push
           fi
