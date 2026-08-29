@@ -30,8 +30,9 @@ Write-Host ''
 & powershell -ExecutionPolicy Bypass -File $pull
 
 Write-Host ''
-Write-Host '完成。請用瀏覽器確認：'
-Write-Host '  https://copyshae.github.io/hello-world/directory/202608/20260823-learning-log.html'
+Write-Host '完成。請用瀏覽器確認（最上方應為 20260829）：'
+Write-Host '  https://copyshae.github.io/hello-world/directory/202608/index.html'
+Write-Host '  https://copyshae.github.io/hello-world/directory/202608/20260821-learning-log.html'
 Write-Host ''
 try {
   Start-Process 'https://copyshae.github.io/hello-world/directory/202608/'

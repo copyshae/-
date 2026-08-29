@@ -2,7 +2,7 @@
 chcp 65001 >nul
 title hello-world 電腦同步
 echo.
-echo === hello-world 電腦同步（0821-0823）===
+echo === hello-world 電腦同步（0821–0829 學習日誌）===
 echo.
 
 set "ROOT=%USERPROFILE%\Desktop\hello-world"

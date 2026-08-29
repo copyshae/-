@@ -192,13 +192,24 @@ try {
     scripts/scan-equip-app.ps1 scripts/install-scan-equip.ps1 scripts/README-scan-equip.md 2>$null
   $pending = git status --porcelain
   if ($pending) {
-    git commit -m "學習日誌 0824–0829：弟子規／盛德歌曲 KTV（電腦同步）"
-    git push origin HEAD
-    Write-Host "Pushed. Phone URL:"
-    Write-Host "https://copyshae.github.io/hello-world/directory/apps/habits-7/"
-    Write-Host "daily-14 (separate): https://copyshae.github.io/hello-world/directory/apps/daily-14/"
+    git commit -m "學習日誌 0821–0829：14樣／七習慣／看書文件／弟子規／盛德KTV（電腦同步）"
+    Write-Host ""
+    Write-Host "=== 推上 GitHub master ==="
+    git push origin $pagesBranch
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "[錯誤] git push 失敗！請執行 gh auth login 或 git push origin master" -ForegroundColor Red
+      throw "git push failed"
+    }
+    Write-Host ""
+    Write-Host "=== 推送成功 ===" -ForegroundColor Green
+    git log -1 --oneline
+    Write-Host ""
+    Write-Host "最新日誌列表：https://copyshae.github.io/hello-world/directory/202608/index.html"
+    Write-Host "0821：https://copyshae.github.io/hello-world/directory/202608/20260821-learning-log.html"
+    Write-Host "0829：https://copyshae.github.io/hello-world/directory/202608/20260829-learning-log.html"
   } else {
-    Write-Host "No git changes to push."
+    Write-Host "[警告] 沒有 git 變更。請改跑 scripts\push-learning-logs-only.ps1 或 推學習日誌.bat" -ForegroundColor Yellow
+    git log -1 --oneline
   }
 } catch {
   Write-Host ("Git push skipped: " + $_.Exception.Message)
