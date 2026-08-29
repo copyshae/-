@@ -107,31 +107,21 @@
       transform-origin: 50% var(--jaw-split, 52%);
       will-change: transform;
     }
-    .face-upper.fx-blink {
-      animation: naturalBlink 0.13s ease-in-out;
+    .face-upper::after {
+      content: "";
+      position: absolute; bottom: -1px; left: 0; right: 0; height: 4px; z-index: 3;
+      background: linear-gradient(180deg, rgba(0,0,0,.12), transparent);
+      pointer-events: none;
+    }
+    .face-upper.fx-blink .anchor-photo-upper {
+      animation: naturalBlink 0.11s ease-in-out;
     }
     @keyframes naturalBlink {
-      0%, 100% { transform: scaleY(1); }
-      42% { transform: scaleY(0.955); }
+      0%, 100% { filter: brightness(1); }
+      48% { filter: brightness(0.86); }
     }
     .anchor-photo-wrap.speaking .anchor-photo {
-      filter: brightness(1.03) saturate(1.05);
-    }
-    .anchor-photo-wrap.speaking .anchor-photo-stage {
-      animation: headSway 7s ease-in-out infinite;
-      will-change: transform;
-    }
-    .anchor-photo-wrap.speaking.fx-nod .anchor-photo-stage {
-      animation: headNod 0.38s ease-out, headSway 7s ease-in-out infinite;
-    }
-    @keyframes headSway {
-      0%, 100% { transform: translate3d(0, 0, 0); }
-      50% { transform: translate3d(0, -0.5px, 0); }
-    }
-    @keyframes headNod {
-      0% { transform: translate3d(0, 0, 0); }
-      45% { transform: translate3d(0, -1px, 0); }
-      100% { transform: translate3d(0, 0, 0); }
+      filter: brightness(1.02) saturate(1.03);
     }
 
     /* ===== 全螢幕播報 ===== */
@@ -232,8 +222,8 @@
     }
     .studio-ticker { will-change: transform; }
     @media (prefers-reduced-motion: reduce) {
-      .anchor-photo-wrap.speaking .anchor-photo-stage,
       .studio-ticker { animation: none !important; }
+      .anchor-photo-jaw { transform: none !important; }
     }
     .lower-third .headline-tag {
       display: inline-block; font-size: 0.62rem; background: var(--desk);
@@ -337,7 +327,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">寫實主播<strong>上下臉分層口型</strong>，眼睛自然眨眼；播報<strong>全螢幕</strong>，像真人當下在說話。</p>
+    <p class="sub">寫實主播播報<strong>全螢幕</strong>；口型以<strong>下巴微動</strong>呈現（非放大縮小），搭配自然語音更像真人在說話。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -607,8 +597,6 @@
       mouthCurrent: 0,
       mouthTarget: 0,
       mouthNextAt: 0,
-      nextEmphasis: 0,
-      nextGaze: 0,
       broadcastFullscreen: false
     };
 
@@ -1114,19 +1102,19 @@
 
     function pickMouthTarget() {
       var r = Math.random();
-      if (r < 0.14) return 0.03 + Math.random() * 0.07;
-      if (r < 0.4) return 0.14 + Math.random() * 0.18;
-      if (r < 0.78) return 0.32 + Math.random() * 0.28;
-      return 0.52 + Math.random() * 0.32;
+      if (r < 0.2) return 0.02 + Math.random() * 0.06;
+      if (r < 0.55) return 0.1 + Math.random() * 0.15;
+      if (r < 0.85) return 0.22 + Math.random() * 0.2;
+      return 0.38 + Math.random() * 0.22;
     }
 
     function applyJawMotion(openness) {
       var jaw = document.querySelector(".anchor-photo-jaw");
       if (!jaw) return;
       var o = Math.max(0, Math.min(1, openness));
-      var scaleY = 1 + o * 0.045;
-      var ty = -o * 1.4;
-      jaw.style.transform = "translate3d(0," + ty.toFixed(2) + "px,0) scaleY(" + scaleY.toFixed(4) + ")";
+      /* 只用下巴鉸鏈微轉，禁止 scale 避免像照片放大縮小 */
+      var rot = o * 0.38;
+      jaw.style.transform = "rotate(" + rot.toFixed(3) + "deg)";
     }
 
     function liveMotionTick(ts) {
@@ -1136,34 +1124,13 @@
       if (speaking) {
         if (!state.mouthNextAt || ts >= state.mouthNextAt) {
           state.mouthTarget = pickMouthTarget();
-          state.mouthNextAt = ts + 95 + Math.random() * 105;
+          state.mouthNextAt = ts + 120 + Math.random() * 130;
         }
-        state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * 0.18;
+        state.mouthCurrent += (state.mouthTarget - state.mouthCurrent) * 0.14;
       } else {
-        state.mouthCurrent += (0 - state.mouthCurrent) * 0.12;
+        state.mouthCurrent += (0 - state.mouthCurrent) * 0.1;
       }
       applyJawMotion(state.mouthCurrent);
-
-      if (speaking && ts >= state.nextEmphasis) {
-        var wrap = document.querySelector(".anchor-photo-wrap");
-        if (wrap && Math.random() > 0.55) {
-          wrap.classList.add("fx-nod");
-          setTimeout(function () { wrap.classList.remove("fx-nod"); }, 320);
-        }
-        state.nextEmphasis = ts + 1800 + Math.random() * 1200;
-      }
-
-      if (speaking && ts >= state.nextGaze) {
-        var upper = document.querySelector(".face-upper");
-        if (upper && !upper.classList.contains("fx-blink")) {
-          var gx = (Math.random() - 0.5) * 1.4;
-          upper.style.transform = "translate3d(" + gx.toFixed(2) + "px,0,0)";
-          setTimeout(function () {
-            if (upper && !upper.classList.contains("fx-blink")) upper.style.transform = "";
-          }, 480);
-        }
-        state.nextGaze = ts + 2200 + Math.random() * 2800;
-      }
 
       state.motionRaf = requestAnimationFrame(liveMotionTick);
     }
@@ -1172,11 +1139,8 @@
       setSpeaking(true);
       state.motionActive = true;
       state.mouthCurrent = 0;
-      state.mouthTarget = 0.15;
+      state.mouthTarget = 0.08;
       state.mouthNextAt = 0;
-      var now = performance.now();
-      state.nextEmphasis = now + 1400;
-      state.nextGaze = now + 800;
       if (state.motionRaf) cancelAnimationFrame(state.motionRaf);
       state.motionRaf = requestAnimationFrame(liveMotionTick);
     }
@@ -1718,8 +1682,8 @@
       });
       TtsVoices.onSpeakStatus(function (ev) {
         if (ev && ev.reason === "progress") {
-          state.mouthTarget = 0.55 + Math.random() * 0.35;
-          state.mouthNextAt = performance.now() + 60;
+          state.mouthTarget = 0.35 + Math.random() * 0.25;
+          state.mouthNextAt = performance.now() + 80;
         }
       });
     }
