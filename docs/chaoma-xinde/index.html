@@ -350,6 +350,12 @@
           <button type="button" id="btnResearchMaster">🔄 重新搜尋導師話語</button>
         </div>
         <div class="row">
+          <button type="button" id="btnSearchStudent" class="primary">🌐 網搜學員佐證資料</button>
+          <button type="button" id="btnResearchStudent">🔄 重新搜尋學員佐證</button>
+          <button type="button" id="btnStudentLocal">📖 本機學員案例提示</button>
+        </div>
+        <p class="hint">Step3 舉例佐證時，可按上方按鈕搜尋<strong>超級生命密碼學員</strong>分享／轉念案例，加入印證後一併生成。</p>
+        <div class="row">
           <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
           <button type="button" id="btnSearchGemini">🌐 網搜導師文章／影音</button>
           <button type="button" id="btnEnrichRefs">📝 充實已選參考</button>
@@ -510,6 +516,7 @@
     var formatSaveTimer = null;
     var sageSearchOffset = 0;
     var masterSearchOffset = 0;
+    var studentSearchOffset = 0;
 
     /** 本機印證資料庫：category = sage（中外聖賢）| master（太陽盛德導師／超碼） */
     var YINZHENG_LIB = [
@@ -2109,7 +2116,8 @@
             (it.yinZheng ? "<br/>印證：" + escapeHtml(it.yinZheng) : "") +
             "</div>"
           : (it.summary ? "<div class=\"sum\">" + escapeHtml(it.summary) + "</div>" : "");
-        var catLabel = it.category === "master" ? "導師教誨" : (it.category === "sage" ? "聖賢名言" : it.type);
+        var catLabel = it.category === "student" ? "學員佐證"
+          : (it.category === "master" ? "導師教誨" : (it.category === "sage" ? "聖賢名言" : it.type));
         return "<div class=\"ref-item\">" +
           "<strong>" + escapeHtml(it.title) + "</strong>" +
           "<div class=\"meta\">" + escapeHtml(catLabel) + "｜" + escapeHtml(it.source || "") + "</div>" +
@@ -2153,7 +2161,10 @@
         "（目標句數：中外聖賢 " + c.sage + " 句，太陽盛德導師 " + c.master + " 句）\n";
       var sageRefs = refItems.filter(function (r) { return r.category === "sage"; });
       var masterRefs = refItems.filter(function (r) { return r.category === "master"; });
-      var otherRefs = refItems.filter(function (r) { return r.category !== "sage" && r.category !== "master"; });
+      var studentRefs = refItems.filter(function (r) { return r.category === "student"; });
+      var otherRefs = refItems.filter(function (r) {
+        return r.category !== "sage" && r.category !== "master" && r.category !== "student";
+      });
       function formatBlock(list, label) {
         if (!list.length) return "";
         return "\n【" + label + "】\n" + list.map(function (r, i) {
@@ -2170,6 +2181,7 @@
       }
       return header + formatBlock(sageRefs, "中外聖賢話語") +
         formatBlock(masterRefs, "太陽盛德導師話語") +
+        formatBlock(studentRefs, "超級生命密碼學員佐證案例") +
         formatBlock(otherRefs, "其他印證參考");
     }
 
@@ -2186,17 +2198,19 @@
         var yzMatch = block.match(/印證[：:]\s*(.+)/);
         var typeMatch = block.match(/類型[：:]\s*(.+)/);
         var refType = typeMatch ? typeMatch[1].trim() : "";
-        var type = /預言|警示/.test(block + refType) ? "預言"
+        var type = /學員佐證|學員分享/.test(block + refType) ? "學員佐證"
+          : /預言|警示/.test(block + refType) ? "預言"
           : /天地整理/.test(block + refType) ? "天地整理"
           : /圖|照片|image/i.test(block) ? "圖片"
           : (/youtube|影音|影片|video/i.test(block) ? "導師影音" : "文章");
         var isMaster = /太陽盛德|超碼|導師/.test(block) && !/曾子|孔子|王陽明|老子|弟子規|蘇格拉底|亞里士多德|聖經/.test(block);
+        var isStudent = type === "學員佐證" || (/學員|同修|見證/.test(block) && /分享|心得|轉念/.test(block) && !isMaster);
         if (!urlMatch && !quoteMatch && !titleMatch) return;
         items.push({
-          title: title || "太陽盛德導師印證參考",
+          title: title || (isStudent ? "超級生命密碼學員佐證" : "太陽盛德導師印證參考"),
           type: type,
-          category: isMaster || type === "導師影音" ? "master" : "sage",
-          sage: sageMatch ? sageMatch[1].trim() : (isMaster ? "太陽盛德導師／網路資料" : "中外聖賢／網路資料"),
+          category: isStudent ? "student" : (isMaster || type === "導師影音" ? "master" : "sage"),
+          sage: sageMatch ? sageMatch[1].trim() : (isStudent ? "超級生命密碼學員" : (isMaster ? "太陽盛德導師／網路資料" : "中外聖賢／網路資料")),
           quote: quoteMatch ? quoteMatch[1].trim() : "",
           plain: plainMatch ? plainMatch[1].trim() : extractSnippet(block, 100),
           yinZheng: yzMatch ? yzMatch[1].trim() : "",
@@ -2326,6 +2340,127 @@
       lines.push(STUDENT_EXAMPLE_GUIDE);
       lines.push("請一併搜尋「超級生命密碼 學員 分享 心得 轉念 案例」等，若有合適學員實例可列入「與今日境緣印證」。");
       return lines.join("\n");
+    }
+
+    function buildStudentSearchUrls(keyword) {
+      var q = encodeURIComponent("超級生命密碼 學員 分享 " + keyword + " 轉念 心得");
+      return {
+        web: "https://www.google.com/search?q=" + q,
+        video: "https://www.youtube.com/results?search_query=" + encodeURIComponent("超級生命密碼 學員 " + keyword)
+      };
+    }
+
+    function buildStudentEvidenceSearchPrompt(keyword, material, opts) {
+      opts = opts || {};
+      var count = opts.count || 4;
+      var lines = [
+        "請用 Google 搜尋，為超碼修煉心得 Step3「古今印證」搜集**超級生命密碼學員佐證資料**（繁體中文）。",
+        "主題關鍵字：「" + keyword + "」",
+        "今日境緣摘要：「" + extractSnippet(material || keyword, 150) + "」",
+        "",
+        "請搜尋學員分享、修煉心得、境緣轉念、見證、共修分享等，找出與主題相關、可寫入心得作為**具體佐證**的案例。",
+        "優先來源：超級生命密碼、天圓文化、官方社群、YouTube 學員分享、部落格心得等。",
+        "",
+        "請輸出 " + count + "–5 則，每則含：",
+        "- 類型：學員佐證",
+        "- 標題《…》",
+        "- 出處：…（平台／活動／文章；不杜撰學員真實姓名，可稱「某位學員」「同修」）",
+        "- 可引用：…（學員分享摘要或原句）",
+        "- 白話意涵：…",
+        "- 與今日境緣印證：…",
+        "- 參考連結：…",
+        "",
+        STUDENT_EXAMPLE_GUIDE,
+        "反求諸己，不評判、不批評外在人事。"
+      ];
+      if (opts.exclude && opts.exclude.length) {
+        lines.push("", "請勿重複以下已選學員案例，另找不同的：");
+        opts.exclude.forEach(function (q) { lines.push("- " + q); });
+      }
+      if (opts.research) lines.push("", "這是**重新搜尋**請求，請提供不同的學員佐證案例。");
+      return lines.join("\n");
+    }
+
+    function normalizeStudentRefItem(it) {
+      if (!it) return it;
+      it.category = "student";
+      it.type = "學員佐證";
+      if (!it.sage) it.sage = "超級生命密碼學員";
+      return it;
+    }
+
+    function searchStudentEvidenceLocal() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var picked = pickYinZhengItems(keyword, material, { category: "master" })
+        .filter(function (it) { return /學員|分享|見證|同伴/.test(it.sage + it.keywords.join("")); });
+      var items = sageItemsToRefs(picked).map(normalizeStudentRefItem);
+      if (!items.length) {
+        items = [normalizeStudentRefItem({
+          title: "超級生命密碼學員分享（本機提示）",
+          sage: "超級生命密碼學員",
+          quote: "",
+          plain: "可在 Step3 概括引用同修在類似境緣中轉念的實例。填 Gemini 金鑰後按「網搜學員佐證資料」找更多網路案例。",
+          yinZheng: "對照學員如何反求諸己，寫自己的轉念。",
+          summary: "請用網搜取得更多學員案例",
+          url: buildStudentSearchUrls(keyword).web,
+          source: "本機提示"
+        })];
+      }
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機學員佐證 " + items.length + " 則（填金鑰可網搜更多）", "");
+    }
+
+    async function searchStudentEvidenceWithGemini() {
+      var key = getGeminiKey();
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      if (!key) {
+        alert("網搜學員佐證需 Gemini 金鑰。將改顯示本機提示，亦可按「開 Google 文章」手動搜尋。");
+        searchStudentEvidenceLocal();
+        return;
+      }
+      setStatus($("materialStatus"), "正在網搜超級生命密碼學員佐證…", "warn");
+      try {
+        var res = await callGeminiText(buildStudentEvidenceSearchPrompt(keyword, material), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).map(normalizeStudentRefItem);
+        if (!items.length) {
+          items = parseGeminiSearchResults(res.text).slice(0, 5).map(normalizeStudentRefItem);
+        }
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "學員佐證網搜完成（" + res.model + "），共 " + items.length + " 則；可加入印證", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "學員佐證網搜失敗：" + (e.message || e), "err");
+      }
+    }
+
+    async function researchStudentEvidence() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var exclude = getExcludedQuotes("student");
+      removeRefsByCategory("student");
+      studentSearchOffset++;
+      setStatus($("materialStatus"), "正在重新搜尋學員佐證…", "warn");
+      var key = getGeminiKey();
+      if (!key) {
+        searchStudentEvidenceLocal();
+        setStatus($("materialStatus"), "重新搜尋需 Gemini 金鑰；已顯示本機提示", "warn");
+        return;
+      }
+      try {
+        var res = await callGeminiText(buildStudentEvidenceSearchPrompt(keyword, material, {
+          exclude: exclude,
+          research: true,
+          count: 4 + (studentSearchOffset % 2)
+        }), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).map(normalizeStudentRefItem);
+        var added = addRefItems(items.slice(0, 5), true);
+        renderSearchResults(items);
+        renderYinZhengPreview();
+        setStatus($("materialStatus"), "已重新搜尋並加入 " + added + " 則學員佐證", added ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "重新搜尋學員佐證失敗：" + (e.message || e), "err");
+      }
     }
 
     async function researchQuotes(category) {
@@ -2728,6 +2863,9 @@
       $("btnSearchSage").onclick = searchSageLocal;
       $("btnResearchSage").onclick = researchSageQuotes;
       $("btnResearchMaster").onclick = researchMasterQuotes;
+      $("btnSearchStudent").onclick = searchStudentEvidenceWithGemini;
+      $("btnResearchStudent").onclick = researchStudentEvidence;
+      $("btnStudentLocal").onclick = searchStudentEvidenceLocal;
       $("btnAutoYinZheng").onclick = autoCollectYinZheng;
       $("btnEnrichRefs").onclick = enrichSelectedRefs;
       $("btnOpenYt").onclick = function () {
