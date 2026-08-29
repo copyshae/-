@@ -337,7 +337,7 @@
 <body>
   <div class="wrap">
     <h1>📺 Google 新聞虛擬主播</h1>
-    <p class="sub">寫實主播以<strong>完整影片</strong>播報（不切半、不斷線）；每則新聞會帶<strong>相關報導摘要</strong>，不只念標題。</p>
+    <p class="sub">寫實主播以<strong>完整影片</strong>播報；每則新聞會念<strong>媒體原文摘要</strong>（RSS 本身不含內文，需從原文抓取）。</p>
 
     <section class="studio" id="studio" aria-label="演播室">
       <div class="studio-badge">NEWS</div>
@@ -1107,13 +1107,39 @@
       );
     }
 
+    function getArticleSummary(it) {
+      if (it.articleSummary) return String(it.articleSummary).trim();
+      if (it.articleText) return speechClip(it.articleText, 320);
+      return "";
+    }
+
+    function speechClip(text, maxLen) {
+      var t = normalizeNewsTitle(String(text || ""));
+      if (!t) return "";
+      if (t.length <= maxLen) return t;
+      var parts = t.split(/(?<=[。！？!?])/);
+      var out = "";
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i].trim();
+        if (!p) continue;
+        if (out.length + p.length > maxLen && out) break;
+        out += p;
+        if (out.length >= maxLen * 0.6) break;
+      }
+      return (out || t.slice(0, maxLen)).slice(0, maxLen);
+    }
+
     function buildNewsContext(it) {
+      var body = getArticleSummary(it);
+      if (body.length >= 30) {
+        return "。" + body;
+      }
       var related = getRelatedTitles(it);
       if (related.length >= 3) {
-        return "。綜合報導，" + related[0] + "；另方面，" + related[1] + "；也有消息指出，" + related[2];
+        return "。相關消息，" + related[0] + "；另方面，" + related[1] + "；也有報導指出，" + related[2];
       }
       if (related.length >= 2) {
-        return "。綜合多家媒體，" + related[0] + "；另外也有報導提到，" + related[1];
+        return "。相關報導，" + related[0] + "；另外，" + related[1];
       }
       if (related.length === 1) {
         return "。同一議題，" + related[0];
@@ -1126,12 +1152,34 @@
     }
 
     function newsDetailPreview(it) {
+      var body = getArticleSummary(it);
+      if (body.length >= 20) return body.slice(0, 100) + (body.length > 100 ? "…" : "");
       var related = getRelatedTitles(it);
       if (related.length >= 2) return related[0] + "｜" + related[1];
       if (related.length === 1) return related[0];
       var plain = plainDescriptionText(it.description || "");
       if (plain.length > 20 && !titlesSimilar(plain, it.title)) return plain.slice(0, 80);
       return "";
+    }
+
+    function mergeCachedArticleFields(items, feedKey) {
+      if (!state.cache || !state.cache.feeds) return items;
+      var cached = state.cache.feeds[feedKey];
+      if (!cached || !cached.items || !cached.items.length) return items;
+      return items.map(function (it) {
+        var match = cached.items.find(function (c) {
+          return titlesSimilar(c.title, it.title) || (c.link && it.link && c.link === it.link);
+        });
+        if (!match) return it;
+        var merged = Object.assign({}, it);
+        if (match.articleSummary) merged.articleSummary = match.articleSummary;
+        if (match.articleText) merged.articleText = match.articleText;
+        if (match.publisherUrl) merged.publisherUrl = match.publisherUrl;
+        if ((!merged.relatedTitles || !merged.relatedTitles.length) && match.relatedTitles) {
+          merged.relatedTitles = match.relatedTitles;
+        }
+        return merged;
+      });
     }
 
     function proOpen(anchor, catLabel) {
@@ -1500,7 +1548,10 @@
           pubDate: it.pubDate || "",
           source: it.source || "",
           description: it.description || "",
-          relatedTitles: relatedTitles
+          relatedTitles: relatedTitles,
+          articleText: it.articleText || "",
+          articleSummary: it.articleSummary || "",
+          publisherUrl: it.publisherUrl || ""
         };
       }).filter(function (it) { return it.title; });
     }
@@ -1576,6 +1627,7 @@
           }
         }
         if (!items.length) throw new Error("找不到「" + keyword + "」相關新聞，請換個關鍵字試試");
+        items = mergeCachedArticleFields(items, "search:" + keyword);
         if (status.className !== "status warn") {
           status.textContent = "已搜尋「" + keyword + "」共 " + items.length + " 則";
           status.className = "status";
@@ -1594,7 +1646,7 @@
         try {
           var live = await fetchLiveRss({ category: cat });
           if (live.length) {
-            items = live;
+            items = mergeCachedArticleFields(live, cat);
             status.textContent = "已更新「" + (CATEGORY_LABELS[cat] || cat) + "」共 " + items.length + " 則（即時）";
             status.className = "status";
           }
@@ -1784,15 +1836,16 @@
       var catLabel = getFeedLabel();
       var bullet = items.map(function (it, i) {
         var related = getRelatedTitles(it);
-        var ctx = related.length ? "\n   相關報導：" + related.slice(0, 3).join("；") : "";
+        var body = getArticleSummary(it);
+        var ctx = body ? "\n   原文摘要：" + body : (related.length ? "\n   相關報導：" + related.slice(0, 3).join("；") : "");
         return (i + 1) + ". " + it.title + (it.source ? "（" + it.source + "）" : "") + ctx;
       }).join("\n");
       var prompt = "你是電視新聞主播「" + anchor.name + "」（" + anchor.tag + "）。"
         + "請把以下 Google 新聞" + catLabel + "整理成一段繁體中文播報稿。"
         + "要求：專業穩重又親切，讓觀眾想持續收聽；句子長短交替；"
-        + "每則除了標題外，必須依「相關報導」口語補充一兩句摘要，禁止只念標題；不可編造未提供的細節；"
+        + "每則必須依「原文摘要」口語播報內容，禁止只念標題；若只有相關報導則口語改寫；不可編造未提供的細節；"
         + "開場要有吸引力、用「首先」「接著」「另外」「最後」等口語連接，不要機械式「第1則、第2則」；"
-        + "結尾可留懸念或提示還有其他分類可關心。約 400～650 字。\n\n" + bullet;
+        + "結尾可留懸念或提示還有其他分類可關心。約 450～750 字。\n\n" + bullet;
       var body = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }

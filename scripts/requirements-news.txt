@@ -1,0 +1,2 @@
+# 新聞主播：fetch_google_news.py 抓取原文內文用
+googlenewsdecoder>=0.1.7
