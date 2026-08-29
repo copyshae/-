@@ -154,6 +154,76 @@
       border-color: #c45a10;
       color: #fff;
     }
+    .ktv-score-history {
+      margin-top: 0.5rem;
+      font-size: 0.74rem;
+      color: rgba(255,248,232,0.7);
+      padding: 0.4rem 0.5rem;
+      background: rgba(0,0,0,0.2);
+      border-radius: 0.35rem;
+    }
+    .ktv-score-history .up { color: #7dffb3; }
+    .ktv-score-history .down { color: #ffb4a2; }
+    .ktv-self-rate { margin-top: 0.55rem; font-size: 0.76rem; color: rgba(255,248,232,0.75); }
+    .self-rate-stars { margin-top: 0.25rem; display: flex; gap: 0.15rem; }
+    .self-rate-stars button {
+      background: none; border: none; font-size: 1.35rem; padding: 0.1rem;
+      color: rgba(255,248,232,0.35); cursor: pointer; line-height: 1;
+    }
+    .self-rate-stars button.on { color: #e8a020; }
+    .ktv-hotspot {
+      margin-top: 0.45rem;
+      font-size: 0.74rem;
+      color: #ffd88a;
+      padding: 0.35rem 0.5rem;
+      background: rgba(232,160,32,0.12);
+      border-radius: 0.35rem;
+      display: none;
+    }
+    .ktv-hotspot.on { display: block; }
+    .ktv-score-actions { grid-template-columns: 1fr 1fr; }
+    .ktv-score-actions .wide { grid-column: 1 / -1; }
+    .ktv-loop-bar {
+      margin-top: 0.55rem;
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      align-items: center;
+      justify-content: center;
+    }
+    .ktv-loop-bar.on { display: flex; }
+    .ktv-loop-bar button {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,248,232,0.25);
+      color: #fff8e8;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.3rem;
+    }
+    .ktv-loop-bar button.loop-on { background: #2d6a4f; border-color: #2d6a4f; }
+    .ktv-loop-bar span { font-size: 0.68rem; color: rgba(255,248,232,0.55); width: 100%; text-align: center; }
+    .ktv-session {
+      margin-top: 0.75rem;
+      padding: 1rem 0.85rem;
+      border-radius: 0.55rem;
+      background: rgba(45, 106, 79, 0.25);
+      border: 1px solid rgba(125, 255, 179, 0.3);
+      text-align: left;
+      display: none;
+    }
+    .ktv-session.on { display: block; }
+    .ktv-session h3 { font-size: 0.9rem; color: #7dffb3; font-weight: 700; }
+    .ktv-session p { margin-top: 0.35rem; font-size: 0.78rem; color: rgba(255,248,232,0.88); line-height: 1.5; }
+    .ktv-session ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.76rem; color: rgba(255,248,232,0.85); }
+    .ktv-session-actions { margin-top: 0.65rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; }
+    .ktv-session-actions button {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,248,232,0.25);
+      color: #fff8e8;
+      font-size: 0.82rem;
+      padding: 0.55rem 0.4rem;
+    }
+    .song-item .practiced { font-size: 0.65rem; color: var(--ok); margin-left: 0.25rem; }
     .ktv-panel.singing .ktv-line,
     .ktv-panel.singing .ktv-next,
     .ktv-panel.singing .ktv-hint { opacity: 0.35; }
@@ -187,6 +257,13 @@
       <div id="ktvLine" class="ktv-line">按下 KTV 後開始播放，字幕會自動顯示</div>
       <div id="ktvNext" class="ktv-next"></div>
       <p id="ktvHint" class="ktv-hint">伴唱：有伴奏版時自動切換；也可按「伴唱」切換</p>
+      <div id="ktvLoopBar" class="ktv-loop-bar">
+        <button type="button" id="btnSetA">A 點</button>
+        <button type="button" id="btnSetB">B 點</button>
+        <button type="button" id="btnLoopGo">循環練習</button>
+        <button type="button" id="btnLoopOff">取消循環</button>
+        <span id="loopStatus">A-B 段：練習難句時可設起訖點循環播放</span>
+      </div>
       <div id="ktvScore" class="ktv-score" aria-live="polite">
         <div class="ktv-score-head">
           <div id="scoreNum" class="ktv-score-num">—<small>分</small></div>
@@ -196,16 +273,34 @@
             <div id="scoreSub" class="ktv-score-sub">—</div>
           </div>
         </div>
+        <div id="scoreHistory" class="ktv-score-history"></div>
+        <div class="ktv-self-rate">
+          <span>你覺得這次表現？</span>
+          <div id="selfRateStars" class="self-rate-stars" role="group" aria-label="自評星等"></div>
+        </div>
+        <div id="scoreHotspot" class="ktv-hotspot"></div>
         <div class="ktv-score-tips">
           <h3>提升建議</h3>
           <ul id="scoreTips"></ul>
         </div>
         <div class="ktv-score-actions">
+          <button type="button" id="btnScoreLoop">↻ 重練難段</button>
           <button type="button" id="btnScoreRetry">↺ 再唱一次</button>
+          <button type="button" id="btnScoreShare">📷 成果卡</button>
           <button type="button" id="btnScoreNext" class="primary">下一首 ▶</button>
         </div>
       </div>
+      <div id="ktvSession" class="ktv-session" aria-live="polite">
+        <h3>🎉 本場練唱小結</h3>
+        <p id="sessionSummary"></p>
+        <ul id="sessionList"></ul>
+        <div class="ktv-session-actions">
+          <button type="button" id="btnSessionShare">📷 本場成果卡</button>
+          <button type="button" id="btnSessionClose">關閉</button>
+        </div>
+      </div>
     </div>
+    <canvas id="shareCanvas" width="600" height="400" hidden aria-hidden="true"></canvas>
 
     <div class="now normal-only">
       <h2 id="nowTitle">準備播放</h2>
@@ -231,7 +326,7 @@
     </div>
 
     <p class="hint normal-only">
-      <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱 → ④ 其他演唱者。按 <strong>KTV</strong> 可大字幕＋伴唱，唱完會評分與建議（快捷鍵 <strong>K</strong>）。
+      <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱 → ④ 其他演唱者。KTV 模式含評分、練唱紀錄、A-B 循環與成果卡（快捷鍵 <strong>K</strong>）。
     </p>
 
     <div class="filter-row normal-only" role="tablist" aria-label="歌曲分類">
@@ -248,6 +343,8 @@
   <script>
     const PRIORITY_IDS = { "hTEv2f-9WIM": 3, "tkYxdmQlhtQ": 3 };
     const CATALOG_URL = "./catalog.json";
+    const PRACTICE_KEY = "taiyang-practice-log";
+    const MAX_HISTORY = 30;
 
     let catalog = { songs: [] };
     let queue = [];
@@ -265,6 +362,13 @@
     let playTickTimer = null;
     let pendingAutoNext = false;
     let scorePanelOpen = false;
+    let practiceLog = { bySong: {} };
+    let currentSelfRating = 0;
+    let lastScoreResult = null;
+    let abLoopStart = null;
+    let abLoopEnd = null;
+    let abLoopActive = false;
+    let ktvSession = null;
 
     const SONG_TIPS = {
       "注入彩虹": [
@@ -289,6 +393,251 @@
     ];
 
     const $ = (id) => document.getElementById(id);
+
+    function loadPracticeLog() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_KEY);
+        if (raw) practiceLog = JSON.parse(raw);
+        if (!practiceLog.bySong) practiceLog = { bySong: {} };
+      } catch (_) {
+        practiceLog = { bySong: {} };
+      }
+    }
+
+    function persistPracticeLog() {
+      localStorage.setItem(PRACTICE_KEY, JSON.stringify(practiceLog));
+    }
+
+    function getSongPractice(name) {
+      return practiceLog.bySong[name] || { bestScore: 0, attempts: 0, history: [] };
+    }
+
+    function formatTime(sec) {
+      if (!sec || sec < 0) return "0:00";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return m + ":" + String(s).padStart(2, "0");
+    }
+
+    function savePracticeRecord(item, score, stats, selfRating) {
+      const name = item.name || "未知";
+      const entry = getSongPractice(name);
+      const record = {
+        date: new Date().toISOString().slice(0, 10),
+        score,
+        selfRating: selfRating || 0,
+        completionPct: stats.completionPct,
+        pauseCount: stats.pauseCount,
+        usedKaraoke: stats.usedKaraoke
+      };
+      entry.history.unshift(record);
+      if (entry.history.length > MAX_HISTORY) entry.history.length = MAX_HISTORY;
+      entry.attempts = (entry.attempts || 0) + 1;
+      if (score > (entry.bestScore || 0)) entry.bestScore = score;
+      practiceLog.bySong[name] = entry;
+      persistPracticeLog();
+      return record;
+    }
+
+    function renderSelfRateStars(selected) {
+      currentSelfRating = selected || 0;
+      const parts = [];
+      for (let i = 1; i <= 5; i++) {
+        parts.push(
+          '<button type="button" data-v="' + i + '" class="' + (i <= currentSelfRating ? "on" : "") + '" aria-label="' + i + ' 星">★</button>'
+        );
+      }
+      $("selfRateStars").innerHTML = parts.join("");
+      $("selfRateStars").querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => renderSelfRateStars(Number(btn.dataset.v)));
+      });
+    }
+
+    function updateScoreHistoryDisplay(item, score) {
+      const pr = getSongPractice(item.name);
+      const el = $("scoreHistory");
+      if (!pr.attempts) {
+        el.textContent = "首次練唱這首歌，繼續加油！";
+        return;
+      }
+      const prev = pr.history[0];
+      const prevScore = prev ? prev.score : 0;
+      const best = pr.bestScore || 0;
+      let diff = "";
+      if (prev && prevScore !== score) {
+        const d = score - prevScore;
+        diff = d > 0
+          ? ' · 較上次 <span class="up">+' + d + "</span>"
+          : ' · 較上次 <span class="down">' + d + "</span>";
+      }
+      if (score > best) {
+        el.innerHTML = '<span class="up">新紀錄！</span> ' + score + " 分 · 已練 " + pr.attempts + " 次" + diff;
+      } else {
+        el.innerHTML = "歷史最佳 " + best + " 分 · 已練 " + pr.attempts + " 次" + diff;
+      }
+    }
+
+    function analyzeHotspot(pausePoints, durationSec) {
+      if (!pausePoints || !pausePoints.length) return null;
+      const sorted = pausePoints.slice().sort((a, b) => a.sec - b.sec);
+      let bestCluster = null;
+      let i = 0;
+      while (i < sorted.length) {
+        const cluster = [sorted[i]];
+        let j = i + 1;
+        while (j < sorted.length && sorted[j].sec - sorted[i].sec <= 12) {
+          cluster.push(sorted[j]);
+          j++;
+        }
+        if (!bestCluster || cluster.length > bestCluster.length) bestCluster = cluster;
+        i = j;
+      }
+      if (!bestCluster || bestCluster.length < 1) return null;
+      const center = bestCluster.reduce((s, p) => s + p.sec, 0) / bestCluster.length;
+      const pad = 8;
+      let start = Math.max(0, center - pad);
+      let end = Math.min(durationSec || center + pad + 15, center + pad);
+      if (end - start < 10) end = start + 12;
+      const caption = bestCluster.find((p) => p.text)?.text || "";
+      return {
+        start,
+        end,
+        center,
+        count: bestCluster.length,
+        caption: caption.slice(0, 24)
+      };
+    }
+
+    function updateLoopStatus() {
+      const el = $("loopStatus");
+      if (abLoopActive && abLoopStart != null && abLoopEnd != null) {
+        el.textContent = "循環中 " + formatTime(abLoopStart) + " → " + formatTime(abLoopEnd);
+        $("btnLoopGo").classList.add("loop-on");
+      } else if (abLoopStart != null && abLoopEnd != null) {
+        el.textContent = "已設 " + formatTime(abLoopStart) + " → " + formatTime(abLoopEnd) + "，按「循環練習」";
+        $("btnLoopGo").classList.remove("loop-on");
+      } else if (abLoopStart != null) {
+        el.textContent = "A 點 " + formatTime(abLoopStart) + "，請設 B 點";
+        $("btnLoopGo").classList.remove("loop-on");
+      } else {
+        el.textContent = "A-B 段：練習難句時可設起訖點循環播放";
+        $("btnLoopGo").classList.remove("loop-on");
+      }
+    }
+
+    function setAbLoop(start, end, activate) {
+      abLoopStart = start;
+      abLoopEnd = end;
+      abLoopActive = !!activate;
+      updateLoopStatus();
+      if (abLoopActive && player && player.seekTo) {
+        try {
+          player.seekTo(abLoopStart, true);
+          player.playVideo();
+        } catch (_) {}
+      }
+    }
+
+    function clearAbLoop() {
+      abLoopStart = null;
+      abLoopEnd = null;
+      abLoopActive = false;
+      updateLoopStatus();
+    }
+
+    function checkAbLoop() {
+      if (!abLoopActive || abLoopStart == null || abLoopEnd == null || !player) return;
+      try {
+        const t = player.getCurrentTime();
+        if (t >= abLoopEnd - 0.25) player.seekTo(abLoopStart, true);
+      } catch (_) {}
+    }
+
+    function ensureKtvSession() {
+      if (!ktvSession) ktvSession = { songs: [], startedAt: Date.now() };
+    }
+
+    function addToKtvSession(item, score, stats, selfRating) {
+      ensureKtvSession();
+      ktvSession.songs.push({
+        name: item.name,
+        score,
+        selfRating: selfRating || 0,
+        completionPct: stats.completionPct,
+        at: Date.now()
+      });
+    }
+
+    function showSessionSummary() {
+      if (!ktvSession || !ktvSession.songs.length) return;
+      const songs = ktvSession.songs;
+      const scores = songs.map((s) => s.score);
+      const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      const best = songs.reduce((a, b) => (b.score > a.score ? b : a), songs[0]);
+      const names = songs.map((s) => s.name);
+      $("sessionSummary").textContent =
+        "本場共練 " + songs.length + " 首，平均 " + avg + " 分；最高〈" + best.name + "〉" + best.score + " 分。";
+      $("sessionList").innerHTML = songs.map((s) =>
+        "<li>〈" + s.name + "〉 " + s.score + " 分" +
+        (s.selfRating ? " · 自評 " + "★".repeat(s.selfRating) : "") + "</li>"
+      ).join("");
+      $("ktvSession").classList.add("on");
+      $("ktvScore").classList.remove("on");
+      $("ktvPanel").classList.add("singing");
+      updateKtvUI();
+    }
+
+    function hideSessionSummary() {
+      $("ktvSession").classList.remove("on");
+      ktvSession = null;
+      updateKtvUI();
+    }
+
+    function generateShareCard(title, subtitle, score, gradeLabel, extra) {
+      const canvas = $("shareCanvas");
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      const grd = ctx.createLinearGradient(0, 0, 0, h);
+      grd.addColorStop(0, "#1a1208");
+      grd.addColorStop(1, "#3d2a0a");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#e8a020";
+      ctx.font = "bold 22px 'Noto Sans TC', sans-serif";
+      ctx.fillText("太陽盛德導師 · KTV 練唱", 36, 52);
+      ctx.fillStyle = "#ffd88a";
+      ctx.font = "bold 36px 'Noto Sans TC', sans-serif";
+      const titleShort = (title || "").slice(0, 14);
+      ctx.fillText("《" + titleShort + "》", 36, 110);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 72px 'Noto Sans TC', sans-serif";
+      ctx.fillText(String(score), 36, 210);
+      ctx.fillStyle = "rgba(255,248,232,0.65)";
+      ctx.font="24px 'Noto Sans TC', sans-serif";
+      ctx.fillText("分", 36 + ctx.measureText(String(score)).width + 8, 205);
+      ctx.fillStyle = "#e8a020";
+      ctx.font = "bold 26px 'Noto Sans TC', sans-serif";
+      ctx.fillText(gradeLabel || "", 36, 260);
+      ctx.fillStyle = "rgba(255,248,232,0.55)";
+      ctx.font = "18px 'Noto Sans TC', sans-serif";
+      ctx.fillText(subtitle || "", 36, 300);
+      if (extra) {
+        ctx.font = "16px 'Noto Sans TC', sans-serif";
+        ctx.fillText(extra, 36, 340);
+      }
+      ctx.fillStyle = "rgba(255,248,232,0.35)";
+      ctx.font = "14px 'Noto Sans TC', sans-serif";
+      ctx.fillText(new Date().toLocaleDateString("zh-TW"), 36, h - 28);
+      return canvas.toDataURL("image/png");
+    }
+
+    function downloadShareCard(dataUrl, filename) {
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = filename || "盛德KTV成果.png";
+      a.click();
+    }
 
     function normName(s) {
       return (s || "").replace(/\s/g, "");
@@ -371,12 +720,14 @@
         startedAt: Date.now(),
         playedMs: 0,
         pauseCount: 0,
+        pausePoints: [],
         lastTickAt: null,
         durationSec: 0,
         hadCaptions: false,
         usedKaraoke: false,
         hasPlayed: false
       };
+      if (ktvMode) ensureKtvSession();
     }
 
     function startPlayTick() {
@@ -395,6 +746,7 @@
           const d = player.getDuration();
           if (d && d > 0) singSession.durationSec = d;
         } catch (_) {}
+        checkAbLoop();
       }, 500);
     }
 
@@ -408,31 +760,52 @@
     function hideScorePanel() {
       scorePanelOpen = false;
       $("ktvScore").classList.remove("on");
-      $("ktvPanel").classList.remove("singing");
+      if (!$("ktvSession").classList.contains("on")) {
+        $("ktvPanel").classList.remove("singing");
+      }
     }
 
     function showScorePanel(item, stats) {
       const score = computeScore(stats);
       const grade = GRADE_LABELS.find((g) => score >= g.min) || GRADE_LABELS[GRADE_LABELS.length - 1];
+      const hotspot = analyzeHotspot(stats.pausePoints, stats.durationSec);
+      stats.hotspot = hotspot;
       const tips = buildTips(item, stats, score);
 
       $("scoreNum").innerHTML = score + "<small>分</small>";
       $("scoreGrade").textContent = grade.label;
       $("scoreStars").textContent = "★".repeat(grade.stars) + "☆".repeat(5 - grade.stars);
       $("scoreSub").textContent = buildScoreSummary(stats, score);
+      updateScoreHistoryDisplay(item, score);
+      renderSelfRateStars(0);
       $("scoreTips").innerHTML = tips.map((t) => "<li>" + t + "</li>").join("");
+
+      const hotEl = $("scoreHotspot");
+      if (hotspot && hotspot.count >= 1) {
+        hotEl.classList.add("on");
+        hotEl.textContent = "暫停熱點：約 " + formatTime(hotspot.center) +
+          (hotspot.caption ? "（" + hotspot.caption + "…）" : "") +
+          " · 可按「重練難段」循環此段";
+        $("btnScoreLoop").disabled = false;
+      } else {
+        hotEl.classList.remove("on");
+        $("btnScoreLoop").disabled = true;
+      }
 
       const isLast = qIndex >= queue.length - 1;
       $("btnScoreNext").textContent = isLast ? "完成 ✓" : "下一首 ▶";
-      $("btnScoreNext").classList.toggle("primary", !isLast || pendingAutoNext);
+
+      lastScoreResult = { item, stats, score, grade: grade.label };
 
       $("ktvLine").textContent = "本首演唱結束";
       $("ktvNext").textContent = item.name;
       $("ktvScore").classList.add("on");
+      $("ktvSession").classList.remove("on");
       $("ktvPanel").classList.add("singing");
       scorePanelOpen = true;
       stopCaptionSync();
       stopPlayTick();
+      updateKtvUI();
     }
 
     function buildScoreSummary(stats, score) {
@@ -474,7 +847,9 @@
         tips.push("跟著大字幕練唱時，盡量唱完整句再換氣，培養語句連貫感");
       }
 
-      if (stats.pauseCount >= 3) {
+      if (stats.hotspot && stats.hotspot.count >= 2) {
+        tips.push("約 " + formatTime(stats.hotspot.center) + " 附近較常停頓，建議用 A-B 循環單練此段");
+      } else if (stats.pauseCount >= 3) {
         tips.push("暫停次數較多，可先分段練副歌或難句，再串連整首");
       } else if (score >= 88) {
         tips.push("表現穩定！可挑戰下一首或錄音回放，微調音準與共鳴位置");
@@ -496,6 +871,7 @@
         playedMs: singSession.playedMs,
         durationSec: singSession.durationSec,
         pauseCount: singSession.pauseCount,
+        pausePoints: singSession.pausePoints || [],
         hadCaptions: captionLines.length > 0,
         usedKaraoke: !!(ktvMode && useKaraoke && findKaraokeInCatalog(singSession.item)),
         completionPct: 0
@@ -510,11 +886,22 @@
       return { item: singSession.item, stats };
     }
 
-    function proceedAfterScore(replay) {
+    function commitScoreAndProceed(replay, showSummary) {
+      if (lastScoreResult) {
+        const { item, stats, score } = lastScoreResult;
+        savePracticeRecord(item, score, stats, currentSelfRating);
+        addToKtvSession(item, score, stats, currentSelfRating);
+        lastScoreResult = null;
+      }
       hideScorePanel();
       pendingAutoNext = false;
       if (replay) {
         loadVideo(queue[qIndex], true);
+        return;
+      }
+      if (showSummary) {
+        showSessionSummary();
+        autoPlay = false;
         return;
       }
       if (qIndex < queue.length - 1) {
@@ -522,11 +909,59 @@
         autoPlay = true;
         loadVideo(queue[qIndex], true);
       } else {
-        $("statusLine").textContent = "全部播放完畢";
+        if (ktvSession && ktvSession.songs.length) {
+          showSessionSummary();
+        } else {
+          $("statusLine").textContent = "全部播放完畢";
+        }
         autoPlay = false;
         $("ktvLine").textContent = "全部唱完，辛苦了！";
         $("ktvNext").textContent = "";
       }
+    }
+
+    function proceedAfterScore(replay) {
+      const isLast = qIndex >= queue.length - 1;
+      commitScoreAndProceed(replay, !replay && isLast);
+    }
+
+    function startHotspotLoop() {
+      if (!lastScoreResult || !lastScoreResult.stats.hotspot) return;
+      const h = lastScoreResult.stats.hotspot;
+      const { item, stats, score } = lastScoreResult;
+      savePracticeRecord(item, score, stats, currentSelfRating);
+      addToKtvSession(item, score, stats, currentSelfRating);
+      lastScoreResult = null;
+      hideScorePanel();
+      $("ktvPanel").classList.remove("singing");
+      setAbLoop(h.start, h.end, true);
+      $("ktvLine").textContent = "重練難段中…";
+      $("ktvNext").textContent = formatTime(h.start) + " → " + formatTime(h.end);
+      updateKtvUI();
+    }
+
+    function shareCurrentScore() {
+      if (!lastScoreResult) return;
+      const { item, score, grade } = lastScoreResult;
+      const pr = getSongPractice(item.name);
+      const extra = "歷史最佳 " + (pr.bestScore || score) + " 分";
+      const url = generateShareCard(item.name, grade, score, grade, extra);
+      downloadShareCard(url, "盛德KTV-" + item.name + ".png");
+    }
+
+    function shareSessionCard() {
+      if (!ktvSession || !ktvSession.songs.length) return;
+      const songs = ktvSession.songs;
+      const avg = Math.round(songs.reduce((s, x) => s + x.score, 0) / songs.length);
+      const best = songs.reduce((a, b) => (b.score > a.score ? b : a), songs[0]);
+      const url = generateShareCard(
+        "本場 " + songs.length + " 首",
+        "平均 " + avg + " 分",
+        best.score,
+        "最高〈" + best.name + "〉",
+        songs.map((s) => s.name).slice(0, 3).join("、")
+      );
+      downloadShareCard(url, "盛德KTV本場小結.png");
     }
 
     function stopCaptionSync() {
@@ -578,8 +1013,9 @@
     }
 
     function updateKtvUI() {
-      document.body.classList.toggle("ktv-mode", ktvMode);
-      $("ktvPanel").classList.toggle("on", ktvMode);
+      const sessionOpen = $("ktvSession").classList.contains("on");
+      document.body.classList.toggle("ktv-mode", ktvMode || sessionOpen);
+      $("ktvPanel").classList.toggle("on", ktvMode || sessionOpen);
       $("btnKtv").classList.toggle("ktv-on", ktvMode);
       $("btnKtv").textContent = ktvMode ? "🎤 KTV 開" : "🎤 KTV 模式";
       const item = queue[qIndex];
@@ -587,6 +1023,8 @@
       $("btnKaraoke").disabled = !ktvMode;
       $("btnKaraoke").classList.toggle("karaoke-on", ktvMode && useKaraoke && !!hasK);
       $("btnKaraoke").textContent = useKaraoke ? "🎵 伴唱中" : "🎵 原唱";
+      const showLoop = ktvMode && !scorePanelOpen && !$("ktvSession").classList.contains("on");
+      $("ktvLoopBar").classList.toggle("on", showLoop);
       if (item && ktvMode) {
         $("ktvTitle").textContent = item.name + (useKaraoke && hasK ? " · 伴唱" : " · 原唱");
         if (!captionLines.length) {
@@ -599,9 +1037,17 @@
     }
 
     function setKtvMode(on) {
+      if (!on && ktvSession && ktvSession.songs.length) {
+        showSessionSummary();
+      }
       ktvMode = !!on;
       localStorage.setItem("taiyang-ktv", ktvMode ? "1" : "0");
-      hideScorePanel();
+      if (!on) {
+        clearAbLoop();
+        hideScorePanel();
+      } else {
+        hideSessionSummary();
+      }
       stopPlayTick();
       updateKtvUI();
       if (ktvMode && queue[qIndex]) {
@@ -724,12 +1170,16 @@
           lastGroup = group;
         }
         const tag = item.total > 1 ? '<span class="tag">' + item.pass + "/" + item.total + "</span>" : "";
+        const pr = getSongPractice(item.name);
+        const practiced = pr.bestScore
+          ? '<span class="practiced">最佳' + pr.bestScore + "</span>"
+          : "";
         const who = item.performer === "master"
           ? '<span class="who">太陽盛德導師 親唱</span>'
           : '<span class="who">演唱：' + (item.performerLabel || "其他") + "</span>";
         parts.push(
           '<button type="button" class="song-item' + (i === qIndex ? " active" : "") + '" data-i="' + i + '">' +
-          (i + 1) + ". " + item.name + tag + who + "</button>"
+          (i + 1) + ". " + item.name + tag + practiced + who + "</button>"
         );
       });
       $("queueList").innerHTML = parts.join("");
@@ -768,6 +1218,7 @@
     function loadVideo(item, play) {
       if (!item) return;
       hideScorePanel();
+      $("ktvSession").classList.remove("on");
       const vid = resolveVideoId(item);
       captionLines = [];
       lastCaptionText = item.name;
@@ -831,6 +1282,10 @@
         if (ktvMode && singSession && singSession.hasPlayed) {
           singSession.pauseCount += 1;
           pausePlayTick();
+          try {
+            const sec = player.getCurrentTime();
+            singSession.pausePoints.push({ sec, text: lastCaptionText || "" });
+          } catch (_) {}
         }
       } else if (e.data === YT.PlayerState.ENDED) {
         $("btnPlay").textContent = "▶ 播放";
@@ -875,9 +1330,35 @@
     $("btnKtv").addEventListener("click", () => setKtvMode(!ktvMode));
     $("btnKaraoke").addEventListener("click", toggleKaraoke);
     $("btnScoreRetry").addEventListener("click", () => proceedAfterScore(true));
-    $("btnScoreNext").addEventListener("click", () => {
-      proceedAfterScore(false);
+    $("btnScoreNext").addEventListener("click", () => proceedAfterScore(false));
+    $("btnScoreLoop").addEventListener("click", startHotspotLoop);
+    $("btnScoreShare").addEventListener("click", shareCurrentScore);
+    $("btnSessionShare").addEventListener("click", shareSessionCard);
+    $("btnSessionClose").addEventListener("click", hideSessionSummary);
+
+    $("btnSetA").addEventListener("click", () => {
+      if (!player) return;
+      try {
+        abLoopStart = player.getCurrentTime();
+        if (abLoopEnd != null && abLoopEnd <= abLoopStart) abLoopEnd = null;
+        abLoopActive = false;
+        updateLoopStatus();
+      } catch (_) {}
     });
+    $("btnSetB").addEventListener("click", () => {
+      if (!player) return;
+      try {
+        const t = player.getCurrentTime();
+        if (abLoopStart == null || t > abLoopStart) abLoopEnd = t;
+        else { abLoopEnd = abLoopStart; abLoopStart = t; }
+        abLoopActive = false;
+        updateLoopStatus();
+      } catch (_) {}
+    });
+    $("btnLoopGo").addEventListener("click", () => {
+      if (abLoopStart != null && abLoopEnd != null) setAbLoop(abLoopStart, abLoopEnd, true);
+    });
+    $("btnLoopOff").addEventListener("click", clearAbLoop);
 
     document.addEventListener("keydown", (e) => {
       if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
@@ -901,13 +1382,14 @@
       if (queue.length && autoPlay) loadVideo(queue[qIndex], true);
     };
 
+    loadPracticeLog();
     loadCatalog(false).then(() => {
       updateKtvUI();
       if (queue.length) $("nowMeta").textContent = "共 " + queue.length + " 段連播 · 按「開始連播」或 KTV";
     });
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=20260831").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=20260901").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
