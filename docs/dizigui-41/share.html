@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#8b1a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="弟子規41集" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>加入主畫面｜弟子規41集</title>
+  <style>
+    :root { --accent: #8b1a1a; --muted: #6b5344; --paper: #f5efe3; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "PingFang TC", "Noto Sans TC", sans-serif;
+      color: #2a1810;
+      line-height: 1.6;
+      background: linear-gradient(180deg, #faf6ef 0%, var(--paper) 100%);
+      padding: 2rem 1.2rem 3rem;
+      padding-top: calc(2rem + env(safe-area-inset-top));
+    }
+    .wrap { max-width: 22rem; margin: 0 auto; text-align: center; }
+    h1 { font-size: 1.55rem; color: var(--accent); font-weight: 700; }
+    p { margin-top: 0.75rem; color: var(--muted); font-size: 0.95rem; text-align: left; }
+    .url-box {
+      margin-top: 1rem;
+      padding: 0.85rem;
+      background: #fff;
+      border: 1px solid rgba(139, 26, 26, 0.2);
+      word-break: break-all;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+    a.btn {
+      display: block;
+      margin-top: 1.2rem;
+      text-decoration: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.15rem;
+      padding: 1rem 1.1rem;
+      border-radius: 0.35rem;
+    }
+    ol { margin-top: 0.75rem; padding-left: 1.2rem; text-align: left; color: var(--muted); font-size: 0.92rem; }
+    li { margin-top: 0.45rem; }
+    .note { margin-top: 1rem; font-size: 0.82rem; color: var(--muted); text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>弟子規 41 集<br />加入手機主畫面</h1>
+    <p>蔡禮旭老師細講《弟子規》，預設 2 倍速。請用手機瀏覽器開啟下方連結。</p>
+    <div class="url-box" id="appUrl">https://copyshae.github.io/-/dizigui-41/</div>
+    <a class="btn" id="openBtn" href="./index.html">打開弟子規（2 倍速）</a>
+    <ol>
+      <li><strong>iPhone</strong>：Safari 開啟 → 底部「分享」→「加入主畫面」→ 完成。</li>
+      <li><strong>Android</strong>：Chrome 開啟 → 右上角 ⋮ →「加入主畫面」或「安裝應用程式」。</li>
+    </ol>
+    <p class="note">加入主畫面後，主畫面圖示名稱為「弟子規41集」。需連網才能播放 YouTube 影片。</p>
+  </div>
+  <script>
+    var base = location.href.replace(/share\.html.*$/, "");
+    var appUrl = base.indexOf("http") === 0 ? base : "https://copyshae.github.io/-/dizigui-41/";
+    document.getElementById("appUrl").textContent = appUrl;
+    document.getElementById("openBtn").href = appUrl;
+  </script>
+</body>
+</html>
