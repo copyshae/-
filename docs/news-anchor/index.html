@@ -399,6 +399,7 @@
             <option value="entertainment">娛樂</option>
             <option value="science">科學</option>
             <option value="health">健康</option>
+            <option value="education">教育</option>
           </select>
         </div>
         <div>
@@ -540,7 +541,7 @@
 
     var CATEGORY_ROTATION = [
       "headlines", "nation", "world", "business", "technology",
-      "sports", "entertainment", "science", "health"
+      "sports", "entertainment", "science", "health", "education"
     ];
 
     var CAT_ALIASES = {
@@ -552,7 +553,8 @@
       "體育": "sports", "運動": "sports",
       "娛樂": "entertainment",
       "科學": "science",
-      "健康": "health", "醫療": "health"
+      "健康": "health", "醫療": "health",
+      "教育": "education", "校園": "education", "學校": "education"
     };
 
     var CN_NUM = { "一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 };
@@ -569,12 +571,14 @@
       entertainment: "https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
       sports: "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
       science: "https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
-      health: "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+      health: "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      education: "https://news.google.com/rss/headlines/section/topic/EDUCATION?hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
     };
 
     var CATEGORY_LABELS = {
       headlines: "頭條", world: "國際", nation: "台灣", business: "財經",
-      technology: "科技", entertainment: "娛樂", sports: "體育", science: "科學", health: "健康"
+      technology: "科技", entertainment: "娛樂", sports: "體育", science: "科學",
+      health: "健康", education: "教育"
     };
 
     /* ===== 六種虛擬主播 ===== */
