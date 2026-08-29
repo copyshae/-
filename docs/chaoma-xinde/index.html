@@ -273,6 +273,29 @@
 
       <div id="panelSearch" class="panel">
         <p class="hint"><strong>Step3 古今印證</strong>：搜集古聖先賢名言、太陽盛德導師教誨與參考文章，充實轉念段落。加入後會以「印證參考文章資訊」一併送入生成。</p>
+        <details class="format-block" open>
+          <summary>時事／天災新聞 → 導師預言與天地整理</summary>
+          <div class="inner">
+            <p class="hint">例：看到<strong>尼泊爾天災</strong>等新聞，可網搜太陽盛德導師／超級生命密碼群組有無相關<strong>預言</strong>、<strong>天地整理</strong>原則，作 Step3 印證（反求諸己，不評判外在）。</p>
+            <label for="newsEventKeyword">時事／天災關鍵字</label>
+            <input id="newsEventKeyword" type="text" placeholder="例：尼泊爾天災、地震、水患" />
+            <div class="chip-row" id="newsChips">
+              <button type="button" class="chip" data-news="尼泊爾天災">尼泊爾天災</button>
+              <button type="button" class="chip" data-news="地震">地震</button>
+              <button type="button" class="chip" data-news="天地整理">天地整理</button>
+              <button type="button" class="chip" data-news="水患">水患</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnSearchNews" class="primary">🌍 網搜預言／天地整理</button>
+              <button type="button" id="btnNewsLocal">📖 本機相關心法</button>
+              <button type="button" id="btnNewsAddAll">全部加入印證</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnOpenNewsWeb">Google 搜尋</button>
+              <button type="button" id="btnOpenNewsYt">YouTube 搜尋</button>
+            </div>
+          </div>
+        </details>
         <label for="searchKeyword">印證主題／關鍵字</label>
         <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、三省吾身、GPS定位、感恩" />
         <div class="chip-row" id="searchChips">
@@ -497,7 +520,10 @@
       { category: "master", keywords: ["注入彩虹", "彩虹", "希望"], sage: "太陽盛德導師｜歌曲", quote: "注入彩虹，把希望帶進生命。", plain: "以正向願力為自己與他人注入光與希望。", yinZheng: "聽見旋律或看見彩虹色，提醒自己要成為別人的光。" },
       { category: "master", keywords: ["富有", "豐盛", "喜樂"], sage: "太陽盛德導師｜歌曲", quote: "富有不在外求，心豐盛即富有。", plain: "真正的豐盛來自心念轉換與感恩當下。", yinZheng: "少比較、多知足，就在日常品嚐富有的感覺。" },
       { category: "master", keywords: ["參悟空", "悟空", "空"], sage: "太陽盛德導師｜超碼心法", quote: "秒秒參悟空，不執著境相。", plain: "明白境緣無常，不讓外相牽著鼻子走。", yinZheng: "起煩惱時提醒自己：這境也會過去。" },
-      { category: "master", keywords: ["懺悔", "發願"], sage: "太陽盛德導師｜超碼功課", quote: "誠懇懺悔、發願改過。", plain: "看見過失不遮掩，願心從今天具體改正。", yinZheng: "寫心得本身就是懺悔與發願的落實。" }
+      { category: "master", keywords: ["懺悔", "發願"], sage: "太陽盛德導師｜超碼功課", quote: "誠懇懺悔、發願改過。", plain: "看見過失不遮掩，願心從今天具體改正。", yinZheng: "寫心得本身就是懺悔與發願的落實。" },
+      { category: "master", keywords: ["天地整理", "整理", "天災", "災難", "地震", "水患", "尼泊爾", "動盪"], sage: "太陽盛德導師｜天地整理", quote: "天地整理，亦是整理我們的心。", plain: "外在天災與動盪，是宇宙在提醒人類回頭修正；不在外求理由，先整理自己的念頭與習氣。", yinZheng: "看到災難新聞時，問自己：這境要我在哪一念上更謙卑、更感恩、更發願改過？" },
+      { category: "master", keywords: ["預言", "警示", "未來", "共業", "劫難"], sage: "太陽盛德導師｜境緣教示", quote: "境緣是最好的老師。", plain: "無論是否曾有預言應驗，當下這一念如何轉念、如何愛與感恩，才是真實修煉。", yinZheng: "不把新聞當談資批评，而是借境照見自己：我願意多出一份愛與祝福嗎？" },
+      { category: "sage", keywords: ["天地", "災", "無常", "整理", "平衡"], sage: "《道德經》", quote: "天之道，損有餘而補不足。", plain: "天地運行自有平衡；面對災變，學習謙卑與順道，不執著掌控。", yinZheng: "遇天災境緣，先穩住心，把力氣用在能愛、能幫助的一念上。" }
     ];
 
     function normalizeFormat(fmt) {
@@ -1725,6 +1751,46 @@
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    function getNewsEventKeyword() {
+      var q = ($("newsEventKeyword") && $("newsEventKeyword").value || "").trim();
+      if (q) return q;
+      return ($("searchKeyword").value || "").trim();
+    }
+
+    function buildNewsSearchUrls(newsEvent) {
+      var webQ = encodeURIComponent("太陽盛德導師 " + newsEvent + " 天地整理 OR 預言 OR 超級生命密碼");
+      var ytQ = encodeURIComponent("太陽盛德 " + newsEvent + " 天地整理");
+      return {
+        web: "https://www.google.com/search?q=" + webQ,
+        video: "https://www.youtube.com/results?search_query=" + ytQ
+      };
+    }
+
+    function buildNewsEventSearchPrompt(newsEvent, material) {
+      return [
+        "請用 Google 搜尋，針對時事／天災新聞「" + newsEvent + "」，查找與**太陽盛德導師**、**超級生命密碼**、**天圓文化**、官方社群或可信來源相關的資料，供超碼修煉心得 Step3「古今印證」使用。",
+        "",
+        "今日境緣摘要：「" + extractSnippet(material || newsEvent, 150) + "」",
+        "",
+        "請搜集並整理（繁體中文，反求諸己，不評判外在人事）：",
+        "1. **預言／警示**：導師或官方是否曾提及、預言、警示與「" + newsEvent + "」類似的天災、動盪或境緣（附時間脈絡若可考）",
+        "2. **天地整理原則**：相關心法說明——何謂天地整理、如何理解此類境緣、如何回光返照修正自心",
+        "3. **教誨／演講／文章**：可引用原句、白話意涵、與今日境緣印證",
+        "4. **影音**（若有）：YouTube 演講或歌曲，附摘要",
+        "",
+        "請輸出 4–6 則，每則嚴格包含：",
+        "- 類型：（預言／天地整理／教誨／影音 擇一）",
+        "- 標題《…》",
+        "- 出處：…",
+        "- 可引用：…（若無可寫「未找到明確原句，以下據公開資料摘要」）",
+        "- 白話意涵：…",
+        "- 與今日境緣印證：…",
+        "- 參考連結：…",
+        "",
+        "若搜尋不到直接相關預言，請誠實說明，並提供最接近的天地整理或導師教誨供參考。"
+      ].join("\n");
+    }
+
     function getSearchKeyword() {
       var q = ($("searchKeyword").value || "").trim();
       if (q) return q;
@@ -2013,7 +2079,12 @@
         var quoteMatch = block.match(/(?:可引用|原句|教誨)[：:]\s*[「"]?([^」"\n]+)/);
         var plainMatch = block.match(/白話[意涵]*[：:]\s*(.+)/);
         var yzMatch = block.match(/印證[：:]\s*(.+)/);
-        var type = /圖|照片|image/i.test(block) ? "圖片" : (/youtube|影音|影片|video/i.test(block) ? "導師影音" : "文章");
+        var typeMatch = block.match(/類型[：:]\s*(.+)/);
+        var refType = typeMatch ? typeMatch[1].trim() : "";
+        var type = /預言|警示/.test(block + refType) ? "預言"
+          : /天地整理/.test(block + refType) ? "天地整理"
+          : /圖|照片|image/i.test(block) ? "圖片"
+          : (/youtube|影音|影片|video/i.test(block) ? "導師影音" : "文章");
         var isMaster = /太陽盛德|超碼|導師/.test(block) && !/曾子|孔子|王陽明|老子|弟子規|蘇格拉底|亞里士多德|聖經/.test(block);
         if (!urlMatch && !quoteMatch && !titleMatch) return;
         items.push({
@@ -2044,6 +2115,62 @@
         });
       }
       return items;
+    }
+
+    function addAllSearchResults() {
+      var box = $("searchResults");
+      if (!box._items || !box._items.length) {
+        alert("請先搜尋");
+        return;
+      }
+      var added = 0;
+      box._items.forEach(function (it) {
+        var before = refItems.length;
+        addRefItem(it);
+        if (refItems.length > before) added++;
+      });
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已加入 " + added + " 筆印證參考", added ? "" : "warn");
+    }
+
+    function searchNewsEventLocal() {
+      var news = getNewsEventKeyword();
+      if (!news) {
+        alert("請輸入時事／天災關鍵字（例：尼泊爾天災）");
+        return;
+      }
+      var material = (($("materialText").value || "").trim() + " " + news).trim();
+      var masterItems = sageItemsToRefs(pickYinZhengItems(news, material, { category: "master" }));
+      var sageItems = sageItemsToRefs(pickYinZhengItems(news, material, { category: "sage" }));
+      var items = masterItems.concat(sageItems).slice(0, 6);
+      $("searchKeyword").value = news;
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機相關心法 " + items.length + " 筆（「" + news + "」）；填金鑰可按「網搜預言／天地整理」", items.length ? "" : "warn");
+    }
+
+    async function searchNewsEventWithGemini() {
+      var news = getNewsEventKeyword();
+      if (!news) {
+        alert("請輸入時事／天災關鍵字（例：尼泊爾天災）");
+        return;
+      }
+      var key = getGeminiKey();
+      if (!key) {
+        alert("網搜預言／天地整理需 Gemini 金鑰。可先按「Google 搜尋」或「本機相關心法」。");
+        searchNewsEventLocal();
+        return;
+      }
+      var material = ($("materialText").value || "").trim();
+      setStatus($("materialStatus"), "正在網搜「" + news + "」相關預言與天地整理…", "warn");
+      $("searchKeyword").value = news;
+      try {
+        var res = await callGeminiText(buildNewsEventSearchPrompt(news, material), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).slice(0, 6);
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "「" + news + "」網搜完成（" + res.model + "），共 " + items.length + " 筆；可按「全部加入印證」", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "時事網搜失敗：" + (e.message || e), "err");
+      }
     }
 
     function searchSageLocal() {
@@ -2389,6 +2516,26 @@
       };
       $("btnSearchLocal").onclick = searchLocalCatalog;
       $("btnSearchGemini").onclick = searchWithGemini;
+      $("btnSearchNews").onclick = searchNewsEventWithGemini;
+      $("btnNewsLocal").onclick = searchNewsEventLocal;
+      $("btnNewsAddAll").onclick = addAllSearchResults;
+      $("btnOpenNewsWeb").onclick = function () {
+        var news = getNewsEventKeyword();
+        if (!news) { alert("請輸入時事／天災關鍵字"); return; }
+        window.open(buildNewsSearchUrls(news).web, "_blank", "noopener,noreferrer");
+      };
+      $("btnOpenNewsYt").onclick = function () {
+        var news = getNewsEventKeyword();
+        if (!news) { alert("請輸入時事／天災關鍵字"); return; }
+        window.open(buildNewsSearchUrls(news).video, "_blank", "noopener,noreferrer");
+      };
+      document.querySelectorAll("#newsChips .chip").forEach(function (chip) {
+        chip.onclick = function () {
+          var v = chip.getAttribute("data-news") || "";
+          $("newsEventKeyword").value = v;
+          $("searchKeyword").value = v;
+        };
+      });
       $("btnSearchSage").onclick = searchSageLocal;
       $("btnAutoYinZheng").onclick = autoCollectYinZheng;
       $("btnEnrichRefs").onclick = enrichSelectedRefs;
