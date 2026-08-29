@@ -2,7 +2,7 @@
   "id": "/-/taiyang-music/",
   "name": "太陽盛德導師｜歌曲連播",
   "short_name": "盛德歌曲",
-  "description": "注入彩虹、富有各連播三次；太陽盛德導師著作歌曲各播放一次。可更新曲庫。",
+  "description": "太陽盛德導師歌曲連播與 KTV：大字幕、伴唱、唱完評分與練唱建議。可加入主畫面。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
