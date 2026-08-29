@@ -59,7 +59,8 @@
       width: 0.45rem; height: 0.45rem; border-radius: 50%;
       background: #ff3b3b; animation: pulse 1.2s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .studio-live.on-air .dot { background: #ff3b3b; animation: pulse 0.85s ease-in-out infinite; }
+    .studio-live.on-air span:last-child { content: "LIVE"; }
     .anchor-wrap {
       position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
       padding-bottom: 18%;
@@ -161,6 +162,11 @@
     }
     .news-list li:hover { background: rgba(255,255,255,.06); }
     .news-list li.on { background: rgba(232,197,71,.12); border-left: 3px solid var(--accent); }
+    .news-list li.live-on {
+      background: rgba(180,30,45,.28); border-left: 3px solid #ff6b6b;
+      box-shadow: inset 0 0 0 1px rgba(255,107,107,.35);
+    }
+    .news-list .ord { color: var(--accent); font-weight: 800; margin-right: 0.15rem; }
     .news-list .src { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
     .kw-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
     .kw-chips button {
@@ -214,7 +220,7 @@
       </div>
 
       <div class="kw-chips" id="kwChips" hidden></div>
-      <p class="hint" id="kwHint">文字與口說皆可；有關鍵字則搜尋，留空則依下方分類抓取。</p>
+      <p class="hint" id="kwHint">有關鍵字則搜尋相關新聞；<strong>未輸入關鍵字</strong>時，依 Google 新聞<strong>原始排序逐則直播</strong>播報。</p>
       <div class="row2">
         <div>
           <label for="category">分類（無關鍵字時）</label>
@@ -236,7 +242,7 @@
         </div>
       </div>
       <div class="actions">
-        <button type="button" class="primary" id="btnSearchPlay">▶ 開始播報</button>
+        <button type="button" class="primary" id="btnSearchPlay">▶ 開始播報／直播</button>
         <button type="button" class="primary" id="btnFetch">更新新聞</button>
         <button type="button" class="accent" id="btnScript">產生播報稿</button>
       </div>
@@ -380,7 +386,8 @@
       searchKeyword: "",
       recognition: null,
       voiceHandler: null,
-      inputMode: "text"
+      inputMode: "text",
+      liveSession: 0
     };
 
     function $(id) { return document.getElementById(id); }
@@ -906,7 +913,8 @@
       ul.innerHTML = "";
       state.news.forEach(function (it, i) {
         var li = document.createElement("li");
-        li.innerHTML = "<div>" + escapeHtml(it.title) + "</div>"
+        li.setAttribute("data-index", String(i));
+        li.innerHTML = "<div><span class=\"ord\">" + (i + 1) + ".</span> " + escapeHtml(it.title) + "</div>"
           + (it.source ? '<div class="src">' + escapeHtml(it.source) + "</div>" : "");
         li.addEventListener("click", function () {
           ul.querySelectorAll("li").forEach(function (x) { x.classList.remove("on"); });
@@ -917,12 +925,108 @@
       });
     }
 
+    function highlightLiveNews(index) {
+      var ul = $("newsList");
+      if (!ul) return;
+      ul.querySelectorAll("li").forEach(function (li, i) {
+        li.classList.remove("live-on", "on");
+        if (index >= 0 && i === index) li.classList.add("live-on");
+      });
+      if (index >= 0 && state.news[index]) {
+        setSubtitle("直播中｜第 " + (index + 1) + " 則：" + state.news[index].title);
+      }
+    }
+
+    function setStudioLive(on) {
+      var live = document.querySelector(".studio-live");
+      if (live) live.classList.toggle("on-air", !!on);
+    }
+
+    function sleep(ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
+
+    function speakOneAndWait(text) {
+      return new Promise(function (resolve) {
+        if (!text || !window.TtsVoices) { resolve(false); return; }
+        if (!speakText(text)) { resolve(false); return; }
+        var timer = setInterval(function () {
+          var st = TtsVoices.getSpeakState();
+          if (!st.active) {
+            clearInterval(timer);
+            setTimeout(resolve, 100);
+          }
+        }, 120);
+      });
+    }
+
+    function buildLiveStreamScript(items, anchor) {
+      var catLabel = getFeedLabel();
+      var lines = [
+        "【Google 新聞直播｜" + catLabel + "】",
+        "各位觀眾您好，" + anchor.intro + "以下依 Google 新聞排序，逐則為您播報。"
+      ];
+      items.forEach(function (it, i) {
+        lines.push("第 " + (i + 1) + " 則：" + it.title + (it.source ? "（" + it.source + "）" : ""));
+      });
+      lines.push("以上為" + catLabel + "直播摘要，我是" + anchor.name + "，感謝收看。");
+      return lines.join("\n");
+    }
+
+    function isLiveStreamMode() {
+      return !getKeyword() && !state.searchKeyword;
+    }
+
+    async function playLiveStream() {
+      var session = ++state.liveSession;
+      var count = Math.max(1, Math.min(10, parseInt($("newsCount").value, 10) || 5));
+      var items = state.news.slice(0, count);
+      if (!items.length) throw new Error("沒有可供直播的新聞");
+
+      var anchor = getAnchor();
+      var catLabel = getFeedLabel();
+      $("scriptText").value = buildLiveStreamScript(items, anchor);
+      $("fetchStatus").textContent = "直播中｜依 Google 新聞排序，共 " + items.length + " 則";
+      $("fetchStatus").className = "status warn";
+      setStudioLive(true);
+      setSpeaking(true);
+
+      await speakOneAndWait("各位觀眾您好，歡迎收看 Google 新聞" + catLabel + "直播。" + anchor.intro + "以下依 Google 新聞排序，為您逐則播報。");
+      if (session !== state.liveSession) return;
+
+      for (var i = 0; i < items.length; i++) {
+        if (session !== state.liveSession) return;
+        highlightLiveNews(i);
+        var it = items[i];
+        var line = "第 " + (i + 1) + " 則：" + it.title + (it.source ? "。消息來源：" + it.source : "") + "。";
+        await speakOneAndWait(line);
+        if (session !== state.liveSession) return;
+        if (i < items.length - 1) await sleep(350);
+      }
+
+      if (session !== state.liveSession) return;
+      highlightLiveNews(-1);
+      await speakOneAndWait("以上為" + catLabel + "直播播報，我是" + anchor.name + "，感謝您的收看，再會。");
+      setSpeaking(false);
+      setStudioLive(false);
+      setSubtitle("直播結束，感謝收看。");
+      $("fetchStatus").textContent = "直播結束（共播報 " + items.length + " 則，依 Google 新聞排序）";
+      $("fetchStatus").className = "status";
+    }
+
+    function stopLiveStream() {
+      state.liveSession += 1;
+      setStudioLive(false);
+      highlightLiveNews(-1);
+    }
+
     function escapeHtml(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
 
     /* ===== 播報稿 ===== */
     function buildTemplateScript(items, anchor) {
+      if (isLiveStreamMode()) return buildLiveStreamScript(items, anchor);
       var catLabel = getFeedLabel();
       var lines = [
         "各位觀眾您好，歡迎收看 Google 新聞" + catLabel + "快報。",
@@ -1067,12 +1171,17 @@
 
     async function playNewsFlow() {
       TtsVoices.stopSpeakQueue();
+      stopLiveStream();
       $("btnSearchPlay").disabled = true;
       try {
         await fetchNews();
-        var script = await generateScript();
-        speakText(script);
-        watchSpeakSubtitle(script);
+        if (isLiveStreamMode()) {
+          await playLiveStream();
+        } else {
+          var script = await generateScript();
+          speakText(script);
+          watchSpeakSubtitle(script);
+        }
       } finally {
         $("btnSearchPlay").disabled = false;
       }
@@ -1117,13 +1226,12 @@
 
     $("btnPlay").addEventListener("click", function () {
       var text = $("scriptText").value.trim();
+      stopVoiceIfAny();
       if (!text) {
-        generateScript().then(function (s) {
-          speakText(s);
-          watchSpeakSubtitle(s);
-        }).catch(showFetchError);
+        playNewsFlow().catch(showFetchError);
         return;
       }
+      stopLiveStream();
       speakText(text);
       watchSpeakSubtitle(text);
     });
@@ -1132,6 +1240,7 @@
       TtsVoices.togglePauseSpeakQueue();
     });
     $("btnStop").addEventListener("click", function () {
+      stopLiveStream();
       TtsVoices.stopSpeakQueue();
       setSpeaking(false);
       setSubtitle("已停止播報。");
