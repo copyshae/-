@@ -1,5 +1,5 @@
 /* 蔡禮旭老師｜細講弟子規 1～41 集 */
-const CACHE = "dizigui41-v5";
+const CACHE = "dizigui41-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -17,10 +17,14 @@ self.addEventListener("install", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k.startsWith("dizigui41-") && k !== CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
