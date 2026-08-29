@@ -165,7 +165,28 @@
     .ktv-offset-bar button:active { background: rgba(45,106,79,0.45); }
     body.ktv-mode .normal-only { display: none !important; }
     body.ktv-mode .player-shell { margin-top: 0.5rem; }
+    body.ktv-mode.native-captions .player-shell {
+      aspect-ratio: 16/9;
+      min-height: min(52vh, 28rem);
+      margin-top: 0.35rem;
+      margin-bottom: 0.35rem;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.45);
+      border: 2px solid rgba(149,213,178,0.45);
+    }
+    body.ktv-mode.native-captions .ktv-panel { min-height: auto; padding-top: 0.55rem; }
+    body.ktv-mode.native-captions .ktv-line,
+    body.ktv-mode.native-captions .ktv-next,
+    body.ktv-mode.native-captions .ktv-offset-bar { display: none !important; }
     body.ktv-mode.sync-youtube .player-shell { outline: 2px solid rgba(149,213,178,0.35); }
+    body.ktv-mode.overlay-estimated .ktv-line::before {
+      content: "（估算，僅供參考）";
+      display: block;
+      font-size: 0.42em;
+      font-weight: 600;
+      color: #ffd166;
+      margin-bottom: 0.25em;
+      letter-spacing: 0.05em;
+    }
     body.ktv-mode .wrap { max-width: 32rem; }
     .ktv-score {
       margin-top: 0.75rem;
@@ -331,7 +352,7 @@
       <div id="ktvLine" class="ktv-line">按下 KTV 後開始播放，字幕會自動顯示</div>
       <div id="ktvNext" class="ktv-next"></div>
       <p id="ktvHint" class="ktv-hint">伴唱：有伴奏版時自動切換；也可按「伴唱」切換</p>
-      <button type="button" id="btnCaptionMode" class="ktv-caption-mode">字幕：原字幕優先</button>
+      <button type="button" id="btnSubtitleDisplay" class="ktv-caption-mode">字幕：影片放大（推薦）</button>
       <div id="ktvOffsetBar" class="ktv-offset-bar" aria-label="字幕時間微調">
         <span>字幕快慢：</span>
         <button type="button" id="btnOffsetEarlier" title="字幕提前（唱快時用）">◀ 提前</button>
@@ -440,6 +461,7 @@
     let captionSyncMode = "none"; // youtube | estimated | timed
     let captionRetimed = false;
     let preferYoutubeCaptions = localStorage.getItem("taiyang-prefer-yt-captions") !== "0";
+    let subtitleDisplayPref = localStorage.getItem("taiyang-ktv-subtitle-display") || "auto";
     let captionFetchGen = 0;
     let captionRetryTimers = [];
     let lastSyncedLineIndex = -1;
@@ -1182,33 +1204,89 @@
       captionSyncMode = result.syncMode || (result.plain ? "estimated" : (result.source === "youtube" ? "youtube" : "none"));
       captionRetimed = captionSyncMode === "estimated" && !!result.plain;
       updateSyncIndicator(captionSyncMode);
-      if (captionSyncMode === "youtube" || captionSyncMode === "timed") {
-        enablePlayerCaptions();
-      }
       if (ktvMode) {
         if (captionLines.length) {
-          $("ktvHint").textContent = captionModeHint(result) + "（" + captionLines.length + " 段）";
-          startCaptionSync();
           maybeRetimeCaptions();
+          updateSubtitleDisplayMode();
         } else {
+          document.body.classList.remove("native-captions", "overlay-estimated");
           $("ktvLine").textContent = item.name;
-          $("ktvHint").textContent = "此曲暫無字幕；可切換原唱／伴唱再試，或開播放器 CC";
+          $("ktvLine").style.display = "";
+          $("ktvHint").textContent = "此曲暫無字幕；可切換原唱／伴唱再試";
+          updateSubtitleDisplayBtn();
         }
       }
     }
 
-    function updateCaptionModeBtn() {
-      const btn = $("btnCaptionMode");
-      if (!btn) return;
-      btn.classList.toggle("on", preferYoutubeCaptions);
-      btn.textContent = preferYoutubeCaptions ? "字幕：即時抓取原字幕" : "字幕：內建歌詞備用";
+    function shouldUseNativeCaptions() {
+      if (subtitleDisplayPref === "native") return true;
+      if (subtitleDisplayPref === "overlay") return false;
+      return captionSyncMode === "youtube" || captionSyncMode === "timed";
     }
 
-    function toggleCaptionMode() {
-      preferYoutubeCaptions = !preferYoutubeCaptions;
-      localStorage.setItem("taiyang-prefer-yt-captions", preferYoutubeCaptions ? "1" : "0");
-      updateCaptionModeBtn();
-      if (queue[qIndex]) loadVideo(queue[qIndex], true);
+    function updateSubtitleDisplayMode() {
+      const useNative = ktvMode && shouldUseNativeCaptions() && captionLines.length > 0;
+      const useOverlay = ktvMode && !useNative && captionLines.length > 0;
+      document.body.classList.toggle("native-captions", useNative);
+      document.body.classList.toggle("overlay-estimated", useOverlay && captionSyncMode === "estimated");
+      const lineEl = $("ktvLine");
+      const nextEl = $("ktvNext");
+      const offBar = $("ktvOffsetBar");
+      if (useNative) {
+        stopCaptionSync();
+        enablePlayerCaptions(true);
+        if (lineEl) lineEl.style.display = "none";
+        if (nextEl) nextEl.style.display = "none";
+        if (offBar) offBar.style.display = "none";
+        if ($("ktvHint")) {
+          $("ktvHint").textContent = "字幕在影片中（YouTube 原字幕、最大字級，與旋律同步）";
+        }
+      } else if (useOverlay) {
+        if (lineEl) lineEl.style.display = "";
+        if (nextEl) nextEl.style.display = "";
+        if (offBar) offBar.style.display = "flex";
+        startCaptionSync();
+        if ($("ktvHint")) {
+          $("ktvHint").textContent = captionSyncMode === "estimated"
+            ? "無原字幕，下方大字僅估算；有 CC 的片會自動改「影片放大」"
+            : captionModeHint({ syncMode: captionSyncMode }) + "（自訂大字幕）";
+        }
+      } else {
+        document.body.classList.remove("native-captions", "overlay-estimated");
+        if (lineEl) lineEl.style.display = "";
+        if (nextEl) nextEl.style.display = "";
+        if (offBar) offBar.style.display = "none";
+      }
+      updateSubtitleDisplayBtn();
+    }
+
+    function updateSubtitleDisplayBtn() {
+      const btn = $("btnSubtitleDisplay");
+      if (!btn) return;
+      if (subtitleDisplayPref === "overlay") {
+        btn.textContent = "字幕：自訂大字（可能不同步）";
+        btn.classList.remove("on");
+      } else if (subtitleDisplayPref === "native") {
+        btn.textContent = "字幕：影片放大（推薦）";
+        btn.classList.add("on");
+      } else {
+        btn.textContent = shouldUseNativeCaptions()
+          ? "字幕：影片放大（推薦）"
+          : "字幕：自訂大字（估算）";
+        btn.classList.toggle("on", shouldUseNativeCaptions());
+      }
+    }
+
+    function toggleSubtitleDisplay() {
+      if (subtitleDisplayPref === "overlay") {
+        subtitleDisplayPref = "native";
+      } else if (subtitleDisplayPref === "native") {
+        subtitleDisplayPref = "overlay";
+      } else {
+        subtitleDisplayPref = shouldUseNativeCaptions() ? "overlay" : "native";
+      }
+      localStorage.setItem("taiyang-ktv-subtitle-display", subtitleDisplayPref);
+      updateSubtitleDisplayMode();
     }
 
     async function fetchCaptions(videoId, item, options) {
@@ -1598,17 +1676,14 @@
       }
     }
 
-    function enablePlayerCaptions() {
+    function enablePlayerCaptions(forceMax) {
       if (!player || !player.loadModule) return;
       try {
         player.loadModule("captions");
         player.setOption("captions", "track", { languageCode: "zh-Hant" });
-        player.setOption("captions", "fontSize", 3);
+        player.setOption("captions", "fontSize", forceMax ? 3 : 3);
         player.setOption("captions", "reload", true);
-        // 播放器畫面也顯示 YouTube 原字幕（與大字幕同一時間軸）
-        if (typeof player.setOption === "function") {
-          try { player.setOption("captions", "display", 1); } catch (_) {}
-        }
+        try { player.setOption("captions", "display", 1); } catch (_) {}
       } catch (_) {}
     }
 
@@ -1618,9 +1693,10 @@
       $("ktvPanel").classList.toggle("on", ktvMode || sessionOpen);
       $("btnKtv").classList.toggle("ktv-on", ktvMode);
       $("btnKtv").textContent = ktvMode ? "🎤 KTV 開" : "🎤 KTV 模式";
-      updateCaptionModeBtn();
-      const btnCap = $("btnCaptionMode");
-      if (btnCap) btnCap.style.display = ktvMode ? "inline-block" : "none";
+      updateSubtitleDisplayBtn();
+      const btnSub = $("btnSubtitleDisplay");
+      if (btnSub) btnSub.style.display = ktvMode ? "inline-block" : "none";
+      updateOffsetLabel();
       const item = queue[qIndex];
       const hasK = item && findKaraokeInCatalog(item);
       $("btnKaraoke").disabled = !ktvMode;
@@ -1982,7 +2058,11 @@
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
     $("btnKtv").addEventListener("click", () => setKtvMode(!ktvMode));
     $("btnKaraoke").addEventListener("click", toggleKaraoke);
-    $("btnCaptionMode").addEventListener("click", toggleCaptionMode);
+    $("btnSubtitleDisplay").addEventListener("click", toggleSubtitleDisplay);
+    $("btnOffsetEarlier").addEventListener("click", () => setCaptionOffset(-100));
+    $("btnOffsetLater").addEventListener("click", () => setCaptionOffset(100));
+    $("btnOffsetReset").addEventListener("click", resetCaptionOffset);
+    updateOffsetLabel();
     $("btnScoreRetry").addEventListener("click", () => proceedAfterScore(true));
     $("btnScoreNext").addEventListener("click", () => proceedAfterScore(false));
     $("btnScoreLoop").addEventListener("click", startHotspotLoop);
