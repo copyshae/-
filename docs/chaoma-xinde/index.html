@@ -151,6 +151,8 @@
     details.format-block { margin-top: 0.55rem; border: 1px solid var(--line); background: #fff; padding: 0.55rem 0.65rem; }
     details.format-block summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: 0.88rem; }
     details.format-block .inner { margin-top: 0.45rem; }
+    details.format-block .inner .row { margin-top: 0.35rem; }
+    details.format-block .inner .hint:first-child { margin-top: 0; }
     #formatHeader, #formatFooter { min-height: 4.5rem; font-size: 0.92rem; }
     .share-sheet {
       position: fixed; inset: 0; z-index: 1000;
@@ -190,7 +192,7 @@
     <section class="card">
       <h2>格式框架</h2>
       <p class="hint">可修改<strong>内文之前</strong>（標題規則、署名、問候）與<strong>内文之後</strong>（感恩迴向）的固定格式。<strong>修改後自動記住</strong>，後續每次生成都會套用此模組。</p>
-      <details class="format-block" open>
+      <details class="format-block">
         <summary>内文前（標題、署名、問候）</summary>
         <div class="inner">
           <label for="formatTitleRule">標題格式（提示 AI）</label>
@@ -203,7 +205,7 @@
 超碼家人大家好</textarea>
         </div>
       </details>
-      <details class="format-block" open>
+      <details class="format-block">
         <summary>内文后（感恩迴向）</summary>
         <div class="inner">
           <label for="formatFooter">結尾感恩（一行一句）</label>
@@ -272,52 +274,29 @@
       </div>
 
       <div id="panelSearch" class="panel">
-        <p class="hint"><strong>Step3 古今印證</strong>引用順序：①<strong>太陽盛德導師《太陽心語》</strong>與教誨 → ②<strong>超級生命密碼學員</strong>事蹟（輔助）→ ③<strong>古今中外正能量思維</strong>事例（聖賢名言、正向故事等）。</p>
-        <details class="format-block" open>
-          <summary>時事／天災新聞 → 導師預言與天地整理</summary>
-          <div class="inner">
-            <p class="hint">例：看到<strong>尼泊爾天災</strong>等新聞，可網搜太陽盛德導師／超級生命密碼群組有無相關<strong>預言</strong>、<strong>天地整理</strong>原則，作 Step3 印證（反求諸己，不評判外在）。</p>
-            <label for="newsEventKeyword">時事／天災關鍵字</label>
-            <input id="newsEventKeyword" type="text" placeholder="例：尼泊爾天災、地震、水患" />
-            <div class="chip-row" id="newsChips">
-              <button type="button" class="chip" data-news="尼泊爾天災">尼泊爾天災</button>
-              <button type="button" class="chip" data-news="地震">地震</button>
-              <button type="button" class="chip" data-news="天地整理">天地整理</button>
-              <button type="button" class="chip" data-news="水患">水患</button>
-            </div>
-            <div class="row">
-              <button type="button" id="btnSearchNews" class="primary">🌍 網搜預言／天地整理</button>
-              <button type="button" id="btnNewsLocal">📖 本機相關心法</button>
-              <button type="button" id="btnNewsAddAll">全部加入印證</button>
-            </div>
-            <div class="row">
-              <button type="button" id="btnOpenNewsWeb">Google 搜尋</button>
-              <button type="button" id="btnOpenNewsYt">YouTube 搜尋</button>
-            </div>
-          </div>
-        </details>
+        <p class="hint"><strong>Step3 古今印證</strong>引用順序：①太陽盛德導師《太陽心語》→ ②學員事蹟 → ③古今中外正能量。多數情況按下方「自動搜集」即可。</p>
         <label for="searchKeyword">印證主題／關鍵字</label>
-        <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、三省吾身、GPS定位、感恩" />
+        <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、太陽心語、GPS定位、感恩" />
         <div class="chip-row" id="searchChips">
+          <button type="button" class="chip" data-q="太陽心語">太陽心語</button>
           <button type="button" class="chip" data-q="秒秒轉念">秒秒轉念</button>
           <button type="button" class="chip" data-q="GPS定位">GPS定位</button>
-          <button type="button" class="chip" data-q="注入彩虹">注入彩虹</button>
-          <button type="button" class="chip" data-q="富有">富有</button>
+          <button type="button" class="chip" data-q="感恩">感恩</button>
           <button type="button" class="chip" data-q="三省吾身">三省吾身</button>
           <button type="button" class="chip" data-q="事上磨">事上磨</button>
-          <button type="button" class="chip" data-q="大愛">大愛</button>
-          <button type="button" class="chip" data-q="弟子規">弟子規</button>
-          <button type="button" class="chip" data-q="太陽心語">太陽心語</button>
-          <button type="button" class="chip" data-q="學員分享 轉念">學員分享</button>
         </div>
-        <label for="searchType">參考類型</label>
-        <select id="searchType">
-          <option value="article" selected>文章／教誨（優先，供印證）</option>
-          <option value="all">全部（文章＋影音＋圖片）</option>
-          <option value="video">影音（YouTube 演講、歌曲）</option>
-          <option value="image">圖片</option>
-        </select>
         <div class="row" style="align-items:flex-end;">
+          <div style="flex:1;min-width:7rem;">
+            <label for="quoteCountMaster">導師話語（句）</label>
+            <select id="quoteCountMaster">
+              <option value="0">0 句</option>
+              <option value="1">1 句</option>
+              <option value="2" selected>2 句</option>
+              <option value="3">3 句</option>
+              <option value="4">4 句</option>
+              <option value="5">5 句</option>
+            </select>
+          </div>
           <div style="flex:1;min-width:7rem;">
             <label for="quoteCountSage">古今中外正能量（句）</label>
             <select id="quoteCountSage">
@@ -329,55 +308,86 @@
               <option value="5">5 句</option>
             </select>
           </div>
-          <div style="flex:1;min-width:7rem;">
-            <label for="quoteCountMaster">太陽盛德導師話語（句）</label>
-            <select id="quoteCountMaster">
-              <option value="0">0 句</option>
-              <option value="1">1 句</option>
-              <option value="2" selected>2 句</option>
-              <option value="3">3 句</option>
-              <option value="4">4 句</option>
-              <option value="5">5 句</option>
-            </select>
-          </div>
-        </div>
-        <p class="hint">搜集與生成時，Step3 依序引用：<strong>導師話語（優先太陽心語）→ 學員事蹟 → 古今中外正能量思維</strong>。句數設定控制③的份量。若不滿意可<strong>重新搜尋</strong>替換。</p>
-        <div class="row">
-          <button type="button" id="btnAutoYinZheng" class="primary">📚 自動搜集印證資料</button>
-          <button type="button" id="btnSearchXinyu" class="primary">☀️ 網搜太陽心語</button>
-          <button type="button" id="btnSearchSage">📖 本機古籍／心法</button>
         </div>
         <div class="row">
-          <button type="button" id="btnResearchSage">🔄 重新搜尋古今中外正能量</button>
-          <button type="button" id="btnResearchMaster">🔄 重新搜尋導師話語</button>
-        </div>
-        <div class="row">
-          <button type="button" id="btnSearchStudent" class="primary">🌐 網搜學員佐證資料</button>
-          <button type="button" id="btnResearchStudent">🔄 重新搜尋學員佐證</button>
-          <button type="button" id="btnStudentLocal">📖 本機學員案例提示</button>
-        </div>
-        <p class="hint">學員佐證為<strong>第二順位</strong>（在導師話語之後）；古今中外正能量事例為<strong>第三順位</strong>，可按「重新搜尋古今中外正能量」或本機古籍補充。</p>
-        <div class="row">
-          <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
-          <button type="button" id="btnSearchGemini">🌐 網搜導師文章／影音</button>
-          <button type="button" id="btnXinyuLocal">📖 本機太陽心語提示</button>
-          <button type="button" id="btnEnrichRefs">📝 充實已選參考</button>
-        </div>
-        <div class="row">
-          <button type="button" id="btnOpenYt">開 YouTube</button>
-          <button type="button" id="btnOpenImg">開 Google 圖片</button>
-          <button type="button" id="btnOpenWeb">開 Google 文章</button>
-        </div>
-        <label for="refUrl">貼上參考連結（文章／YouTube）</label>
-        <input id="refUrl" type="text" inputmode="url" placeholder="https://…" />
-        <div class="row">
-          <button type="button" id="btnAddRefUrl">加入印證參考</button>
+          <button type="button" id="btnAutoYinZheng" class="primary">📚 自動搜集印證</button>
         </div>
         <div class="search-results" id="searchResults"></div>
         <h3 style="font-size:0.9rem;color:var(--accent);margin-top:0.65rem;">印證參考文章資訊</h3>
         <div class="yin-preview" id="yinZhengPreview" hidden></div>
         <div class="ref-list" id="refList"></div>
-        <p class="hint" id="refEmpty">尚無印證參考。按「自動搜集印證資料」，或搜尋後加入參考。</p>
+        <p class="hint" id="refEmpty">尚無印證參考。按「自動搜集印證」即可（含太陽心語優先）。</p>
+
+        <details class="format-block">
+          <summary>進階印證搜尋（特別需要時再展開）</summary>
+          <div class="inner">
+            <p class="hint">不滿意自動結果、需學員佐證、時事天災、本機資料或手動貼連結時再用。</p>
+            <div class="chip-row">
+              <button type="button" class="chip" data-q="注入彩虹">注入彩虹</button>
+              <button type="button" class="chip" data-q="富有">富有</button>
+              <button type="button" class="chip" data-q="大愛">大愛</button>
+              <button type="button" class="chip" data-q="弟子規">弟子規</button>
+              <button type="button" class="chip" data-q="學員分享 轉念">學員分享</button>
+            </div>
+            <label for="searchType">參考類型</label>
+            <select id="searchType">
+              <option value="article" selected>文章／教誨（優先，供印證）</option>
+              <option value="all">全部（文章＋影音＋圖片）</option>
+              <option value="video">影音（YouTube 演講、歌曲）</option>
+              <option value="image">圖片</option>
+            </select>
+            <div class="row">
+              <button type="button" id="btnSearchXinyu">☀️ 網搜太陽心語</button>
+              <button type="button" id="btnSearchGemini">🌐 網搜導師文章／影音</button>
+              <button type="button" id="btnSearchStudent">🌐 網搜學員佐證</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnResearchMaster">🔄 重新搜尋導師話語</button>
+              <button type="button" id="btnResearchStudent">🔄 重新搜尋學員佐證</button>
+              <button type="button" id="btnResearchSage">🔄 重新搜尋古今中外正能量</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnSearchSage">📖 本機古籍／心法</button>
+              <button type="button" id="btnXinyuLocal">📖 本機太陽心語提示</button>
+              <button type="button" id="btnStudentLocal">📖 本機學員案例提示</button>
+              <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnEnrichRefs">📝 充實已選參考</button>
+              <button type="button" id="btnOpenWeb">開 Google 文章</button>
+              <button type="button" id="btnOpenYt">開 YouTube</button>
+              <button type="button" id="btnOpenImg">開 Google 圖片</button>
+            </div>
+            <details class="format-block">
+              <summary>時事／天災新聞 → 導師預言與天地整理</summary>
+              <div class="inner">
+                <p class="hint">例：尼泊爾天災等新聞，可網搜相關預言、天地整理原則（反求諸己，不評判外在）。</p>
+                <label for="newsEventKeyword">時事／天災關鍵字</label>
+                <input id="newsEventKeyword" type="text" placeholder="例：尼泊爾天災、地震、水患" />
+                <div class="chip-row" id="newsChips">
+                  <button type="button" class="chip" data-news="尼泊爾天災">尼泊爾天災</button>
+                  <button type="button" class="chip" data-news="地震">地震</button>
+                  <button type="button" class="chip" data-news="天地整理">天地整理</button>
+                  <button type="button" class="chip" data-news="水患">水患</button>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnSearchNews" class="primary">🌍 網搜預言／天地整理</button>
+                  <button type="button" id="btnNewsLocal">📖 本機相關心法</button>
+                  <button type="button" id="btnNewsAddAll">全部加入印證</button>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnOpenNewsWeb">Google 搜尋</button>
+                  <button type="button" id="btnOpenNewsYt">YouTube 搜尋</button>
+                </div>
+              </div>
+            </details>
+            <label for="refUrl">貼上參考連結（文章／YouTube）</label>
+            <input id="refUrl" type="text" inputmode="url" placeholder="https://…" />
+            <div class="row">
+              <button type="button" id="btnAddRefUrl">加入印證參考</button>
+            </div>
+          </div>
+        </details>
       </div>
 
       <div class="media-preview" id="mediaPreview"></div>
@@ -385,21 +395,26 @@
     </section>
 
     <section class="card">
-      <h2>Gemini 金鑰（選填）</h2>
-      <p class="hint">有金鑰可解析圖片／影片並潤飾成完整心得；若此裝置曾在「習作批改」存過金鑰會自動帶入。純文字也可用本機模板生成。</p>
-      <label for="geminiKey">Gemini 金鑰</label>
-      <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（選填）" />
-      <div class="row">
-        <button type="button" id="btnSaveKey">儲存金鑰</button>
-        <button type="button" id="btnClearKey">清除</button>
-      </div>
+      <details class="format-block" style="margin-top:0;border:none;padding:0;background:transparent;">
+        <summary>Gemini 金鑰（選填，有金鑰可 AI 潤飾／網搜）</summary>
+        <div class="inner">
+          <p class="hint">有金鑰可解析圖片／影片並潤飾成完整心得；若此裝置曾在「習作批改」存過金鑰會自動帶入。純文字也可用本機模板生成。</p>
+          <label for="geminiKey">Gemini 金鑰</label>
+          <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（選填）" />
+          <div class="row">
+            <button type="button" id="btnSaveKey">儲存金鑰</button>
+            <button type="button" id="btnClearKey">清除</button>
+          </div>
+        </div>
+      </details>
     </section>
 
     <section class="card">
       <h2>生成心得</h2>
       <div class="row">
         <button type="button" id="btnGenerate" class="primary">✨ 依 SOP 生成心得</button>
-        <button type="button" id="btnShare">📤 分享到其他 App</button>
+        <button type="button" id="btnSaveEdit">儲存修改</button>
+        <button type="button" id="btnShare">📤 分享</button>
       </div>
       <p class="hint">生成篇幅約 <strong>500–800 字</strong>、正文 <strong>3–4 段</strong>，輕鬆好讀、不造成閱讀負擔。生成後可<strong>直接打字修改</strong>全文，或按<strong>口說修改</strong>以語音修訂（有選取時取代選取，否則追加）。</p>
       <p class="status" id="genStatus"></p>
@@ -407,24 +422,27 @@
       <textarea id="outputEdit" class="output" rows="14" placeholder="（生成後會顯示在這裡；可直接打字或口說修改）" aria-live="polite"></textarea>
       <p class="sel-hint">💡 部分複製：在方框內長按／拖曳選取 → 按「複製選取」。口說前可先選取要改寫的段落。</p>
       <div class="output-toolbar">
-        <button type="button" id="btnOutputVoice">🎤 口說修改心得</button>
-        <p class="hint" id="outputVoiceHint" style="flex:1 1 100%;margin:0">口說內容會寫入上方全文；修改後請按「儲存修改」。</p>
-        <label class="check-row"><input type="checkbox" id="exportWithAttachments" checked /> 匯出 Word／PDF 時附加圖片到文末</label>
-        <button type="button" id="btnCopySel">複製選取</button>
+        <button type="button" id="btnOutputVoice">🎤 口說修改</button>
         <button type="button" id="btnCopy">複製全文</button>
-        <button type="button" id="btnSaveEdit">儲存修改</button>
-        <button type="button" id="btnWord">下載 Word</button>
-        <button type="button" id="btnPdf">匯出 PDF</button>
-        <button type="button" id="btnShare2">📤 分享</button>
+        <details class="format-block" style="flex:1 1 100%;">
+          <summary>更多匯出（特別需要時）</summary>
+          <div class="inner">
+            <label class="check-row"><input type="checkbox" id="exportWithAttachments" checked /> 匯出 Word／PDF 時附加圖片到文末</label>
+            <div class="row">
+              <button type="button" id="btnCopySel">複製選取</button>
+              <button type="button" id="btnWord">下載 Word</button>
+              <button type="button" id="btnPdf">匯出 PDF</button>
+            </div>
+          </div>
+        </details>
       </div>
+      <p class="hint" id="outputVoiceHint" style="margin-top:0.35rem"></p>
       <ul class="checklist" id="checklist" hidden></ul>
     </section>
 
     <section class="card">
       <h2>配圖附件</h2>
-      <p class="hint">可 <strong>AI 依內容生成</strong>配圖，或<strong>自行增加</strong>照片／圖片。按「<strong>附加到文末</strong>」的圖片，會<strong>一併出現在 Word／PDF 文末</strong>（重新生成心得後仍保留）。</p>
-      <label class="check-row"><input type="checkbox" id="exportWithAttachments2" checked /> 匯出時附加已勾選的圖片到文末</label>
-      <p class="attach-summary" id="attachSummary" hidden></p>
+      <p class="hint">不必配圖可略過。需要時按 AI 生成；已附加的圖片會一併出現在 Word／PDF 文末。</p>
       <label for="imageCount">AI 配圖張數</label>
       <select id="imageCount">
         <option value="1">1 張</option>
@@ -432,31 +450,39 @@
         <option value="3">3 張</option>
       </select>
       <div class="row">
-        <button type="button" id="btnGenImages" class="primary">🖼 AI 生成配圖附件</button>
-        <button type="button" id="btnDlAttachments">📎 下載全部圖片</button>
-        <button type="button" id="btnZipAttachments">📦 下載附件包（ZIP）</button>
-        <button type="button" id="btnClearImages">清除附件</button>
-        <button type="button" id="btnAttachAll">全部附加</button>
-        <button type="button" id="btnAttachNone">全部不附加</button>
+        <button type="button" id="btnGenImages" class="primary">🖼 AI 生成配圖</button>
       </div>
-      <p class="hint" style="margin-top:0.55rem"><strong>增加圖片附件</strong>（與 AI 配圖可並用，會依序編號）</p>
-      <label for="attachCaption">附件說明（選填）</label>
-      <input id="attachCaption" type="text" placeholder="例：今日境緣照片、共修截圖" />
-      <div class="row">
-        <label class="file-btn" for="inputAttachCamera">📷 拍照加入</label>
-        <input id="inputAttachCamera" type="file" accept="image/*" capture="environment" />
-        <label class="file-btn" for="inputAttachAlbum">🖼 相簿加入</label>
-        <input id="inputAttachAlbum" type="file" accept="image/*" multiple />
-        <button type="button" id="btnAddFromMaterial">從上方素材加入</button>
-      </div>
-      <label for="attachUrl">圖片網址（選填）</label>
-      <input id="attachUrl" type="text" inputmode="url" placeholder="https://…jpg 或貼 data:image 網址" />
-      <div class="row">
-        <button type="button" id="btnAddAttachUrl">加入圖片連結</button>
-      </div>
+      <label class="check-row"><input type="checkbox" id="exportWithAttachments2" checked /> 匯出時附加已勾選的圖片到文末</label>
+      <p class="attach-summary" id="attachSummary" hidden></p>
       <p class="status" id="imgStatus"></p>
       <div class="essay-images" id="essayImages"></div>
-      <p class="hint" id="essayImagesEmpty">尚無圖片。可 AI 生成，或用拍照／相簿／連結自行增加；加入後可按「附加到文末」或「不附加」。</p>
+      <p class="hint" id="essayImagesEmpty">尚無圖片。可按 AI 生成，或於下方自行增加。</p>
+      <details class="format-block">
+        <summary>自行增加／下載附件（特別需要時）</summary>
+        <div class="inner">
+          <label for="attachCaption">附件說明（選填）</label>
+          <input id="attachCaption" type="text" placeholder="例：今日境緣照片、共修截圖" />
+          <div class="row">
+            <label class="file-btn" for="inputAttachCamera">📷 拍照加入</label>
+            <input id="inputAttachCamera" type="file" accept="image/*" capture="environment" />
+            <label class="file-btn" for="inputAttachAlbum">🖼 相簿加入</label>
+            <input id="inputAttachAlbum" type="file" accept="image/*" multiple />
+            <button type="button" id="btnAddFromMaterial">從上方素材加入</button>
+          </div>
+          <label for="attachUrl">圖片網址（選填）</label>
+          <input id="attachUrl" type="text" inputmode="url" placeholder="https://…jpg 或貼 data:image 網址" />
+          <div class="row">
+            <button type="button" id="btnAddAttachUrl">加入圖片連結</button>
+          </div>
+          <div class="row">
+            <button type="button" id="btnDlAttachments">📎 下載全部圖片</button>
+            <button type="button" id="btnZipAttachments">📦 下載 ZIP</button>
+            <button type="button" id="btnAttachAll">全部附加</button>
+            <button type="button" id="btnAttachNone">全部不附加</button>
+            <button type="button" id="btnClearImages">清除附件</button>
+          </div>
+        </div>
+      </details>
     </section>
 
     <section class="card">
@@ -558,8 +584,8 @@
       "搜尋太陽盛德導師話語時，**優先查找《太陽心語》**（官方社群、天圓文化、超級生命密碼相關平台），其次才是一般演講、文章、歌曲。";
     /** 心得篇幅：適中、好讀、不造成觀看負擔 */
     var ESSAY_LENGTH_GUIDE =
-      "篇幅適中、輕鬆好讀：正文 3–4 段，每段 2–4 句、句子宜短；正文約 500–800 字（不含標題、署名、問候、感恩）。精簡不贅、不重複堆砌，也不宜過短。";
-    var ESSAY_BODY_MIN_CHARS = 450;
+      "篇幅適中、輕鬆好讀：正文 3–4 段，每段 2–4 句、句子宜短；正文理想約 500–800 字、至少不宜少於 400 字（不含標題、署名、問候、感恩）。精簡不贅、不重複堆砌。";
+    var ESSAY_BODY_MIN_CHARS = 400;
     var ESSAY_BODY_MAX_CHARS = 850;
 
     function normalizeFormat(fmt) {
@@ -1171,7 +1197,6 @@
 
     function setupShareSheet() {
       $("btnShare").onclick = openShareSheet;
-      $("btnShare2").onclick = openShareSheet;
       $("btnShareClose").onclick = closeShareSheet;
       $("shareBackdrop").onclick = closeShareSheet;
       $("btnShareSystem").onclick = shareTextToApps;
@@ -2945,7 +2970,7 @@
       var btnOut = $("btnOutputVoice");
       if (btnOut) {
         btnOut.classList.remove("recording");
-        btnOut.textContent = "🎤 口說修改心得";
+        btnOut.textContent = "🎤 口說修改";
       }
     }
 
@@ -3131,7 +3156,7 @@
         window.open(buildExternalSearchUrls(getSearchKeyword(), "web"), "_blank", "noopener,noreferrer");
       };
       $("btnAddRefUrl").onclick = addRefFromUrl;
-      document.querySelectorAll("#searchChips .chip").forEach(function (chip) {
+      document.querySelectorAll("#panelSearch .chip[data-q]").forEach(function (chip) {
         chip.onclick = function () {
           $("searchKeyword").value = chip.getAttribute("data-q") || "";
         };
