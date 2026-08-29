@@ -920,12 +920,80 @@
       return out;
     }
 
+    function normalizeNewsTitle(t) {
+      return String(t || "").replace(/\s+/g, " ").trim();
+    }
+
+    function titlesSimilar(a, b) {
+      a = normalizeNewsTitle(a);
+      b = normalizeNewsTitle(b);
+      if (!a || !b) return true;
+      if (a === b) return true;
+      return a.indexOf(b) >= 0 || b.indexOf(a) >= 0;
+    }
+
+    function extractRelatedTitles(descHtml, mainTitle) {
+      if (!descHtml) return [];
+      var related = [];
+      var seen = {};
+      try {
+        var doc = new DOMParser().parseFromString("<div>" + descHtml + "</div>", "text/html");
+        doc.querySelectorAll("a").forEach(function (a) {
+          var t = normalizeNewsTitle(a.textContent);
+          if (!t || titlesSimilar(t, mainTitle) || seen[t]) return;
+          seen[t] = true;
+          related.push(t);
+        });
+      } catch (e) {}
+      if (!related.length) {
+        var re = /<a[^>]*>([^<]+)<\/a>/gi;
+        var m;
+        while ((m = re.exec(descHtml)) !== null) {
+          var t = normalizeNewsTitle(m[1].replace(/&nbsp;/g, " ").replace(/&amp;/g, "&"));
+          if (!t || titlesSimilar(t, mainTitle) || seen[t]) continue;
+          seen[t] = true;
+          related.push(t);
+        }
+      }
+      return related.slice(0, 4);
+    }
+
+    function getRelatedTitles(it) {
+      if (it.relatedTitles && it.relatedTitles.length) return it.relatedTitles;
+      return extractRelatedTitles(it.description || "", it.title || "");
+    }
+
+    function plainDescriptionText(descHtml) {
+      if (!descHtml) return "";
+      return normalizeNewsTitle(
+        descHtml
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+      );
+    }
+
+    function buildNewsContext(it) {
+      var related = getRelatedTitles(it);
+      if (related.length >= 2) {
+        return "。綜合多家媒體，" + related[0] + "；另外也有報導提到，" + related[1];
+      }
+      if (related.length === 1) {
+        return "。同一議題，" + related[0];
+      }
+      var plain = plainDescriptionText(it.description || "");
+      if (plain.length > 24 && !titlesSimilar(plain, it.title)) {
+        return "。" + plain.slice(0, 100);
+      }
+      return "";
+    }
+
     function naturalNewsLine(it, index, total) {
       var lead = LIVE_TRANSITIONS[index % LIVE_TRANSITIONS.length];
       if (index === 0) lead = "首先帶您關心，";
       else if (index === total - 1 && total > 1) lead = "最後這一則，";
       var src = it.source ? "，據" + it.source + "報導" : "";
-      return lead + it.title + src + "。";
+      return lead + it.title + src + buildNewsContext(it) + "。";
     }
 
     function proOpen(anchor, catLabel) {
@@ -1299,12 +1367,17 @@
     /* ===== 新聞抓取 ===== */
     function normalizeItems(items) {
       return (items || []).map(function (it) {
+        var title = (it.title || "").replace(/\s*-\s*[^-]+$/, "").trim();
+        var relatedTitles = Array.isArray(it.relatedTitles) && it.relatedTitles.length
+          ? it.relatedTitles
+          : extractRelatedTitles(it.description || "", title);
         return {
-          title: (it.title || "").replace(/\s*-\s*[^-]+$/, "").trim(),
+          title: title,
           link: it.link || "",
           pubDate: it.pubDate || "",
           source: it.source || "",
-          description: it.description || ""
+          description: it.description || "",
+          relatedTitles: relatedTitles
         };
       }).filter(function (it) { return it.title; });
     }
@@ -1422,7 +1495,9 @@
       state.news.forEach(function (it, i) {
         var li = document.createElement("li");
         li.setAttribute("data-index", String(i));
+        var hint = getRelatedTitles(it)[0] || "";
         li.innerHTML = "<div><span class=\"ord\">" + (i + 1) + ".</span> " + escapeHtml(it.title) + "</div>"
+          + (hint ? '<div class="src">' + escapeHtml(hint) + "</div>" : "")
           + (it.source ? '<div class="src">' + escapeHtml(it.source) + "</div>" : "");
         li.addEventListener("click", function () {
           ul.querySelectorAll("li").forEach(function (x) { x.classList.remove("on"); });
@@ -1441,7 +1516,11 @@
         if (index >= 0 && i === index) li.classList.add("live-on");
       });
       if (index >= 0 && state.news[index]) {
-        setSubtitle("第 " + (index + 1) + " 則：" + state.news[index].title, "直播");
+        var liveIt = state.news[index];
+        var liveCtx = getRelatedTitles(liveIt)[0] || "";
+        var liveSub = "第 " + (index + 1) + " 則：" + liveIt.title;
+        if (liveCtx) liveSub += "｜" + liveCtx;
+        setSubtitle(liveSub, "直播");
       }
     }
 
@@ -1561,13 +1640,16 @@
       if (!key) return null;
       var catLabel = getFeedLabel();
       var bullet = items.map(function (it, i) {
-        return (i + 1) + ". " + it.title + (it.source ? "（" + it.source + "）" : "");
+        var related = getRelatedTitles(it);
+        var ctx = related.length ? "\n   相關報導：" + related.slice(0, 3).join("；") : "";
+        return (i + 1) + ". " + it.title + (it.source ? "（" + it.source + "）" : "") + ctx;
       }).join("\n");
       var prompt = "你是電視新聞主播「" + anchor.name + "」（" + anchor.tag + "）。"
-        + "請把以下 Google 新聞" + catLabel + "標題整理成一段繁體中文播報稿。"
+        + "請把以下 Google 新聞" + catLabel + "整理成一段繁體中文播報稿。"
         + "要求：專業穩重又親切，讓觀眾想持續收聽；句子長短交替；"
+        + "每則除了標題外，必須依「相關報導」口語補充一兩句摘要，禁止只念標題；不可編造未提供的細節；"
         + "開場要有吸引力、用「首先」「接著」「另外」「最後」等口語連接，不要機械式「第1則、第2則」；"
-        + "結尾可留懸念或提示還有其他分類可關心；逐則播報（不要編造細節）。約 300～500 字。\n\n" + bullet;
+        + "結尾可留懸念或提示還有其他分類可關心。約 400～650 字。\n\n" + bullet;
       var body = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
