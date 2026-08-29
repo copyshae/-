@@ -63,25 +63,22 @@
     .toolbar .meta { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
     .hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--muted); padding: 0.65rem; background: rgba(255,255,255,0.5); border: 1px dashed var(--line); border-radius: 0.35rem; }
     .section { margin-top: 1rem; font-size: 0.9rem; font-weight: 700; color: var(--accent); }
-    .song-list { margin-top: 0.45rem; max-height: 14rem; overflow: auto; border: 1px solid var(--line); border-radius: 0.35rem; background: var(--card); }
-    .song-item {
-      display: block; width: 100%; text-align: left; border: none; border-bottom: 1px solid var(--line);
-      border-radius: 0; padding: 0.55rem 0.65rem; font-size: 0.78rem; background: transparent;
+    .song-picker { margin-top: 0.45rem; }
+    .picker-label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500; }
+    .song-select {
+      width: 100%;
+      font: inherit;
+      font-size: 0.88rem;
+      padding: 0.65rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 0.35rem;
+      background: var(--card);
+      color: var(--ink);
+      appearance: auto;
     }
-    .song-item:last-child { border-bottom: none; }
-    .song-item.active { background: rgba(196, 90, 16, 0.12); color: var(--accent); font-weight: 700; }
     .filter-row { margin-top: 0.55rem; display: flex; gap: 0.35rem; }
     .filter-row button { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.25rem; }
     .filter-row button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .song-item .who { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 400; margin-top: 0.1rem; }
-    .song-item.active .who { color: rgba(255,255,255,0.85); }
-    .song-item .tag { font-size: 0.68rem; color: var(--accent2); margin-left: 0.25rem; }
-    .song-item .tag-master { color: var(--ok); }
-    .group-head {
-      padding: 0.4rem 0.65rem; font-size: 0.72rem; font-weight: 700;
-      background: rgba(196, 90, 16, 0.08); color: var(--accent); border-bottom: 1px solid var(--line);
-      position: sticky; top: 0;
-    }
     .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); }
     .controls-extra { margin-top: 0.4rem; grid-template-columns: 1fr 1fr; display: grid; gap: 0.35rem; }
     button.ktv-on { background: linear-gradient(135deg, #e8a020, #c45a10); color: #fff; border-color: #c45a10; }
@@ -223,7 +220,6 @@
       font-size: 0.82rem;
       padding: 0.55rem 0.4rem;
     }
-    .song-item .practiced { font-size: 0.65rem; color: var(--ok); margin-left: 0.25rem; }
     .ktv-panel.singing .ktv-line,
     .ktv-panel.singing .ktv-next,
     .ktv-panel.singing .ktv-hint { opacity: 0.35; }
@@ -335,8 +331,13 @@
       <button type="button" data-filter="other" role="tab">其他演唱者</button>
     </div>
 
-    <h2 class="section normal-only">播放清單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
-    <div class="song-list normal-only" id="queueList" aria-label="播放清單"></div>
+    <h2 class="section normal-only">歌曲選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
+    <div class="song-picker normal-only">
+      <label for="songSelect" class="picker-label">選擇歌曲播放（曲庫全部歌曲）</label>
+      <select id="songSelect" class="song-select" aria-label="歌曲選單">
+        <option value="">載入曲庫中…</option>
+      </select>
+    </div>
     <p class="status" id="statusLine"></p>
   </div>
 
@@ -1156,38 +1157,41 @@
         : "使用快取曲庫（導師 " + mc + "、其他 " + oc + "）";
     }
 
-    function renderQueueList() {
-      const parts = [];
-      let lastGroup = "";
-      queue.forEach((item, i) => {
-        if (listFilter !== "all" && item.performer !== listFilter) return;
-        let group = "";
-        if (item.total === 3) group = "優先連播 ×3";
-        else if (item.performer === "master") group = "導師親唱";
-        else group = "其他演唱者";
-        if (group !== lastGroup) {
-          parts.push('<div class="group-head">' + group + "</div>");
-          lastGroup = group;
-        }
-        const tag = item.total > 1 ? '<span class="tag">' + item.pass + "/" + item.total + "</span>" : "";
-        const pr = getSongPractice(item.name);
-        const practiced = pr.bestScore
-          ? '<span class="practiced">最佳' + pr.bestScore + "</span>"
-          : "";
-        const who = item.performer === "master"
-          ? '<span class="who">太陽盛德導師 親唱</span>'
-          : '<span class="who">演唱：' + (item.performerLabel || "其他") + "</span>";
-        parts.push(
-          '<button type="button" class="song-item' + (i === qIndex ? " active" : "") + '" data-i="' + i + '">' +
-          (i + 1) + ". " + item.name + tag + practiced + who + "</button>"
-        );
+    function renderSongMenu() {
+      const sel = $("songSelect");
+      const songs = catalog.songs || [];
+      let filtered = songs;
+      if (listFilter === "master") filtered = songs.filter((s) => s.performer === "master");
+      else if (listFilter === "other") filtered = songs.filter((s) => s.performer === "other");
+
+      const groups = [
+        { label: "優先連播 ×3", items: filtered.filter((s) => s.repeat === 3 || PRIORITY_IDS[s.id]) },
+        { label: "導師親唱", items: filtered.filter((s) => s.repeat !== 3 && !PRIORITY_IDS[s.id] && s.performer === "master") },
+        { label: "其他演唱者", items: filtered.filter((s) => s.repeat !== 3 && !PRIORITY_IDS[s.id] && s.performer === "other") }
+      ];
+
+      let html = "";
+      groups.forEach((g) => {
+        if (!g.items.length) return;
+        html += '<optgroup label="' + g.label + '">';
+        g.items.forEach((s) => {
+          const pr = getSongPractice(s.name);
+          const extra = pr.bestScore ? " · 最佳 " + pr.bestScore + " 分" : "";
+          const who = s.performer === "master" ? "導師" : (s.performerLabel || "其他");
+          html += '<option value="' + s.id + '">' + s.name + "（" + who + "）" + extra + "</option>";
+        });
+        html += "</optgroup>";
       });
-      $("queueList").innerHTML = parts.join("");
-      const shown = listFilter === "all" ? queue.length : queue.filter((x) => x.performer === listFilter).length;
-      $("listCount").textContent = "（顯示 " + shown + " 段）";
-      $("queueList").querySelectorAll(".song-item").forEach((btn) => {
-        btn.addEventListener("click", () => jumpTo(Number(btn.dataset.i), true));
-      });
+
+      if (!html) html = '<option value="">此分類尚無歌曲</option>';
+      sel.innerHTML = html;
+
+      const current = queue[qIndex];
+      if (current && filtered.some((s) => s.id === current.id)) {
+        sel.value = current.id;
+      }
+
+      $("listCount").textContent = "（共 " + filtered.length + " 首）";
     }
 
     function rebuildQueue() {
@@ -1212,7 +1216,13 @@
       $("progressFill").style.width = total ? ((qIndex + 1) / total * 100) + "%" : "0%";
       $("btnPrev").disabled = qIndex <= 0;
       $("btnNext").disabled = qIndex >= total - 1;
-      renderQueueList();
+      renderSongMenu();
+    }
+
+    function jumpToSongId(songId) {
+      if (!songId) return;
+      const i = queue.findIndex((q) => q.id === songId);
+      if (i >= 0) jumpTo(i, true);
     }
 
     function loadVideo(item, play) {
@@ -1373,8 +1383,12 @@
         document.querySelectorAll(".filter-row button").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         listFilter = btn.dataset.filter;
-        renderQueueList();
+        renderSongMenu();
       });
+    });
+
+    $("songSelect").addEventListener("change", () => {
+      jumpToSongId($("songSelect").value);
     });
 
     window.onYouTubeIframeAPIReady = function () {
@@ -1389,7 +1403,7 @@
     });
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=20260901").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=20260905").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
