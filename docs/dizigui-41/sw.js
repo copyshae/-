@@ -1,5 +1,5 @@
 /* 蔡禮旭老師｜細講弟子規 1～41 集 */
-const CACHE = "dizigui41-v1";
+const CACHE = "dizigui41-v2";
 const ASSETS = [
   "./",
   "./index.html",

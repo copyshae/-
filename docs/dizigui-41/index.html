@@ -133,6 +133,40 @@
       cursor: pointer;
     }
     .toolbar input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--accent); }
+    .speed-row {
+      margin-top: 0.55rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+    .speed-row span.label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .speed-pick {
+      display: flex;
+      gap: 0.35rem;
+      flex: 1;
+    }
+    .speed-pick button {
+      flex: 1;
+      font: inherit;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      padding: 0.5rem 0.35rem;
+      border-radius: 0.35rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .speed-pick button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
     .speed-badge {
       margin-left: auto;
       font-size: 0.78rem;
@@ -201,7 +235,7 @@
       <h1 class="brand">細講《弟子規》</h1>
       <p class="sub">蔡禮旭老師主講 · 2005 幸福人生講座 · 共 41 集</p>
       <div class="pill-row">
-        <span class="pill">預設 2 倍速</span>
+        <span class="pill">可選 1.75／2 倍速</span>
         <span class="pill">可連續播放</span>
         <span class="pill">可加入主畫面</span>
       </div>
@@ -228,6 +262,14 @@
         播完自動下一集
       </label>
       <button type="button" id="btnResume">接續上次</button>
+    </div>
+
+    <div class="speed-row" role="group" aria-label="播放倍速">
+      <span class="label">倍速</span>
+      <div class="speed-pick">
+        <button type="button" class="speed-btn" data-rate="1.75">1.75×</button>
+        <button type="button" class="speed-btn active" data-rate="2">2×</button>
+      </div>
       <span class="speed-badge" id="speedBadge">2× 倍速</span>
     </div>
 
@@ -245,11 +287,14 @@
 
   <script src="episodes.js"></script>
   <script>
-    const PLAYBACK_RATE = 2;
+    const SPEED_OPTIONS = [1.75, 2];
+    const DEFAULT_SPEED = 2;
     const STORAGE_KEY = "dizigui41-last";
+    const SPEED_KEY = "dizigui41-speed";
     const DONE_KEY = "dizigui41-done";
     const EPISODES = window.DIZIGUI_EPISODES || [];
 
+    let playbackRate = DEFAULT_SPEED;
     let player = null;
     let currentIndex = 0;
     let apiReady = false;
@@ -266,6 +311,38 @@
     const btnResume = $("btnResume");
     const autoNext = $("autoNext");
     const speedBadge = $("speedBadge");
+    const speedBtns = document.querySelectorAll(".speed-btn");
+
+    function loadSpeed() {
+      const saved = parseFloat(localStorage.getItem(SPEED_KEY) || String(DEFAULT_SPEED));
+      return SPEED_OPTIONS.includes(saved) ? saved : DEFAULT_SPEED;
+    }
+
+    function saveSpeed(rate) {
+      localStorage.setItem(SPEED_KEY, String(rate));
+    }
+
+    function updateSpeedUI() {
+      speedBtns.forEach((btn) => {
+        const rate = parseFloat(btn.dataset.rate);
+        btn.classList.toggle("active", rate === playbackRate);
+      });
+    }
+
+    function setSpeed(rate) {
+      if (!SPEED_OPTIONS.includes(rate)) return;
+      playbackRate = rate;
+      saveSpeed(rate);
+      updateSpeedUI();
+      applySpeed();
+    }
+
+    speedBtns.forEach((btn) => {
+      btn.addEventListener("click", () => setSpeed(parseFloat(btn.dataset.rate)));
+    });
+
+    playbackRate = loadSpeed();
+    updateSpeedUI();
 
     function loadDoneSet() {
       try {
@@ -293,13 +370,14 @@
     function applySpeed() {
       if (!player || typeof player.setPlaybackRate !== "function") return;
       try {
-        player.setPlaybackRate(PLAYBACK_RATE);
+        player.setPlaybackRate(playbackRate);
         const rates = player.getAvailablePlaybackRates ? player.getAvailablePlaybackRates() : [];
-        if (rates.length && !rates.includes(PLAYBACK_RATE)) {
+        const label = playbackRate === 1.75 ? "1.75×" : playbackRate + "×";
+        if (rates.length && !rates.includes(playbackRate)) {
           speedBadge.textContent = "倍速受限";
           speedBadge.style.background = "#6b5344";
         } else {
-          speedBadge.textContent = PLAYBACK_RATE + "× 倍速";
+          speedBadge.textContent = label + " 倍速";
           speedBadge.style.background = "";
         }
       } catch (_) { /* 部分環境不支援 */ }
@@ -371,7 +449,8 @@
 
     function onPlayerReady() {
       applySpeed();
-      epMeta.textContent = "已就緒 · 預設 " + PLAYBACK_RATE + " 倍速";
+      const label = playbackRate === 1.75 ? "1.75" : String(playbackRate);
+      epMeta.textContent = "已就緒 · " + label + " 倍速";
       updatePlayBtn(false);
     }
 
