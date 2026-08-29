@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#b41e2d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="新聞主播" />
+  <meta name="description" content="從 Google 新聞抓取頭條，選擇虛擬主播人物，以語音播報今日新聞。" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>Google 新聞｜虛擬主播播報</title>
+  <style>
+    :root {
+      --ink: #eef2ff;
+      --muted: #a8b4d4;
+      --accent: #e8c547;
+      --line: rgba(255,255,255,.18);
+      --studio: #0f2348;
+      --desk: #b41e2d;
+      --card: rgba(12, 24, 52, 0.82);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background: linear-gradient(180deg, #091428 0%, #152a52 45%, #0a1228 100%);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) 0.85rem calc(1.2rem + env(safe-area-inset-bottom));
+    }
+    .wrap { max-width: 30rem; margin: 0 auto; }
+    h1 { font-size: 1.35rem; color: #fff; margin: 0.65rem 0 0.2rem; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.65rem; }
+
+    /* ===== 演播室 ===== */
+    .studio {
+      position: relative;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(180,30,45,.35), transparent 60%),
+        linear-gradient(180deg, #142850, var(--studio));
+      overflow: hidden;
+      aspect-ratio: 16 / 11;
+      margin-bottom: 0.65rem;
+    }
+    .studio-badge {
+      position: absolute; top: 0.45rem; left: 0.55rem; z-index: 3;
+      background: var(--desk); color: #fff; font-weight: 800; font-size: 0.72rem;
+      padding: 0.2rem 0.55rem; letter-spacing: 0.08em;
+    }
+    .studio-live {
+      position: absolute; top: 0.45rem; right: 0.55rem; z-index: 3;
+      display: flex; align-items: center; gap: 0.3rem;
+      font-size: 0.72rem; font-weight: 700; color: #ffb4b4;
+    }
+    .studio-live .dot {
+      width: 0.45rem; height: 0.45rem; border-radius: 50%;
+      background: #ff3b3b; animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .anchor-wrap {
+      position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 18%;
+    }
+    .anchor-svg { width: 58%; max-height: 78%; filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
+    .anchor-svg .mouth { transform-origin: center; transition: transform .08s; }
+    .anchor-svg.speaking .mouth { animation: talk .28s ease-in-out infinite alternate; }
+    @keyframes talk {
+      from { transform: scaleY(0.35); }
+      to { transform: scaleY(1); }
+    }
+    .anchor-svg .eye-lid { opacity: 0; }
+    .anchor-svg.blink .eye-lid { animation: blink .15s linear; }
+    @keyframes blink { 0%,100%{opacity:0} 50%{opacity:1} }
+    .desk-bar {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 22%;
+      background: linear-gradient(180deg, transparent, rgba(180,30,45,.92));
+      border-top: 2px solid rgba(255,255,255,.15);
+    }
+    .lower-third {
+      position: absolute; bottom: 0.55rem; left: 0.55rem; right: 0.55rem; z-index: 4;
+      background: rgba(0,0,0,.55); border-left: 3px solid var(--accent);
+      padding: 0.35rem 0.55rem; min-height: 2.4rem;
+    }
+    .lower-third .name { font-size: 0.72rem; color: var(--accent); font-weight: 800; }
+    .lower-third .caption {
+      font-size: 0.82rem; line-height: 1.45; color: #fff;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* ===== 卡片 ===== */
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      padding: 0.75rem 0.7rem; margin-bottom: 0.6rem;
+    }
+    .card h2 { font-size: 0.98rem; color: var(--accent); margin-bottom: 0.45rem; }
+    label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin: 0.4rem 0 0.2rem; }
+    select, input, textarea, button {
+      font: inherit; font-size: 16px;
+    }
+    select, input[type="password"], input[type="number"], textarea {
+      width: 100%; padding: 0.5rem 0.55rem;
+      border: 1px solid var(--line); background: rgba(255,255,255,.06); color: #fff;
+    }
+    textarea { min-height: 5.5rem; resize: vertical; line-height: 1.55; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+    button {
+      cursor: pointer; border: 1px solid var(--line);
+      background: rgba(255,255,255,.08); color: #fff;
+      padding: 0.52rem 0.75rem; font-weight: 700; min-height: 2.65rem;
+    }
+    button.primary { background: var(--desk); border-color: #d42a3a; }
+    button.accent { background: #1a4a8a; border-color: #2a6ab8; }
+    button:disabled { opacity: .4; cursor: default; }
+    .hint { font-size: 0.76rem; color: var(--muted); margin-top: 0.35rem; }
+    .status { font-size: 0.82rem; font-weight: 700; min-height: 1.15rem; margin-top: 0.35rem; color: #7ddea8; }
+    .status.warn { color: #f5b042; }
+    .status.err { color: #ff8a8a; }
+
+    /* ===== 主播選擇 ===== */
+    .anchor-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem;
+    }
+    .anchor-choice {
+      cursor: pointer; border: 2px solid transparent;
+      background: rgba(255,255,255,.05); padding: 0.45rem 0.35rem 0.5rem;
+      text-align: center; transition: border-color .15s, background .15s;
+    }
+    .anchor-choice:hover { background: rgba(255,255,255,.1); }
+    .anchor-choice.selected { border-color: var(--accent); background: rgba(232,197,71,.12); }
+    .anchor-choice .mini { width: 3.2rem; height: 3.2rem; margin: 0 auto 0.3rem; }
+    .anchor-choice .mini svg { width: 100%; height: 100%; }
+    .anchor-choice .title { font-size: 0.82rem; font-weight: 800; color: #fff; }
+    .anchor-choice .tag { font-size: 0.68rem; color: var(--muted); margin-top: 0.1rem; }
+
+    /* ===== 新聞列表 ===== */
+    .news-list { list-style: none; max-height: 14rem; overflow: auto; }
+    .news-list li {
+      padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--line);
+      font-size: 0.86rem; cursor: pointer;
+    }
+    .news-list li:hover { background: rgba(255,255,255,.06); }
+    .news-list li.on { background: rgba(232,197,71,.12); border-left: 3px solid var(--accent); }
+    .news-list .src { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
+    footer { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 0.8rem; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>📺 Google 新聞虛擬主播</h1>
+    <p class="sub">抓取 Google 新聞頭條，選擇主播人物，以語音播報（可選 Gemini 生成播報稿）。</p>
+
+    <section class="studio" id="studio" aria-label="演播室">
+      <div class="studio-badge">NEWS</div>
+      <div class="studio-live"><span class="dot"></span><span>LIVE</span></div>
+      <div class="anchor-wrap" id="anchorWrap"></div>
+      <div class="desk-bar"></div>
+      <div class="lower-third">
+        <div class="name" id="anchorNameTag">主播・雅婷</div>
+        <div class="caption" id="subtitle">歡迎收看，請按「更新新聞」取得今日頭條。</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>🎭 選擇虛擬主播</h2>
+      <div class="anchor-grid" id="anchorGrid"></div>
+      <p class="hint">共六種人物：專業女／男主播、科技、體育、卡通、機器人。選擇會記住偏好。</p>
+    </section>
+
+    <section class="card">
+      <h2>📰 新聞來源</h2>
+      <div class="row2">
+        <div>
+          <label for="category">分類</label>
+          <select id="category">
+            <option value="headlines">頭條</option>
+            <option value="nation">台灣</option>
+            <option value="world">國際</option>
+            <option value="business">財經</option>
+            <option value="technology">科技</option>
+            <option value="sports">體育</option>
+            <option value="entertainment">娛樂</option>
+            <option value="science">科學</option>
+            <option value="health">健康</option>
+          </select>
+        </div>
+        <div>
+          <label for="newsCount">播報則數</label>
+          <input id="newsCount" type="number" min="1" max="10" value="5" />
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="btnFetch">更新新聞</button>
+        <button type="button" class="accent" id="btnScript">產生播報稿</button>
+      </div>
+      <div class="status" id="fetchStatus"></div>
+      <ul class="news-list" id="newsList"></ul>
+    </section>
+
+    <section class="card">
+      <h2>🎙️ 播報控制</h2>
+      <label for="scriptText">播報稿（可編輯）</label>
+      <textarea id="scriptText" placeholder="按「產生播報稿」後會出現文字，也可自行貼上。"></textarea>
+      <div class="actions">
+        <button type="button" class="primary" id="btnPlay">▶ 開始播報</button>
+        <button type="button" id="btnPause" data-tts-pause disabled>⏸ 暫停</button>
+        <button type="button" id="btnStop" data-tts-stop disabled>⏹ 停止</button>
+      </div>
+      <div class="status" data-tts-status hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>🔊 語音設定</h2>
+      <div class="row2">
+        <div>
+          <label for="ttsGender">性別</label>
+          <select id="ttsGender"><option value="F">女聲</option><option value="M">男聲</option></select>
+        </div>
+        <div>
+          <label for="ttsVoice">語音</label>
+          <select id="ttsVoice"></select>
+        </div>
+      </div>
+      <div class="actions"><button type="button" id="ttsPreview">試聽</button></div>
+      <p class="hint" id="ttsVoiceHint"></p>
+    </section>
+
+    <section class="card">
+      <h2>✨ Gemini 播報稿（選填）</h2>
+      <label for="geminiKey">Gemini 金鑰</label>
+      <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰，可生成更口語的播報稿" />
+      <div class="actions">
+        <button type="button" id="btnSaveKey">儲存金鑰</button>
+        <button type="button" id="btnClearKey">清除</button>
+      </div>
+      <p class="hint">未填金鑰時，會用內建模板組稿。金鑰只存本機，不會上傳 GitHub。</p>
+    </section>
+
+    <footer>
+      <a href="../">← 回到習作工具</a>
+      · 新聞來源：<a href="https://news.google.com/" target="_blank" rel="noopener">Google 新聞</a>
+    </footer>
+  </div>
+
+  <script src="tts-voices.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var KEY_ANCHOR = "news-anchor-character-v1";
+    var KEY_GEMINI = "news-anchor-gemini-key";
+    var GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+
+    var FEEDS = {
+      headlines: "https://news.google.com/rss?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      world: "https://news.google.com/rss/headlines/section/topic/WORLD?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      nation: "https://news.google.com/rss/headlines/section/topic/NATION?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      business: "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      technology: "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      entertainment: "https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      sports: "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      science: "https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=zh-TW&gl=TW&ceid=TW:zh-Hant",
+      health: "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+    };
+
+    var CATEGORY_LABELS = {
+      headlines: "頭條", world: "國際", nation: "台灣", business: "財經",
+      technology: "科技", entertainment: "娛樂", sports: "體育", science: "科學", health: "健康"
+    };
+
+    /* ===== 六種虛擬主播 ===== */
+    var ANCHORS = {
+      yating: {
+        id: "yating", name: "雅婷", tag: "專業女主播",
+        gender: "F", skin: "#f2c9a8", hair: "#2a1810", suit: "#1a3a72", tie: "#c41e3a",
+        style: "formal", intro: "我是雅婷，為您播報今日要聞。"
+      },
+      zihao: {
+        id: "zihao", name: "志豪", tag: "專業男主播",
+        gender: "M", skin: "#e8ba98", hair: "#1a1208", suit: "#222831", tie: "#8b1a1a",
+        style: "formal", intro: "我是志豪，以下是今日新聞摘要。"
+      },
+      xiaoguang: {
+        id: "xiaoguang", name: "小光", tag: "科技主播",
+        gender: "F", skin: "#f0c4aa", hair: "#3d2a55", suit: "#0d4f5c", tie: "#00d4aa",
+        style: "tech", intro: "科技快報時間，我是小光。"
+      },
+      ajie: {
+        id: "ajie", name: "阿杰", tag: "體育主播",
+        gender: "M", skin: "#dba886", hair: "#0f0f0f", suit: "#c43800", tie: "#ffd700",
+        style: "sports", intro: "體壇最新消息，阿杰為您報導。"
+      },
+      xiaoxin: {
+        id: "xiaoxin", name: "小新", tag: "卡通主播",
+        gender: "F", skin: "#ffe0b8", hair: "#ff6b35", suit: "#4a90d9", tie: "#ffeb3b",
+        style: "cartoon", intro: "哈囉！我是小新，一起來看新聞吧！"
+      },
+      nova: {
+        id: "nova", name: "Nova", tag: "AI 機器人",
+        gender: "F", skin: "#b8c8e8", hair: "#8899bb", suit: "#334466", tie: "#66ccff",
+        style: "robot", intro: "Nova 系統啟動，為您播報即時新聞。"
+      }
+    };
+
+    var state = {
+      anchorId: "yating",
+      news: [],
+      cache: null,
+      blinkTimer: null,
+      speakWatch: null
+    };
+
+    function $(id) { return document.getElementById(id); }
+
+    function loadAnchorPref() {
+      try {
+        var id = localStorage.getItem(KEY_ANCHOR);
+        if (id && ANCHORS[id]) return id;
+      } catch (e) {}
+      return "yating";
+    }
+
+    function saveAnchorPref(id) {
+      try { localStorage.setItem(KEY_ANCHOR, id); } catch (e) {}
+    }
+
+    function getAnchor() { return ANCHORS[state.anchorId] || ANCHORS.yating; }
+
+    /* ===== SVG 主播繪製 ===== */
+    function buildAnchorSvg(anchor, mini) {
+      var s = anchor.skin, h = anchor.hair, suit = anchor.suit, tie = anchor.tie;
+      var isRobot = anchor.style === "robot";
+      var isCartoon = anchor.style === "cartoon";
+      var isMale = anchor.gender === "M";
+      var headR = isCartoon ? 38 : 34;
+      var headY = isCartoon ? 52 : 48;
+      var eyeY = headY - 6;
+      var mouthY = headY + 14;
+      var hairTop = isMale
+        ? "M" + (60 - headR) + "," + headY + " Q60," + (headY - headR - 14) + " " + (60 + headR) + "," + headY
+          + " L" + (60 + headR - 2) + "," + (headY + 6) + " Q60," + (headY - 8) + " " + (60 - headR + 2) + "," + (headY + 6) + " Z"
+        : "M" + (60 - headR) + "," + headY + " Q60," + (headY - headR - 20) + " " + (60 + headR) + "," + headY
+          + " Q78," + (headY + 10) + " 80," + (headY + 30) + " Q60," + (headY + 24) + " 40," + (headY + 30)
+          + " Q42," + (headY + 10) + " " + (60 - headR) + "," + headY + " Z";
+      var glasses = anchor.style === "tech"
+        ? '<rect x="38" y="' + (eyeY-8) + '" width="18" height="12" rx="2" fill="none" stroke="#00d4aa" stroke-width="2"/>'
+          + '<rect x="64" y="' + (eyeY-8) + '" width="18" height="12" rx="2" fill="none" stroke="#00d4aa" stroke-width="2"/>'
+          + '<line x1="56" y1="' + (eyeY-2) + '" x2="64" y2="' + (eyeY-2) + '" stroke="#00d4aa" stroke-width="2"/>'
+        : "";
+      var robotPanel = isRobot
+        ? '<rect x="48" y="' + (headY+18) + '" width="24" height="8" rx="2" fill="#66ccff" opacity=".7"/>'
+          + '<circle cx="52" cy="' + (headY+22) + '" r="2" fill="#fff"/>'
+          + '<circle cx="60" cy="' + (headY+22) + '" r="2" fill="#fff"/>'
+          + '<circle cx="68" cy="' + (headY+22) + '" r="2" fill="#fff"/>'
+        : "";
+      var blush = isCartoon
+        ? '<ellipse cx="42" cy="' + (headY+6) + '" rx="6" ry="4" fill="#ffb4a8" opacity=".5"/>'
+          + '<ellipse cx="78" cy="' + (headY+6) + '" rx="6" ry="4" fill="#ffb4a8" opacity=".5"/>'
+        : "";
+      var bodyY = headY + headR + 2;
+      var scale = mini ? ' viewBox="0 0 120 120"' : ' viewBox="0 0 120 120" class="anchor-svg"';
+      return '<svg xmlns="http://www.w3.org/2000/svg"' + scale + '>' +
+        '<defs><linearGradient id="suitG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + suit + '"/><stop offset="100%" stop-color="#0a1020"/></linearGradient></defs>' +
+        '<rect x="0" y="0" width="120" height="120" fill="transparent"/>' +
+        '<path d="M25,' + (bodyY+50) + ' L95,' + (bodyY+50) + ' L88,' + bodyY + ' L32,' + bodyY + ' Z" fill="url(#suitG)"/>' +
+        '<path d="M52,' + bodyY + ' L68,' + bodyY + ' L64,' + (bodyY+28) + ' L56,' + (bodyY+28) + ' Z" fill="#fff" opacity=".9"/>' +
+        '<path d="M58,' + bodyY + ' L62,' + bodyY + ' L60,' + (bodyY+22) + ' Z" fill="' + tie + '"/>' +
+        '<path d="' + hairTop + '" fill="' + h + '"/>' +
+        '<ellipse cx="60" cy="' + headY + '" rx="' + headR + '" ry="' + (headR + 2) + '" fill="' + s + '"/>' +
+        blush +
+        glasses +
+        '<ellipse class="eye" cx="48" cy="' + eyeY + '" rx="5" ry="' + (isCartoon ? 6 : 5) + '" fill="#fff"/>' +
+        '<ellipse class="eye" cx="72" cy="' + eyeY + '" rx="5" ry="' + (isCartoon ? 6 : 5) + '" fill="#fff"/>' +
+        '<circle cx="48" cy="' + eyeY + '" r="2.5" fill="#222"/>' +
+        '<circle cx="72" cy="' + eyeY + '" r="2.5" fill="#222"/>' +
+        '<rect class="eye-lid" x="40" y="' + (eyeY-10) + '" width="16" height="12" fill="' + h + '" rx="2"/>' +
+        '<rect class="eye-lid" x="64" y="' + (eyeY-10) + '" width="16" height="12" fill="' + h + '" rx="2"/>' +
+        robotPanel +
+        '<ellipse class="mouth" cx="60" cy="' + mouthY + '" rx="' + (isCartoon ? 10 : 8) + '" ry="5" fill="#c45"/>' +
+        '</svg>';
+    }
+
+    function renderMainAnchor() {
+      var anchor = getAnchor();
+      var wrap = $("anchorWrap");
+      wrap.innerHTML = buildAnchorSvg(anchor, false);
+      $("anchorNameTag").textContent = "主播・" + anchor.name + "｜" + anchor.tag;
+      applyAnchorGenderToTts(anchor.gender);
+      startBlink();
+    }
+
+    function renderAnchorGrid() {
+      var grid = $("anchorGrid");
+      grid.innerHTML = "";
+      Object.keys(ANCHORS).forEach(function (key) {
+        var a = ANCHORS[key];
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "anchor-choice" + (key === state.anchorId ? " selected" : "");
+        btn.setAttribute("data-id", key);
+        btn.innerHTML = '<div class="mini">' + buildAnchorSvg(a, true) + '</div>'
+          + '<div class="title">' + a.name + '</div>'
+          + '<div class="tag">' + a.tag + '</div>';
+        btn.addEventListener("click", function () {
+          state.anchorId = key;
+          saveAnchorPref(key);
+          renderAnchorGrid();
+          renderMainAnchor();
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function applyAnchorGenderToTts(gender) {
+      var gEl = $("ttsGender");
+      if (!gEl) return;
+      gEl.value = gender === "M" ? "M" : "F";
+      if (window.TtsVoices) {
+        TtsVoices.saveTtsPref(Object.assign(TtsVoices.loadTtsPref(), { gender: gEl.value, choiceId: "" }));
+        TtsVoices.fillVoiceSelectors();
+      }
+    }
+
+    function startBlink() {
+      if (state.blinkTimer) clearInterval(state.blinkTimer);
+      state.blinkTimer = setInterval(function () {
+        var svg = document.querySelector(".anchor-svg");
+        if (!svg) return;
+        svg.classList.add("blink");
+        setTimeout(function () { svg.classList.remove("blink"); }, 180);
+      }, 3200 + Math.random() * 2000);
+    }
+
+    function setSpeaking(on) {
+      var svg = document.querySelector(".anchor-svg");
+      if (svg) svg.classList.toggle("speaking", !!on);
+    }
+
+    function setSubtitle(text) {
+      $("subtitle").textContent = text || "";
+    }
+
+    /* ===== 新聞抓取 ===== */
+    function normalizeItems(items) {
+      return (items || []).map(function (it) {
+        return {
+          title: (it.title || "").replace(/\s*-\s*[^-]+$/, "").trim(),
+          link: it.link || "",
+          pubDate: it.pubDate || "",
+          source: it.source || "",
+          description: it.description || ""
+        };
+      }).filter(function (it) { return it.title; });
+    }
+
+    function parseRssXml(xmlText) {
+      var doc = new DOMParser().parseFromString(xmlText, "text/xml");
+      if (doc.querySelector("parsererror")) throw new Error("RSS 解析失敗");
+      var nodes = doc.querySelectorAll("item");
+      var items = [];
+      nodes.forEach(function (node) {
+        var title = (node.querySelector("title") && node.querySelector("title").textContent) || "";
+        var link = (node.querySelector("link") && node.querySelector("link").textContent) || "";
+        var pubDate = (node.querySelector("pubDate") && node.querySelector("pubDate").textContent) || "";
+        var desc = (node.querySelector("description") && node.querySelector("description").textContent) || "";
+        var sourceEl = node.querySelector("source");
+        var source = sourceEl ? sourceEl.textContent : "";
+        items.push({ title: title.trim(), link: link.trim(), pubDate: pubDate.trim(), description: desc.trim(), source: (source || "").trim() });
+      });
+      return normalizeItems(items);
+    }
+
+    async function loadCacheFile() {
+      var res = await fetch("./news-cache.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error("快取讀取失敗");
+      return res.json();
+    }
+
+    async function fetchLiveRss(category) {
+      var rssUrl = FEEDS[category] || FEEDS.headlines;
+      var apiUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl);
+      var res = await fetch(apiUrl);
+      if (!res.ok) throw new Error("即時抓取失敗（" + res.status + "）");
+      var data = await res.json();
+      if (data.status !== "ok") throw new Error(data.message || "rss2json 錯誤");
+      return normalizeItems(data.items || []);
+    }
+
+    async function fetchNews() {
+      var cat = $("category").value;
+      var status = $("fetchStatus");
+      status.className = "status";
+      status.textContent = "正在更新新聞…";
+      var items = [];
+      try {
+        if (!state.cache) state.cache = await loadCacheFile();
+        var cached = state.cache.feeds && state.cache.feeds[cat];
+        if (cached && cached.items && cached.items.length) {
+          items = normalizeItems(cached.items);
+          status.textContent = "已載入快取（" + (cached.label || cat) + "），正在嘗試即時更新…";
+          status.className = "status warn";
+        }
+      } catch (e) {}
+      try {
+        var live = await fetchLiveRss(cat);
+        if (live.length) {
+          items = live;
+          status.textContent = "已更新「" + (CATEGORY_LABELS[cat] || cat) + "」共 " + items.length + " 則（即時）";
+          status.className = "status";
+        }
+      } catch (e) {
+        if (!items.length) throw e;
+        status.textContent = "使用離線快取（即時更新失敗：" + e.message + "）";
+        status.className = "status warn";
+      }
+      if (!items.length) throw new Error("沒有取得任何新聞");
+      state.news = items;
+      renderNewsList();
+      return items;
+    }
+
+    function renderNewsList() {
+      var ul = $("newsList");
+      ul.innerHTML = "";
+      state.news.forEach(function (it, i) {
+        var li = document.createElement("li");
+        li.innerHTML = "<div>" + escapeHtml(it.title) + "</div>"
+          + (it.source ? '<div class="src">' + escapeHtml(it.source) + "</div>" : "");
+        li.addEventListener("click", function () {
+          ul.querySelectorAll("li").forEach(function (x) { x.classList.remove("on"); });
+          li.classList.add("on");
+          setSubtitle(it.title);
+        });
+        ul.appendChild(li);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    /* ===== 播報稿 ===== */
+    function buildTemplateScript(items, anchor, category) {
+      var catLabel = CATEGORY_LABELS[category] || "頭條";
+      var lines = [
+        "各位觀眾您好，歡迎收看 Google 新聞" + catLabel + "快報。",
+        anchor.intro,
+        "以下為您整理 " + items.length + " 則重點。"
+      ];
+      items.forEach(function (it, i) {
+        lines.push("第 " + (i + 1) + " 則：" + it.title + (it.source ? "。消息來源：" + it.source : "") + "。");
+      });
+      lines.push("以上為今日" + catLabel + "摘要，我是" + anchor.name + "，感謝您的收看。");
+      return lines.join("\n");
+    }
+
+    function getGeminiKey() {
+      try { return localStorage.getItem(KEY_GEMINI) || ""; } catch (e) { return ""; }
+    }
+
+    async function geminiScript(items, anchor, category) {
+      var key = getGeminiKey();
+      if (!key) return null;
+      var catLabel = CATEGORY_LABELS[category] || "頭條";
+      var bullet = items.map(function (it, i) {
+        return (i + 1) + ". " + it.title + (it.source ? "（" + it.source + "）" : "");
+      }).join("\n");
+      var prompt = "你是電視新聞虛擬主播「" + anchor.name + "」（" + anchor.tag + "）。"
+        + "請把以下 Google 新聞" + catLabel + "標題整理成一段繁體中文口語播報稿，"
+        + "開場問候、逐則播報（不要編造細節）、結語道別。每則用口語連接，約 300～500 字。\n\n" + bullet;
+      var body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+      };
+      var lastErr = null;
+      for (var i = 0; i < GEMINI_MODELS.length; i++) {
+        var model = GEMINI_MODELS[i];
+        try {
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key);
+          var res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) {
+            lastErr = new Error(model + "：" + res.status);
+            continue;
+          }
+          var data = await res.json();
+          var text = data.candidates && data.candidates[0] && data.candidates[0].content
+            && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
+            && data.candidates[0].content.parts[0].text;
+          if (text) return text.trim();
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error("Gemini 無回應");
+    }
+
+    async function generateScript() {
+      var count = Math.max(1, Math.min(10, parseInt($("newsCount").value, 10) || 5));
+      if (!state.news.length) await fetchNews();
+      var items = state.news.slice(0, count);
+      if (!items.length) throw new Error("請先更新新聞");
+      var anchor = getAnchor();
+      var cat = $("category").value;
+      var status = $("fetchStatus");
+      status.textContent = "正在產生播報稿…";
+      status.className = "status warn";
+      var script = null;
+      if (getGeminiKey()) {
+        try {
+          script = await geminiScript(items, anchor, cat);
+          status.textContent = "已用 Gemini 產生播報稿";
+        } catch (e) {
+          status.textContent = "Gemini 失敗，改用內建模板（" + e.message + "）";
+          status.className = "status warn";
+        }
+      }
+      if (!script) {
+        script = buildTemplateScript(items, anchor, cat);
+        if (!getGeminiKey()) status.textContent = "已用內建模板產生播報稿（可填 Gemini 金鑰升級）";
+      }
+      status.className = "status";
+      $("scriptText").value = script;
+      setSubtitle(script.split(/[\n。！？]/)[0].slice(0, 80));
+      return script;
+    }
+
+    /* ===== 語音播報 ===== */
+    function speakText(text) {
+      if (!window.TtsVoices) return false;
+      var gEl = $("ttsGender");
+      var vEl = $("ttsVoice");
+      if (gEl && vEl) {
+        var list = TtsVoices.listVoiceChoices(gEl.value);
+        var chosen = list.find(function (c) { return c.id === vEl.value; }) || list[0];
+        TtsVoices.saveTtsPref({
+          gender: gEl.value,
+          choiceId: chosen ? chosen.id : "",
+          voiceURI: chosen && chosen.voice ? (chosen.voice.voiceURI || "") : "",
+          voiceName: chosen && chosen.voice ? chosen.voice.name : "",
+          pitch: chosen ? chosen.pitch : 1,
+          rate: chosen ? chosen.rate : 0.95
+        });
+      }
+      return TtsVoices.speakQueued(text);
+    }
+
+    function watchSpeakSubtitle(text) {
+      if (state.speakWatch) clearInterval(state.speakWatch);
+      var chunks = TtsVoices.splitSpeechChunks(text, 120);
+      var idx = 0;
+      setSpeaking(true);
+      setSubtitle(chunks[0] || text.slice(0, 60));
+      state.speakWatch = setInterval(function () {
+        var st = TtsVoices.getSpeakState();
+        if (!st.active) {
+          clearInterval(state.speakWatch);
+          state.speakWatch = null;
+          setSpeaking(false);
+          setSubtitle("播報結束，感謝收看。");
+          return;
+        }
+        if (st.index !== idx && chunks[st.index]) {
+          idx = st.index;
+          setSubtitle(chunks[idx]);
+        }
+      }, 200);
+    }
+
+    function bindTts() {
+      if (!window.TtsVoices) return;
+      TtsVoices.bindVoicePicker({
+        speak: function (say) { speakText(say); }
+      });
+      TtsVoices.onSpeakStatus(function (st) {
+        if (!st.active) setSpeaking(false);
+      });
+    }
+
+    /* ===== Gemini 金鑰 ===== */
+    function initGeminiKey() {
+      var k = getGeminiKey();
+      if (k) $("geminiKey").value = "••••••••";
+    }
+
+    /* ===== 事件 ===== */
+    $("btnFetch").addEventListener("click", function () {
+      fetchNews().catch(function (e) {
+        $("fetchStatus").textContent = "更新失敗：" + e.message;
+        $("fetchStatus").className = "status err";
+      });
+    });
+
+    $("btnScript").addEventListener("click", function () {
+      generateScript().catch(function (e) {
+        $("fetchStatus").textContent = "產稿失敗：" + e.message;
+        $("fetchStatus").className = "status err";
+      });
+    });
+
+    $("btnPlay").addEventListener("click", function () {
+      var text = $("scriptText").value.trim();
+      if (!text) {
+        generateScript().then(function (s) {
+          speakText(s);
+          watchSpeakSubtitle(s);
+        }).catch(function (e) {
+          $("fetchStatus").textContent = e.message;
+          $("fetchStatus").className = "status err";
+        });
+        return;
+      }
+      speakText(text);
+      watchSpeakSubtitle(text);
+    });
+
+    $("btnPause").addEventListener("click", function () {
+      TtsVoices.togglePauseSpeakQueue();
+    });
+    $("btnStop").addEventListener("click", function () {
+      TtsVoices.stopSpeakQueue();
+      setSpeaking(false);
+      setSubtitle("已停止播報。");
+    });
+
+    $("btnSaveKey").addEventListener("click", function () {
+      var v = $("geminiKey").value.trim();
+      if (!v || v === "••••••••") return;
+      try { localStorage.setItem(KEY_GEMINI, v); } catch (e) {}
+      $("geminiKey").value = "••••••••";
+      $("fetchStatus").textContent = "Gemini 金鑰已儲存（本機）";
+      $("fetchStatus").className = "status";
+    });
+    $("btnClearKey").addEventListener("click", function () {
+      try { localStorage.removeItem(KEY_GEMINI); } catch (e) {}
+      $("geminiKey").value = "";
+    });
+
+    /* ===== 啟動 ===== */
+    state.anchorId = loadAnchorPref();
+    renderAnchorGrid();
+    renderMainAnchor();
+    bindTts();
+    initGeminiKey();
+    fetchNews().catch(function () {});
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+  })();
+  </script>
+</body>
+</html>

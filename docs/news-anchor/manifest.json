@@ -1,0 +1,26 @@
+{
+  "name": "Google 新聞虛擬主播",
+  "short_name": "新聞主播",
+  "description": "從 Google 新聞抓取頭條，由 AI 虛擬主播播報。可選多種主播人物與語音。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f2348",
+  "theme_color": "#b41e2d",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
