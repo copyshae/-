@@ -318,22 +318,37 @@
 
     <section class="card">
       <h2>配圖附件</h2>
-      <p class="hint">依心得生成配圖，列為<strong>附件</strong>（附件一、附件二…），附在 Word／PDF <strong>文末</strong>，亦可單獨下載或打包。</p>
-      <label for="imageCount">配圖張數</label>
+      <p class="hint">可 <strong>AI 依內容生成</strong>配圖，或<strong>自行增加</strong>照片／圖片連結作為附件（附件一、附件二…），附在 Word／PDF 文末。</p>
+      <label for="imageCount">AI 配圖張數</label>
       <select id="imageCount">
         <option value="1">1 張</option>
         <option value="2" selected>2 張</option>
         <option value="3">3 張</option>
       </select>
       <div class="row">
-        <button type="button" id="btnGenImages" class="primary">🖼 生成配圖附件</button>
+        <button type="button" id="btnGenImages" class="primary">🖼 AI 生成配圖附件</button>
         <button type="button" id="btnDlAttachments">📎 下載全部附件</button>
         <button type="button" id="btnZipAttachments">📦 下載附件包（ZIP）</button>
         <button type="button" id="btnClearImages">清除附件</button>
       </div>
+      <p class="hint" style="margin-top:0.55rem"><strong>增加圖片附件</strong>（與 AI 配圖可並用，會依序編號）</p>
+      <label for="attachCaption">附件說明（選填）</label>
+      <input id="attachCaption" type="text" placeholder="例：今日境緣照片、共修截圖" />
+      <div class="row">
+        <label class="file-btn" for="inputAttachCamera">📷 拍照加入</label>
+        <input id="inputAttachCamera" type="file" accept="image/*" capture="environment" />
+        <label class="file-btn" for="inputAttachAlbum">🖼 相簿加入</label>
+        <input id="inputAttachAlbum" type="file" accept="image/*" multiple />
+        <button type="button" id="btnAddFromMaterial">從上方素材加入</button>
+      </div>
+      <label for="attachUrl">圖片網址（選填）</label>
+      <input id="attachUrl" type="text" inputmode="url" placeholder="https://…jpg 或貼 data:image 網址" />
+      <div class="row">
+        <button type="button" id="btnAddAttachUrl">加入圖片連結</button>
+      </div>
       <p class="status" id="imgStatus"></p>
       <div class="essay-images" id="essayImages"></div>
-      <p class="hint" id="essayImagesEmpty">尚無附件。請先生成心得，再按「生成配圖附件」。</p>
+      <p class="hint" id="essayImagesEmpty">尚無附件。可 AI 生成，或用拍照／相簿／連結自行增加。</p>
     </section>
 
     <section class="card">
@@ -360,6 +375,7 @@
     var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
     var IMAGE_MODEL = "gemini-2.5-flash-image";
     var MAX_VIDEO_MB = 50;
+    var MAX_ATTACH_MB = 8;
     var recognition = null;
     var mediaItems = [];
     var refItems = [];
@@ -811,13 +827,15 @@
           : '<div style="height:6rem;display:flex;align-items:center;justify-content:center;background:#f5f0e6;color:#999;font-size:0.8rem">生成中…</div>';
         return '<div class="essay-img-card' + (im.selected ? " selected" : "") + '" data-idx="' + idx + '">' +
           '<div class="cap" style="font-weight:700;color:var(--accent);margin-bottom:0.25rem">' + attachmentLabel(idx) +
-          (im.selected ? "（已列附件）" : "") + "</div>" +
+          (im.selected ? "（已列附件）" : "") +
+          ' <span style="font-weight:400;font-size:0.72rem;color:var(--muted)">｜' + escapeHtml(sourceLabel(im.source)) + "</span></div>" +
           imgTag +
           '<div class="cap">' + escapeHtml(im.caption || "") + '</div>' +
           '<div class="acts">' +
           '<button type="button" data-img-toggle="' + idx + '">' + (im.selected ? "✓ 已列為附件" : "列為附件") + '</button>' +
           (im.b64 ? '<button type="button" data-img-dl="' + idx + '">下載此附件</button>' : "") +
-          (im.searchUrl ? '<button type="button" data-img-search="' + idx + '">圖片搜尋</button>' : "") +
+          (im.searchUrl ? '<button type="button" data-img-search="' + idx + '">開啟連結</button>' : "") +
+          '<button type="button" class="rm" data-img-rm="' + idx + '">移除</button>' +
           "</div></div>";
       }).join("");
       box.querySelectorAll("[data-img-toggle]").forEach(function (btn) {
@@ -852,6 +870,124 @@
           if (im && im.searchUrl) window.open(im.searchUrl, "_blank", "noopener,noreferrer");
         };
       });
+      box.querySelectorAll("[data-img-rm]").forEach(function (btn) {
+        btn.onclick = function () {
+          essayImages.splice(Number(btn.getAttribute("data-img-rm")), 1);
+          renderEssayImages();
+          setStatus($("imgStatus"), "已移除，現有 " + essayImages.length + " 項附件", "");
+        };
+      });
+    }
+
+    function sourceLabel(source) {
+      var map = { ai: "AI 生成", camera: "拍照", album: "相簿", url: "圖片連結", material: "寫作素材" };
+      return map[source] || "圖片";
+    }
+
+    function addEssayAttachment(item) {
+      if (!item || !item.b64) return false;
+      essayImages.push({
+        id: "att-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        caption: item.caption || sourceLabel(item.source),
+        prompt: item.prompt || "",
+        b64: item.b64,
+        mime: item.mime || "image/jpeg",
+        selected: true,
+        source: item.source || "album",
+        searchUrl: item.searchUrl || ""
+      });
+      renderEssayImages();
+      return true;
+    }
+
+    async function fileToAttachmentItem(file, caption, source) {
+      if (!file || !/^image\//i.test(file.type)) {
+        throw new Error("請選擇圖片檔");
+      }
+      if (file.size > MAX_ATTACH_MB * 1024 * 1024) {
+        throw new Error("圖片超過 " + MAX_ATTACH_MB + "MB，請壓縮後再加入");
+      }
+      var b64 = await fileToBase64(file);
+      return {
+        b64: b64,
+        mime: file.type || "image/jpeg",
+        caption: caption || file.name || sourceLabel(source),
+        source: source || "album"
+      };
+    }
+
+    async function addAttachmentsFromFiles(files, source) {
+      if (!files || !files.length) return;
+      var cap = ($("attachCaption").value || "").trim();
+      var added = 0;
+      for (var i = 0; i < files.length; i++) {
+        try {
+          var item = await fileToAttachmentItem(files[i], cap || files[i].name, source);
+          if (addEssayAttachment(item)) added++;
+        } catch (e) {
+          setStatus($("imgStatus"), e.message || String(e), "err");
+        }
+      }
+      if (added) {
+        $("attachCaption").value = "";
+        setStatus($("imgStatus"), "已增加 " + added + " 個圖片附件（共 " + essayImages.length + " 項）", "");
+      }
+    }
+
+    async function addAttachmentFromUrl() {
+      var url = ($("attachUrl").value || "").trim();
+      if (!url) {
+        alert("請貼上圖片網址");
+        return;
+      }
+      var cap = ($("attachCaption").value || "").trim() || "圖片連結";
+      setStatus($("imgStatus"), "正在載入圖片…", "warn");
+      try {
+        if (/^data:image\//i.test(url)) {
+          var m = url.match(/^data:(image\/[^;]+);base64,(.+)$/);
+          if (!m) throw new Error("data URL 格式不正確");
+          addEssayAttachment({ b64: m[2], mime: m[1], caption: cap, source: "url" });
+        } else if (/^https?:\/\//i.test(url)) {
+          var res = await fetch(url);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          var blob = await res.blob();
+          if (!/^image\//i.test(blob.type)) throw new Error("連結不是圖片檔");
+          if (blob.size > MAX_ATTACH_MB * 1024 * 1024) throw new Error("圖片過大");
+          var b64 = await fileToBase64(blob);
+          addEssayAttachment({ b64: b64, mime: blob.type, caption: cap, source: "url", searchUrl: url });
+        } else {
+          throw new Error("請使用 http(s) 或 data:image 網址");
+        }
+        $("attachUrl").value = "";
+        $("attachCaption").value = "";
+        setStatus($("imgStatus"), "已加入圖片附件（共 " + essayImages.length + " 項）", "");
+      } catch (e) {
+        setStatus($("imgStatus"), "無法載入連結：" + (e.message || e) + "。請改存到相簿再上傳。", "err");
+      }
+    }
+
+    async function addAttachmentsFromMaterial() {
+      if (!mediaItems.length) {
+        alert("請先在「寫作素材」拍照或選擇圖片");
+        return;
+      }
+      var cap = ($("attachCaption").value || "").trim();
+      var added = 0;
+      for (var i = 0; i < mediaItems.length; i++) {
+        var it = mediaItems[i];
+        if (it.kind !== "image" && it.kind !== "photo") continue;
+        try {
+          var item = await fileToAttachmentItem(it.file, cap || it.label || "寫作素材", "material");
+          if (addEssayAttachment(item)) added++;
+        } catch (e) {
+          setStatus($("imgStatus"), e.message || String(e), "err");
+        }
+      }
+      if (added) {
+        setStatus($("imgStatus"), "已從素材加入 " + added + " 個圖片附件", "");
+      } else {
+        alert("素材中沒有可用的圖片（影片請改用說明文字）");
+      }
     }
 
     function clearEssayImages() {
@@ -952,7 +1088,8 @@
       setStatus($("imgStatus"), "正在分析心得，規劃配圖…", "warn");
       try {
         var plans = await planEssayImages(text, count, key);
-        essayImages = plans.map(function (p, i) {
+        essayImages = essayImages.filter(function (im) { return im.source !== "ai"; });
+        var newItems = plans.map(function (p, i) {
           return {
             id: "img-" + Date.now() + "-" + i,
             caption: p.caption || p.captionZh || ("配圖 " + (i + 1)),
@@ -960,24 +1097,28 @@
             b64: "",
             mime: "image/png",
             selected: true,
+            source: "ai",
             searchUrl: "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent((p.caption || "") + " 溫暖 日常")
           };
         });
+        essayImages = essayImages.concat(newItems);
         renderEssayImages();
-        for (var i = 0; i < essayImages.length; i++) {
-          setStatus($("imgStatus"), "正在生成配圖 " + (i + 1) + "／" + essayImages.length + "…", "warn");
+        for (var i = 0; i < newItems.length; i++) {
+          var idx = essayImages.length - newItems.length + i;
+          setStatus($("imgStatus"), "正在生成配圖 " + (i + 1) + "／" + newItems.length + "…", "warn");
           try {
-            var img = await callGeminiImage(essayImages[i].prompt, key);
-            essayImages[i].b64 = img.b64;
-            essayImages[i].mime = img.mime;
+            var img = await callGeminiImage(newItems[i].prompt, key);
+            essayImages[idx].b64 = img.b64;
+            essayImages[idx].mime = img.mime;
           } catch (e) {
-            essayImages[i].caption += "（AI 生成失敗，可改按圖片搜尋）";
+            essayImages[idx].caption += "（AI 生成失敗，可改按圖片搜尋）";
             console.warn(e);
           }
           renderEssayImages();
         }
-        var ok = essayImages.filter(function (im) { return im.b64; }).length;
-        setStatus($("imgStatus"), "已完成 " + ok + "／" + essayImages.length + " 張附件（已列為附件者附在 Word／PDF 文末）", ok ? "" : "warn");
+        var aiOk = essayImages.filter(function (im) { return im.source === "ai" && im.b64; }).length;
+        var aiTotal = essayImages.filter(function (im) { return im.source === "ai"; }).length;
+        setStatus($("imgStatus"), "已完成 " + aiOk + "／" + aiTotal + " 張 AI 配圖（共 " + essayImages.length + " 項附件，已列附件者附在 Word／PDF 文末）", aiOk ? "" : "warn");
       } catch (e) {
         setStatus($("imgStatus"), "配圖失敗：" + (e.message || e), "err");
       } finally {
@@ -1714,7 +1855,7 @@
         if (!/^image\//i.test(file.type)) return;
         addMediaItem(file, "image", label);
       });
-      setStatus($("materialStatus"), "已加入 " + files.length + " 張圖片", "");
+      setStatus($("materialStatus"), "已加入 " + files.length + " 張圖片（可按「從上方素材加入」轉為附件）", "");
     }
 
     function handleVideoFile(file, label) {
@@ -1800,6 +1941,16 @@
       $("btnDlAttachments").onclick = downloadAllAttachments;
       $("btnZipAttachments").onclick = downloadAttachmentZip;
       $("btnClearImages").onclick = clearEssayImages;
+      $("inputAttachCamera").onchange = function (e) {
+        if (e.target.files && e.target.files[0]) addAttachmentsFromFiles([e.target.files[0]], "camera");
+        e.target.value = "";
+      };
+      $("inputAttachAlbum").onchange = function (e) {
+        addAttachmentsFromFiles(e.target.files, "album");
+        e.target.value = "";
+      };
+      $("btnAddAttachUrl").onclick = addAttachmentFromUrl;
+      $("btnAddFromMaterial").onclick = addAttachmentsFromMaterial;
       renderEssayImages();
       $("outputEdit").addEventListener("input", syncOutputFromEdit);
       $("btnShare").onclick = function () {
