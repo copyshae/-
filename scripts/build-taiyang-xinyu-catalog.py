@@ -17,6 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "data" / "taiyang-xinyu-seed.json"
 LINKS = ROOT / "data" / "taiyang-xinyu-links.json"
+READ_OVERRIDES = ROOT / "data" / "taiyang-xinyu-read-overrides.json"
 OUT_DIR = ROOT / "docs" / "taiyang-xinyu"
 CARDS = OUT_DIR / "cards"
 MIRROR = CARDS / "mirror"
@@ -200,8 +201,19 @@ def strip_short_title_prefix(title: str, text: str) -> str:
     return text
 
 
-def build_read_text(item: dict) -> str:
-    """產生朗讀稿：不唸標題，只唸圖片主文與白話。"""
+def load_read_overrides() -> dict[str, str]:
+    if not READ_OVERRIDES.exists():
+        return {}
+    return json.loads(READ_OVERRIDES.read_text(encoding="utf-8"))
+
+
+def build_read_text(item: dict, overrides: dict[str, str] | None = None) -> tuple[str, str]:
+    """產生朗讀稿與來源標記（seed｜manual｜filename｜youtube）。"""
+    overrides = overrides or {}
+    iid = (item.get("id") or "").strip()
+    if iid in overrides:
+        return overrides[iid], "manual"
+
     title = clean_read_suffix(item.get("title", ""))
     text = clean_read_suffix(item.get("text", ""))
     plain = clean_read_suffix(item.get("plain", ""))
@@ -209,33 +221,44 @@ def build_read_text(item: dict) -> str:
     page_url = (item.get("pageUrl") or "").strip()
     source = (item.get("source") or "").strip()
 
+    if source == "種子語錄" and not image_url:
+        parts: list[str] = []
+        if text:
+            parts.append(strip_short_title_prefix(title, text))
+        if plain and plain not in "。".join(parts):
+            parts.append(plain)
+        out = "。".join(p for p in parts if p)
+        return out, "seed"
+
     quote = ""
     if "richestlife" in image_url or "richestlife" in page_url:
         quote = extract_quote_from_image_url(image_url) or extract_quote_from_page_url(page_url)
+        if quote:
+            return quote, "filename"
 
-    parts: list[str] = []
-    if quote:
-        parts.append(quote)
-    elif source == "YouTube 搜尋" or "youtube.com" in page_url:
+    parts2: list[str] = []
+    if source == "YouTube 搜尋" or "youtube.com" in page_url:
         main = re.sub(r"^太陽心語[：:]\s*", "", text)
         main = re.sub(r"\s*摄影\s*.*$", "", main)
         main = re.sub(r"^太陽心語\s+", "", main)
         if main:
-            parts.append(main.strip())
-    elif text:
-        parts.append(strip_short_title_prefix(title, text))
+            parts2.append(main.strip())
+        out = "。".join(p for p in parts2 if p)
+        return out, "youtube"
 
+    if text:
+        parts2.append(strip_short_title_prefix(title, text))
     if plain and "YouTube" not in plain:
-        joined = "。".join(parts)
+        joined = "。".join(parts2)
         if plain not in joined:
-            parts.append(plain)
+            parts2.append(plain)
 
-    out: list[str] = []
-    for p in parts:
+    out2: list[str] = []
+    for p in parts2:
         p = p.strip("。 ")
-        if p and p not in out:
-            out.append(p)
-    return "。".join(out)
+        if p and p not in out2:
+            out2.append(p)
+    return "。".join(out2), "filename" if image_url else "seed"
 
 
 def guess_category(title: str, text: str = "") -> str:
@@ -499,6 +522,7 @@ def merge_items() -> list[dict]:
 
 def build() -> dict:
     items = merge_items()
+    overrides = load_read_overrides()
     CARDS.mkdir(parents=True, exist_ok=True)
     MIRROR.mkdir(parents=True, exist_ok=True)
 
@@ -520,7 +544,7 @@ def build() -> dict:
             draw_card(it, CARDS / f"{it['id']}.png")
             it["imageLocal"] = rel
 
-        it["readText"] = build_read_text(it)
+        it["readText"], it["readTextSource"] = build_read_text(it, overrides)
 
     cats: dict[str, list] = {}
     for it in items:
