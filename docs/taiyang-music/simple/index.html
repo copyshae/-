@@ -48,7 +48,7 @@
 <body>
   <div class="wrap">
     <h1>太陽盛德導師創作歌曲<br /><span style="font-size:0.85em;font-weight:600">簡易版</span></h1>
-    <p class="sub">選歌即播 · 介面精簡 · 適合分享</p>
+    <p class="sub">選歌即播 · 隨機連播 · 介面精簡 · 適合分享</p>
 
     <label for="songSelect">選擇歌曲</label>
     <select id="songSelect" aria-label="歌曲選單">
@@ -73,6 +73,8 @@
     let player = null;
     let apiReady = false;
     let pendingId = null;
+    let shuffleOn = false;
+    let currentId = null;
 
     const $ = (id) => document.getElementById(id);
 
@@ -131,15 +133,35 @@
         } catch (__) {}
       }
       renderMenu();
-      $("statusLine").textContent = catalog.songs && catalog.songs.length
-        ? "共 " + catalog.songs.length + " 首"
-        : "無法載入曲庫";
+      updateStatus(catalog.songs && catalog.songs.length ? "" : "無法載入曲庫");
     }
 
-    function playId(videoId, song) {
+    function pickRandomSong(excludeId) {
+      const songs = sortSongs(catalog.songs || []);
+      if (!songs.length) return null;
+      if (songs.length === 1) return songs[0];
+      let next;
+      let guard = 0;
+      do {
+        next = songs[Math.floor(Math.random() * songs.length)];
+        guard += 1;
+      } while (next.id === excludeId && guard < 12);
+      return next;
+    }
+
+    function updateStatus(extra) {
+      const base = catalog.songs && catalog.songs.length ? "共 " + catalog.songs.length + " 首" : "";
+      const mode = shuffleOn ? " · 隨機連播中" : "";
+      $("statusLine").textContent = (extra || base) + mode;
+    }
+
+    function playId(videoId, song, enableShuffle) {
       if (!videoId) return;
       pendingId = videoId;
+      currentId = videoId;
+      if (enableShuffle !== false) shuffleOn = true;
       localStorage.setItem("taiyang-simple-last", videoId);
+      if ($("songSelect").value !== videoId) $("songSelect").value = videoId;
       const who = song && song.performer === "master" ? "導師" : (song && song.performerLabel) || "";
       $("nowLine").innerHTML = "<strong>" + (song ? song.name : "—") + "</strong>" + (who ? " · " + who : "");
       if (player && player.loadVideoById) {
@@ -149,13 +171,24 @@
       } else if (apiReady) {
         createPlayer(videoId, true);
       }
+      updateStatus();
     }
 
     function playSelected() {
       const id = $("songSelect").value;
       if (!id) { $("statusLine").textContent = "請先選擇歌曲"; return; }
       const song = (catalog.songs || []).find((s) => s.id === id);
-      playId(id, song);
+      playId(id, song, true);
+    }
+
+    function playRandomNext() {
+      const next = pickRandomSong(currentId);
+      if (!next) {
+        shuffleOn = false;
+        updateStatus("已播放完畢");
+        return;
+      }
+      playId(next.id, next, true);
     }
 
     function createPlayer(videoId, autoplay) {
@@ -164,12 +197,18 @@
         playerVars: { playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1, origin: location.origin },
         events: {
           onReady: () => { if (autoplay) player.playVideo(); },
-          onStateChange: (e) => {
-            if (e.data === YT.PlayerState.PLAYING) $("btnPlay").textContent = "⏸ 暫停";
-            else $("btnPlay").textContent = "▶ 播放";
-          }
+          onStateChange: onPlayerStateChange
         }
       });
+    }
+
+    function onPlayerStateChange(e) {
+      if (e.data === YT.PlayerState.PLAYING) $("btnPlay").textContent = "⏸ 暫停";
+      else if (e.data === YT.PlayerState.PAUSED) $("btnPlay").textContent = "▶ 播放";
+      else if (e.data === YT.PlayerState.ENDED) {
+        $("btnPlay").textContent = "▶ 播放";
+        if (shuffleOn) playRandomNext();
+      }
     }
 
     $("btnPlay").addEventListener("click", () => {
@@ -185,13 +224,13 @@
 
     window.onYouTubeIframeAPIReady = function () {
       apiReady = true;
-      if (pendingId) playId(pendingId, (catalog.songs || []).find((s) => s.id === pendingId));
+      if (pendingId) playId(pendingId, (catalog.songs || []).find((s) => s.id === pendingId), false);
     };
 
     loadCatalog();
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=1").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
