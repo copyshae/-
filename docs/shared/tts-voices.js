@@ -62,6 +62,19 @@
     }
   }
 
+  function validateVoice(voice) {
+    if (!voice || !global.speechSynthesis) return null;
+    try {
+      const voices = global.speechSynthesis.getVoices() || [];
+      if (!voices.length) return voice;
+      return voices.find(function (v) {
+        return v.voiceURI === voice.voiceURI || v.name === voice.name;
+      }) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function voiceScore(voice, preferGender) {
     let score = 0;
     const g = guessGender(voice);
@@ -543,6 +556,8 @@
 
   function startKeepAlive() {
     clearKeepAlive();
+    // iOS Safari 的 pause/resume 常導致整段靜音，略過保活
+    if (isIOS()) return;
     // Chrome 長語音偶發靜默中斷：短暫 pause/resume 保活
     speakKeepAliveTimer = setInterval(function () {
       if (!speakActive || speakPaused) return;
@@ -633,9 +648,11 @@
     const u = new SpeechSynthesisUtterance(String(chunk || ""));
     u.rate = (opts && opts.rate) || settings.rate || 0.95;
     u.pitch = (opts && opts.pitch) || settings.pitch || 1;
-    if (settings.voice) {
-      u.voice = settings.voice;
-      u.lang = settings.voice.lang || settings.lang || "zh-TW";
+    if (isIOS() && u.pitch < 0.55) u.pitch = 0.55;
+    const voice = validateVoice(settings.voice);
+    if (voice) {
+      u.voice = voice;
+      u.lang = voice.lang || settings.lang || "zh-TW";
     } else {
       u.lang = settings.lang || "zh-TW";
     }
@@ -664,9 +681,22 @@
       // 小間隔，讓取消／暫停更容易插入
       setTimeout(function () { speakNextChunk(sessionId); }, 40);
     };
-    u.onerror = function () {
+    var retried = false;
+    u.onerror = function (ev) {
       if (sessionId !== speakSession) return;
       if (speakPaused) return;
+      var err = (ev && ev.error) ? String(ev.error) : "";
+      if (!retried && speakIndex === 0 && err && /canceled|interrupted/i.test(err)) {
+        retried = true;
+        var fallback = makeUtterance(chunk, { voice: null, pitch: 1, rate: settings.rate || 0.95, lang: "zh-TW" }, speakOptsActive || {});
+        fallback.onend = u.onend;
+        fallback.onerror = function () {
+          if (sessionId !== speakSession) return;
+          speakIndex += 1;
+          setTimeout(function () { speakNextChunk(sessionId); }, 40);
+        };
+        try { global.speechSynthesis.speak(fallback); return; } catch (e) {}
+      }
       speakIndex += 1;
       setTimeout(function () { speakNextChunk(sessionId); }, 40);
     };
@@ -679,12 +709,45 @@
     notifySpeakStatus({ reason: "speaking" });
   }
 
+  function unlockSpeech() {
+    if (!global.speechSynthesis) return false;
+    try {
+      global.speechSynthesis.getVoices();
+      var u = new SpeechSynthesisUtterance("\u200b");
+      u.volume = 0.01;
+      u.rate = 1;
+      u.lang = "zh-TW";
+      global.speechSynthesis.speak(u);
+    } catch (e) {}
+    return true;
+  }
+
+  function speakFromUserGesture(text, opts) {
+    if (!global.speechSynthesis) return false;
+    try { global.speechSynthesis.getVoices(); } catch (e) {}
+    return speakQueued(text, opts);
+  }
+
   function speakQueued(text, opts) {
     if (!global.speechSynthesis) {
       alert("此瀏覽器不支援語音讀誦，請用 Chrome／Edge／Safari。");
       return false;
     }
-    stopSpeakQueue();
+    try { global.speechSynthesis.getVoices(); } catch (e) {}
+    var wasSpeaking = speakActive;
+    try {
+      wasSpeaking = wasSpeaking || global.speechSynthesis.speaking || global.speechSynthesis.pending;
+    } catch (e) {}
+    if (wasSpeaking) stopSpeakQueue();
+    else {
+      speakSession += 1;
+      speakChunks = [];
+      speakIndex = 0;
+      speakPaused = false;
+      speakActive = false;
+      speakOptsActive = null;
+      clearKeepAlive();
+    }
     speakOptsActive = opts ? Object.assign({}, opts) : null;
     const maxLen = (opts && opts.maxLen) || (/^en/i.test((opts && opts.lang) || "") ? 160 : 120);
     const chunks = splitSpeechChunks(text, maxLen);
@@ -723,6 +786,8 @@
     listVoiceChoices: listVoiceChoices,
     splitSpeechChunks: splitSpeechChunks,
     speakQueued: speakQueued,
+    speakFromUserGesture: speakFromUserGesture,
+    unlockSpeech: unlockSpeech,
     stopSpeakQueue: stopSpeakQueue,
     pauseSpeakQueue: pauseSpeakQueue,
     resumeSpeakQueue: resumeSpeakQueue,
