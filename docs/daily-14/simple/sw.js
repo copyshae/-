@@ -1,4 +1,4 @@
-const CACHE = "daily14-simple-v1";
+const CACHE = "daily14-simple-v2";
 const ASSETS = ["./", "./index.html", "./share.html", "../icon-180.png", "../icon-192.png"];
 
 self.addEventListener("install", (e) => {

@@ -70,7 +70,7 @@
 <body>
   <div class="wrap">
     <h1>每日14樣功課<br /><span style="font-size:0.82em;font-weight:600">簡易版</span></h1>
-    <p class="sub">勾選即消失 · 可分享網址 · 不影響完整版記錄</p>
+    <p class="sub">14 項功課 · 勾選即消失 · 可分享網址</p>
 
     <div class="pill-row">
       <span class="pill" id="todayLabel">—</span>
@@ -82,21 +82,22 @@
     <ul id="list" aria-label="今日功課清單"></ul>
 
     <div class="done-panel" id="donePanel">
-      <h2>今日功課全部完成</h2>
-      <p>明天會自動重新出現 14 項。</p>
+      <h2>今日 14 項全部完成</h2>
+      <p>明天會自動重新出現。</p>
+      <div class="actions" style="margin-top:0.65rem;">
+        <button type="button" id="resetBtnDone" class="primary">重設今日</button>
+      </div>
     </div>
 
     <div class="actions" id="bottomActions">
-      <button type="button" id="undoBtn">撤銷上一項</button>
-      <button type="button" id="resetBtn">重設今日</button>
+      <button type="button" id="resetBtn" class="primary">重設今日</button>
       <button type="button" id="btnShare" class="share">🔗 分享簡易版網址</button>
     </div>
     <p class="status" id="statusLine"></p>
     <p class="share-url" id="shareUrlLine">https://copyshae.github.io/-/daily-14/simple/</p>
 
     <p class="foot">
-      需要讀誦、匯入同步、七習慣對照？→
-      <a href="../index.html">開啟完整版</a>
+      <a href="../index.html">完整版</a>（讀誦、同步等）
       · <a href="./share.html">加入主畫面</a>
     </p>
   </div>
@@ -125,7 +126,7 @@
     const TZ = "Asia/Taipei";
 
     let guestMode = false;
-    let state = { date: "", done: [], order: [] };
+    let state = { date: "", done: [] };
 
     const $ = (id) => document.getElementById(id);
 
@@ -155,23 +156,21 @@
       try {
         if (guestMode) {
           const raw = sessionStorage.getItem(STORAGE_GUEST);
-          if (!raw) return { date: key, done: [], order: [] };
+          if (!raw) return { date: key, done: [] };
           const data = JSON.parse(raw);
-          if (!data || data.date !== key) return { date: key, done: [], order: [] };
+          if (!data || data.date !== key) return { date: key, done: [] };
           return {
             date: data.date,
-            done: Array.isArray(data.done) ? data.done.map(Number) : [],
-            order: Array.isArray(data.order) ? data.order.map(Number) : []
+            done: Array.isArray(data.done) ? data.done.map(Number) : []
           };
         }
         const raw = localStorage.getItem(STORAGE_PERSONAL);
-        if (!raw) return { date: key, done: [], order: [] };
+        if (!raw) return { date: key, done: [] };
         const data = JSON.parse(raw);
-        if (!data || data.date !== key) return { date: key, done: [], order: [] };
+        if (!data || data.date !== key) return { date: key, done: [] };
         return {
           date: data.date,
-          done: Array.isArray(data.done) ? data.done.map(Number) : [],
-          order: Array.isArray(data.order) ? data.order.map(Number) : []
+          done: Array.isArray(data.done) ? data.done.map(Number) : []
         };
       } catch (_) {
         return { date: key, done: [], order: [] };
@@ -205,7 +204,7 @@
 
     function render() {
       if (state.date !== todayKey()) {
-        state = { date: todayKey(), done: [], order: [] };
+        state = { date: todayKey(), done: [] };
         saveState();
       }
       const listEl = $("list");
@@ -233,7 +232,6 @@
     function completeTask(id, li) {
       if (state.done.includes(id)) return;
       state.done.push(id);
-      state.order.push(id);
       saveState();
       if (li) {
         li.classList.add("done");
@@ -241,23 +239,15 @@
       } else render();
     }
 
-    function undoLast() {
-      if (!state.order.length) return;
-      const id = state.order.pop();
-      state.done = state.done.filter((x) => x !== id);
-      saveState();
-      render();
-    }
-
     function resetToday() {
       if (!confirm("確定要重設今日全部勾選嗎？")) return;
-      state = { date: todayKey(), done: [], order: [] };
+      state = { date: todayKey(), done: [] };
       saveState();
       render();
     }
 
     function updateStatus(msg) {
-      $("statusLine").textContent = msg || (guestMode ? "訪客模式（不寫入個人／完整版記錄）" : "資料存在簡易版本機（與完整版分開）");
+      $("statusLine").textContent = msg || (guestMode ? "訪客模式（不寫入本機記錄）" : "");
     }
 
     async function shareApp() {
@@ -271,7 +261,7 @@
             text: "超級生命密碼每日14樣功課（簡易勾選版）",
             url: url
           });
-          updateStatus("已開啟分享（您的完整版記錄不受影響）");
+          updateStatus("已開啟分享");
           return;
         } catch (err) {
           if (err && err.name === "AbortError") return;
@@ -280,15 +270,15 @@
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(url);
-          updateStatus("已複製分享網址（完整版 daily14-v1 不受影響）");
+          updateStatus("已複製分享網址");
           return;
         }
       } catch (_) {}
       window.prompt("複製此網址分享：", url);
     }
 
-    $("undoBtn").addEventListener("click", undoLast);
     $("resetBtn").addEventListener("click", resetToday);
+    $("resetBtnDone").addEventListener("click", resetToday);
     $("btnShare").addEventListener("click", shareApp);
 
     guestMode = readGuestParam();
@@ -298,7 +288,7 @@
     updateStatus();
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=1").catch(function () {});
+      navigator.serviceWorker.register("./sw.js?v=2").catch(function () {});
     }
   </script>
 </body>
