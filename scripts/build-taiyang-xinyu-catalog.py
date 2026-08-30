@@ -84,6 +84,8 @@ def is_xinyu_item(src: dict, overrides: dict[str, str], block_ids: set[str], blo
         return False
     if is_junk_item(src):
         return False
+    if iid in overrides:
+        return True
     source = (src.get("source") or "種子語錄").strip()
     if source == "種子語錄":
         return True
@@ -93,8 +95,6 @@ def is_xinyu_item(src: dict, overrides: dict[str, str], block_ids: set[str], blo
     img = (src.get("imageUrl") or "")
     if "lookaside.fbsbx.com" in img or "fbsbx.com" in img:
         return False
-    if iid in overrides:
-        return True
     if source == "YouTube 搜尋":
         return False
     if source == "網路搜尋" and "cdn.richestlife.com" in img and XINYU_CDN.search(img):
