@@ -185,8 +185,23 @@ def extract_quote_from_page_url(url: str) -> str:
     return re.sub(r"\s+", " ", slug).strip()
 
 
+def strip_short_title_prefix(title: str, text: str) -> str:
+    """卡片標題列不朗讀：若主文以短標題開頭且緊接逗號，去掉標題重複段。"""
+    title = (title or "").strip()
+    text = (text or "").strip()
+    if not title or not text or not text.startswith(title):
+        return text
+    if "，" in title or "；" in title or ";" in title:
+        return text
+    rest = text[len(title):]
+    if rest.startswith("，") or rest.startswith(","):
+        body = rest.lstrip("，,、。 ")
+        return body if body else text
+    return text
+
+
 def build_read_text(item: dict) -> str:
-    """產生與圖片／卡片上文字一致的朗讀稿。"""
+    """產生朗讀稿：不唸標題，只唸圖片主文與白話。"""
     title = clean_read_suffix(item.get("title", ""))
     text = clean_read_suffix(item.get("text", ""))
     plain = clean_read_suffix(item.get("plain", ""))
@@ -202,19 +217,13 @@ def build_read_text(item: dict) -> str:
     if quote:
         parts.append(quote)
     elif source == "YouTube 搜尋" or "youtube.com" in page_url:
-        main = re.sub(r"^太陽心語[：:]\s*", "", text or title)
+        main = re.sub(r"^太陽心語[：:]\s*", "", text)
         main = re.sub(r"\s*摄影\s*.*$", "", main)
+        main = re.sub(r"^太陽心語\s+", "", main)
         if main:
             parts.append(main.strip())
     elif text:
-        if title and title != text and text.startswith(title):
-            parts.append(text)
-        elif title and title != text and title not in text:
-            parts.append(text)
-        else:
-            parts.append(text)
-    elif title:
-        parts.append(title)
+        parts.append(strip_short_title_prefix(title, text))
 
     if plain and "YouTube" not in plain:
         joined = "。".join(parts)
