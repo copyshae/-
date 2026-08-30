@@ -47,6 +47,18 @@ SKIP_IMAGE_HOST = (
     "profile", "emoji", "button", "banner-ad",
 )
 
+JUNK_ITEM = re.compile(r"Photographer AIKU|photo\.aiku|舞川あいく", re.I)
+
+
+def is_junk_item(src: dict) -> bool:
+    blob = (src.get("title") or "") + (src.get("text") or "") + (src.get("pageUrl") or "")
+    if JUNK_ITEM.search(blob):
+        return True
+    img = (src.get("imageUrl") or "")
+    if "fbcdn.net" in img and "photo.aiku" in blob.lower():
+        return True
+    return False
+
 XINYU_MARK = re.compile(r"太陽心語|心語|箴言|導師")
 
 
@@ -493,7 +505,7 @@ def merge_items() -> list[dict]:
     out: list[dict] = []
 
     for src in seed + links + web + yt + art:
-        if src.get("disabled"):
+        if src.get("disabled") or is_junk_item(src):
             continue
         iid = (src.get("id") or "").strip()
         if not iid or iid in seen_id:
