@@ -19,6 +19,7 @@ SEED = ROOT / "data" / "taiyang-xinyu-seed.json"
 LINKS = ROOT / "data" / "taiyang-xinyu-links.json"
 OUT_DIR = ROOT / "docs" / "taiyang-xinyu"
 CARDS = OUT_DIR / "cards"
+MIRROR = CARDS / "mirror"
 CATALOG = OUT_DIR / "catalog.json"
 
 BG_TOP = (255, 252, 245)
@@ -156,6 +157,57 @@ def guess_category(title: str, text: str = "") -> str:
         if kw in blob:
             return cat
     return "生活"
+
+
+def normalize_url(url: str) -> str:
+    from urllib.parse import quote, unquote, urlsplit, urlunsplit
+    p = urlsplit(url.strip())
+    segs = []
+    for seg in p.path.split("/"):
+        if not seg:
+            segs.append("")
+            continue
+        try:
+            seg = unquote(seg)
+        except Exception:
+            pass
+        segs.append(quote(seg, safe=""))
+    path = "/".join(segs)
+    if path and not path.startswith("/"):
+        path = "/" + path
+    return urlunsplit((p.scheme, p.netloc, path, p.query, p.fragment))
+
+
+def guess_ext(data: bytes, url: str) -> str:
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return ".png"
+    if data[:3] == b"GIF":
+        return ".gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ".webp"
+    low = url.lower()
+    for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+        if ext in low:
+            return ext if ext != ".jpeg" else ".jpg"
+    return ".jpg"
+
+
+def mirror_image(url: str, dest_base: Path) -> Path | None:
+    enc = normalize_url(url)
+    try:
+        req = urllib.request.Request(enc, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+        if len(data) < 800:
+            return None
+        ext = guess_ext(data, url)
+        dest = dest_base.with_suffix(ext)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        return dest
+    except Exception as e:
+        print(f"鏡像失敗 [{url[:70]}…]: {e}")
+        return None
 
 
 def is_good_image(url: str, title: str = "") -> bool:
@@ -337,10 +389,21 @@ def merge_items() -> list[dict]:
 def build() -> dict:
     items = merge_items()
     CARDS.mkdir(parents=True, exist_ok=True)
+    MIRROR.mkdir(parents=True, exist_ok=True)
 
     for it in items:
-        if it["imageUrl"]:
-            it["imageLocal"] = ""
+        ext_url = (it.get("imageUrl") or "").strip()
+        if ext_url:
+            it["imageUrl"] = normalize_url(ext_url)
+            mirrored = mirror_image(it["imageUrl"], MIRROR / it["id"])
+            if mirrored:
+                it["imageLocal"] = f"cards/mirror/{mirrored.name}"
+                print(f"鏡像 {it['id']} → {it['imageLocal']}")
+            else:
+                rel = f"cards/{it['id']}.png"
+                draw_card(it, CARDS / f"{it['id']}.png")
+                it["imageLocal"] = rel
+                print(f"外部圖失效，改卡片 {it['id']}")
         else:
             rel = f"cards/{it['id']}.png"
             draw_card(it, CARDS / f"{it['id']}.png")
