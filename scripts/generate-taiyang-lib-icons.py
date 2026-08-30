@@ -135,6 +135,11 @@ def main() -> int:
         path = OUT / name
         draw_icon(size).convert("RGB").save(path, optimize=True)
         print(f"Wrote {path}")
+    # iOS Safari 常用根目錄 apple-touch-icon.png
+    icon180 = OUT / "icon-180.png"
+    apple = OUT / "apple-touch-icon.png"
+    apple.write_bytes(icon180.read_bytes())
+    print(f"Wrote {apple}")
     return 0
 
 
