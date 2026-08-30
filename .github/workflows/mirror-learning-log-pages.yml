@@ -10,6 +10,7 @@ on:
       - "docs/doc-reader/**"
       - "docs/dizigui-41/**"
       - "docs/taiyang-music/**"
+      - "docs/fu-dao-ni-jia/**"
       - "docs/directory/**"
       - ".github/workflows/mirror-learning-log-pages.yml"
   workflow_dispatch:
@@ -31,6 +32,7 @@ jobs:
           rsync -a docs/doc-reader/ docs/directory/apps/doc-reader/
           rsync -a --delete docs/dizigui-41/ docs/directory/apps/dizigui-41/
           rsync -a --delete docs/taiyang-music/ docs/directory/apps/taiyang-music/
+          rsync -a --delete docs/fu-dao-ni-jia/ docs/directory/apps/fu-dao-ni-jia/
           for n in 21 22 23 24 25 26 27 28 29; do
             cp -f "_export/hello-world/directory/202608/202608${n}-learning-log.html" docs/directory/202608/ 2>/dev/null || true
           done
@@ -43,7 +45,8 @@ jobs:
             -e 's#https://copyshae.github.io/hello-world/directory/apps/daily-14/#https://copyshae.github.io/-/directory/apps/daily-14/#g' \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/doc-reader/#https://copyshae.github.io/-/directory/apps/doc-reader/#g' \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/dizigui-41/#https://copyshae.github.io/-/directory/apps/dizigui-41/#g' \
-            -e 's#https://copyshae.github.io/hello-world/directory/apps/taiyang-music/#https://copyshae.github.io/-/directory/apps/taiyang-music/#g'
+            -e 's#https://copyshae.github.io/hello-world/directory/apps/taiyang-music/#https://copyshae.github.io/-/directory/apps/taiyang-music/#g' \
+            -e 's#https://copyshae.github.io/hello-world/directory/apps/fu-dao-ni-jia/#https://copyshae.github.io/-/directory/apps/fu-dao-ni-jia/#g'
           for n in 21 22 23 24 25 26 27 28 29; do
             find docs/directory -name '*.html' -print0 | xargs -0 sed -i \
               -e "s#https://copyshae.github.io/hello-world/directory/202608/202608${n}-learning-log.html#https://copyshae.github.io/-/directory/202608/202608${n}-learning-log.html#g"
@@ -58,12 +61,13 @@ jobs:
           fi
           git clone --depth 1 --branch master "https://x-access-token:${HELLO_WORLD_TOKEN}@github.com/copyshae/hello-world.git" /tmp/hw
           mkdir -p /tmp/hw/directory/apps/habits-7 /tmp/hw/directory/apps/daily-14 /tmp/hw/directory/apps/doc-reader \
-            /tmp/hw/directory/apps/dizigui-41 /tmp/hw/directory/apps/taiyang-music /tmp/hw/directory/202608
+            /tmp/hw/directory/apps/dizigui-41 /tmp/hw/directory/apps/taiyang-music /tmp/hw/directory/apps/fu-dao-ni-jia /tmp/hw/directory/202608
           rsync -a _export/hello-world/directory/apps/habits-7/ /tmp/hw/directory/apps/habits-7/
           rsync -a docs/daily-14/ /tmp/hw/directory/apps/daily-14/
           rsync -a docs/doc-reader/ /tmp/hw/directory/apps/doc-reader/
           rsync -a --delete docs/dizigui-41/ /tmp/hw/directory/apps/dizigui-41/
           rsync -a --delete docs/taiyang-music/ /tmp/hw/directory/apps/taiyang-music/
+          rsync -a --delete docs/fu-dao-ni-jia/ /tmp/hw/directory/apps/fu-dao-ni-jia/
           for n in 21 22 23 24 25 26 27 28 29; do
             cp -f "_export/hello-world/directory/202608/202608${n}-learning-log.html" /tmp/hw/directory/202608/ 2>/dev/null || true
           done
