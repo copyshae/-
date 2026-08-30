@@ -20,7 +20,10 @@
 *.tar
 *.zip
 
-# Logs and databases #
+# Python
+__pycache__/
+*.pyc
+
 ######################
 *.log
 *.sql
