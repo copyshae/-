@@ -55,6 +55,9 @@
     input[type="search"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139, 90, 20, 0.12); }
     .search-hint { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
     .search-meta { font-size: 0.74rem; color: var(--muted); margin-bottom: 0.35rem; min-height: 1rem; }
+    .search-toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.45rem; }
+    .search-toolbar .meta { margin-left: auto; font-size: 0.72rem; color: var(--muted); }
+    .search-toolbar .btn { font-size: 0.78rem; padding: 0.4rem 0.65rem; }
     .list { max-height: 14rem; overflow-y: auto; border: 1px solid var(--line); border-radius: 0.35rem; background: #fff; }
     .item {
       display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line);
@@ -101,7 +104,11 @@
 
     <section class="search-panel">
       <h2 class="section">🔍 快速搜尋（全部分類）</h2>
-      <p class="search-hint">輸入關鍵字即搜尋 488 則；Enter 播放第一筆；可分享搜尋網址</p>
+      <p class="search-hint" id="searchHint">輸入關鍵字即搜尋全庫；Enter 播放第一筆；完整版、簡易版皆可隨時更新目錄</p>
+      <div class="search-toolbar">
+        <button type="button" class="btn" id="btnRefresh">🔄 更新目錄</button>
+        <span class="meta" id="catalogMeta">載入中…</span>
+      </div>
       <input type="search" id="searchBox" placeholder="例：富足、霸凌、S3E、開示、親唱…" enterkeyhint="search" autocomplete="off" />
       <p class="search-meta" id="searchMeta"></p>
       <div class="list" id="itemList" role="listbox"></div>
@@ -127,10 +134,6 @@
       </div>
     </section>
 
-    <div class="toolbar">
-      <button type="button" class="btn" id="btnRefresh">🔄 更新目錄</button>
-      <span class="meta" id="catalogMeta"></span>
-    </div>
     <p class="status" id="statusLine"></p>
 
     <p class="hint">
@@ -146,6 +149,7 @@
   <script>
     const CATALOG_URL = "./catalog.json";
     const STORAGE_KEY = "taiyang-lib-v1";
+    const CATALOG_CACHE_KEY = "taiyang-lib-catalog";
     let catalog = { categories: [] };
     let catId = "broadcast";
     let filtered = [];
@@ -203,32 +207,66 @@
       return m ? "https://www.youtube.com/embed/" + m[1] + "?rel=0&modestbranding=1&playsinline=1" : "";
     }
 
-    async function loadCatalog(force) {
-      $("statusLine").textContent = force ? "更新目錄…" : "載入中…";
-      let remote = null;
+    async function fetchCatalog(force) {
+      const tryFetch = async (url) => {
+        const res = await fetch(url, { cache: force ? "no-store" : "default" });
+        return res.ok ? res.json() : null;
+      };
       try {
-        const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
-        if (res.ok) remote = await res.json();
+        const data = await tryFetch(CATALOG_URL + (force ? "?t=" + Date.now() : ""));
+        if (data) return data;
       } catch (_) {}
-      if (!remote) {
+      if (force) {
         try {
-          const res = await fetch(CATALOG_URL);
-          if (res.ok) remote = await res.json();
+          const data = await tryFetch(CATALOG_URL + "?t=" + Date.now());
+          if (data) return data;
         } catch (_) {}
       }
+      try {
+        const data = await tryFetch(CATALOG_URL);
+        if (data) return data;
+      } catch (_) {}
+      try {
+        const s = localStorage.getItem(CATALOG_CACHE_KEY);
+        if (s) return JSON.parse(s);
+      } catch (_) {}
+      return null;
+    }
+
+    function saveCatalogCache(data) {
+      try { localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+    }
+
+    function updateCatalogMeta() {
+      const n = catalog.count || allItems().length || 0;
+      const d = catalog.updatedAt || "—";
+      $("catalogMeta").textContent = n + " 則 · 更新日 " + d;
+      $("searchHint").textContent = "輸入關鍵字即搜尋全庫 " + n + " 則；Enter 播放第一筆；隨時按「更新目錄」拉最新";
+    }
+
+    async function loadCatalog(force) {
+      $("statusLine").textContent = force ? "更新目錄…" : "載入中…";
+      if (force) $("btnRefresh").disabled = true;
+      let remote = null;
+      try {
+        remote = await fetchCatalog(force);
+      } catch (_) {}
       if (remote) {
         catalog = remote;
-        try { localStorage.setItem("taiyang-lib-catalog", JSON.stringify(catalog)); } catch (_) {}
+        saveCatalogCache(remote);
       } else {
         try {
-          const s = localStorage.getItem("taiyang-lib-catalog");
+          const s = localStorage.getItem(CATALOG_CACHE_KEY);
           if (s) catalog = JSON.parse(s);
         } catch (_) {}
       }
       renderTabs();
       renderList();
-      $("catalogMeta").textContent = (catalog.count || allItems().length) + " 則 · " + (catalog.updatedAt || "");
-      $("statusLine").textContent = remote ? "目錄已更新" : "使用快取目錄";
+      updateCatalogMeta();
+      $("statusLine").textContent = remote
+        ? (force ? "目錄已更新" : "已載入最新目錄")
+        : "無法連線，使用本機快取";
+      if (force) $("btnRefresh").disabled = false;
       applyUrlParams();
       if (!current) {
         const prefs = loadPrefs();
@@ -423,7 +461,7 @@
     if (prefs.catId) catId = prefs.catId;
     loadCatalog(false);
 
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=3").catch(() => {});
   </script>
 </body>
 </html>

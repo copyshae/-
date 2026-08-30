@@ -32,6 +32,9 @@
     }
     input[type="search"]:focus { outline: none; border-color: var(--accent); }
     .search-meta { margin-top: 0.35rem; font-size: 0.72rem; color: var(--muted); min-height: 1rem; }
+    .search-toolbar { margin-top: 0.45rem; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .search-toolbar button { flex: 0 0 auto; width: auto; font-size: 0.76rem; padding: 0.45rem 0.65rem; }
+    .search-toolbar .meta { margin-left: auto; font-size: 0.72rem; color: var(--muted); }
     .cat-row { margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .cat-row button {
       font: inherit; font-size: 0.72rem; padding: 0.3rem 0.55rem; border-radius: 999px;
@@ -72,11 +75,15 @@
 <body>
   <div class="wrap">
     <h1>太陽盛德導師<br />親身口述影音<br /><span style="font-size:0.85em">簡易版</span></h1>
-    <p class="sub">快速搜尋 · 點選即播 · 可分享</p>
+    <p class="sub">快速搜尋 · 點選即播 · 可分享 · 隨時更新目錄</p>
 
     <section class="search-box">
       <label for="searchBox">🔍 快速搜尋</label>
       <input type="search" id="searchBox" placeholder="輸入關鍵字…（例：富足、S3E、開示）" enterkeyhint="search" autocomplete="off" />
+      <div class="search-toolbar">
+        <button type="button" id="btnRefresh">🔄 更新目錄</button>
+        <span class="meta" id="catalogMeta">載入中…</span>
+      </div>
       <p class="search-meta" id="searchMeta">載入中…</p>
       <div class="cat-row" id="catFilter"></div>
       <div class="list" id="itemList"></div>
@@ -91,9 +98,6 @@
         <button type="button" id="btnShare">🔗 分享此則</button>
         <button type="button" id="btnShareSearch">🔗 分享搜尋</button>
       </div>
-      <div class="toolbar">
-        <button type="button" id="btnRefresh">🔄 更新目錄</button>
-      </div>
     </section>
 
     <p class="status" id="statusLine"></p>
@@ -107,6 +111,7 @@
     const CATALOG_URL = "../catalog.json";
     const SHARE_BASE = "https://copyshae.github.io/-/taiyang-lib/simple/";
     const STORAGE = "taiyang-lib-simple-v1";
+    const CATALOG_CACHE_KEY = "taiyang-lib-catalog";
     let catalog = { categories: [] };
     let allFlat = [];
     let filtered = [];
@@ -254,20 +259,58 @@
       return false;
     }
 
+    async function fetchCatalog(force) {
+      const tryFetch = async (url) => {
+        const res = await fetch(url, { cache: force ? "no-store" : "default" });
+        return res.ok ? res.json() : null;
+      };
+      try {
+        const data = await tryFetch(CATALOG_URL + (force ? "?t=" + Date.now() : ""));
+        if (data) return data;
+      } catch (_) {}
+      if (force) {
+        try {
+          const data = await tryFetch(CATALOG_URL + "?t=" + Date.now());
+          if (data) return data;
+        } catch (_) {}
+      }
+      try {
+        const data = await tryFetch(CATALOG_URL);
+        if (data) return data;
+      } catch (_) {}
+      try {
+        const s = localStorage.getItem(CATALOG_CACHE_KEY);
+        if (s) return JSON.parse(s);
+      } catch (_) {}
+      return null;
+    }
+
+    function saveCatalogCache(data) {
+      try { localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+    }
+
+    function updateCatalogMeta() {
+      const n = catalog.count || allFlat.length || 0;
+      const d = catalog.updatedAt || "—";
+      $("catalogMeta").textContent = n + " 則 · 更新日 " + d;
+    }
+
     async function loadCatalog(force) {
       $("statusLine").textContent = force ? "更新目錄…" : "載入中…";
+      if (force) $("btnRefresh").disabled = true;
       let remote = null;
       try {
-        const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
-        if (res.ok) remote = await res.json();
+        remote = await fetchCatalog(force);
       } catch (_) {}
-      if (!remote) {
+      if (remote) {
+        catalog = remote;
+        saveCatalogCache(remote);
+      } else {
         try {
-          const res = await fetch(CATALOG_URL);
-          if (res.ok) remote = await res.json();
-        } catch (__) {}
+          const s = localStorage.getItem(CATALOG_CACHE_KEY);
+          if (s) catalog = JSON.parse(s);
+        } catch (_) {}
       }
-      if (remote) catalog = remote;
       flattenCatalog();
       renderCatFilter();
       const sharedQ = (urlParams().get("q") || "").trim();
@@ -277,6 +320,7 @@
         renderCatFilter();
       }
       renderList();
+      updateCatalogMeta();
       applyUrlParams();
       if (!current && persist) {
         try {
@@ -285,7 +329,10 @@
         } catch (_) {}
       }
       if (!current) renderList();
-      $("statusLine").textContent = remote ? "目錄已更新 · 共 " + (catalog.count || allFlat.length) + " 則" : "使用快取 · 共 " + allFlat.length + " 則";
+      $("statusLine").textContent = remote
+        ? (force ? "目錄已更新 · 共 " + (catalog.count || allFlat.length) + " 則" : "已載入最新目錄")
+        : "無法連線，使用本機快取 · 共 " + allFlat.length + " 則";
+      if (force) $("btnRefresh").disabled = false;
     }
 
     function applyUrlParams() {
@@ -353,7 +400,7 @@
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
 
     loadCatalog(false);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=3").catch(() => {});
   </script>
 </body>
 </html>
