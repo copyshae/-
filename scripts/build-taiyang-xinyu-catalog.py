@@ -185,11 +185,30 @@ def guess_ext(data: bytes, url: str) -> str:
         return ".gif"
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         return ".webp"
+    if data[:2] == b"\xff\xd8":
+        return ".jpg"
     low = url.lower()
     for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
         if ext in low:
             return ext if ext != ".jpeg" else ".jpg"
     return ".jpg"
+
+
+def is_image_data(data: bytes) -> bool:
+    if len(data) < 800:
+        return False
+    if data[:2] == b"\xff\xd8":
+        return True
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return True
+    if data[:3] == b"GIF":
+        return True
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return True
+    head = data[:512].lstrip().lower()
+    if head.startswith(b"<!doctype") or head.startswith(b"<html") or head.startswith(b"{"):
+        return False
+    return False
 
 
 def mirror_image(url: str, dest_base: Path) -> Path | None:
@@ -198,7 +217,7 @@ def mirror_image(url: str, dest_base: Path) -> Path | None:
         req = urllib.request.Request(enc, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = resp.read()
-        if len(data) < 800:
+        if not is_image_data(data):
             return None
         ext = guess_ext(data, url)
         dest = dest_base.with_suffix(ext)
