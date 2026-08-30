@@ -11,14 +11,15 @@
 
   function fullBodyFromItem(it) {
     var parts = [];
-    var text = cleanRead(it.text || "");
-    var plain = cleanRead(it.plain || "");
+    var text = cleanRead(it.text || "").replace(/[。]+$/g, "");
+    var plain = cleanRead(it.plain || "").replace(/^[。]+/g, "").replace(/[。]+$/g, "");
     if (text) parts.push(text);
     if (plain && plain.indexOf("YouTube") < 0) {
       var joined = parts.join("。");
       if (joined.indexOf(plain) < 0) parts.push(plain);
     }
-    return parts.filter(Boolean).join("。");
+    var out = parts.filter(Boolean).join("。");
+    return out ? out + "。" : "";
   }
 
   /** 標題另起一段；若正文開頭已是標題，不再重複加標題 */
