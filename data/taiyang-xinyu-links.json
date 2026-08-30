@@ -1,0 +1,13 @@
+[
+  {
+    "id": "link-sample",
+    "title": "範例：在此新增外部圖片",
+    "text": "請編輯 data/taiyang-xinyu-links.json，填入 imageUrl 後執行 build 腳本更新目錄。",
+    "plain": "可貼上社群、官網的太陽心語圖片連結，與種子語錄合併收錄。",
+    "category": "生活",
+    "imageUrl": "",
+    "date": "",
+    "source": "外部連結（範例）",
+    "disabled": true
+  }
+]
