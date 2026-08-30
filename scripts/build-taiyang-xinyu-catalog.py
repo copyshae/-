@@ -157,6 +157,78 @@ def clean_title(s: str) -> str:
     return s[:80] if s else "太陽心語"
 
 
+def clean_read_suffix(s: str) -> str:
+    s = re.sub(r"\s*天圓文化\s*Richestlife\s*", "", s or "", flags=re.I)
+    s = re.sub(r"\s*YouTube\s*太陽心語相關影音縮圖\s*", "", s, flags=re.I)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def extract_quote_from_image_url(url: str) -> str:
+    from urllib.parse import unquote
+    if not url:
+        return ""
+    name = unquote(url.split("/")[-1].split("?")[0])
+    name = re.sub(r"\.(jpg|jpeg|png|webp|gif)$", "", name, flags=re.I)
+    name = re.sub(r"^(?:太陽心語|太阳心语)[-—_\s]*", "", name)
+    name = re.sub(r"\d{4}[-_]?CH[\d\-]+P?\d+.*$", "", name, flags=re.I)
+    name = re.sub(r"[-_]+", " ", name)
+    return re.sub(r"\s+", " ", name).strip()
+
+
+def extract_quote_from_page_url(url: str) -> str:
+    from urllib.parse import unquote
+    if not url:
+        return ""
+    slug = unquote(url.rstrip("/").split("/")[-1])
+    slug = slug.replace("-", " ").replace("_", " ")
+    return re.sub(r"\s+", " ", slug).strip()
+
+
+def build_read_text(item: dict) -> str:
+    """產生與圖片／卡片上文字一致的朗讀稿。"""
+    title = clean_read_suffix(item.get("title", ""))
+    text = clean_read_suffix(item.get("text", ""))
+    plain = clean_read_suffix(item.get("plain", ""))
+    image_url = (item.get("imageUrl") or "").strip()
+    page_url = (item.get("pageUrl") or "").strip()
+    source = (item.get("source") or "").strip()
+
+    quote = ""
+    if "richestlife" in image_url or "richestlife" in page_url:
+        quote = extract_quote_from_image_url(image_url) or extract_quote_from_page_url(page_url)
+
+    parts: list[str] = []
+    if quote:
+        parts.append(quote)
+    elif source == "YouTube 搜尋" or "youtube.com" in page_url:
+        main = re.sub(r"^太陽心語[：:]\s*", "", text or title)
+        main = re.sub(r"\s*摄影\s*.*$", "", main)
+        if main:
+            parts.append(main.strip())
+    elif text:
+        if title and title != text and text.startswith(title):
+            parts.append(text)
+        elif title and title != text and title not in text:
+            parts.append(text)
+        else:
+            parts.append(text)
+    elif title:
+        parts.append(title)
+
+    if plain and "YouTube" not in plain:
+        joined = "。".join(parts)
+        if plain not in joined:
+            parts.append(plain)
+
+    out: list[str] = []
+    for p in parts:
+        p = p.strip("。 ")
+        if p and p not in out:
+            out.append(p)
+    return "。".join(out)
+
+
 def guess_category(title: str, text: str = "") -> str:
     blob = title + text
     rules = [
@@ -438,6 +510,8 @@ def build() -> dict:
             rel = f"cards/{it['id']}.png"
             draw_card(it, CARDS / f"{it['id']}.png")
             it["imageLocal"] = rel
+
+        it["readText"] = build_read_text(it)
 
     cats: dict[str, list] = {}
     for it in items:
