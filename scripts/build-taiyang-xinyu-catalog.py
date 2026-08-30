@@ -224,10 +224,12 @@ def build_read_text(item: dict, overrides: dict[str, str] | None = None) -> tupl
     if source == "種子語錄" and not image_url:
         parts: list[str] = []
         if text:
-            parts.append(strip_short_title_prefix(title, text))
+            parts.append(text.strip("。 "))
         if plain and plain not in "。".join(parts):
-            parts.append(plain)
+            parts.append(plain.strip("。 "))
         out = "。".join(p for p in parts if p)
+        if out and not out.endswith("。"):
+            out += "。"
         return out, "seed"
 
     quote = ""
