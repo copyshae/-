@@ -49,18 +49,29 @@ SKIP_IMAGE_HOST = (
 XINYU_MARK = re.compile(r"太陽心語|心語|箴言|導師")
 
 
+def _try_truetype(path: str, size: int) -> ImageFont.FreeTypeFont | None:
+    if not Path(path).exists():
+        return None
+    try:
+        return ImageFont.truetype(path, size, index=0)
+    except OSError:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            return None
+
+
 def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     candidates = [
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc" if bold else "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc" if bold else "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+        "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
     ]
     for p in candidates:
-        if Path(p).exists():
-            try:
-                return ImageFont.truetype(p, size)
-            except OSError:
-                pass
+        f = _try_truetype(p, size)
+        if f:
+            return f
     return ImageFont.load_default()
 
 
