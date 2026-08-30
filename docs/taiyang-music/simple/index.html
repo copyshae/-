@@ -48,7 +48,7 @@
 <body>
   <div class="wrap">
     <h1>太陽盛德導師創作歌曲<br /><span style="font-size:0.85em;font-weight:600">簡易版</span></h1>
-    <p class="sub">選歌即播 · 隨機連播 · 介面精簡 · 適合分享</p>
+    <p class="sub">選歌即播 · 切換歌曲隨即播放 · 介面精簡 · 適合分享</p>
 
     <label for="songSelect">選擇歌曲</label>
     <select id="songSelect" aria-label="歌曲選單">
@@ -73,8 +73,8 @@
     let player = null;
     let apiReady = false;
     let pendingId = null;
-    let shuffleOn = false;
     let currentId = null;
+    let userPicked = false;
 
     const $ = (id) => document.getElementById(id);
 
@@ -136,59 +136,47 @@
       updateStatus(catalog.songs && catalog.songs.length ? "" : "無法載入曲庫");
     }
 
-    function pickRandomSong(excludeId) {
-      const songs = sortSongs(catalog.songs || []);
-      if (!songs.length) return null;
-      if (songs.length === 1) return songs[0];
-      let next;
-      let guard = 0;
-      do {
-        next = songs[Math.floor(Math.random() * songs.length)];
-        guard += 1;
-      } while (next.id === excludeId && guard < 12);
-      return next;
-    }
-
     function updateStatus(extra) {
       const base = catalog.songs && catalog.songs.length ? "共 " + catalog.songs.length + " 首" : "";
-      const mode = shuffleOn ? " · 隨機連播中" : "";
-      $("statusLine").textContent = (extra || base) + mode;
+      $("statusLine").textContent = extra || base;
     }
 
-    function playId(videoId, song, enableShuffle) {
+    function startPlayback() {
+      if (!player || !player.playVideo) return;
+      player.playVideo();
+      setTimeout(() => {
+        if (player && player.getPlayerState && player.getPlayerState() !== YT.PlayerState.PLAYING) {
+          player.playVideo();
+        }
+      }, 450);
+    }
+
+    function playId(videoId, song) {
       if (!videoId) return;
       pendingId = videoId;
       currentId = videoId;
-      if (enableShuffle !== false) shuffleOn = true;
       localStorage.setItem("taiyang-simple-last", videoId);
-      if ($("songSelect").value !== videoId) $("songSelect").value = videoId;
       const who = song && song.performer === "master" ? "導師" : (song && song.performerLabel) || "";
       $("nowLine").innerHTML = "<strong>" + (song ? song.name : "—") + "</strong>" + (who ? " · " + who : "");
       if (player && player.loadVideoById) {
         try { player.loadVideoById({ videoId: videoId, startSeconds: 0 }); }
         catch (_) { player.loadVideoById(videoId, 0); }
-        setTimeout(() => player.playVideo && player.playVideo(), 350);
+        startPlayback();
       } else if (apiReady) {
         createPlayer(videoId, true);
       }
       updateStatus();
     }
 
-    function playSelected() {
+    function playSelected(fromUser) {
       const id = $("songSelect").value;
-      if (!id) { $("statusLine").textContent = "請先選擇歌曲"; return; }
-      const song = (catalog.songs || []).find((s) => s.id === id);
-      playId(id, song, true);
-    }
-
-    function playRandomNext() {
-      const next = pickRandomSong(currentId);
-      if (!next) {
-        shuffleOn = false;
-        updateStatus("已播放完畢");
+      if (!id) {
+        if (fromUser) $("statusLine").textContent = "請先選擇歌曲";
         return;
       }
-      playId(next.id, next, true);
+      if (fromUser) userPicked = true;
+      const song = (catalog.songs || []).find((s) => s.id === id);
+      playId(id, song);
     }
 
     function createPlayer(videoId, autoplay) {
@@ -205,32 +193,30 @@
     function onPlayerStateChange(e) {
       if (e.data === YT.PlayerState.PLAYING) $("btnPlay").textContent = "⏸ 暫停";
       else if (e.data === YT.PlayerState.PAUSED) $("btnPlay").textContent = "▶ 播放";
-      else if (e.data === YT.PlayerState.ENDED) {
-        $("btnPlay").textContent = "▶ 播放";
-        if (shuffleOn) playRandomNext();
-      }
+      else if (e.data === YT.PlayerState.ENDED) $("btnPlay").textContent = "▶ 播放";
     }
 
     $("btnPlay").addEventListener("click", () => {
-      if (!player) { playSelected(); return; }
+      if (!player) { playSelected(true); return; }
       const st = player.getPlayerState();
       if (st === YT.PlayerState.PLAYING) player.pauseVideo();
-      else if ($("songSelect").value) player.playVideo();
-      else playSelected();
+      else if ($("songSelect").value) {
+        if (currentId && $("songSelect").value !== currentId) playSelected(true);
+        else startPlayback();
+      } else playSelected(true);
     });
 
-    $("songSelect").addEventListener("change", playSelected);
-    $("songSelect").addEventListener("input", playSelected);
+    $("songSelect").addEventListener("change", () => playSelected(true));
 
     window.onYouTubeIframeAPIReady = function () {
       apiReady = true;
-      if (pendingId) playId(pendingId, (catalog.songs || []).find((s) => s.id === pendingId), false);
+      if (pendingId && userPicked) playId(pendingId, (catalog.songs || []).find((s) => s.id === pendingId));
     };
 
     loadCatalog();
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=3").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>

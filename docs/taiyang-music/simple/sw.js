@@ -1,4 +1,4 @@
-const CACHE = "taiyang-music-simple-v2";
+const CACHE = "taiyang-music-simple-v3";
 const ASSETS = ["./", "./index.html", "./share.html", "../catalog.json"];
 
 self.addEventListener("install", (e) => {
