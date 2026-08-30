@@ -173,7 +173,7 @@
           done: Array.isArray(data.done) ? data.done.map(Number) : []
         };
       } catch (_) {
-        return { date: key, done: [], order: [] };
+        return { date: key, done: [] };
       }
     }
 
