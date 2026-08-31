@@ -75,6 +75,12 @@
     .player-mode-video #audioWrap { display: none !important; }
     .player-mode-audio #videoWrap { display: none !important; }
     .video-hint { margin-top: 0.45rem; font-size: 0.72rem; color: var(--muted); line-height: 1.45; }
+    .yt-open {
+      display: block; margin-top: 0.55rem; padding: 0.75rem; text-align: center; text-decoration: none;
+      background: var(--accent); color: #fff; font-weight: 700; border-radius: 0.45rem; font-size: 0.88rem;
+    }
+    .yt-open:active { opacity: 0.92; }
+    .yt-thumb { width: 100%; display: block; border-radius: 0.35rem; margin-top: 0.45rem; }
   </style>
 </head>
 <body>
@@ -97,8 +103,11 @@
     <section class="player" id="playerBox">
       <p class="now" id="nowLine"><strong>尚未播放</strong><span class="meta" id="nowMeta"></span></p>
       <div id="audioWrap"><audio id="audio" controls playsinline webkit-playsinline preload="metadata"></audio></div>
-      <div class="video-shell" id="videoWrap" hidden><iframe id="ytFrame" title="YouTube 播放" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-      <p class="video-hint" id="videoHint" hidden>此則為 YouTube 影音。iPhone 請點「在 YouTube 播放」，或點下方影片區的播放鍵。</p>
+      <div class="video-shell" id="videoWrap" hidden>
+        <iframe id="ytFrame" title="YouTube 播放" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+      <a class="yt-open" id="ytOpenLink" hidden href="#" target="_blank" rel="noopener noreferrer">▶ 在 YouTube 播放（建議 iPhone 用這個）</a>
+      <p class="video-hint" id="videoHint" hidden>此則為 YouTube 影音，無法像音檔一樣在頁內播放。請點上方紅色連結或下方「在 YouTube 播放」。</p>
       <div class="actions">
         <button type="button" id="btnPlay" class="primary">▶ 播放</button>
         <button type="button" id="btnOpenApp" hidden>📻 改在福到你家播</button>
@@ -173,27 +182,55 @@
       }
     }
 
+    function ytVideoId(url) {
+      const m = (url || "").match(/[?&]v=([^&]+)/) || (url || "").match(/youtu\.be\/([^?&]+)/);
+      return m ? m[1] : "";
+    }
+
+    function ytEmbed(url, autoplay) {
+      const id = ytVideoId(url);
+      if (!id) return "";
+      return "https://www.youtube.com/embed/" + id + "?rel=0&modestbranding=1&playsinline=1" + (autoplay ? "&autoplay=1" : "");
+    }
+
+    function openExternal(url) {
+      if (!url) return false;
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return true;
+    }
+
+    function updateYouTubeLink(it) {
+      const link = $("ytOpenLink");
+      const url = it && (it.openUrl || it.playUrl) || "";
+      if (!link) return;
+      if (isVideoItem(it) && url) {
+        link.hidden = false;
+        link.href = url;
+        link.textContent = "▶ 在 YouTube 播放（iPhone 請點這裡）";
+      } else {
+        link.hidden = true;
+        link.removeAttribute("href");
+      }
+    }
+
     function openYouTube(it) {
       const url = (it && (it.openUrl || it.playUrl)) || "";
       if (!url) {
         setStatus("無 YouTube 網址");
         return;
       }
-      if (isIOS()) {
-        window.open(url, "_blank", "noopener,noreferrer");
-        setStatus("已開啟 YouTube（若無反應請允許彈出視窗）");
+      if (openExternal(url)) {
+        setStatus("已開啟 YouTube");
         return;
       }
-      const emb = ytEmbed(url, true);
-      if (emb) {
-        setPlayerMode("video");
-        $("audioWrap").hidden = true;
-        $("videoWrap").hidden = false;
-        $("videoHint").hidden = false;
-        $("ytFrame").src = emb;
-      } else {
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
+      location.href = url;
     }
 
     function showPlayError() {
@@ -214,7 +251,7 @@
       }
     }
 
-    async function startAudio(url, autoplay) {
+    function startAudio(url, autoplay) {
       if (!url) {
         setStatus("無音檔網址");
         return;
@@ -223,13 +260,24 @@
       $("audioWrap").hidden = false;
       $("videoWrap").hidden = true;
       $("videoHint").hidden = true;
+      $("ytOpenLink").hidden = true;
       $("ytFrame").src = "";
       loadedAudioUrl = url;
-      setStatus(autoplay ? "載入音檔…" : "");
-      const resolved = await resolveAudioUrl(url);
-      audio.src = resolved;
+      audio.src = url;
       audio.load();
-      if (autoplay) audio.play().catch(showPlayError);
+      if (autoplay) {
+        const playPromise = audio.play();
+        if (playPromise && playPromise.catch) playPromise.catch(showPlayError);
+      }
+      if (url.indexOf("firstory") >= 0) {
+        resolveAudioUrl(url).then((resolved) => {
+          if (!resolved || resolved === url || loadedAudioUrl !== url) return;
+          const wasPlaying = !audio.paused;
+          audio.src = resolved;
+          audio.load();
+          if (wasPlaying) audio.play().catch(showPlayError);
+        }).catch(() => {});
+      }
     }
 
     function getShareBase() {
@@ -266,12 +314,6 @@
       const s = Number(sec);
       if (!s || s < 1) return "";
       return Math.floor(s / 60) + " 分";
-    }
-
-    function ytEmbed(url, autoplay) {
-      const m = (url || "").match(/[?&]v=([^&]+)/) || (url || "").match(/youtu\.be\/([^?&]+)/);
-      if (!m) return "";
-      return "https://www.youtube.com/embed/" + m[1] + "?rel=0&modestbranding=1&playsinline=1" + (autoplay ? "&autoplay=1" : "");
     }
 
     function renderCatFilter() {
@@ -368,12 +410,16 @@
         audio.removeAttribute("src");
         setPlayerMode("video");
         $("audioWrap").hidden = true;
-        $("videoWrap").hidden = false;
         $("videoHint").hidden = false;
-        const emb = ytEmbed(it.playUrl || it.openUrl || "", false);
-        $("ytFrame").src = emb;
-        if (autoplay && fromUser) openYouTube(it);
-        else if (autoplay && !isIOS()) $("ytFrame").src = ytEmbed(it.playUrl || it.openUrl || "", true);
+        updateYouTubeLink(it);
+        if (isIOS()) {
+          $("videoWrap").hidden = true;
+          $("ytFrame").src = "";
+          setStatus("YouTube 影音：請點紅色「在 YouTube 播放」");
+        } else {
+          $("videoWrap").hidden = false;
+          $("ytFrame").src = ytEmbed(it.playUrl || it.openUrl || "", autoplay && fromUser);
+        }
       } else {
         startAudio(it.playUrl || "", autoplay);
       }
@@ -572,7 +618,7 @@
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
 
     loadCatalog(false);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=10").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=11").catch(() => {});
   </script>
 </body>
 </html>
