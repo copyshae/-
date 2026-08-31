@@ -71,6 +71,10 @@
     .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); text-align: center; min-height: 1rem; }
     .foot { margin-top: 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; }
     .foot a { color: var(--accent); }
+    [hidden] { display: none !important; }
+    .player-mode-video #audioWrap { display: none !important; }
+    .player-mode-audio #videoWrap { display: none !important; }
+    .video-hint { margin-top: 0.45rem; font-size: 0.72rem; color: var(--muted); line-height: 1.45; }
   </style>
 </head>
 <body>
@@ -92,8 +96,9 @@
 
     <section class="player" id="playerBox">
       <p class="now" id="nowLine"><strong>尚未播放</strong><span class="meta" id="nowMeta"></span></p>
-      <div id="audioWrap"><audio id="audio" controls playsinline webkit-playsinline preload="auto"></audio></div>
-      <div class="video-shell" id="videoWrap" hidden><iframe id="ytFrame" title="播放" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+      <div id="audioWrap"><audio id="audio" controls playsinline webkit-playsinline preload="metadata"></audio></div>
+      <div class="video-shell" id="videoWrap" hidden><iframe id="ytFrame" title="YouTube 播放" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      <p class="video-hint" id="videoHint" hidden>此則為 YouTube 影音。iPhone 請點「在 YouTube 播放」，或點下方影片區的播放鍵。</p>
       <div class="actions">
         <button type="button" id="btnPlay" class="primary">▶ 播放</button>
         <button type="button" id="btnOpenApp" hidden>📻 改在福到你家播</button>
@@ -131,8 +136,64 @@
     }
 
     function updatePlayBtn() {
-      const playing = current && current.type === "audio" && !audio.paused;
+      if (current && isVideoItem(current)) {
+        $("btnPlay").textContent = "▶ 在 YouTube 播放";
+        return;
+      }
+      const playing = current && !isVideoItem(current) && !audio.paused;
       $("btnPlay").textContent = playing ? "⏸ 暫停" : "▶ 播放";
+    }
+
+    function isVideoItem(it) {
+      if (!it) return false;
+      if (it.type === "video") return true;
+      const u = (it.playUrl || it.openUrl || "").toLowerCase();
+      return u.includes("youtube.com") || u.includes("youtu.be");
+    }
+
+    function setPlayerMode(mode) {
+      const box = $("playerBox");
+      box.classList.remove("player-mode-audio", "player-mode-video");
+      if (mode === "video") box.classList.add("player-mode-video");
+      else if (mode === "audio") box.classList.add("player-mode-audio");
+    }
+
+    function isIOS() {
+      return /iPad|iPhone|iPod/i.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    async function resolveAudioUrl(url) {
+      if (!url || url.indexOf("firstory") < 0) return url;
+      try {
+        const res = await fetch(url, { method: "HEAD", mode: "cors", redirect: "follow" });
+        return res.url || url;
+      } catch (_) {
+        return url;
+      }
+    }
+
+    function openYouTube(it) {
+      const url = (it && (it.openUrl || it.playUrl)) || "";
+      if (!url) {
+        setStatus("無 YouTube 網址");
+        return;
+      }
+      if (isIOS()) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        setStatus("已開啟 YouTube（若無反應請允許彈出視窗）");
+        return;
+      }
+      const emb = ytEmbed(url, true);
+      if (emb) {
+        setPlayerMode("video");
+        $("audioWrap").hidden = true;
+        $("videoWrap").hidden = false;
+        $("videoHint").hidden = false;
+        $("ytFrame").src = emb;
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     }
 
     function showPlayError() {
@@ -142,22 +203,32 @@
     function updateOpenAppBtn() {
       const btn = $("btnOpenApp");
       if (!btn) return;
-      if (current && current.openUrl && current.localApp === "fu-dao-ni-jia") {
+      if (current && isVideoItem(current) && (current.openUrl || current.playUrl)) {
         btn.hidden = false;
+        btn.textContent = "▶ 在 YouTube 開啟";
+      } else if (current && current.openUrl && current.localApp === "fu-dao-ni-jia") {
+        btn.hidden = false;
+        btn.textContent = "📻 改在福到你家播";
       } else {
         btn.hidden = true;
       }
     }
 
-    function startAudio(url, autoplay) {
+    async function startAudio(url, autoplay) {
       if (!url) {
         setStatus("無音檔網址");
         return;
       }
+      setPlayerMode("audio");
       $("audioWrap").hidden = false;
       $("videoWrap").hidden = true;
+      $("videoHint").hidden = true;
+      $("ytFrame").src = "";
       loadedAudioUrl = url;
-      audio.src = url;
+      setStatus(autoplay ? "載入音檔…" : "");
+      const resolved = await resolveAudioUrl(url);
+      audio.src = resolved;
+      audio.load();
       if (autoplay) audio.play().catch(showPlayError);
     }
 
@@ -288,16 +359,23 @@
       if (fromUser) persist = true;
       if (persist) try { localStorage.setItem(STORAGE, it.id); } catch (_) {}
       $("nowLine").innerHTML = "<strong>" + it.title + "</strong>";
-      $("nowMeta").textContent = it._catName.replace(/｜.*/, "") + (it.date ? " · " + it.date : "");
-      if (it.type === "audio") {
-        startAudio(it.playUrl || "", autoplay);
-      } else {
+      $("nowMeta").textContent = (isVideoItem(it) ? "YouTube 影音" : "音檔")
+        + (it._catName ? " · " + it._catName.replace(/｜.*/, "") : "")
+        + (it.date ? " · " + it.date : "");
+      if (isVideoItem(it)) {
         loadedAudioUrl = "";
-        $("audioWrap").hidden = true;
-        $("videoWrap").hidden = false;
         audio.pause();
         audio.removeAttribute("src");
-        $("ytFrame").src = ytEmbed(it.playUrl, autoplay);
+        setPlayerMode("video");
+        $("audioWrap").hidden = true;
+        $("videoWrap").hidden = false;
+        $("videoHint").hidden = false;
+        const emb = ytEmbed(it.playUrl || it.openUrl || "", false);
+        $("ytFrame").src = emb;
+        if (autoplay && fromUser) openYouTube(it);
+        else if (autoplay && !isIOS()) $("ytFrame").src = ytEmbed(it.playUrl || it.openUrl || "", true);
+      } else {
+        startAudio(it.playUrl || "", autoplay);
       }
       updatePlayBtn();
       updateOpenAppBtn();
@@ -462,8 +540,8 @@
         setStatus("請先搜尋或選取");
         return;
       }
-      if (current.type === "video") {
-        $("ytFrame").src = ytEmbed(current.playUrl, true);
+      if (isVideoItem(current)) {
+        openYouTube(current);
         return;
       }
       if (!audio.paused) {
@@ -476,6 +554,8 @@
         startAudio(current.playUrl || "", true);
       }
     });
+    audio.addEventListener("loadedmetadata", () => setStatus(""));
+    audio.addEventListener("canplay", () => setStatus(""));
     audio.addEventListener("play", updatePlayBtn);
     audio.addEventListener("pause", updatePlayBtn);
     audio.addEventListener("error", () => {
@@ -483,14 +563,16 @@
       updateOpenAppBtn();
     });
     $("btnOpenApp").addEventListener("click", () => {
-      if (current && current.openUrl) location.href = current.openUrl;
+      if (!current) return;
+      if (isVideoItem(current)) openYouTube(current);
+      else if (current.openUrl) location.href = current.openUrl;
     });
     $("btnShare").addEventListener("click", shareCurrent);
     $("btnShareSearch").addEventListener("click", shareSearch);
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
 
     loadCatalog(false);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=9").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=10").catch(() => {});
   </script>
 </body>
 </html>
