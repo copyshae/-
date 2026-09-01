@@ -525,6 +525,7 @@
       <section>
         <h2>庫存異動紀錄</h2>
         <div class="card" id="stockLogList"></div>
+      </section>
     </div>
 
     <!-- 設定 -->
@@ -1791,15 +1792,22 @@
 
   function switchView(name) {
     document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-    document.getElementById("view-" + name).classList.add("active");
+    var viewEl = document.getElementById("view-" + name);
+    if (!viewEl) { toast("找不到分頁：" + name); return; }
+    viewEl.classList.add("active");
     document.querySelectorAll(".nav-item").forEach(function (n) {
       n.classList.toggle("on", n.dataset.view === name);
     });
-    if (name === "home") renderHome();
-    if (name === "list") renderList();
-    if (name === "stock") { renderStock(); renderStockLogs(); }
-    if (name === "stats") renderStats();
-    if (name === "settings") renderSettings();
+    try {
+      if (name === "home") renderHome();
+      if (name === "list") renderList();
+      if (name === "stock") { renderStock(); renderStockLogs(); }
+      if (name === "stats") renderStats();
+      if (name === "settings") renderSettings();
+    } catch (err) {
+      console.error(err);
+      toast("載入分頁失敗");
+    }
   }
 
   /*
@@ -1894,7 +1902,7 @@
           '<span class="n">' + x.e.fair + '</span><span class="n">' + x.total + '</span></div>';
       }).join("") +
         '<p class="tips" style="margin-top:0.5rem;text-align:center">點列可編輯 · 今日請領 ' + todayRecs.length + ' 筆 · ' +
-        esc(semesterLabel(semInfo.start, semInfo.sem)) + " 請領 " + semStats.classCount + " 班</p>';
+        esc(semesterLabel(semInfo.start, semInfo.sem)) + " 請領 " + semStats.classCount + " 班</p>";
       homeInv.querySelectorAll("[data-stock]").forEach(function (row) {
         row.onclick = function () {
           switchView("stock");
@@ -3661,7 +3669,11 @@
   document.getElementById("btnNewReq").onclick = function () { showReqForm(null); };
   document.getElementById("btnNewReq2").onclick = function () { showReqForm(null); };
   document.getElementById("btnManualPaste").onclick = showManualPasteModal;
-  document.getElementById("btnGoStats").onclick = function () { switchView("stats"); };
+  document.getElementById("btnGoStats").onclick = function () {
+    ensureStatsSemesterSelect();
+    switchView("stats");
+    window.scrollTo(0, 0);
+  };
 
   document.getElementById("stockSearch").oninput = function (ev) {
     stockSearch = ev.target.value;
