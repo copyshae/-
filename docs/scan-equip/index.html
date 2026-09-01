@@ -433,7 +433,7 @@
           <button class="btn" type="button" id="btnPhotoScan">拍照／相簿登記</button>
           <button class="btn secondary" type="button" id="btnNewReq">手動新增請領</button>
           <button class="btn secondary" type="button" id="btnManualPaste">手動貼文字</button>
-          <button class="btn secondary" type="button" id="btnGoStats">本月統計</button>
+          <button class="btn secondary" type="button" id="btnGoStats">本學期統計</button>
         </div>
         <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden" />
       </section>
@@ -449,6 +449,7 @@
           <li>手動請領：<strong>全部種類輸入完</strong>後按「前往確認」，確認視窗顯示完整一列再累加；可按「恢復」返回修改</li>
           <li>庫存依掃具種類登記，每種分「新、舊、尚可」統計數量</li>
           <li>欄位對齊「115 學年掃具請領」表：日期、班級、導師、各品項各自一欄</li>
+          <li>統計依<strong>學期</strong>：上學期 8 月～隔年 1 月；下學期 2 月～7 月</li>
           <li>可匯出 CSV，直接貼回 Excel 或用試算表開啟</li>
           <li>資料存本機；換手機請用「設定 → 匯出備份」</li>
         </ul>
@@ -472,9 +473,10 @@
     <div class="view" id="view-stats">
       <section>
         <div class="row">
-          <label for="statsMonth">月份</label>
-          <input type="month" id="statsMonth" />
+          <label for="statsSemester">學期</label>
+          <select id="statsSemester" class="grow"></select>
         </div>
+        <p class="tips" id="statsSemesterRange" style="margin-bottom:0.45rem"></p>
         <h2>品項領用排行</h2>
         <div class="card" id="itemRank"></div>
       </section>
@@ -485,7 +487,7 @@
       <section>
         <h2>匯出</h2>
         <div class="actions">
-          <button class="btn secondary" type="button" id="btnExportCsv">匯出本月 CSV（Excel 可用）</button>
+          <button class="btn secondary" type="button" id="btnExportCsv">匯出本學期 CSV（Excel 可用）</button>
           <button class="btn secondary" type="button" id="btnExportAllCsv">匯出全部 CSV</button>
         </div>
       </section>
@@ -1268,6 +1270,88 @@
     return d.getFullYear() + "-" + pad(d.getMonth() + 1);
   }
 
+  /** 學期：上學期 8月～隔年1月；下學期 2月～7月 */
+  function semesterPartsFromDate(dateStr) {
+    var p = String(dateStr || "").split("-");
+    var y = parseInt(p[0], 10);
+    var m = parseInt(p[1], 10);
+    if (!y || !m) return { start: new Date().getFullYear(), sem: 1 };
+    var start = m >= 8 ? y : y - 1;
+    var sem = (m >= 8 || m === 1) ? 1 : 2;
+    return { start: start, sem: sem };
+  }
+
+  function semesterKeyFromDate(dateStr) {
+    var sp = semesterPartsFromDate(dateStr);
+    return sp.start + "-" + sp.sem;
+  }
+
+  function parseSemesterKey(key) {
+    var p = String(key || "").split("-");
+    return { start: parseInt(p[0], 10), sem: parseInt(p[1], 10) };
+  }
+
+  function currentSemesterKey(d) {
+    d = d || new Date();
+    return semesterKeyFromDate(d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-01");
+  }
+
+  function semesterLabel(start, sem) {
+    return (start - 1911) + " 學年" + (sem === 1 ? "上學期" : "下學期");
+  }
+
+  function semesterRangeText(start, sem) {
+    if (sem === 1) return start + " 年 8 月～" + (start + 1) + " 年 1 月";
+    return (start + 1) + " 年 2 月～" + (start + 1) + " 年 7 月";
+  }
+
+  function recordInSemester(r, key) {
+    return semesterKeyFromDate(r.date) === key;
+  }
+
+  function listSemesterOptions() {
+    var keys = {};
+    keys[currentSemesterKey()] = true;
+    state.records.forEach(function (r) {
+      if (r.date) keys[semesterKeyFromDate(r.date)] = true;
+    });
+    return Object.keys(keys).map(function (k) {
+      var p = parseSemesterKey(k);
+      return {
+        key: k,
+        start: p.start,
+        sem: p.sem,
+        label: semesterLabel(p.start, p.sem),
+        range: semesterRangeText(p.start, p.sem)
+      };
+    }).sort(function (a, b) {
+      if (a.start !== b.start) return b.start - a.start;
+      return b.sem - a.sem;
+    });
+  }
+
+  function ensureStatsSemesterSelect() {
+    var sel = document.getElementById("statsSemester");
+    if (!sel) return currentSemesterKey();
+    var prev = sel.value || currentSemesterKey();
+    var opts = listSemesterOptions();
+    if (!opts.some(function (o) { return o.key === prev; })) prev = opts[0] ? opts[0].key : currentSemesterKey();
+    sel.innerHTML = opts.map(function (o) {
+      return '<option value="' + esc(o.key) + '"' + (o.key === prev ? " selected" : "") + ">" +
+        esc(o.label) + "</option>";
+    }).join("");
+    sel.value = prev;
+    var cur = opts.find(function (o) { return o.key === prev; });
+    var rangeEl = document.getElementById("statsSemesterRange");
+    if (rangeEl) rangeEl.textContent = cur ? cur.range : "";
+    return prev;
+  }
+
+  function selectedSemesterKey() {
+    var sel = document.getElementById("statsSemester");
+    return (sel && sel.value) || currentSemesterKey();
+  }
+
   function fmtDate(ts) {
     if (!ts) return "—";
     var d = new Date(ts);
@@ -1660,9 +1744,10 @@
 
     var inv = inventoryGrandTotals();
     var today = todayStr();
-    var month = monthStr();
+    var semKey = currentSemesterKey();
     var todayRecs = state.records.filter(function (r) { return r.date === today; });
-    var monthRecs = state.records.filter(function (r) { return r.date.slice(0, 7) === month; });
+    var semRecs = state.records.filter(function (r) { return recordInSemester(r, semKey); });
+    var semInfo = parseSemesterKey(semKey);
 
     document.getElementById("statsGrid").innerHTML =
       '<div class="stat"><div class="num">' + inv.total + '</div><div class="lbl">庫存合計</div></div>' +
@@ -1687,7 +1772,8 @@
           '<span class="n">' + x.e.new + '</span><span class="n">' + x.e.old + '</span>' +
           '<span class="n">' + x.e.fair + '</span><span class="n">' + x.total + '</span></div>';
       }).join("") +
-        '<p class="tips" style="margin-top:0.5rem;text-align:center">點列可編輯 · 今日請領 ' + todayRecs.length + ' 筆 · 本月 ' + monthRecs.length + ' 筆</p>';
+        '<p class="tips" style="margin-top:0.5rem;text-align:center">點列可編輯 · 今日請領 ' + todayRecs.length + ' 筆 · ' +
+        esc(semesterLabel(semInfo.start, semInfo.sem)) + " " + semRecs.length + " 筆</p>';
       homeInv.querySelectorAll("[data-stock]").forEach(function (row) {
         row.onclick = function () {
           switchView("stock");
@@ -1757,10 +1843,9 @@
   }
 
   function renderStats() {
-    var input = document.getElementById("statsMonth");
-    if (!input.value) input.value = monthStr();
-    var month = input.value;
-    var recs = state.records.filter(function (r) { return r.date.slice(0, 7) === month; });
+    var semKey = ensureStatsSemesterSelect();
+    var semInfo = parseSemesterKey(semKey);
+    var recs = state.records.filter(function (r) { return recordInSemester(r, semKey); });
 
     var itemTotals = {};
     state.items.forEach(function (it) { itemTotals[it.id] = 0; });
@@ -1776,8 +1861,9 @@
 
     var maxItem = itemSorted.length ? itemSorted[0].n : 1;
     var itemEl = document.getElementById("itemRank");
+    var semName = semesterLabel(semInfo.start, semInfo.sem);
     if (!itemSorted.length) {
-      itemEl.innerHTML = '<div class="empty">本月尚無品項數量</div>';
+      itemEl.innerHTML = '<div class="empty">' + esc(semName) + ' 尚無品項數量</div>';
     } else {
       itemEl.innerHTML = itemSorted.map(function (x) {
         return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
@@ -1798,7 +1884,7 @@
     var maxC = classSorted.length ? classSorted[0].n : 1;
     var classEl = document.getElementById("classRank");
     if (!classSorted.length) {
-      classEl.innerHTML = '<div class="empty">本月尚無班級累計</div>';
+      classEl.innerHTML = '<div class="empty">' + esc(semName) + ' 尚無班級累計</div>';
     } else {
       classEl.innerHTML = classSorted.slice(0, 20).map(function (x) {
         return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
@@ -2282,18 +2368,19 @@
     return s;
   }
 
-  function exportCsv(monthOnly) {
+  function exportCsv(semesterOnly) {
     var items = sortedItems();
     var headers = ["領用日期", "領用班級", "導師姓名"]
       .concat(items.map(function (it) { return it.name; }));
     var rows = [headers.join(",")];
-    var month = document.getElementById("statsMonth").value || monthStr();
+    var semKey = selectedSemesterKey();
+    var semInfo = parseSemesterKey(semKey);
     var list = state.records.slice().sort(function (a, b) {
       var ga = gradeRank(a.className) - gradeRank(b.className);
       if (ga) return ga;
       return normKey(a.className).localeCompare(normKey(b.className), "zh-Hant");
     });
-    if (monthOnly) list = list.filter(function (r) { return r.date.slice(0, 7) === month; });
+    if (semesterOnly) list = list.filter(function (r) { return recordInSemester(r, semKey); });
 
     list.forEach(function (r) {
       var cols = [r.date, r.className, r.teacher]
@@ -2305,7 +2392,9 @@
     var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = (monthOnly ? "掃具請領_" + month : "掃具請領_全部") + ".csv";
+    a.download = (semesterOnly
+      ? "掃具請領_" + semesterLabel(semInfo.start, semInfo.sem)
+      : "掃具請領_全部") + ".csv";
     a.click();
     URL.revokeObjectURL(a.href);
     toast("已匯出 CSV（" + list.length + " 筆）");
@@ -3336,7 +3425,7 @@
     renderList();
   };
 
-  document.getElementById("statsMonth").onchange = renderStats;
+  document.getElementById("statsSemester").onchange = renderStats;
   document.getElementById("btnExportCsv").onclick = function () { exportCsv(true); };
   document.getElementById("btnExportAllCsv").onclick = function () { exportCsv(false); };
 
@@ -3430,7 +3519,7 @@
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   }
 
-  document.getElementById("statsMonth").value = monthStr();
+  ensureStatsSemesterSelect();
   state.settings = migrateSettings(state.settings);
   state.inventory = ensureInventory(state.inventory);
   if (!state.stockLogs) state.stockLogs = [];
