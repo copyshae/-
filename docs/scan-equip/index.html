@@ -477,6 +477,7 @@
           <select id="statsSemester" class="grow"></select>
         </div>
         <p class="tips" id="statsSemesterRange" style="margin-bottom:0.45rem"></p>
+        <p class="tips" style="margin-bottom:0.45rem">以下為<strong>本學期請領量</strong>（依庫存異動累計；上學期 8 月～隔年 1 月、下學期 2 月～7 月）</p>
         <h2>品項領用排行</h2>
         <div class="card" id="itemRank"></div>
       </section>
@@ -1314,11 +1315,77 @@
     return semesterKeyFromDate(r.date) === key;
   }
 
+  /** 本學期請領量：優先依庫存異動紀錄（累加模式較準確） */
+  function semesterRequisitionStats(semKey) {
+    var itemTotals = {};
+    state.items.forEach(function (it) { itemTotals[it.id] = 0; });
+    var classQty = {};
+    var classSet = {};
+    var fromLogs = false;
+
+    (state.stockLogs || []).forEach(function (l) {
+      if (l.type !== "領用扣庫" && l.type !== "修正扣庫" && l.type !== "修正還庫") return;
+      if (!recordInSemester({ date: fmtDate(l.at) }, semKey)) return;
+      var q = Number(l.qty) || 0;
+      if (!q) return;
+      fromLogs = true;
+      var delta = l.type === "修正還庫" ? -q : q;
+      if (l.itemId) itemTotals[l.itemId] = (itemTotals[l.itemId] || 0) + delta;
+      var ck = l.className || "其他";
+      classQty[ck] = (classQty[ck] || 0) + delta;
+      classSet[ck] = true;
+    });
+
+    if (!fromLogs) {
+      state.records.forEach(function (r) {
+        if (!recordInSemester(r, semKey)) return;
+        state.items.forEach(function (it) {
+          itemTotals[it.id] = (itemTotals[it.id] || 0) + (Number(r.qtys[it.id]) || 0);
+        });
+        var ck = r.className || r.teacher || "其他";
+        classQty[ck] = (classQty[ck] || 0) + sumQty(r.qtys);
+        classSet[ck] = true;
+      });
+    }
+
+    return {
+      itemTotals: itemTotals,
+      classQty: classQty,
+      classCount: Object.keys(classSet).length,
+      fromLogs: fromLogs
+    };
+  }
+
+  function recordsForSemesterExport(semKey) {
+    var active = {};
+    (state.stockLogs || []).forEach(function (l) {
+      if (l.type !== "領用扣庫" && l.type !== "修正扣庫" && l.type !== "修正還庫") return;
+      if (!recordInSemester({ date: fmtDate(l.at) }, semKey)) return;
+      if (l.className) active[normKey(l.className)] = true;
+      if (l.recordId) {
+        var rec = state.records.find(function (r) { return r.id === l.recordId; });
+        if (rec) {
+          if (rec.className) active[normKey(rec.className)] = true;
+          if (rec.teacher) active[normKey(rec.teacher)] = true;
+        }
+      }
+    });
+    if (Object.keys(active).length) {
+      return state.records.filter(function (r) {
+        return active[normKey(r.className)] || active[normKey(r.teacher)];
+      });
+    }
+    return state.records.filter(function (r) { return recordInSemester(r, semKey); });
+  }
+
   function listSemesterOptions() {
     var keys = {};
     keys[currentSemesterKey()] = true;
     state.records.forEach(function (r) {
       if (r.date) keys[semesterKeyFromDate(r.date)] = true;
+    });
+    (state.stockLogs || []).forEach(function (l) {
+      if (l.at) keys[semesterKeyFromDate(fmtDate(l.at))] = true;
     });
     return Object.keys(keys).map(function (k) {
       var p = parseSemesterKey(k);
@@ -1800,7 +1867,7 @@
     var today = todayStr();
     var semKey = currentSemesterKey();
     var todayRecs = state.records.filter(function (r) { return r.date === today; });
-    var semRecs = state.records.filter(function (r) { return recordInSemester(r, semKey); });
+    var semStats = semesterRequisitionStats(semKey);
     var semInfo = parseSemesterKey(semKey);
 
     document.getElementById("statsGrid").innerHTML =
@@ -1827,7 +1894,7 @@
           '<span class="n">' + x.e.fair + '</span><span class="n">' + x.total + '</span></div>';
       }).join("") +
         '<p class="tips" style="margin-top:0.5rem;text-align:center">點列可編輯 · 今日請領 ' + todayRecs.length + ' 筆 · ' +
-        esc(semesterLabel(semInfo.start, semInfo.sem)) + " " + semRecs.length + " 筆</p>';
+        esc(semesterLabel(semInfo.start, semInfo.sem)) + " 請領 " + semStats.classCount + " 班</p>';
       homeInv.querySelectorAll("[data-stock]").forEach(function (row) {
         row.onclick = function () {
           switchView("stock");
@@ -1899,50 +1966,38 @@
   function renderStats() {
     var semKey = ensureStatsSemesterSelect();
     var semInfo = parseSemesterKey(semKey);
-    var recs = state.records.filter(function (r) { return recordInSemester(r, semKey); });
-
-    var itemTotals = {};
-    state.items.forEach(function (it) { itemTotals[it.id] = 0; });
-    recs.forEach(function (r) {
-      state.items.forEach(function (it) {
-        itemTotals[it.id] += Number(r.qtys[it.id]) || 0;
-      });
-    });
+    var stats = semesterRequisitionStats(semKey);
+    var itemTotals = stats.itemTotals;
+    var classQty = stats.classQty;
 
     var itemSorted = state.items.map(function (it) {
-      return { name: it.name, n: itemTotals[it.id] };
-    }).filter(function (x) { return x.n !== 0; }).sort(function (a, b) { return b.n - a.n; });
+      return { name: it.name, n: itemTotals[it.id] || 0 };
+    }).filter(function (x) { return x.n !== 0; }).sort(function (a, b) { return Math.abs(b.n) - Math.abs(a.n); });
 
-    var maxItem = itemSorted.length ? itemSorted[0].n : 1;
+    var maxItem = itemSorted.length ? Math.max.apply(null, itemSorted.map(function (x) { return Math.abs(x.n); })) : 1;
     var itemEl = document.getElementById("itemRank");
     var semName = semesterLabel(semInfo.start, semInfo.sem);
     if (!itemSorted.length) {
-      itemEl.innerHTML = '<div class="empty">' + esc(semName) + ' 尚無品項數量</div>';
+      itemEl.innerHTML = '<div class="empty">' + esc(semName) + ' 尚無請領紀錄</div>';
     } else {
       itemEl.innerHTML = itemSorted.map(function (x) {
         return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
-          '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(x.n / maxItem * 100) + '%"></div></div>' +
+          '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(Math.abs(x.n) / maxItem * 100) + '%"></div></div>' +
           "<strong>" + x.n + "</strong></div>";
       }).join("");
     }
 
-    var classQty = {};
-    recs.forEach(function (r) {
-      var ck = r.className || r.teacher || "其他";
-      classQty[ck] = (classQty[ck] || 0) + sumQty(r.qtys);
-    });
-
     var classSorted = Object.keys(classQty).map(function (k) {
       return { name: k, n: classQty[k] };
-    }).filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; });
-    var maxC = classSorted.length ? classSorted[0].n : 1;
+    }).filter(function (x) { return x.n !== 0; }).sort(function (a, b) { return Math.abs(b.n) - Math.abs(a.n); });
+    var maxC = classSorted.length ? Math.max.apply(null, classSorted.map(function (x) { return Math.abs(x.n); })) : 1;
     var classEl = document.getElementById("classRank");
     if (!classSorted.length) {
-      classEl.innerHTML = '<div class="empty">' + esc(semName) + ' 尚無班級累計</div>';
+      classEl.innerHTML = '<div class="empty">' + esc(semName) + ' 尚無班級請領</div>';
     } else {
       classEl.innerHTML = classSorted.slice(0, 20).map(function (x) {
         return '<div class="rank-item"><span>' + esc(x.name) + "</span>" +
-          '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(x.n / maxC * 100) + '%"></div></div>' +
+          '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(Math.abs(x.n) / maxC * 100) + '%"></div></div>' +
           "<strong>" + x.n + " 件</strong></div>";
       }).join("");
     }
@@ -2506,7 +2561,7 @@
       if (ga) return ga;
       return normKey(a.className).localeCompare(normKey(b.className), "zh-Hant");
     });
-    if (semesterOnly) list = list.filter(function (r) { return recordInSemester(r, semKey); });
+    if (semesterOnly) list = recordsForSemesterExport(semKey);
 
     function doExportCsv() {
       list.forEach(function (r) {
