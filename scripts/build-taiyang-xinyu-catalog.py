@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "data" / "taiyang-xinyu-seed.json"
 LINKS = ROOT / "data" / "taiyang-xinyu-links.json"
 READ_OVERRIDES = ROOT / "data" / "taiyang-xinyu-read-overrides.json"
+BLOCKLIST = ROOT / "data" / "taiyang-xinyu-blocklist.json"
 OUT_DIR = ROOT / "docs" / "taiyang-xinyu"
 CARDS = OUT_DIR / "cards"
 MIRROR = CARDS / "mirror"
@@ -39,7 +40,6 @@ IMAGE_QUERIES = [
 
 TEXT_QUERIES = [
     "太陽心語 site:richestlife.com",
-    "太陽心語 site:facebook.com/photo",
 ]
 
 SKIP_IMAGE_HOST = (
@@ -60,6 +60,48 @@ def is_junk_item(src: dict) -> bool:
     return False
 
 XINYU_MARK = re.compile(r"太陽心語|心語|箴言|導師")
+XINYU_CDN = re.compile(r"太陽心語|%E5%A4%AA%E9%99%BD%E5%BF%83%E8%AA%9E", re.I)
+
+
+def load_blocklist() -> tuple[set[str], list[re.Pattern[str]]]:
+    if not BLOCKLIST.exists():
+        return set(), []
+    data = json.loads(BLOCKLIST.read_text(encoding="utf-8"))
+    ids = set(data.get("ids") or [])
+    pats = [re.compile(p, re.I) for p in (data.get("patterns") or []) if p]
+    return ids, pats
+
+
+def load_read_overrides() -> dict[str, str]:
+    if not READ_OVERRIDES.exists():
+        return {}
+    return json.loads(READ_OVERRIDES.read_text(encoding="utf-8"))
+
+
+def is_xinyu_item(src: dict, overrides: dict[str, str], block_ids: set[str], block_pats: list[re.Pattern[str]]) -> bool:
+    iid = (src.get("id") or "").strip()
+    if not iid or iid in block_ids:
+        return False
+    if is_junk_item(src):
+        return False
+    if iid in overrides:
+        return True
+    source = (src.get("source") or "種子語錄").strip()
+    if source == "種子語錄":
+        return True
+    blob = (src.get("title") or "") + (src.get("text") or "") + (src.get("pageUrl") or "") + (src.get("imageUrl") or "")
+    if any(p.search(blob) for p in block_pats):
+        return False
+    img = (src.get("imageUrl") or "")
+    if "lookaside.fbsbx.com" in img or "fbsbx.com" in img:
+        return False
+    if source == "YouTube 搜尋":
+        return False
+    if source == "網路搜尋" and "cdn.richestlife.com" in img and XINYU_CDN.search(img):
+        return False
+    if source == "網路搜尋" and img and XINYU_MARK.search(blob):
+        return False
+    return source not in ("YouTube 搜尋", "網路搜尋") and bool(src.get("from_link"))
 
 
 def _try_truetype(path: str, size: int) -> ImageFont.FreeTypeFont | None:
@@ -211,12 +253,6 @@ def strip_short_title_prefix(title: str, text: str) -> str:
         body = rest.lstrip("，,、。 ")
         return body if body else text
     return text
-
-
-def load_read_overrides() -> dict[str, str]:
-    if not READ_OVERRIDES.exists():
-        return {}
-    return json.loads(READ_OVERRIDES.read_text(encoding="utf-8"))
 
 
 def build_read_text(item: dict, overrides: dict[str, str] | None = None) -> tuple[str, str]:
@@ -493,7 +529,16 @@ def search_richestlife_articles() -> list[dict]:
 
 def merge_items() -> list[dict]:
     seed = json.loads(SEED.read_text(encoding="utf-8"))
-    links = json.loads(LINKS.read_text(encoding="utf-8")) if LINKS.exists() else []
+    raw_links = json.loads(LINKS.read_text(encoding="utf-8")) if LINKS.exists() else []
+    links = []
+    for row in raw_links:
+        if row.get("disabled"):
+            continue
+        item = dict(row)
+        item["from_link"] = True
+        links.append(item)
+    overrides = load_read_overrides()
+    block_ids, block_pats = load_blocklist()
     web = search_images_ddgs()
     yt = search_youtube_thumbs()
     art = search_richestlife_articles()
@@ -503,12 +548,16 @@ def merge_items() -> list[dict]:
     seen_id: set[str] = set()
     seen_img: set[str] = set()
     out: list[dict] = []
+    skipped = 0
 
     for src in seed + links + web + yt + art:
-        if src.get("disabled") or is_junk_item(src):
+        if src.get("disabled"):
             continue
         iid = (src.get("id") or "").strip()
         if not iid or iid in seen_id:
+            continue
+        if not is_xinyu_item(src, overrides, block_ids, block_pats):
+            skipped += 1
             continue
         title = (src.get("title") or "").strip()
         text = (src.get("text") or "").strip()
@@ -531,6 +580,8 @@ def merge_items() -> list[dict]:
             "imageUrl": img,
             "pageUrl": (src.get("pageUrl") or "").strip(),
         })
+    if skipped:
+        print(f"略過非太陽心語／黑名單 {skipped} 則")
     return out
 
 
