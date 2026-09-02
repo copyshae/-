@@ -462,8 +462,9 @@
         <div class="row">
           <input type="search" id="listSearch" placeholder="搜尋班級、領用人、品項…" />
         </div>
+        <div class="filters" id="listSemesterFilters"></div>
         <div class="filters" id="gradeFilters"></div>
-        <p class="tips" style="margin-bottom:0.45rem">每班一列、各掃具累計數量（起始 0）；左右滑動可查看全部品項。</p>
+        <p class="tips" id="listViewTips" style="margin-bottom:0.45rem">每班一列、各掃具<strong>全學期累計</strong>數量；左右滑動可查看全部品項。</p>
         <div id="reqList"></div>
         <button class="btn fab" type="button" id="btnNewReq2">新增請領</button>
       </section>
@@ -477,7 +478,7 @@
           <select id="statsSemester" class="grow"></select>
         </div>
         <p class="tips" id="statsSemesterRange" style="margin-bottom:0.45rem"></p>
-        <p class="tips" style="margin-bottom:0.45rem">以下為<strong>本學期請領量</strong>（依庫存異動累計；上學期 8 月～隔年 1 月、下學期 2 月～7 月）</p>
+        <p class="tips" style="margin-bottom:0.45rem">以下為所選期間<strong>請領量</strong>（依庫存異動累計；上學期 8 月～隔年 1 月、下學期 2 月～7 月）</p>
         <h2>品項領用排行</h2>
         <div class="card" id="itemRank"></div>
       </section>
@@ -486,8 +487,8 @@
         <div class="card" id="classRank"></div>
       </section>
       <section>
-        <h2>本學期各班各品項累計</h2>
-        <p class="tips" style="margin-bottom:0.45rem">每班一列、各掃具為<strong>本學期累計請領量</strong>；可左右滑動。含官方 34 班（無請領顯示 0）。</p>
+        <h2 id="semesterMatrixTitle">各班各品項累計</h2>
+        <p class="tips" id="semesterMatrixTips" style="margin-bottom:0.45rem">每班一列、各掃具為所選期間累計請領量；可左右滑動。含官方 34 班（無請領顯示 0）。</p>
         <div id="semesterClassItemTable"></div>
         <button class="btn secondary" type="button" id="btnExportSemesterMatrix" style="margin-top:0.55rem">匯出本學期各班累計 CSV</button>
       </section>
@@ -741,6 +742,7 @@
   var lastManualUndo = null;
   var gradeFilter = "all";
   var listSearch = "";
+  var listViewMode = "cumulative";
   var stockSearch = "";
   var stockFilter = "all";
 
@@ -1301,7 +1303,9 @@
 
   function parseSemesterKey(key) {
     var p = String(key || "").split("-");
-    return { start: parseInt(p[0], 10), sem: parseInt(p[1], 10) };
+    var start = parseInt(p[0], 10);
+    var sem = p[1] === "full" ? "full" : parseInt(p[1], 10);
+    return { start: start, sem: sem };
   }
 
   function currentSemesterKey(d) {
@@ -1310,16 +1314,28 @@
   }
 
   function semesterLabel(start, sem) {
+    if (sem === "full") return (start - 1911) + " 學年全學年";
     return (start - 1911) + " 學年" + (sem === 1 ? "上學期" : "下學期");
   }
 
   function semesterRangeText(start, sem) {
+    if (sem === "full") return start + " 年 8 月～" + (start + 1) + " 年 7 月";
     if (sem === 1) return start + " 年 8 月～" + (start + 1) + " 年 1 月";
     return (start + 1) + " 年 2 月～" + (start + 1) + " 年 7 月";
   }
 
+  function recordInStatsPeriod(recOrDate, key) {
+    var dateStr = (recOrDate && recOrDate.date) ? recOrDate.date : recOrDate;
+    if (!dateStr || !key) return false;
+    var sp = parseSemesterKey(key);
+    if (sp.sem === "full") {
+      return semesterPartsFromDate(dateStr).start === sp.start;
+    }
+    return semesterKeyFromDate(dateStr) === key;
+  }
+
   function recordInSemester(r, key) {
-    return semesterKeyFromDate(r.date) === key;
+    return recordInStatsPeriod(r, key);
   }
 
   /** 本學期請領量：優先依庫存異動紀錄（累加模式較準確） */
@@ -1332,7 +1348,7 @@
 
     (state.stockLogs || []).forEach(function (l) {
       if (l.type !== "領用扣庫" && l.type !== "修正扣庫" && l.type !== "修正還庫") return;
-      if (!recordInSemester({ date: fmtDate(l.at) }, semKey)) return;
+      if (!recordInStatsPeriod({ date: fmtDate(l.at) }, semKey)) return;
       var q = Number(l.qty) || 0;
       if (!q) return;
       fromLogs = true;
@@ -1345,7 +1361,7 @@
 
     if (!fromLogs) {
       state.records.forEach(function (r) {
-        if (!recordInSemester(r, semKey)) return;
+        if (!recordInStatsPeriod(r, semKey)) return;
         state.items.forEach(function (it) {
           itemTotals[it.id] = (itemTotals[it.id] || 0) + (Number(r.qtys[it.id]) || 0);
         });
@@ -1367,7 +1383,7 @@
     var active = {};
     (state.stockLogs || []).forEach(function (l) {
       if (l.type !== "領用扣庫" && l.type !== "修正扣庫" && l.type !== "修正還庫") return;
-      if (!recordInSemester({ date: fmtDate(l.at) }, semKey)) return;
+      if (!recordInStatsPeriod({ date: fmtDate(l.at) }, semKey)) return;
       if (l.className) active[normKey(l.className)] = true;
       if (l.recordId) {
         var rec = state.records.find(function (r) { return r.id === l.recordId; });
@@ -1382,7 +1398,7 @@
         return active[normKey(r.className)] || active[normKey(r.teacher)];
       });
     }
-    return state.records.filter(function (r) { return recordInSemester(r, semKey); });
+    return state.records.filter(function (r) { return recordInStatsPeriod(r, semKey); });
   }
 
   /** 本學期各班各品項累計（優先依庫存異動） */
@@ -1408,7 +1424,7 @@
 
     (state.stockLogs || []).forEach(function (l) {
       if (l.type !== "領用扣庫" && l.type !== "修正扣庫" && l.type !== "修正還庫") return;
-      if (!recordInSemester({ date: fmtDate(l.at) }, semKey)) return;
+      if (!recordInStatsPeriod({ date: fmtDate(l.at) }, semKey)) return;
       if (!l.itemId) return;
       var q = Number(l.qty) || 0;
       if (!q) return;
@@ -1430,7 +1446,7 @@
 
     if (!fromLogs) {
       state.records.forEach(function (r) {
-        if (!recordInSemester(r, semKey)) return;
+        if (!recordInStatsPeriod(r, semKey)) return;
         var row = ensureRow(r.className, r.teacher);
         state.items.forEach(function (it) {
           row.qtys[it.id] = (Number(row.qtys[it.id]) || 0) + (Number(r.qtys[it.id]) || 0);
@@ -1496,15 +1512,35 @@
   }
 
   function listSemesterOptions() {
-    var keys = {};
-    keys[currentSemesterKey()] = true;
+    var semKeys = {};
+    semKeys[currentSemesterKey()] = true;
     state.records.forEach(function (r) {
-      if (r.date) keys[semesterKeyFromDate(r.date)] = true;
+      if (r.date) semKeys[semesterKeyFromDate(r.date)] = true;
     });
     (state.stockLogs || []).forEach(function (l) {
-      if (l.at) keys[semesterKeyFromDate(fmtDate(l.at))] = true;
+      if (l.at) semKeys[semesterKeyFromDate(fmtDate(l.at))] = true;
     });
-    return Object.keys(keys).map(function (k) {
+
+    var yearStarts = {};
+    Object.keys(semKeys).forEach(function (k) {
+      yearStarts[parseSemesterKey(k).start] = true;
+    });
+    yearStarts[semesterPartsFromDate(todayStr()).start] = true;
+
+    var opts = [];
+    Object.keys(yearStarts).map(function (s) { return parseInt(s, 10); }).sort(function (a, b) {
+      return b - a;
+    }).forEach(function (start) {
+      opts.push({
+        key: start + "-full",
+        start: start,
+        sem: "full",
+        label: semesterLabel(start, "full"),
+        range: semesterRangeText(start, "full")
+      });
+    });
+
+    Object.keys(semKeys).map(function (k) {
       var p = parseSemesterKey(k);
       return {
         key: k,
@@ -1516,7 +1552,17 @@
     }).sort(function (a, b) {
       if (a.start !== b.start) return b.start - a.start;
       return b.sem - a.sem;
-    });
+    }).forEach(function (o) { opts.push(o); });
+
+    return opts;
+  }
+
+  function findSemesterOption(key) {
+    var opts = listSemesterOptions();
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].key === key) return opts[i];
+    }
+    return null;
   }
 
   function ensureStatsSemesterSelect() {
@@ -1530,7 +1576,7 @@
         esc(o.label) + "</option>";
     }).join("");
     sel.value = prev;
-    var cur = opts.find(function (o) { return o.key === prev; });
+    var cur = findSemesterOption(prev);
     var rangeEl = document.getElementById("statsSemesterRange");
     if (rangeEl) rangeEl.textContent = cur ? cur.range : "";
     return prev;
@@ -2054,6 +2100,36 @@
     });
   }
 
+  function matrixRowSearchHay(row) {
+    var parts = [];
+    sortedItems().forEach(function (it) {
+      var n = Number(row.qtys[it.id]) || 0;
+      if (n) parts.push(it.name);
+    });
+    return (row.className + " " + row.teacher + " " + parts.join(" ")).toLowerCase();
+  }
+
+  function renderListSemesterFilters() {
+    var el = document.getElementById("listSemesterFilters");
+    if (!el) return;
+    var html = '<button type="button" class="chip' + (listViewMode === "cumulative" ? " on" : "") +
+      '" data-listsem="cumulative">全學期累計</button>';
+    listSemesterOptions().forEach(function (o) {
+      html += '<button type="button" class="chip' + (listViewMode === o.key ? " on" : "") +
+        '" data-listsem="' + esc(o.key) + '">' + esc(o.label) + "</button>";
+    });
+    el.innerHTML = html;
+  }
+
+  function filteredSemesterMatrix(semKey) {
+    var q = listSearch.toLowerCase();
+    return semesterClassItemMatrix(semKey).filter(function (row) {
+      if (gradeFilter !== "all" && gradeOf(row.className) !== gradeFilter) return false;
+      if (q && matrixRowSearchHay(row).indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
   function renderGradeFilters() {
     var grades = ["all", "1年級", "2年級", "3年級", "暑期", "其他"];
     document.getElementById("gradeFilters").innerHTML = grades.map(function (g) {
@@ -2076,9 +2152,31 @@
   }
 
   function renderList() {
+    renderListSemesterFilters();
     renderGradeFilters();
-    var list = filteredRecords();
     var el = document.getElementById("reqList");
+    var tipsEl = document.getElementById("listViewTips");
+
+    if (listViewMode !== "cumulative") {
+      var opt = findSemesterOption(listViewMode);
+      var semName = opt ? opt.label : "";
+      if (tipsEl) {
+        tipsEl.innerHTML = "顯示 <strong>" + esc(semName) + "</strong> 各班各品項請領量（非全學期累計）；左右滑動查看。" +
+          (opt && opt.range ? "（" + esc(opt.range) + "）" : "");
+      }
+      var matrix = filteredSemesterMatrix(listViewMode);
+      if (!matrix.length) {
+        el.innerHTML = '<div class="empty">此條件尚無請領紀錄</div>';
+        return;
+      }
+      el.innerHTML = semesterClassItemTableHtml(matrix);
+      return;
+    }
+
+    if (tipsEl) {
+      tipsEl.innerHTML = "每班一列、各掃具<strong>全學期累計</strong>數量；左右滑動可查看全部品項。可點「修正」改寫累計。";
+    }
+    var list = filteredRecords();
     if (!list.length) {
       el.innerHTML = '<div class="empty">此條件尚無請領紀錄</div>';
       return;
@@ -2128,6 +2226,12 @@
 
     var matrixRows = semesterClassItemMatrix(semKey);
     var matrixEl = document.getElementById("semesterClassItemTable");
+    var matrixTitle = document.getElementById("semesterMatrixTitle");
+    var matrixTips = document.getElementById("semesterMatrixTips");
+    if (matrixTitle) matrixTitle.textContent = semName + " 各班各品項累計";
+    if (matrixTips) {
+      matrixTips.textContent = "每班一列、各掃具為「" + semName + "」累計請領量；可左右滑動。含官方 34 班（無請領顯示 0）。";
+    }
     if (matrixEl) {
       matrixEl.innerHTML = semesterClassItemTableHtml(matrixRows);
     }
@@ -3820,6 +3924,12 @@
     ev.target.value = "";
   };
 
+  document.getElementById("listSemesterFilters").onclick = function (ev) {
+    var chip = ev.target.closest("[data-listsem]");
+    if (!chip) return;
+    listViewMode = chip.dataset.listsem;
+    renderList();
+  };
   document.getElementById("listSearch").oninput = function (ev) {
     listSearch = ev.target.value;
     renderList();
