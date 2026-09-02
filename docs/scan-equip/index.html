@@ -486,6 +486,12 @@
         <div class="card" id="classRank"></div>
       </section>
       <section>
+        <h2>本學期各班各品項累計</h2>
+        <p class="tips" style="margin-bottom:0.45rem">每班一列、各掃具為<strong>本學期累計請領量</strong>；可左右滑動。含官方 34 班（無請領顯示 0）。</p>
+        <div id="semesterClassItemTable"></div>
+        <button class="btn secondary" type="button" id="btnExportSemesterMatrix" style="margin-top:0.55rem">匯出本學期各班累計 CSV</button>
+      </section>
+      <section>
         <h2>匯出／匯入</h2>
         <div class="actions">
           <button class="btn secondary" type="button" id="btnExportCsv">匯出本學期 CSV（Excel 可用）</button>
@@ -1379,6 +1385,116 @@
     return state.records.filter(function (r) { return recordInSemester(r, semKey); });
   }
 
+  /** 本學期各班各品項累計（優先依庫存異動） */
+  function semesterClassItemMatrix(semKey) {
+    var rows = {};
+    var fromLogs = false;
+
+    function ensureRow(className, teacher) {
+      className = normKey(className);
+      teacher = normKey(teacher);
+      var key = className || ("@" + teacher);
+      if (!rows[key]) {
+        rows[key] = {
+          className: className,
+          teacher: teacher || (className && state.classMap[className] ? normKey(state.classMap[className]) : ""),
+          qtys: emptyQtys()
+        };
+      }
+      if (teacher && !rows[key].teacher) rows[key].teacher = teacher;
+      if (className && !rows[key].className) rows[key].className = className;
+      return rows[key];
+    }
+
+    (state.stockLogs || []).forEach(function (l) {
+      if (l.type !== "領用扣庫" && l.type !== "修正扣庫" && l.type !== "修正還庫") return;
+      if (!recordInSemester({ date: fmtDate(l.at) }, semKey)) return;
+      if (!l.itemId) return;
+      var q = Number(l.qty) || 0;
+      if (!q) return;
+      fromLogs = true;
+      var delta = l.type === "修正還庫" ? -q : q;
+      var className = normKey(l.className);
+      var teacher = "";
+      if (l.recordId) {
+        var rec = state.records.find(function (r) { return r.id === l.recordId; });
+        if (rec) {
+          className = className || normKey(rec.className);
+          teacher = normKey(rec.teacher);
+        }
+      }
+      if (!className && !teacher) className = "其他";
+      var row = ensureRow(className, teacher);
+      row.qtys[l.itemId] = (Number(row.qtys[l.itemId]) || 0) + delta;
+    });
+
+    if (!fromLogs) {
+      state.records.forEach(function (r) {
+        if (!recordInSemester(r, semKey)) return;
+        var row = ensureRow(r.className, r.teacher);
+        state.items.forEach(function (it) {
+          row.qtys[it.id] = (Number(row.qtys[it.id]) || 0) + (Number(r.qtys[it.id]) || 0);
+        });
+      });
+    }
+
+    Object.keys(state.classMap || {}).forEach(function (cls) {
+      ensureRow(cls, state.classMap[cls]);
+    });
+
+    return Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) {
+      var ga = gradeRank(a.className) - gradeRank(b.className);
+      if (ga) return ga;
+      return normKey(a.className).localeCompare(normKey(b.className), "zh-Hant") ||
+        normKey(a.teacher).localeCompare(normKey(b.teacher), "zh-Hant");
+    });
+  }
+
+  function semesterClassItemTableHtml(matrixRows) {
+    var items = sortedItems();
+    if (!matrixRows.length) {
+      return '<div class="empty">本學期尚無班級請領紀錄</div>';
+    }
+    var head = '<tr><th class="sticky-col sticky-col-2">班級</th>' +
+      '<th class="sticky-col sticky-col-3">導師</th>' +
+      items.map(function (it) {
+        return '<th title="' + esc(it.name) + '">' + esc(it.name) + "</th>";
+      }).join("") + "</tr>";
+    var body = matrixRows.map(function (r) {
+      var cells = items.map(function (it) {
+        var n = Number(r.qtys[it.id]) || 0;
+        return '<td class="' + (n !== 0 ? "num-on" : "num-off") + '">' + n + "</td>";
+      }).join("");
+      return '<tr><td class="sticky-col sticky-col-2">' + (r.className ? esc(r.className) : "—") + "</td>" +
+        '<td class="sticky-col sticky-col-3">' + (r.teacher ? esc(r.teacher) : "—") + "</td>" +
+        cells + "</tr>";
+    }).join("");
+    return '<div class="req-table-wrap"><table class="req-table"><thead>' + head +
+      "</thead><tbody>" + body + "</tbody></table></div>";
+  }
+
+  function exportSemesterClassItemCsv() {
+    var semKey = selectedSemesterKey();
+    var semInfo = parseSemesterKey(semKey);
+    var matrixRows = semesterClassItemMatrix(semKey);
+    var items = sortedItems();
+    var headers = ["班級", "導師"].concat(items.map(function (it) { return it.name; }));
+    var rows = [headers.join(",")];
+    matrixRows.forEach(function (r) {
+      rows.push([r.className, r.teacher]
+        .concat(items.map(function (it) { return Number(r.qtys[it.id]) || 0; }))
+        .map(csvEscape).join(","));
+    });
+    var bom = "\uFEFF";
+    var blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    var label = semesterLabel(semInfo.start, semInfo.sem);
+    function doExport() {
+      downloadBlob(blob, "掃具請領_" + label + "_各班累計.csv");
+      toast("已匯出 " + matrixRows.length + " 班");
+    }
+    confirmModal("匯出「" + label + "」各班各品項累計 CSV\n共 " + matrixRows.length + " 班。\n\n確定要下載嗎？", doExport);
+  }
+
   function listSemesterOptions() {
     var keys = {};
     keys[currentSemesterKey()] = true;
@@ -2008,6 +2124,12 @@
           '<div class="bar-wrap"><div class="bar" style="width:' + Math.round(Math.abs(x.n) / maxC * 100) + '%"></div></div>' +
           "<strong>" + x.n + " 件</strong></div>";
       }).join("");
+    }
+
+    var matrixRows = semesterClassItemMatrix(semKey);
+    var matrixEl = document.getElementById("semesterClassItemTable");
+    if (matrixEl) {
+      matrixEl.innerHTML = semesterClassItemTableHtml(matrixRows);
     }
   }
 
@@ -3710,6 +3832,7 @@
   };
 
   document.getElementById("statsSemester").onchange = renderStats;
+  document.getElementById("btnExportSemesterMatrix").onclick = exportSemesterClassItemCsv;
   document.getElementById("btnExportCsv").onclick = function () { exportCsv(true); };
   document.getElementById("btnExportAllCsv").onclick = function () { exportCsv(false); };
   document.getElementById("btnImportCsv").onclick = function () {
