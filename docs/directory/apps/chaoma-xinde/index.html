@@ -1,0 +1,3621 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#b8860b" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="修煉心得" />
+  <meta name="description" content="超碼修煉心得 SOP 生成：文字、口說、拍照、圖片、影片、印證參考、依內容配圖、Word/PDF 匯出。" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>超碼修煉心得</title>
+  <style>
+    :root {
+      --ink: #3a2214; --muted: #7a5640; --paper: #fff6e6;
+      --accent: #b8860b; --heart: #c45c26; --line: rgba(184, 134, 11, 0.25);
+      --ok: #2f6b3a; --warn: #b54708; --danger: #b42318;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--ink); line-height: 1.55;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -10%, rgba(255, 232, 163, 0.95), transparent 60%),
+        linear-gradient(180deg, #fff9eb 0%, #f7e4c0 48%, #efd2a0 100%);
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    .wrap { max-width: 26rem; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    header { text-align: center; margin-bottom: 0.85rem; }
+    header h1 {
+      font-size: clamp(1.35rem, 6vw, 1.75rem); color: var(--heart);
+      font-weight: 800; letter-spacing: 0.04em;
+    }
+    header .sub { font-size: 0.88rem; color: var(--muted); margin-top: 0.25rem; }
+    .card {
+      background: rgba(255, 252, 245, 0.82); border: 1px solid var(--line);
+      padding: 0.85rem; margin: 0.65rem 0;
+    }
+    .card h2 { font-size: 1rem; color: var(--accent); margin-bottom: 0.4rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
+    .hint.length-warn { color: var(--warn); font-weight: 700; }
+    .install-card.installed { border-color: rgba(47, 107, 58, 0.45); background: rgba(232, 245, 233, 0.75); }
+    .install-card .file-btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin: 0.45rem 0 0.2rem; }
+    input[type="text"], input[type="date"], input[type="password"], textarea, select {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.55rem 0.6rem;
+      border: 1px solid var(--line); background: #fff; line-height: 1.5;
+    }
+    textarea { min-height: 5.5rem; resize: vertical; }
+    #materialText { min-height: 7rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+    .author-date-row { align-items: stretch; }
+    .author-date-row input[type="date"] { flex: 1 1 10rem; width: auto; min-width: 0; margin: 0; }
+    .author-date-row button { flex: 0 0 auto; white-space: nowrap; }
+    button, .file-btn {
+      font: inherit; cursor: pointer; border: 1px solid var(--line);
+      background: #fff; color: var(--accent); padding: 0.55rem 0.75rem;
+      font-weight: 700; min-height: 2.75rem; touch-action: manipulation;
+    }
+    button.primary, .file-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.recording { background: var(--danger); color: #fff; border-color: var(--danger); animation: pulse 1s infinite; }
+    button.speaking { background: var(--ok); color: #fff; border-color: var(--ok); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    input[type="file"] { display: none; }
+    .status { font-size: 0.84rem; font-weight: 700; min-height: 1.2rem; margin-top: 0.35rem; color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .status.err { color: var(--danger); }
+    .tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.45rem; }
+    .tabs button { flex: 1 1 auto; min-width: 4.5rem; font-size: 0.82rem; padding: 0.45rem 0.5rem; }
+    .tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .panel { display: none; }
+    .panel.show { display: block; }
+    .media-preview { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+    .media-preview .item {
+      position: relative; width: 5rem; height: 5rem; border: 1px solid var(--line);
+      background: #fff; overflow: hidden;
+    }
+    .media-preview img, .media-preview video {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .media-preview .tag {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      font-size: 0.62rem; background: rgba(0,0,0,0.55); color: #fff;
+      text-align: center; padding: 0.1rem;
+    }
+    .output, #outputEdit {
+      white-space: pre-wrap; word-break: break-word;
+      background: #fff; border: 1px solid var(--line);
+      padding: 0.85rem; min-height: 12rem; font-size: 0.95rem; line-height: 1.75;
+      width: 100%; font: inherit; resize: vertical;
+      -webkit-user-select: text; user-select: text;
+    }
+    #outputEdit:focus { outline: 2px solid rgba(184,134,11,0.45); outline-offset: 1px; }
+    .output-toolbar { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+    .output-toolbar button { font-size: 0.82rem; min-height: 2.5rem; padding: 0.45rem 0.65rem; }
+    .sel-hint { font-size: 0.76rem; color: var(--muted); margin-top: 0.35rem; }
+    .checklist { margin-top: 0.55rem; font-size: 0.82rem; }
+    .checklist li { list-style: none; padding: 0.2rem 0; }
+    .checklist li.ok::before { content: "✓ "; color: var(--ok); font-weight: 800; }
+    .checklist li.fail::before { content: "○ "; color: var(--warn); }
+    .history-item {
+      border-top: 1px solid var(--line); padding: 0.55rem 0; font-size: 0.82rem;
+    }
+    .history-item button { font-size: 0.78rem; padding: 0.35rem 0.55rem; min-height: auto; }
+    footer { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
+    footer a { color: var(--accent); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
+    .chip {
+      font: inherit; font-size: 0.75rem; cursor: pointer;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.7);
+      color: var(--muted); padding: 0.28rem 0.55rem; font-weight: 700;
+    }
+    .chip:active { background: var(--accent); color: #fff; }
+    .search-results, .ref-list { margin-top: 0.55rem; display: grid; gap: 0.45rem; }
+    .search-item, .ref-item {
+      border: 1px solid var(--line); background: #fff; padding: 0.55rem 0.6rem;
+      font-size: 0.82rem;
+    }
+    .search-item strong, .ref-item strong { color: var(--accent); display: block; margin-bottom: 0.15rem; }
+    .search-item .meta, .ref-item .meta { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .search-item .sum { line-height: 1.5; margin-bottom: 0.35rem; }
+    .search-item .acts, .ref-item .acts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .search-item button, .ref-item button { min-height: 2rem; font-size: 0.75rem; padding: 0.35rem 0.55rem; }
+    .ref-item .quote {
+      margin-top: 0.25rem; padding: 0.35rem 0.45rem;
+      background: rgba(184,134,11,0.08); border-left: 3px solid var(--accent);
+      font-size: 0.8rem; line-height: 1.55;
+    }
+    .yin-preview {
+      margin-top: 0.55rem; padding: 0.65rem; background: #fff;
+      border: 1px solid var(--line); font-size: 0.82rem; line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word; max-height: 14rem; overflow: auto;
+    }
+    .yin-preview[hidden] { display: none !important; }
+    .essay-images { display: grid; gap: 0.65rem; margin-top: 0.55rem; }
+    .essay-img-card {
+      border: 1px solid var(--line); background: #fff; padding: 0.55rem;
+    }
+    .essay-img-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(184,134,11,0.2); }
+    .essay-img-card img {
+      width: 100%; max-height: 14rem; object-fit: cover; display: block; background: #f5f0e6;
+    }
+    .essay-img-card .cap { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.45; }
+    .essay-img-card .acts { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
+    .essay-img-card button { min-height: 2rem; font-size: 0.75rem; padding: 0.35rem 0.5rem; }
+    .essay-img-card button.attach-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .check-row {
+      display: flex; align-items: center; gap: 0.45rem;
+      font-size: 0.82rem; font-weight: 700; color: var(--muted);
+      margin: 0.45rem 0 0.15rem; cursor: pointer;
+    }
+    .check-row input { width: 1.1rem; height: 1.1rem; flex-shrink: 0; accent-color: var(--accent); }
+    .attach-summary { font-size: 0.8rem; color: var(--accent); font-weight: 700; margin-top: 0.35rem; }
+    details.format-block { margin-top: 0.55rem; border: 1px solid var(--line); background: #fff; padding: 0.55rem 0.65rem; }
+    details.format-block summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: 0.88rem; }
+    details.format-block .inner { margin-top: 0.45rem; }
+    details.format-block .inner .row { margin-top: 0.35rem; }
+    details.format-block .inner .hint:first-child { margin-top: 0; }
+    #formatHeader, #formatFooter { min-height: 4.5rem; font-size: 0.92rem; }
+    .share-sheet {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .share-sheet[hidden] { display: none !important; }
+    .share-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+    .share-panel {
+      position: relative; width: 100%; max-width: 26rem;
+      background: #fff9eb; border: 1px solid var(--line);
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+      max-height: 88vh; overflow: auto;
+    }
+    .share-panel h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .share-actions { display: grid; gap: 0.4rem; margin-top: 0.55rem; }
+    .share-actions button { width: 100%; text-align: left; }
+    .share-close { width: 100%; margin-top: 0.55rem; }
+    @keyframes pulse { 50% { opacity: 0.75; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>超碼修煉心得</h1>
+      <p class="sub">依 SOP 四步法｜文字・口說・拍照・圖片・影片・印證參考</p>
+    </header>
+
+    <section class="card install-card" id="installCard">
+      <h2>📲 加入主畫面（測試）</h2>
+      <p class="hint" id="installHint">請用 Safari（iPhone）或 Chrome（Android）開啟，再加入主畫面。</p>
+      <p class="hint" id="installUrl" style="word-break:break-all;font-size:0.72rem;"></p>
+      <div class="row">
+        <button type="button" id="btnInstallPwa" class="primary" hidden>📲 安裝到主畫面</button>
+        <button type="button" id="btnCopyPwaUrl">📋 複製網址</button>
+        <a class="file-btn" href="./share.html">📖 安裝步驟</a>
+      </div>
+      <p class="status" id="installStatus"></p>
+    </section>
+
+    <section class="card">
+      <h2>作者資訊</h2>
+      <label for="authorName">姓名／地區（例：正本／彰化）</label>
+      <input id="authorName" type="text" placeholder="正本／彰化" autocomplete="name" />
+      <label for="authorDate">日期</label>
+      <div class="row author-date-row">
+        <input id="authorDate" type="date" />
+        <button type="button" id="btnRefetchAuthorDate">🌐 重新抓取</button>
+      </div>
+      <p class="hint" id="authorDateHint">先由<strong>網路時間</strong>（台灣時區）帶入今日；<strong>若需修正，再手動校正</strong>日期欄。</p>
+      <p class="hint">署名格式：姓名／地區 年／月／日（可在下方「格式框架」調整模板）</p>
+    </section>
+
+    <section class="card">
+      <h2>格式框架</h2>
+      <p class="hint">可修改<strong>内文之前</strong>（標題規則、署名、問候）與<strong>内文之後</strong>（感恩迴向）的固定格式。<strong>修改後自動記住</strong>，後續每次生成都會套用此模組。</p>
+      <details class="format-block">
+        <summary>内文前（標題、署名、問候）</summary>
+        <div class="inner">
+          <label for="formatTitleRule">標題格式（提示 AI）</label>
+          <input id="formatTitleRule" type="text" value="6–15 字，用《》包住，以具象生活或核心主題破題" />
+          <label for="formatAuthorTemplate">署名行模板</label>
+          <input id="formatAuthorTemplate" type="text" value="{name} {date}" placeholder="{name} {date}" />
+          <p class="hint">可用 {name}（姓名／地區）、{date}（年/月/日）、{year}、{month}、{day}</p>
+          <label for="formatHeader">問候語（一行一句）</label>
+          <textarea id="formatHeader" rows="3">敬愛的導師好
+超碼家人大家好</textarea>
+        </div>
+      </details>
+      <details class="format-block">
+        <summary>内文后（感恩迴向）</summary>
+        <div class="inner">
+          <label for="formatFooter">結尾感恩（一行一句）</label>
+          <textarea id="formatFooter" rows="5">感恩宇宙，感恩天地
+感恩太陽盛德導師
+感恩蔡禮旭老師
+感恩一切有了交代</textarea>
+        </div>
+      </details>
+      <div class="row">
+        <button type="button" id="btnSaveFormat">立即儲存格式</button>
+        <button type="button" id="btnResetFormat">還原預設</button>
+      </div>
+      <p class="status" id="formatStatus"></p>
+      <p class="hint" id="formatModuleHint"></p>
+    </section>
+
+    <section class="card">
+      <h2>寫作素材</h2>
+      <div class="tabs" role="tablist">
+        <button type="button" class="active" data-tab="text">文字</button>
+        <button type="button" data-tab="voice">口說</button>
+        <button type="button" data-tab="photo">拍照</button>
+        <button type="button" data-tab="image">圖片</button>
+        <button type="button" data-tab="video">影片</button>
+        <button type="button" data-tab="search">印證</button>
+      </div>
+
+      <div id="panelText" class="panel show">
+        <label for="materialText">今日感觸、境緣、想分享的事</label>
+        <textarea id="materialText" placeholder="例：清晨煮咖啡時，看著蒸氣升起，心裡浮現對家人的著急……"></textarea>
+      </div>
+
+      <div id="panelVoice" class="panel">
+        <p class="hint">按下方麥克風，用說的補充素材（Chrome／Edge／Safari 較穩）。</p>
+        <div class="row">
+          <button type="button" id="btnVoice" class="primary">🎤 開始口說</button>
+        </div>
+        <p class="hint" id="voiceHint">口說內容會追加到「文字」區，可再微調。</p>
+      </div>
+
+      <div id="panelPhoto" class="panel">
+        <p class="hint">直接開啟相機拍照，作為借境入心的場景素材。</p>
+        <div class="row">
+          <label class="file-btn primary" for="inputCamera">📷 拍照</label>
+          <input id="inputCamera" type="file" accept="image/*" capture="environment" />
+        </div>
+      </div>
+
+      <div id="panelImage" class="panel">
+        <p class="hint">從相簿選擇圖片（截圖、手寫筆記、書頁皆可）。</p>
+        <div class="row">
+          <label class="file-btn primary" for="inputImage">🖼 選擇圖片</label>
+          <input id="inputImage" type="file" accept="image/*" multiple />
+        </div>
+      </div>
+
+      <div id="panelVideo" class="panel">
+        <p class="hint">錄影或選擇影片（建議 3 分鐘內、50MB 以下；需 Gemini 金鑰解析畫面與語音）。</p>
+        <div class="row">
+          <label class="file-btn primary" for="inputVideoCapture">🎬 錄影</label>
+          <input id="inputVideoCapture" type="file" accept="video/*" capture="environment" />
+          <label class="file-btn" for="inputVideoFile">📁 選擇影片</label>
+          <input id="inputVideoFile" type="file" accept="video/*" />
+        </div>
+      </div>
+
+      <div id="panelSearch" class="panel">
+        <p class="hint"><strong>Step3 古今印證</strong>引用順序：①太陽盛德導師《太陽心語》→ ②學員事蹟 → ③古今中外正能量。多數情況按下方「自動搜集」即可。</p>
+        <label for="searchKeyword">印證主題／關鍵字</label>
+        <input id="searchKeyword" type="text" placeholder="例：秒秒轉念、太陽心語、GPS定位、感恩" />
+        <div class="chip-row" id="searchChips">
+          <button type="button" class="chip" data-q="太陽心語">太陽心語</button>
+          <button type="button" class="chip" data-q="秒秒轉念">秒秒轉念</button>
+          <button type="button" class="chip" data-q="GPS定位">GPS定位</button>
+          <button type="button" class="chip" data-q="感恩">感恩</button>
+          <button type="button" class="chip" data-q="三省吾身">三省吾身</button>
+          <button type="button" class="chip" data-q="事上磨">事上磨</button>
+        </div>
+        <div class="row" style="align-items:flex-end;">
+          <div style="flex:1;min-width:7rem;">
+            <label for="quoteCountMaster">導師話語（句）</label>
+            <select id="quoteCountMaster">
+              <option value="0">0 句</option>
+              <option value="1">1 句</option>
+              <option value="2" selected>2 句</option>
+              <option value="3">3 句</option>
+              <option value="4">4 句</option>
+              <option value="5">5 句</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:7rem;">
+            <label for="quoteCountSage">古今中外正能量（句）</label>
+            <select id="quoteCountSage">
+              <option value="0">0 句</option>
+              <option value="1">1 句</option>
+              <option value="2" selected>2 句</option>
+              <option value="3">3 句</option>
+              <option value="4">4 句</option>
+              <option value="5">5 句</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <button type="button" id="btnAutoYinZheng" class="primary">📚 自動搜集印證</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+        <h3 style="font-size:0.9rem;color:var(--accent);margin-top:0.65rem;">印證參考文章資訊</h3>
+        <div class="yin-preview" id="yinZhengPreview" hidden></div>
+        <div class="ref-list" id="refList"></div>
+        <p class="hint" id="refEmpty">尚無印證參考。按「自動搜集印證」即可（含太陽心語優先）。</p>
+
+        <details class="format-block">
+          <summary>進階印證搜尋（特別需要時再展開）</summary>
+          <div class="inner">
+            <p class="hint">不滿意自動結果、需學員佐證、時事天災、本機資料或手動貼連結時再用。</p>
+            <div class="chip-row">
+              <button type="button" class="chip" data-q="注入彩虹">注入彩虹</button>
+              <button type="button" class="chip" data-q="富有">富有</button>
+              <button type="button" class="chip" data-q="大愛">大愛</button>
+              <button type="button" class="chip" data-q="弟子規">弟子規</button>
+              <button type="button" class="chip" data-q="學員分享 轉念">學員分享</button>
+            </div>
+            <label for="searchType">參考類型</label>
+            <select id="searchType">
+              <option value="article" selected>文章／教誨（優先，供印證）</option>
+              <option value="all">全部（文章＋影音＋圖片）</option>
+              <option value="video">影音（YouTube 演講、歌曲）</option>
+              <option value="image">圖片</option>
+            </select>
+            <div class="row">
+              <button type="button" id="btnSearchXinyu">☀️ 網搜太陽心語</button>
+              <button type="button" id="btnSearchGemini">🌐 網搜導師文章／影音</button>
+              <button type="button" id="btnSearchStudent">🌐 網搜學員佐證</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnResearchMaster">🔄 重新搜尋導師話語</button>
+              <button type="button" id="btnResearchStudent">🔄 重新搜尋學員佐證</button>
+              <button type="button" id="btnResearchSage">🔄 重新搜尋古今中外正能量</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnSearchSage">📖 本機古籍／心法</button>
+              <button type="button" id="btnXinyuLocal">📖 本機太陽心語提示</button>
+              <button type="button" id="btnStudentLocal">📖 本機學員案例提示</button>
+              <button type="button" id="btnSearchLocal">📀 本機歌曲 MV</button>
+            </div>
+            <div class="row">
+              <button type="button" id="btnEnrichRefs">📝 充實已選參考</button>
+              <button type="button" id="btnOpenWeb">開 Google 文章</button>
+              <button type="button" id="btnOpenYt">開 YouTube</button>
+              <button type="button" id="btnOpenImg">開 Google 圖片</button>
+            </div>
+            <details class="format-block">
+              <summary>時事／天災新聞 → 導師預言與天地整理</summary>
+              <div class="inner">
+                <p class="hint">例：尼泊爾天災等新聞，可網搜相關預言、天地整理原則（反求諸己，不評判外在）。</p>
+                <label for="newsEventKeyword">時事／天災關鍵字</label>
+                <input id="newsEventKeyword" type="text" placeholder="例：尼泊爾天災、地震、水患" />
+                <div class="chip-row" id="newsChips">
+                  <button type="button" class="chip" data-news="尼泊爾天災">尼泊爾天災</button>
+                  <button type="button" class="chip" data-news="地震">地震</button>
+                  <button type="button" class="chip" data-news="天地整理">天地整理</button>
+                  <button type="button" class="chip" data-news="水患">水患</button>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnSearchNews" class="primary">🌍 網搜預言／天地整理</button>
+                  <button type="button" id="btnNewsLocal">📖 本機相關心法</button>
+                  <button type="button" id="btnNewsAddAll">全部加入印證</button>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnOpenNewsWeb">Google 搜尋</button>
+                  <button type="button" id="btnOpenNewsYt">YouTube 搜尋</button>
+                </div>
+              </div>
+            </details>
+            <label for="refUrl">貼上參考連結（文章／YouTube）</label>
+            <input id="refUrl" type="text" inputmode="url" placeholder="https://…" />
+            <div class="row">
+              <button type="button" id="btnAddRefUrl">加入印證參考</button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="media-preview" id="mediaPreview"></div>
+      <p class="status" id="materialStatus"></p>
+    </section>
+
+    <section class="card">
+      <details class="format-block" style="margin-top:0;border:none;padding:0;background:transparent;">
+        <summary>Gemini 金鑰（選填，有金鑰可 AI 潤飾／網搜）</summary>
+        <div class="inner">
+          <p class="hint">有金鑰可解析圖片／影片並潤飾成完整心得；若此裝置曾在「習作批改」存過金鑰會自動帶入。純文字也可用本機模板生成。</p>
+          <label for="geminiKey">Gemini 金鑰</label>
+          <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（選填）" />
+          <div class="row">
+            <button type="button" id="btnSaveKey">儲存金鑰</button>
+            <button type="button" id="btnClearKey">清除</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>生成心得</h2>
+      <div class="row">
+        <button type="button" id="btnGenerate" class="primary">✨ 依 SOP 生成心得</button>
+        <button type="button" id="btnSaveEdit">儲存修改</button>
+        <button type="button" id="btnShare">📤 分享</button>
+      </div>
+      <p class="hint">生成篇幅依印證句數自動調整上限；編輯時上方即時顯示正文／全文字數。生成後可<strong>直接打字修改</strong>、<strong>口說修改</strong>，或按<strong>誦讀心得</strong>全文朗讀。</p>
+      <p class="status" id="genStatus"></p>
+      <label for="outputEdit">心得全文（可手動或口說修改）</label>
+      <p class="hint" id="essayLengthHint" aria-live="polite">正文 —／— 字 · 全文 —／— 字（上限隨印證句數調整）</p>
+      <textarea id="outputEdit" class="output" rows="14" placeholder="（生成後會顯示在這裡；可直接打字或口說修改）" aria-live="polite"></textarea>
+      <p class="sel-hint">💡 部分複製：在方框內長按／拖曳選取 → 按「複製選取」。口說前可先選取要改寫的段落。</p>
+      <div class="output-toolbar">
+        <button type="button" id="btnOutputVoice">🎤 口說修改</button>
+        <button type="button" id="btnSpeakEssay">🔊 誦讀心得</button>
+        <button type="button" id="btnPauseSpeak" hidden>⏸ 暫停</button>
+        <button type="button" id="btnStopSpeak" hidden>■ 停止誦讀</button>
+        <button type="button" id="btnCopy">複製全文</button>
+        <details class="format-block" style="flex:1 1 100%;">
+          <summary>更多匯出（特別需要時）</summary>
+          <div class="inner">
+            <label class="check-row"><input type="checkbox" id="exportWithAttachments" checked /> 匯出 Word／PDF 時附加圖片到文末</label>
+            <div class="row">
+              <button type="button" id="btnCopySel">複製選取</button>
+              <button type="button" id="btnWord">下載 Word</button>
+              <button type="button" id="btnPdf">匯出 PDF</button>
+            </div>
+          </div>
+        </details>
+      </div>
+      <p class="hint" id="outputVoiceHint" style="margin-top:0.35rem"></p>
+      <ul class="checklist" id="checklist" hidden></ul>
+    </section>
+
+    <section class="card">
+      <h2>配圖附件</h2>
+      <p class="hint">不必配圖可略過。需要時按 AI 生成；已附加的圖片會一併出現在 Word／PDF 文末。</p>
+      <label for="imageCount">AI 配圖張數</label>
+      <select id="imageCount">
+        <option value="1">1 張</option>
+        <option value="2" selected>2 張</option>
+        <option value="3">3 張</option>
+      </select>
+      <div class="row">
+        <button type="button" id="btnGenImages" class="primary">🖼 AI 生成配圖</button>
+      </div>
+      <label class="check-row"><input type="checkbox" id="exportWithAttachments2" checked /> 匯出時附加已勾選的圖片到文末</label>
+      <p class="attach-summary" id="attachSummary" hidden></p>
+      <p class="status" id="imgStatus"></p>
+      <div class="essay-images" id="essayImages"></div>
+      <p class="hint" id="essayImagesEmpty">尚無圖片。可按 AI 生成，或於下方自行增加。</p>
+      <details class="format-block">
+        <summary>自行增加／下載附件（特別需要時）</summary>
+        <div class="inner">
+          <label for="attachCaption">附件說明（選填）</label>
+          <input id="attachCaption" type="text" placeholder="例：今日境緣照片、共修截圖" />
+          <div class="row">
+            <label class="file-btn" for="inputAttachCamera">📷 拍照加入</label>
+            <input id="inputAttachCamera" type="file" accept="image/*" capture="environment" />
+            <label class="file-btn" for="inputAttachAlbum">🖼 相簿加入</label>
+            <input id="inputAttachAlbum" type="file" accept="image/*" multiple />
+            <button type="button" id="btnAddFromMaterial">從上方素材加入</button>
+          </div>
+          <label for="attachUrl">圖片網址（選填）</label>
+          <input id="attachUrl" type="text" inputmode="url" placeholder="https://…jpg 或貼 data:image 網址" />
+          <div class="row">
+            <button type="button" id="btnAddAttachUrl">加入圖片連結</button>
+          </div>
+          <div class="row">
+            <button type="button" id="btnDlAttachments">📎 下載全部圖片</button>
+            <button type="button" id="btnZipAttachments">📦 下載 ZIP</button>
+            <button type="button" id="btnAttachAll">全部附加</button>
+            <button type="button" id="btnAttachNone">全部不附加</button>
+            <button type="button" id="btnClearImages">清除附件</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>最近生成</h2>
+      <div id="history"></div>
+      <p class="hint" id="historyEmpty">尚無紀錄</p>
+    </section>
+
+    <footer>
+      <a href="./share.html">加入主畫面</a>｜
+      <a href="../">回習作工具</a>
+    </footer>
+  </div>
+
+  <div class="share-sheet" id="shareSheet" hidden>
+    <div class="share-backdrop" id="shareBackdrop"></div>
+    <div class="share-panel" role="dialog" aria-labelledby="shareTitle">
+      <h3 id="shareTitle">分享到其他 App</h3>
+      <p class="hint" id="shareHint">可分享至 LINE、Email、訊息、雲端硬碟、檔案 App 等</p>
+      <div class="share-actions">
+        <button type="button" id="btnShareSystem">📤 系統分享（文字）</button>
+        <button type="button" id="btnShareWord">📄 分享 Word 檔</button>
+        <button type="button" id="btnShareImages">🖼 分享圖片</button>
+        <button type="button" id="btnShareZip">📦 分享 ZIP 附件包</button>
+        <button type="button" id="btnShareLine">💬 LINE 分享文字</button>
+        <button type="button" id="btnShareEmail">✉️ Email 分享</button>
+        <button type="button" id="btnShareCopy">📋 複製全文</button>
+      </div>
+      <button type="button" class="share-close" id="btnShareClose">關閉</button>
+    </div>
+  </div>
+
+  <script src="../shared/tts-voices.js?v=1"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var KEY_GEMINI = "math-grader-gemini-key";
+    var KEY_LOCAL = "chaoma-xinde-gemini-key";
+    var KEY_AUTHOR = "chaoma-xinde-author";
+    var KEY_HISTORY = "chaoma-xinde-history";
+    var KEY_QUOTE_COUNTS = "chaoma-xinde-quote-counts";
+    var KEY_EXPORT_ATTACH = "chaoma-xinde-export-attach";
+    var KEY_FORMAT = "chaoma-xinde-format";
+    var KEY_NETWORK_DATE = "chaoma-xinde-network-date";
+    var KEY_AUTHOR_DATE = "chaoma-xinde-author-date";
+    var KEY_AUTHOR_DATE_MANUAL = "chaoma-xinde-author-date-manual";
+    var NETWORK_DATE_TZ = "Asia/Taipei";
+
+    var DEFAULT_FORMAT = {
+      titleRule: "6–15 字，用《》包住，以具象生活或核心主題破題",
+      authorTemplate: "{name} {date}",
+      header: "敬愛的導師好\n超碼家人大家好",
+      footer: "感恩宇宙，感恩天地\n感恩太陽盛德導師\n感恩蔡禮旭老師\n感恩一切有了交代"
+    };
+    var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+    var IMAGE_MODEL = "gemini-2.5-flash-image";
+    var MAX_VIDEO_MB = 50;
+    var MAX_ATTACH_MB = 8;
+    var recognition = null;
+    var voiceTarget = null;
+    var voiceKeepListening = false;
+    var speakUiBound = false;
+    var mediaItems = [];
+    var refItems = [];
+    var essayImages = [];
+    var catalogCache = null;
+    var lastOutput = "";
+    var formatModule = null;
+    var formatSaveTimer = null;
+    var sageSearchOffset = 0;
+    var masterSearchOffset = 0;
+    var studentSearchOffset = 0;
+
+    /** 本機印證資料庫：category = sage（中外聖賢）| master（太陽盛德導師／超碼） */
+    var YINZHENG_LIB = [
+      { category: "sage", keywords: ["三省", "自省", "照見", "盲點", "吾日"], sage: "曾子《論語》", quote: "吾日三省吾身", plain: "每天要多次回頭檢視自己的念頭、言語與行為，誠實找盲點。", yinZheng: "遇境緣起情緒時，不向外指責，先問：我這一念是否又偏了？" },
+      { category: "sage", keywords: ["恕", "勿施", "推己"], sage: "孔子《論語》", quote: "己所不欲，勿施於人。", plain: "將心比心，不把自己不願承受的分給別人。", yinZheng: "想指責他人前，先問：若角色對調，我能否承受？" },
+      { category: "sage", keywords: ["事上磨", "磨練", "境緣", "摩擦"], sage: "王陽明", quote: "人須在事上磨，方立得住。", plain: "真正的修練在日常生活瑣事裡磨心，不是只懂道理。", yinZheng: "生活小事正是練心場，摩擦處最照見慣性。" },
+      { category: "sage", keywords: ["大愛", "無私", "包容", "天地"], sage: "老子", quote: "天地所以能長且久者，以其不自生。", plain: "天地長久因無私承載；學習放下去我、寬容待人。", yinZheng: "像天地無私般，把領悟化為對家人的耐心與感恩。" },
+      { category: "sage", keywords: ["弟子規", "行持", "落實", "孝", "信"], sage: "《弟子規》", quote: "凡是人，皆須愛；同為類，勿讓性。", plain: "把經典落實在待人接物，先從身边小事做起。", yinZheng: "知道要愛人，就在今天一件小事上真正做到。" },
+      { category: "sage", keywords: ["認識", "自己", "覺察"], sage: "蘇格拉底", quote: "認識你自己。", plain: "向外求不如向内照，先看見自己的盲點。", yinZheng: "情緒起時，正是認識自己慣性的入口。" },
+      { category: "sage", keywords: ["習慣", "品格", "日常", "卓越"], sage: "亞里士多德", quote: "卓越不是一個行為，而是一種習慣。", plain: "修煉靠日復一日的行持，不在一次表現。", yinZheng: "今天多一次轉念，就是在累積習慣性的卓越。" },
+      { category: "sage", keywords: ["愛", "包容", "遮掩", "過犯"], sage: "《聖經》", quote: "愛能遮掩許多的過犯。", plain: "以愛覆蓋摩擦，不緊抓過錯，關係才有修復空間。", yinZheng: "願意先柔軟下來，就是愛在運作。" },
+      { category: "master", keywords: ["GPS", "定位", "秒秒", "轉念", "念頭"], sage: "太陽盛德導師｜超碼心法", quote: "秒秒 GPS 定位，找盲點、轉念。", plain: "念頭一起就覺察位置，立刻調回愛與感恩。", yinZheng: "情緒浮現時，正是 GPS 定位修正的最佳時機。" },
+      { category: "master", keywords: ["去我", "我執", "執著"], sage: "太陽盛德導師｜超碼心法", quote: "去我、去執著，心才鬆綁。", plain: "少抓「我對他錯」，心就多了空間裝愛。", yinZheng: "當覺得委屈時，問自己：是不是「我」在作怪？" },
+      { category: "master", keywords: ["感恩", "秒秒感恩"], sage: "太陽盛德導師｜超碼心法", quote: "秒秒感恩，福氣自來。", plain: "在順逆境都能看見可感恩之處，心量自然擴大。", yinZheng: "對一件小事真心說謝謝，轉念就在當下完成。" },
+      { category: "master", keywords: ["注入彩虹", "彩虹", "希望"], sage: "太陽盛德導師｜歌曲", quote: "注入彩虹，把希望帶進生命。", plain: "以正向願力為自己與他人注入光與希望。", yinZheng: "聽見旋律或看見彩虹色，提醒自己要成為別人的光。" },
+      { category: "master", keywords: ["富有", "豐盛", "喜樂"], sage: "太陽盛德導師｜歌曲", quote: "富有不在外求，心豐盛即富有。", plain: "真正的豐盛來自心念轉換與感恩當下。", yinZheng: "少比較、多知足，就在日常品嚐富有的感覺。" },
+      { category: "master", keywords: ["參悟空", "悟空", "空"], sage: "太陽盛德導師｜超碼心法", quote: "秒秒參悟空，不執著境相。", plain: "明白境緣無常，不讓外相牽著鼻子走。", yinZheng: "起煩惱時提醒自己：這境也會過去。" },
+      { category: "master", keywords: ["懺悔", "發願"], sage: "太陽盛德導師｜超碼功課", quote: "誠懇懺悔、發願改過。", plain: "看見過失不遮掩，願心從今天具體改正。", yinZheng: "寫心得本身就是懺悔與發願的落實。" },
+      { category: "master", keywords: ["天地整理", "整理", "天災", "災難", "地震", "水患", "尼泊爾", "動盪"], sage: "太陽盛德導師｜天地整理", quote: "天地整理，亦是整理我們的心。", plain: "外在天災與動盪，是宇宙在提醒人類回頭修正；不在外求理由，先整理自己的念頭與習氣。", yinZheng: "看到災難新聞時，問自己：這境要我在哪一念上更謙卑、更感恩、更發願改過？" },
+      { category: "master", keywords: ["預言", "警示", "未來", "共業", "劫難"], sage: "太陽盛德導師｜境緣教示", quote: "境緣是最好的老師。", plain: "無論是否曾有預言應驗，當下這一念如何轉念、如何愛與感恩，才是真實修煉。", yinZheng: "不把新聞當談資批評，而是借境照見自己：我願意多出一份愛與祝福嗎？" },
+      { category: "master", keywords: ["太陽心語", "心語", "每日一句", "點醒"], sage: "太陽盛德導師｜太陽心語", quote: "（請依主題網搜當日或合題之太陽心語原句）", plain: "太陽心語是導師每日以簡炼字句點醒修煉的優先參考，Step3 印證應優先引用。", yinZheng: "先找與今日境緣相應的太陽心語，再以白話完成轉念。" },
+      { category: "master", keywords: ["太陽心語", "轉念", "感恩", "愛"], sage: "太陽盛德導師｜太陽心語", quote: "一念轉，境緣轉；心轉，世界轉。", plain: "修煉不在改變外境，而在當下這一念是否回到愛與感恩。", yinZheng: "情緒起時，用太陽心語提醒自己：先轉念，再行動。" },
+      { category: "master", keywords: ["太陽心語", "盲點", "照見", "修正"], sage: "太陽盛德導師｜太陽心語", quote: "看見盲點，就是開始修正。", plain: "願意誠實照見自己的慣性，比對外指責更有力量。", yinZheng: "寫心得時，對照太陽心語問：我今日被照見的盲點是什麼？" },
+      { category: "student", keywords: ["學員", "分享", "案例", "轉念", "見證", "同伴"], sage: "超級生命密碼學員分享", quote: "（學員境緣分享）", plain: "同修學員在類似境緣中誠實自省、秒秒轉念的實例，可作為導師教誨的輔助佐證。", yinZheng: "在引用導師話語後，可概括學員如何從摩擦中回頭修正，對照今日自己的轉念路。" },
+      { category: "sage", keywords: ["天地", "災", "無常", "整理", "平衡"], sage: "《道德經》", quote: "天之道，損有餘而補不足。", plain: "天地運行自有平衡；面對災變，學習謙卑與順道，不執著掌控。", yinZheng: "遇天災境緣，先穩住心，把力氣用在能愛、能幫助的一念上。" }
+    ];
+
+    /** 佐證引用順序：①導師話語（含太陽心語）→ ②學員事蹟 → ③古今中外正能量思維事例 */
+    var EVIDENCE_PRIORITY_GUIDE =
+      "佐證引用順序：①**優先**太陽盛德導師相關言語（尤其《太陽心語》、超碼心法、演講教誨）；②其次可引用超級生命密碼**學員事蹟**作輔助（可概括如「有位學員曾分享…」，不杜撰姓名）；③**再來**才引用古今中外重要**正能量思維**事例（聖賢名言、歷史人物正向故事等，白話化印證）。若【印證參考】有對應內容須依此順序融入，勿顛倒。";
+    var TAIYANG_XINYU_SEARCH_NOTE =
+      "搜尋太陽盛德導師話語時，**優先查找《太陽心語》**（官方社群、天圓文化、超級生命密碼相關平台），其次才是一般演講、文章、歌曲。";
+    /** 心得篇幅：適中、好讀；上限隨印證句數動態調整 */
+    function getEssayLengthLimits() {
+      var c = getQuoteCounts();
+      var bodyMin = 320 + c.master * 30 + c.sage * 25;
+      var bodyMax = 620 + c.master * 75 + c.sage * 55;
+      bodyMax = Math.min(1100, Math.max(550, bodyMax));
+      bodyMin = Math.max(280, Math.min(bodyMin, bodyMax - 120));
+      var overhead = 160 + getFormatHeaderLines().length * 18 + getFormatFooterLines().length * 14;
+      return {
+        bodyMin: bodyMin,
+        bodyMax: bodyMax,
+        totalMin: bodyMin + overhead,
+        totalMax: bodyMax + overhead
+      };
+    }
+
+    function buildEssayLengthGuide() {
+      var lim = getEssayLengthLimits();
+      return "篇幅適中、輕鬆好讀：正文 3–4 段，每段 2–4 句；正文約 " + lim.bodyMin + "–" + lim.bodyMax +
+        " 字、全文約 " + lim.totalMax + " 字內（隨印證句數調整）。精簡不贅、不重複堆砌。";
+    }
+
+    function countEssayTotalChars(text) {
+      return String(text || "").replace(/\s/g, "").length;
+    }
+
+    function updateEssayLengthHint(text) {
+      var el = $("essayLengthHint");
+      if (!el) return;
+      var lim = getEssayLengthLimits();
+      var bodyLen = text ? countEssayBodyChars(text) : 0;
+      var totalLen = text ? countEssayTotalChars(text) : 0;
+      var bodyOk = !text || (bodyLen >= lim.bodyMin && bodyLen <= lim.bodyMax);
+      var totalOk = !text || totalLen <= lim.totalMax;
+      el.textContent = "正文 " + bodyLen + "／" + lim.bodyMax + " 字 · 全文 " + totalLen + "／" + lim.totalMax +
+        " 字（句數 " + getQuoteCounts().master + "＋" + getQuoteCounts().sage + "）";
+      el.className = "hint" + (bodyOk && totalOk ? "" : " length-warn");
+    }
+
+    function normalizeFormat(fmt) {
+      return {
+        titleRule: (fmt && fmt.titleRule) || DEFAULT_FORMAT.titleRule,
+        authorTemplate: (fmt && fmt.authorTemplate) || DEFAULT_FORMAT.authorTemplate,
+        header: (fmt && fmt.header) || DEFAULT_FORMAT.header,
+        footer: (fmt && fmt.footer) || DEFAULT_FORMAT.footer
+      };
+    }
+
+    function readFormatFromFields() {
+      return normalizeFormat({
+        titleRule: $("formatTitleRule") && $("formatTitleRule").value,
+        authorTemplate: $("formatAuthorTemplate") && $("formatAuthorTemplate").value,
+        header: $("formatHeader") && $("formatHeader").value,
+        footer: $("formatFooter") && $("formatFooter").value
+      });
+    }
+
+    function getFormatConfig() {
+      if (!formatModule) formatModule = readFormatFromFields();
+      return formatModule;
+    }
+
+    function isCustomFormat(cfg) {
+      var f = cfg || getFormatConfig();
+      return f.titleRule !== DEFAULT_FORMAT.titleRule ||
+        f.authorTemplate !== DEFAULT_FORMAT.authorTemplate ||
+        f.header !== DEFAULT_FORMAT.header ||
+        f.footer !== DEFAULT_FORMAT.footer;
+    }
+
+    function updateFormatModuleHint() {
+      var el = $("formatModuleHint");
+      if (!el) return;
+      var cfg = getFormatConfig();
+      var headerN = getFormatHeaderLines().length;
+      var footerN = getFormatFooterLines().length;
+      el.textContent = isCustomFormat(cfg)
+        ? "使用中：自訂格式模組（問候 " + headerN + " 句、感恩 " + footerN + " 句）— 後續生成持續套用"
+        : "使用中：預設格式模組 — 修改後自動記住並套用於後續生成";
+    }
+
+    function getFormatHeaderLines() {
+      return String(getFormatConfig().header).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+
+    function getFormatFooterLines() {
+      return String(getFormatConfig().footer).split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+
+    function getGreetingText() {
+      return getFormatHeaderLines().join("\n");
+    }
+
+    function getClosingText() {
+      return getFormatFooterLines().join("\n");
+    }
+
+    function applyFormatToFields(fmt) {
+      var f = normalizeFormat(fmt);
+      formatModule = f;
+      if ($("formatTitleRule")) $("formatTitleRule").value = f.titleRule;
+      if ($("formatAuthorTemplate")) $("formatAuthorTemplate").value = f.authorTemplate;
+      if ($("formatHeader")) $("formatHeader").value = f.header;
+      if ($("formatFooter")) $("formatFooter").value = f.footer;
+      updateFormatModuleHint();
+    }
+
+    function persistFormatModule(silent) {
+      formatModule = readFormatFromFields();
+      try { localStorage.setItem(KEY_FORMAT, JSON.stringify(formatModule)); } catch (e) {}
+      updateFormatModuleHint();
+      if (!silent) setStatus($("formatStatus"), "已儲存格式模組（後續生成持續套用）", "");
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+      updateEssayLengthHint(getOutputText());
+      return formatModule;
+    }
+
+    function scheduleFormatAutoSave() {
+      clearTimeout(formatSaveTimer);
+      formatSaveTimer = setTimeout(function () {
+        persistFormatModule(true);
+        setStatus($("formatStatus"), "已自動記住格式模組（後續生成皆套用）", "");
+      }, 450);
+    }
+
+    function loadFormatSettings() {
+      try {
+        var raw = localStorage.getItem(KEY_FORMAT);
+        if (raw) {
+          applyFormatToFields(JSON.parse(raw));
+          return;
+        }
+      } catch (e) {}
+      applyFormatToFields(DEFAULT_FORMAT);
+    }
+
+    function saveFormatSettings() {
+      persistFormatModule(false);
+    }
+
+    function resetFormatSettings() {
+      applyFormatToFields(DEFAULT_FORMAT);
+      try { localStorage.removeItem(KEY_FORMAT); } catch (e) {}
+      setStatus($("formatStatus"), "已還原預設格式模組", "");
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+      updateEssayLengthHint(getOutputText());
+    }
+
+    function setupFormatAutoSave() {
+      ["formatTitleRule", "formatAuthorTemplate", "formatHeader", "formatFooter"].forEach(function (id) {
+        var el = $(id);
+        if (!el) return;
+        el.addEventListener("input", scheduleFormatAutoSave);
+        el.addEventListener("change", scheduleFormatAutoSave);
+      });
+      window.addEventListener("storage", function (e) {
+        if (e.key === KEY_FORMAT && e.newValue) {
+          try { applyFormatToFields(JSON.parse(e.newValue)); } catch (err) {}
+        }
+      });
+    }
+
+    function assembleEssay(title, authorLine, bodyCore) {
+      var parts = [title, authorLine];
+      var header = getGreetingText();
+      var footer = getClosingText();
+      if (header) parts.push("", header);
+      if (bodyCore) parts.push("", bodyCore);
+      if (footer) parts.push("", footer);
+      return parts.join("\n");
+    }
+
+    function buildAuthorLine(name, d) {
+      var tpl = getFormatConfig().authorTemplate;
+      var dateStr = formatAuthorDate(d);
+      return tpl
+        .replace(/\{name\}/g, name)
+        .replace(/\{date\}/g, dateStr)
+        .replace(/\{year\}/g, String(d.getFullYear()))
+        .replace(/\{month\}/g, String(d.getMonth() + 1))
+        .replace(/\{day\}/g, String(d.getDate()));
+    }
+
+    function buildSopPrompt() {
+      var cfg = getFormatConfig();
+      var titleRule = cfg.titleRule;
+      var authorTpl = cfg.authorTemplate;
+      var headerLines = getFormatHeaderLines();
+      var footerLines = getFormatFooterLines();
+      var headerDesc = headerLines.length
+        ? headerLines.map(function (l, i) { return "  第 " + (i + 1) + " 句：「" + l + "」"; }).join("\n")
+        : "  （依使用者設定，可省略問候）";
+      var footerText = footerLines.length ? footerLines.join("\n") : "（依使用者設定）";
+      var authorExample = authorTpl.replace(/\{name\}/g, "姓名/地區").replace(/\{date\}/g, "年/月/日");
+      return "你是超碼修煉心得寫作助手。請依下列 SOP，用繁體中文產出一篇完整、可直接繳交的心得。\n\n" +
+        "【外相格式】\n" +
+        "1. 第一行：標題 " + titleRule + "\n" +
+        "2. 第二行：作者署名「" + authorExample + "」（依【作者署名行】填入）\n" +
+        "3. 空一行後寫問候（每句一行）：\n" + headerDesc + "\n" +
+        "4. 正文 3–4 個自然段，依內文四步法（不必標 Step 編號）\n" +
+        "5. 空一行後寫感恩迴向（每句一行，依下列標準結尾）\n\n" +
+        "【篇幅要求】（讓觀看者輕鬆讀完、不覺負擔）\n" +
+        "- " + buildEssayLengthGuide() + "\n" +
+        "- 一個重點說清楚即可，寧可簡潔也不要長篇論述\n\n" +
+        "【內文四步法】\n" +
+        "Step1 借境入心（起）：柴米油鹽、日常瑣事或自然景象切入，生活小事＋浮現的微小念頭\n" +
+        "Step2 自省照見（承）：誠實記錄自身慣性與情緒，點出「知道」與「做到」的差距，反求諸己\n" +
+        "Step3 古今印證（轉）：依序完成轉念——先融入太陽盛德導師教誨（**優先《太陽心語》**），可輔以學員事蹟，**再來**引用古今中外正能量思維事例（白話意涵，勿生硬堆砌）\n" +
+        "  ※ 若提供【印證參考文章資訊】，須依①導師→②學員→③古今中外順序自然融入，不可顛倒\n" +
+        "  ※ " + EVIDENCE_PRIORITY_GUIDE + "\n" +
+        "Step4 轉念合道（合）：連結太陽、天地無私普照，將領悟化為具體的愛與感恩行動\n\n" +
+        "【潤飾要求】\n" +
+        "- 白話、親切、像日常聊天，不要生硬術語與說教\n" +
+        "- 通篇反求諸己、修正自心，絕不批評或評判外在人事\n" +
+        "- 文字溫暖、平實、自帶正向能量\n" +
+        "- 舉例佐證順序：導師話語（含太陽心語）→ 學員事蹟 → 古今中外正能量思維事例 → 最後才是一般生活比喻\n" +
+        "- 控制篇幅，讀者約 2–3 分鐘可讀完正文\n\n" +
+        "【標準結尾】（每句一行，須完整照寫）\n" + footerText + "\n\n" +
+        "請直接輸出完整心得全文，不要加任何解說、前言或 markdown。";
+    }
+
+    function getOutputText() {
+      return ($("outputEdit").value || "").trim();
+    }
+
+    function setOutputText(text) {
+      var t = String(text || "");
+      lastOutput = t;
+      $("outputEdit").value = t;
+      updateEssayLengthHint(t);
+    }
+
+    function syncOutputFromEdit() {
+      lastOutput = $("outputEdit").value || "";
+      var text = getOutputText();
+      updateEssayLengthHint(text);
+      if (text) renderChecklist(validateEssay(text));
+    }
+
+    function onQuoteCountsChanged() {
+      saveQuoteCounts();
+      updateEssayLengthHint(getOutputText());
+      if (getOutputText()) renderChecklist(validateEssay(getOutputText()));
+    }
+
+    function copyTextToClipboard(text, okMsg) {
+      if (!text || !String(text).trim()) {
+        alert("沒有可複製的內容");
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          setStatus($("genStatus"), okMsg || "已複製", "");
+        }).catch(function () {
+          prompt("長按全選複製：", text);
+        });
+      } else {
+        prompt("長按全選複製：", text);
+      }
+    }
+
+    function copySelectedText() {
+      var el = $("outputEdit");
+      var sel = "";
+      if (el && el.selectionStart != null && el.selectionEnd != null && el.selectionStart !== el.selectionEnd) {
+        sel = el.value.slice(el.selectionStart, el.selectionEnd);
+      }
+      if (!sel.trim() && window.getSelection) {
+        sel = String(window.getSelection()) || "";
+      }
+      if (!sel.trim()) {
+        alert("請先在心得方框內選取要複製的文字（長按拖曳或雙擊段落）。");
+        try { el.focus(); } catch (e) {}
+        return;
+      }
+      copyTextToClipboard(sel, "已複製選取文字（" + sel.length + " 字）");
+    }
+
+    function exportFilename(ext) {
+      var text = getOutputText() || lastOutput;
+      var titleMatch = text.match(/《([^》]+)》/);
+      var title = titleMatch ? titleMatch[1].replace(/[\\/:*?"<>|]/g, "") : "修煉心得";
+      var dateVal = $("authorDate").value || todayInputValue();
+      return "超碼心得-" + title + "-" + dateVal + "." + ext;
+    }
+
+    function essayToHtmlBody(text) {
+      var esc = function (s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      };
+      var paras = String(text || "").split(/\n\n+/);
+      var html = "";
+      paras.forEach(function (p, i) {
+        var t = p.trim();
+        if (!t) return;
+        if (/^《.+》$/.test(t) && !html) {
+          html += '<h1 style="text-align:center;font-size:18pt;font-weight:700;margin:0.2em 0 0.6em">' + esc(t) + "</h1>";
+        } else if (/^\d{4}\/\d{1,2}\/\d{1,2}/.test(t) && i <= 2) {
+          html += '<p style="text-align:right;margin:0.35em 0;color:#555">' + esc(t) + "</p>";
+        } else {
+          html += '<p style="text-indent:2em;line-height:1.85;margin:0.55em 0">' + esc(t).replace(/\n/g, "<br/>") + "</p>";
+        }
+      });
+      return html || "<p>" + esc(text) + "</p>";
+    }
+
+    function getSelectedEssayImages() {
+      return essayImages.filter(function (im) { return im.selected && im.b64; });
+    }
+
+    function prepareExportWithAttachments() {
+      syncOutputFromEdit();
+      var picked = getSelectedEssayImages();
+      if (picked.length && !isExportWithAttachments()) {
+        syncExportAttachCheckboxes(true);
+        return picked.length;
+      }
+      return picked.length;
+    }
+
+    function printExportDocument(html, title, onReady) {
+      var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var w = window.open(url, "_blank", "noopener,noreferrer,width=820,height=900");
+      if (!w) {
+        URL.revokeObjectURL(url);
+        alert("請允許彈出視窗以匯出 PDF");
+        return null;
+      }
+      w.addEventListener("load", function () {
+        try { w.document.title = title || "超碼修煉心得"; } catch (e) {}
+        var imgs = w.document.images;
+        var pending = imgs.length;
+        function done() {
+          URL.revokeObjectURL(url);
+          if (onReady) onReady(w);
+        }
+        if (!pending) {
+          setTimeout(done, 350);
+          return;
+        }
+        function tick() {
+          pending--;
+          if (pending <= 0) setTimeout(done, 250);
+        }
+        for (var i = 0; i < imgs.length; i++) {
+          if (imgs[i].complete) tick();
+          else {
+            imgs[i].addEventListener("load", tick);
+            imgs[i].addEventListener("error", tick);
+          }
+        }
+      });
+      return w;
+    }
+
+    function isExportWithAttachments() {
+      var el = $("exportWithAttachments");
+      return el ? el.checked : true;
+    }
+
+    function getExportAttachments() {
+      if (!isExportWithAttachments()) return [];
+      return getSelectedEssayImages();
+    }
+
+    function syncExportAttachCheckboxes(checked) {
+      var a = $("exportWithAttachments");
+      var b = $("exportWithAttachments2");
+      if (a) a.checked = checked;
+      if (b) b.checked = checked;
+      try { localStorage.setItem(KEY_EXPORT_ATTACH, checked ? "1" : "0"); } catch (e) {}
+      updateAttachSummary();
+    }
+
+    function loadExportAttachPref() {
+      try {
+        var v = localStorage.getItem(KEY_EXPORT_ATTACH);
+        if (v === "0" || v === "1") syncExportAttachCheckboxes(v === "1");
+      } catch (e) {}
+    }
+
+    function selectedExportIndex(idx) {
+      if (!essayImages[idx] || !essayImages[idx].selected) return -1;
+      var n = 0;
+      for (var i = 0; i <= idx; i++) {
+        if (essayImages[i].selected) n++;
+      }
+      return n - 1;
+    }
+
+    function updateAttachSummary() {
+      var el = $("attachSummary");
+      if (!el) return;
+      var total = essayImages.length;
+      var picked = getSelectedEssayImages().length;
+      if (!total) {
+        el.hidden = true;
+        el.textContent = "";
+        return;
+      }
+      el.hidden = false;
+      if (!isExportWithAttachments()) {
+        el.textContent = "共 " + total + " 張圖片；匯出時不附加任何圖片到文末";
+      } else if (!picked) {
+        el.textContent = "共 " + total + " 張圖片；尚未選擇附加到文末（可按「附加到文末」或「全部附加」）";
+      } else {
+        el.textContent = "共 " + total + " 張圖片，其中 " + picked + " 張將附在 Word／PDF 文末";
+      }
+    }
+
+    function setAllAttachments(selected) {
+      essayImages.forEach(function (im) { im.selected = !!selected; });
+      renderEssayImages();
+      setStatus($("imgStatus"), selected ? "已全部設為附加到文末" : "已全部設為不附加", "");
+    }
+
+    var CN_ATTACH_NUM = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+
+    function attachmentLabel(index) {
+      return "附件" + (CN_ATTACH_NUM[index] || String(index + 1));
+    }
+
+    function sanitizeFilename(s) {
+      return String(s || "配圖").replace(/[\\/:*?"<>|]/g, "").slice(0, 16);
+    }
+
+    function base64ToBytes(b64) {
+      var binary = atob(b64);
+      var bytes = new Uint8Array(binary.length);
+      for (var j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+      return bytes;
+    }
+
+    function essayAttachmentsToHtml() {
+      var imgs = getExportAttachments();
+      if (!imgs.length) return "";
+      var esc = function (s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      };
+      var blocks = imgs.map(function (im, i) {
+        var label = attachmentLabel(i);
+        return '<div style="margin:0 0 1.4em;page-break-inside:avoid">' +
+          '<p style="font-weight:700;font-size:12pt;margin:0.5em 0 0.35em">' + esc(label) +
+          (im.caption ? "：" + esc(im.caption) : "") + "</p>" +
+          '<figure style="margin:0;text-align:center">' +
+          '<img src="data:' + esc(im.mime) + ";base64," + im.b64 + '" alt="' + esc(label) + '" style="max-width:100%;width:480px;height:auto;border:1px solid #ddd" />' +
+          "</figure></div>";
+      }).join("");
+      return '<div style="page-break-before:always;margin-top:2em;padding-top:0.5em;border-top:2px solid #b8860b">' +
+        '<h2 style="font-size:14pt;color:#b8860b;margin:0 0 0.8em">附件</h2>' +
+        '<p style="font-size:10pt;color:#666;margin:0 0 1em">以下為已附加之配圖（AI 生成或手動加入），供參考印證。</p>' +
+        blocks +
+        "</div>";
+    }
+
+    function essayImagesToHtml() {
+      return essayAttachmentsToHtml();
+    }
+
+    function buildDocHtml(text) {
+      var esc = function (s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      };
+      var titleMatch = String(text || "").match(/《([^》]+)》/);
+      var docTitle = titleMatch ? titleMatch[0] : "超碼修煉心得";
+      var bodyHtml = essayToHtmlBody(text);
+      var attachHtml = essayAttachmentsToHtml();
+      if (attachHtml) {
+        bodyHtml = bodyHtml + attachHtml;
+      }
+      return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="zh-Hant"><head><meta charset="UTF-8" />' +
+        "<title>" + esc(docTitle) + "</title>" +
+        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->' +
+        '<style>body{font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;font-size:12pt;line-height:1.75;color:#222;padding:2cm}' +
+        "h1{text-align:center;font-size:18pt;color:#b8860b}" +
+        "img{max-width:100%;height:auto;display:block;margin:0 auto}" +
+        "@media print{body{padding:1.5cm}img{page-break-inside:avoid;max-width:100%!important}}</style></head><body>" +
+        bodyHtml +
+        "</body></html>";
+    }
+
+    function downloadBlob(filename, content, mime) {
+      var blob = new Blob(["\ufeff", content], { type: mime || "text/plain;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function canWebShare(data) {
+      if (!navigator.share) return false;
+      if (navigator.canShare) {
+        try { return navigator.canShare(data); } catch (e) { return false; }
+      }
+      return true;
+    }
+
+    async function tryWebShare(data, okMsg) {
+      if (!navigator.share) throw new Error("此裝置不支援系統分享");
+      if (!canWebShare(data)) throw new Error("此格式無法由系統分享");
+      await navigator.share(data);
+      setStatus($("genStatus"), okMsg || "已分享", "");
+      closeShareSheet();
+    }
+
+    function closeShareSheet() {
+      var sheet = $("shareSheet");
+      if (sheet) sheet.hidden = true;
+    }
+
+    function openShareSheet() {
+      syncOutputFromEdit();
+      var hasText = !!getOutputText();
+      var exportImgs = getExportAttachments();
+      var anyImgs = essayImages.filter(function (im) { return im.b64; });
+      if (!hasText && !anyImgs.length) {
+        alert("請先生成心得或加入圖片");
+        return;
+      }
+      var hint = $("shareHint");
+      if (hint) {
+        hint.textContent = navigator.share
+          ? "可分享至 LINE、Email、訊息、雲端硬碟、檔案 App 等"
+          : "此瀏覽器不支援系統分享檔案，可改用 LINE、Email 或複製全文";
+      }
+      $("btnShareSystem").disabled = !hasText || !navigator.share;
+      $("btnShareWord").disabled = !hasText;
+      $("btnShareImages").disabled = !exportImgs.length && !anyImgs.length;
+      $("btnShareZip").disabled = !hasText && !exportImgs.length;
+      $("btnShareLine").disabled = !hasText;
+      $("btnShareEmail").disabled = !hasText;
+      $("btnShareCopy").disabled = !hasText;
+      $("shareSheet").hidden = false;
+    }
+
+    async function shareTextToApps() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      try {
+        await tryWebShare({ title: "超碼修煉心得", text: text }, "已開啟系統分享選單");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        copyTextToClipboard(text, "已改為複製全文（可貼到其他 App）");
+        closeShareSheet();
+      }
+    }
+
+    async function shareWordToApps() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      var attachN = prepareExportWithAttachments();
+      var fname = exportFilename("doc");
+      var blob = new Blob(["\ufeff", buildDocHtml(text)], { type: "application/msword" });
+      var file = new File([blob], fname, { type: "application/msword" });
+      try {
+        await tryWebShare({ files: [file], title: "超碼修煉心得" }, "已分享 Word 檔" + (attachN ? "（含 " + attachN + " 附件）" : ""));
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        downloadBlob(fname, buildDocHtml(text), "application/msword");
+        setStatus($("genStatus"), "已改為下載 Word，請從檔案 App 再分享", "warn");
+        closeShareSheet();
+      }
+    }
+
+    async function shareImagesToApps() {
+      var imgs = getExportAttachments().length
+        ? getExportAttachments()
+        : essayImages.filter(function (im) { return im.b64; });
+      if (!imgs.length) { alert("尚無可分享的圖片"); return; }
+      var files = imgs.map(function (im) {
+        var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
+        var idx = essayImages.indexOf(im);
+        var exportIdx = selectedExportIndex(idx);
+        var prefix = exportIdx >= 0 ? attachmentLabel(exportIdx) : ("圖片" + (idx + 1));
+        var name = prefix + "-" + sanitizeFilename(im.caption) + "." + ext;
+        var blob = new Blob([base64ToBytes(im.b64)], { type: im.mime || "image/png" });
+        return new File([blob], name, { type: im.mime || "image/png" });
+      });
+      try {
+        await tryWebShare({ files: files, title: "超碼修煉心得配圖" }, "已分享 " + files.length + " 張圖片");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        downloadAllAttachments();
+        setStatus($("genStatus"), "已改為下載圖片，請從相簿或檔案 App 再分享", "warn");
+        closeShareSheet();
+      }
+    }
+
+    async function buildAttachmentZipBlob() {
+      prepareExportWithAttachments();
+      var text = getOutputText();
+      var imgs = getExportAttachments();
+      if (!text && !imgs.length) throw new Error("請先有心得內容，或勾選要附加的圖片");
+      await loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
+      var zip = new window.JSZip();
+      if (text) {
+        zip.file("心得正文.txt", text);
+        zip.file("心得全文.doc", buildDocHtml(text));
+      }
+      if (imgs.length) {
+        var folder = zip.folder("附件");
+        imgs.forEach(function (im, i) {
+          var idx = essayImages.indexOf(im);
+          var exportIdx = selectedExportIndex(idx);
+          var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
+          var name = attachmentLabel(exportIdx >= 0 ? exportIdx : i) + "-" + sanitizeFilename(im.caption) + "." + ext;
+          folder.file(name, base64ToBytes(im.b64), { binary: true });
+        });
+      }
+      return zip.generateAsync({ type: "blob" });
+    }
+
+    async function shareZipToApps() {
+      setStatus($("genStatus"), "正在打包…", "warn");
+      try {
+        var blob = await buildAttachmentZipBlob();
+        var fname = exportFilename("zip").replace(/^超碼心得/, "超碼心得-含附件");
+        var file = new File([blob], fname, { type: "application/zip" });
+        await tryWebShare({ files: [file], title: "超碼修煉心得" }, "已分享 ZIP 附件包");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        await downloadAttachmentZip();
+        setStatus($("genStatus"), "已改為下載 ZIP，請從檔案 App 再分享", "warn");
+        closeShareSheet();
+      }
+    }
+
+    function shareLineText() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      var url = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
+      window.open(url, "_blank", "noopener,noreferrer");
+      closeShareSheet();
+      setStatus($("genStatus"), "已開啟 LINE 分享", "");
+    }
+
+    function shareEmailText() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      var titleMatch = text.match(/《([^》]+)》/);
+      var subj = titleMatch ? titleMatch[0] : "超碼修煉心得";
+      window.location.href = "mailto:?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text);
+      closeShareSheet();
+      setStatus($("genStatus"), "已開啟 Email", "");
+    }
+
+    function shareCopyText() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成心得"); return; }
+      copyTextToClipboard(text, "已複製全文，可貼到 LINE、訊息等 App");
+      closeShareSheet();
+    }
+
+    function setupPwaInstall() {
+      var card = $("installCard");
+      var btn = $("btnInstallPwa");
+      var hint = $("installHint");
+      var urlEl = $("installUrl");
+      var base = getPwaBaseUrl();
+      if (urlEl) urlEl.textContent = "測試網址：" + base;
+      if (isStandalonePwa()) {
+        if (card) card.classList.add("installed");
+        if (hint) hint.textContent = "✓ 已從主畫面開啟（獨立 App 模式），可開始測試生成心得。";
+        if (btn) btn.hidden = true;
+        return;
+      }
+      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+        if (hint) hint.textContent = "iPhone：Safari 開啟下方網址 → 分享 → 加入主畫面（圖示名稱：修煉心得）。";
+      } else if (hint) {
+        hint.textContent = "Android／Chrome：可按「安裝到主畫面」，或選單 ⋮ → 安裝應用程式。";
+      }
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        if (btn) btn.hidden = false;
+        if (hint) hint.textContent = "瀏覽器已就緒，可按「安裝到主畫面」一鍵加入。";
+      });
+      if (btn) {
+        btn.onclick = function () {
+          if (!deferredInstallPrompt) {
+            location.href = "./share.html";
+            return;
+          }
+          deferredInstallPrompt.prompt();
+          deferredInstallPrompt.userChoice.then(function (choice) {
+            if (choice.outcome === "accepted") {
+              setStatus($("installStatus"), "已加入主畫面，請從圖示重新開啟", "");
+            } else {
+              setStatus($("installStatus"), "已取消安裝，可改看「安裝步驟」", "warn");
+            }
+            deferredInstallPrompt = null;
+            btn.hidden = true;
+          });
+        };
+      }
+      var copyBtn = $("btnCopyPwaUrl");
+      if (copyBtn) {
+        copyBtn.onclick = function () {
+          copyTextToClipboard(base, "已複製網址");
+          setStatus($("installStatus"), "已複製，請貼到 Safari／Chrome 開啟", "");
+        };
+      }
+    }
+
+    function setupShareSheet() {
+      $("btnShare").onclick = openShareSheet;
+      $("btnShareClose").onclick = closeShareSheet;
+      $("shareBackdrop").onclick = closeShareSheet;
+      $("btnShareSystem").onclick = shareTextToApps;
+      $("btnShareWord").onclick = shareWordToApps;
+      $("btnShareImages").onclick = shareImagesToApps;
+      $("btnShareZip").onclick = shareZipToApps;
+      $("btnShareLine").onclick = shareLineText;
+      $("btnShareEmail").onclick = shareEmailText;
+      $("btnShareCopy").onclick = shareCopyText;
+    }
+
+    function downloadWord() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成或輸入心得"); return; }
+      prepareExportWithAttachments();
+      downloadBlob(exportFilename("doc"), buildDocHtml(text), "application/msword");
+      var n = getExportAttachments().length;
+      setStatus($("genStatus"), "已下載 Word" + (n ? "（正文＋文末 " + n + " 張附件圖）" : "（僅正文）"), "");
+    }
+
+    function exportPdf() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成或輸入心得"); return; }
+      prepareExportWithAttachments();
+      var fname = exportFilename("pdf");
+      var html = buildDocHtml(text).replace("</body>",
+        '<p style="margin-top:2em;font-size:10pt;color:#888;text-align:center">— 超碼修煉心得 —</p></body>');
+      var w = printExportDocument(html, fname, function (win) {
+        try { win.focus(); win.print(); } catch (e) {}
+      });
+      if (!w) return;
+      var n = getExportAttachments().length;
+      setStatus($("genStatus"), "已開啟列印視窗 → 另存 PDF" + (n ? "（含文末 " + n + " 張附件圖）" : "（僅正文）"), "");
+    }
+
+    function saveEditedOutput() {
+      syncOutputFromEdit();
+      var text = getOutputText();
+      if (!text) { alert("內容為空"); return; }
+      renderChecklist(validateEssay(text));
+      var titleMatch = text.match(/《[^》]+》/);
+      saveHistory(text, titleMatch ? titleMatch[0] : "心得（已修改）");
+      setStatus($("genStatus"), "已儲存修改並更新檢核", "");
+    }
+
+    var deferredInstallPrompt = null;
+
+    function isStandalonePwa() {
+      return window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+    }
+
+    function getPwaBaseUrl() {
+      var u = location.href.split("#")[0].split("?")[0];
+      return u.replace(/[^/]*$/, "");
+    }
+
+    function $(id) { return document.getElementById(id); }
+
+    function setStatus(el, msg, kind) {
+      el.textContent = msg || "";
+      el.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function getGeminiKey() {
+      return ($("geminiKey").value || "").trim()
+        || localStorage.getItem(KEY_LOCAL)
+        || localStorage.getItem(KEY_GEMINI)
+        || "";
+    }
+
+    function formatAuthorDate(d) {
+      var y = d.getFullYear();
+      var m = d.getMonth() + 1;
+      var day = d.getDate();
+      return y + "/" + m + "/" + day;
+    }
+
+    function dateToInputValue(d, timeZone) {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: timeZone || NETWORK_DATE_TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(d);
+    }
+
+    function todayInputValue() {
+      return dateToInputValue(new Date(), NETWORK_DATE_TZ);
+    }
+
+    function readNetworkDateCache() {
+      try {
+        var raw = sessionStorage.getItem(KEY_NETWORK_DATE);
+        if (!raw) return null;
+        var obj = JSON.parse(raw);
+        if (!obj || !obj.date) return null;
+        if (obj.fetchedAt && Date.now() - obj.fetchedAt < 3600000) return obj.date;
+      } catch (e) {}
+      return null;
+    }
+
+    function saveNetworkDateCache(dateStr) {
+      try {
+        sessionStorage.setItem(KEY_NETWORK_DATE, JSON.stringify({ date: dateStr, fetchedAt: Date.now() }));
+      } catch (e) {}
+    }
+
+    function loadManualAuthorDate() {
+      try {
+        if (localStorage.getItem(KEY_AUTHOR_DATE_MANUAL) !== "1") return null;
+        var d = localStorage.getItem(KEY_AUTHOR_DATE);
+        return d || null;
+      } catch (e) {}
+      return null;
+    }
+
+    function saveManualAuthorDate(dateStr) {
+      if (!dateStr) return;
+      try {
+        localStorage.setItem(KEY_AUTHOR_DATE, dateStr);
+        localStorage.setItem(KEY_AUTHOR_DATE_MANUAL, "1");
+      } catch (e) {}
+    }
+
+    function clearManualAuthorDate() {
+      try {
+        localStorage.removeItem(KEY_AUTHOR_DATE);
+        localStorage.removeItem(KEY_AUTHOR_DATE_MANUAL);
+        sessionStorage.removeItem(KEY_NETWORK_DATE);
+      } catch (e) {}
+    }
+
+    function setAuthorDateHint(html) {
+      var hint = $("authorDateHint");
+      if (hint) hint.innerHTML = html;
+    }
+
+    async function fetchNetworkDateInputValue(forceRefresh) {
+      if (!forceRefresh) {
+        var cached = readNetworkDateCache();
+        if (cached) return { date: cached, source: "cache" };
+      }
+
+      var taipeiDate = "";
+
+      try {
+        var res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Taipei", { cache: "no-store" });
+        if (res.ok) {
+          var data = await res.json();
+          if (data && data.datetime) taipeiDate = String(data.datetime).slice(0, 10);
+        }
+      } catch (e) {}
+
+      if (!taipeiDate) {
+        try {
+          var res2 = await fetch("https://www.google.com/generate_204", { method: "HEAD", cache: "no-store" });
+          var hdr = res2.headers.get("Date");
+          if (hdr) taipeiDate = dateToInputValue(new Date(hdr), NETWORK_DATE_TZ);
+        } catch (e2) {}
+      }
+
+      var source = "network";
+      if (!taipeiDate) {
+        taipeiDate = todayInputValue();
+        source = "local";
+      }
+      saveNetworkDateCache(taipeiDate);
+      return { date: taipeiDate, source: source };
+    }
+
+    async function applyNetworkAuthorDate(forceRefresh) {
+      var input = $("authorDate");
+      var btn = $("btnRefetchAuthorDate");
+      if (btn) btn.disabled = true;
+      setAuthorDateHint("正在以網路取得今日日期（台灣時區）…");
+      try {
+        var result = await fetchNetworkDateInputValue(forceRefresh);
+        input.value = result.date;
+        if (result.source === "local") {
+          setAuthorDateHint("無法連線取得網路日期，已改用本機日期。<strong>若需修正，再手動校正</strong>日期欄。");
+        } else {
+          setAuthorDateHint("已以<strong>網路時間</strong>（台灣時區）帶入今日；<strong>若需修正，再手動校正</strong>日期欄。");
+        }
+      } catch (e) {
+        input.value = todayInputValue();
+        setAuthorDateHint("無法連線取得網路日期，已改用本機日期。<strong>若需修正，再手動校正</strong>日期欄。");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function initAuthorDate() {
+      var manualDate = loadManualAuthorDate();
+      if (manualDate) {
+        $("authorDate").value = manualDate;
+        setAuthorDateHint("已沿用<strong>手動校正</strong>的日期。若要改回網路日期，請按「重新抓取」。");
+        return;
+      }
+      await applyNetworkAuthorDate(false);
+    }
+
+    async function refetchAuthorDate() {
+      clearManualAuthorDate();
+      await applyNetworkAuthorDate(true);
+    }
+
+    function setupAuthorDateControls() {
+      $("authorDate").addEventListener("change", function () {
+        var v = ($("authorDate").value || "").trim();
+        if (!v) return;
+        saveManualAuthorDate(v);
+        setAuthorDateHint("已<strong>手動校正</strong>日期，下次開啟仍會沿用。若要改回網路日期，請按「重新抓取」。");
+      });
+      $("btnRefetchAuthorDate").onclick = function () { refetchAuthorDate(); };
+    }
+
+    function fileToBase64(file) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var res = reader.result || "";
+          var idx = String(res).indexOf(",");
+          resolve(idx >= 0 ? res.slice(idx + 1) : res);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function callGeminiText(prompt, apiKey, opts) {
+      opts = opts || {};
+      var lastErr = null;
+      for (var i = 0; i < MODELS.length; i++) {
+        var model = MODELS[i];
+        try {
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          var body = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+          if (opts.googleSearch) body.tools = [{ google_search: {} }];
+          var res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            lastErr = new Error((data.error && data.error.message) || ("HTTP " + res.status));
+            continue;
+          }
+          var text = (((data.candidates || [])[0] || {}).content || {}).parts
+            ? data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("")
+            : "";
+          if (text.trim()) return { text: text.trim(), model: model, raw: data };
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("Gemini 無回應");
+    }
+
+    async function callGeminiMultimodal(prompt, file, apiKey) {
+      var b64 = await fileToBase64(file);
+      var mime = file.type || (file.name && /\.png$/i.test(file.name) ? "image/png" : "image/jpeg");
+      var isVideo = /^video\//i.test(mime);
+      var analyzePrompt = isVideo
+        ? "這是一段影片。請用繁體中文條列：1) 畫面場景與動作 2) 若有語音請摘要重點 3) 可聯想修煉／生活借境的觸動點。精簡白話。"
+        : "這是一張照片。請用繁體中文條列：1) 場景與感官細節 2) 若有文字請抄出 3) 可當修煉心得借境的觸動點。精簡白話。";
+      var parts = [{ text: analyzePrompt + "\n\n" + prompt }];
+      parts.push({ inline_data: { mime_type: mime, data: b64 } });
+      var lastErr = null;
+      for (var i = 0; i < MODELS.length; i++) {
+        var model = MODELS[i];
+        try {
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          var res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ role: "user", parts: parts }] })
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            lastErr = new Error((data.error && data.error.message) || ("HTTP " + res.status));
+            continue;
+          }
+          var text = (((data.candidates || [])[0] || {}).content || {}).parts
+            ? data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("")
+            : "";
+          if (text.trim()) return { text: text.trim(), model: model };
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("Gemini 無回應");
+    }
+
+    function parseImagePlans(text, count) {
+      var plans = [];
+      String(text || "").split(/\n/).forEach(function (line) {
+        var t = line.trim();
+        if (!t) return;
+        var m = t.match(/^(?:\d+[\.\)、]|[-•*]\s*)(.+?)\|(.+?)\|(.+)$/);
+        if (m) {
+          plans.push({ caption: m[1].trim(), prompt: m[3].trim(), captionZh: m[1].trim() });
+          return;
+        }
+        m = t.match(/^(?:\d+[\.\)、]|[-•*]\s*)(.+?)[：:]\s*(.+)$/);
+        if (m && /[a-zA-Z]/.test(m[2])) {
+          plans.push({ caption: m[1].trim(), prompt: m[2].trim(), captionZh: m[1].trim() });
+        }
+      });
+      if (!plans.length) {
+        var fallback = [
+          { caption: "清晨陽光灑進日常", prompt: "Warm golden morning sunlight through a simple home window, steam rising from tea cup, soft focus, peaceful, cinematic, no text, no faces" },
+          { caption: "太陽無私普照大地", prompt: "Gentle sunrise over peaceful landscape, warm orange and gold tones, hopeful atmosphere, no text, no watermark" },
+          { caption: "生活借境的小確幸", prompt: "Cozy everyday scene, wooden table, simple meal, natural light, gratitude mood, warm colors, no text, no faces close-up" }
+        ];
+        plans = fallback.slice(0, count);
+      }
+      return plans.slice(0, count);
+    }
+
+    async function planEssayImages(essayText, count, apiKey) {
+      var prompt =
+        "你是修煉心得配圖顧問。請根據以下繁體中文心得，設計 " + count + " 張「深層合適」的配圖方案。\n" +
+        "要求：\n" +
+        "- 溫暖、平實、正向；契合借境入心（日常柴米油鹽）或轉念合道（陽光、天地、彩虹、希望）\n" +
+        "- 可為：清晨厨房、陽光、茶、餐桌、田園、彩虹、寧靜 nature 等意象\n" +
+        "- 禁止：人臉特寫、可辨識真人、畫面文字、水印、爭議宗教符號\n\n" +
+        "請只輸出 " + count + " 行，格式嚴格為：\n" +
+        "序號|繁中說明（10字內）|English image generation prompt\n\n" +
+        "心得：\n" + extractSnippet(essayText, 2200);
+      var res = await callGeminiText(prompt, apiKey);
+      return parseImagePlans(res.text, count);
+    }
+
+    function extractImageFromGeminiResponse(data) {
+      var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+      for (var i = 0; i < parts.length; i++) {
+        var inline = parts[i].inline_data || parts[i].inlineData;
+        if (inline && inline.data) {
+          return {
+            b64: inline.data,
+            mime: inline.mime_type || inline.mimeType || "image/png"
+          };
+        }
+      }
+      return null;
+    }
+
+    async function callGeminiImage(promptEn, apiKey) {
+      var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+        encodeURIComponent(IMAGE_MODEL) + ":generateContent?key=" + encodeURIComponent(apiKey);
+      var fullPrompt = String(promptEn || "") +
+        ". Style: warm, peaceful, soft natural lighting, suitable for spiritual reflection essay illustration. No text, no watermark, no close-up faces.";
+      var res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+            imageConfig: { aspectRatio: "4:3" }
+          }
+        })
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        throw new Error((data.error && data.error.message) || ("HTTP " + res.status));
+      }
+      var img = extractImageFromGeminiResponse(data);
+      if (!img) throw new Error("模型未回傳圖片");
+      return img;
+    }
+
+    function renderEssayImages() {
+      var box = $("essayImages");
+      var empty = $("essayImagesEmpty");
+      if (!essayImages.length) {
+        box.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      box.innerHTML = essayImages.map(function (im, idx) {
+        var src = im.b64 ? "data:" + im.mime + ";base64," + im.b64 : "";
+        var exportIdx = selectedExportIndex(idx);
+        var imgTag = src
+          ? '<img src="' + src + '" alt="' + escapeHtml(im.caption) + '" />'
+          : '<div style="height:6rem;display:flex;align-items:center;justify-content:center;background:#f5f0e6;color:#999;font-size:0.8rem">生成中…</div>';
+        return '<div class="essay-img-card' + (im.selected ? " selected" : "") + '" data-idx="' + idx + '">' +
+          '<div class="cap" style="font-weight:700;color:var(--accent);margin-bottom:0.25rem">圖片 ' + (idx + 1) +
+          (exportIdx >= 0 ? " → " + attachmentLabel(exportIdx) + "（將附文末）" : "（不附加）") +
+          ' <span style="font-weight:400;font-size:0.72rem;color:var(--muted)">｜' + escapeHtml(sourceLabel(im.source)) + "</span></div>" +
+          imgTag +
+          '<div class="cap">' + escapeHtml(im.caption || "") + '</div>' +
+          '<div class="acts">' +
+          '<button type="button" class="' + (im.selected ? "attach-on" : "") + '" data-img-toggle="' + idx + '">' +
+          (im.selected ? "✓ 已附加到文末" : "附加到文末") + '</button>' +
+          (im.b64 ? '<button type="button" data-img-dl="' + idx + '">下載此圖</button>' : "") +
+          (im.searchUrl ? '<button type="button" data-img-search="' + idx + '">開啟連結</button>' : "") +
+          '<button type="button" class="rm" data-img-rm="' + idx + '">移除</button>' +
+          "</div></div>";
+      }).join("");
+      box.querySelectorAll("[data-img-toggle]").forEach(function (btn) {
+        btn.onclick = function () {
+          var im = essayImages[Number(btn.getAttribute("data-img-toggle"))];
+          if (im) {
+            im.selected = !im.selected;
+            if (im.selected) syncExportAttachCheckboxes(true);
+            renderEssayImages();
+            setStatus($("imgStatus"), im.selected ? "已設為附加到文末（匯出 Word／PDF 會一併附上）" : "已設為不附加", "");
+          }
+        };
+      });
+      box.querySelectorAll("[data-img-dl]").forEach(function (btn) {
+        btn.onclick = function () {
+          var idx = Number(btn.getAttribute("data-img-dl"));
+          var im = essayImages[idx];
+          if (!im || !im.b64) return;
+          var binary = atob(im.b64);
+          var bytes = new Uint8Array(binary.length);
+          for (var j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+          var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
+          var blob = new Blob([bytes], { type: im.mime || "image/png" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = attachmentLabel(idx) + "-" + sanitizeFilename(im.caption) + "." + ext;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        };
+      });
+      box.querySelectorAll("[data-img-search]").forEach(function (btn) {
+        btn.onclick = function () {
+          var im = essayImages[Number(btn.getAttribute("data-img-search"))];
+          if (im && im.searchUrl) window.open(im.searchUrl, "_blank", "noopener,noreferrer");
+        };
+      });
+      box.querySelectorAll("[data-img-rm]").forEach(function (btn) {
+        btn.onclick = function () {
+          essayImages.splice(Number(btn.getAttribute("data-img-rm")), 1);
+          renderEssayImages();
+          setStatus($("imgStatus"), "已移除，現有 " + essayImages.length + " 項附件", "");
+        };
+      });
+      updateAttachSummary();
+    }
+
+    function sourceLabel(source) {
+      var map = { ai: "AI 生成", camera: "拍照", album: "相簿", url: "圖片連結", material: "寫作素材" };
+      return map[source] || "圖片";
+    }
+
+    function addEssayAttachment(item) {
+      if (!item || !item.b64) return false;
+      essayImages.push({
+        id: "att-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        caption: item.caption || sourceLabel(item.source),
+        prompt: item.prompt || "",
+        b64: item.b64,
+        mime: item.mime || "image/jpeg",
+        selected: item.selected != null ? !!item.selected : false,
+        source: item.source || "album",
+        searchUrl: item.searchUrl || ""
+      });
+      renderEssayImages();
+      return true;
+    }
+
+    async function fileToAttachmentItem(file, caption, source) {
+      if (!file || !/^image\//i.test(file.type)) {
+        throw new Error("請選擇圖片檔");
+      }
+      if (file.size > MAX_ATTACH_MB * 1024 * 1024) {
+        throw new Error("圖片超過 " + MAX_ATTACH_MB + "MB，請壓縮後再加入");
+      }
+      var b64 = await fileToBase64(file);
+      return {
+        b64: b64,
+        mime: file.type || "image/jpeg",
+        caption: caption || file.name || sourceLabel(source),
+        source: source || "album"
+      };
+    }
+
+    async function addAttachmentsFromFiles(files, source) {
+      if (!files || !files.length) return;
+      var cap = ($("attachCaption").value || "").trim();
+      var added = 0;
+      for (var i = 0; i < files.length; i++) {
+        try {
+          var item = await fileToAttachmentItem(files[i], cap || files[i].name, source);
+          if (addEssayAttachment(item)) added++;
+        } catch (e) {
+          setStatus($("imgStatus"), e.message || String(e), "err");
+        }
+      }
+      if (added) {
+        $("attachCaption").value = "";
+        setStatus($("imgStatus"), "已增加 " + added + " 個圖片附件（共 " + essayImages.length + " 項）", "");
+      }
+    }
+
+    async function addAttachmentFromUrl() {
+      var url = ($("attachUrl").value || "").trim();
+      if (!url) {
+        alert("請貼上圖片網址");
+        return;
+      }
+      var cap = ($("attachCaption").value || "").trim() || "圖片連結";
+      setStatus($("imgStatus"), "正在載入圖片…", "warn");
+      try {
+        if (/^data:image\//i.test(url)) {
+          var m = url.match(/^data:(image\/[^;]+);base64,(.+)$/);
+          if (!m) throw new Error("data URL 格式不正確");
+          addEssayAttachment({ b64: m[2], mime: m[1], caption: cap, source: "url" });
+        } else if (/^https?:\/\//i.test(url)) {
+          var res = await fetch(url);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          var blob = await res.blob();
+          if (!/^image\//i.test(blob.type)) throw new Error("連結不是圖片檔");
+          if (blob.size > MAX_ATTACH_MB * 1024 * 1024) throw new Error("圖片過大");
+          var b64 = await fileToBase64(blob);
+          addEssayAttachment({ b64: b64, mime: blob.type, caption: cap, source: "url", searchUrl: url });
+        } else {
+          throw new Error("請使用 http(s) 或 data:image 網址");
+        }
+        $("attachUrl").value = "";
+        $("attachCaption").value = "";
+        setStatus($("imgStatus"), "已加入圖片附件（共 " + essayImages.length + " 項）", "");
+      } catch (e) {
+        setStatus($("imgStatus"), "無法載入連結：" + (e.message || e) + "。請改存到相簿再上傳。", "err");
+      }
+    }
+
+    async function addAttachmentsFromMaterial() {
+      if (!mediaItems.length) {
+        alert("請先在「寫作素材」拍照或選擇圖片");
+        return;
+      }
+      var cap = ($("attachCaption").value || "").trim();
+      var added = 0;
+      for (var i = 0; i < mediaItems.length; i++) {
+        var it = mediaItems[i];
+        if (it.kind !== "image" && it.kind !== "photo") continue;
+        try {
+          var item = await fileToAttachmentItem(it.file, cap || it.label || "寫作素材", "material");
+          if (addEssayAttachment(item)) added++;
+        } catch (e) {
+          setStatus($("imgStatus"), e.message || String(e), "err");
+        }
+      }
+      if (added) {
+        setStatus($("imgStatus"), "已從素材加入 " + added + " 個圖片附件", "");
+      } else {
+        alert("素材中沒有可用的圖片（影片請改用說明文字）");
+      }
+    }
+
+    function clearEssayImages() {
+      essayImages = [];
+      renderEssayImages();
+      setStatus($("imgStatus"), "", "");
+    }
+
+    function downloadAllAttachments() {
+      var imgs = essayImages.filter(function (im) { return im.b64; });
+      if (!imgs.length) {
+        alert("尚無可下載的圖片。");
+        return;
+      }
+      imgs.forEach(function (im, i) {
+        setTimeout(function () {
+          var idx = essayImages.indexOf(im);
+          var ext = (im.mime || "").indexOf("png") >= 0 ? "png" : "jpg";
+          var blob = new Blob([base64ToBytes(im.b64)], { type: im.mime || "image/png" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          var exportIdx = selectedExportIndex(idx);
+          var prefix = exportIdx >= 0 ? attachmentLabel(exportIdx) : ("圖片" + (idx + 1));
+          a.download = prefix + "-" + sanitizeFilename(im.caption) + "." + ext;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        }, i * 450);
+      });
+      setStatus($("imgStatus"), "正在下載 " + imgs.length + " 張圖片…", "");
+    }
+
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        if (document.querySelector('script[src="' + src + '"]')) {
+          resolve();
+          return;
+        }
+        var s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function downloadAttachmentZip() {
+      setStatus($("imgStatus"), "正在打包附件…", "warn");
+      try {
+        var blob = await buildAttachmentZipBlob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = exportFilename("zip").replace(/^超碼心得/, "超碼心得-含附件");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        var n = getExportAttachments().length;
+        setStatus($("imgStatus"), "已下載 ZIP（正文＋" + n + " 附件）", "");
+      } catch (e) {
+        setStatus($("imgStatus"), "附件包失敗：" + (e.message || e), "err");
+      }
+    }
+
+    async function generateEssayImages() {
+      var text = getOutputText();
+      if (!text) { alert("請先生成或輸入心得"); return; }
+      var key = getGeminiKey();
+      if (!key) {
+        alert("依內容配圖需 Gemini 金鑰（含圖像生成）。可先按「開 Google 圖片」手動找圖。");
+        return;
+      }
+      var count = Math.max(1, Math.min(3, Number($("imageCount").value) || 2));
+      var btn = $("btnGenImages");
+      btn.disabled = true;
+      setStatus($("imgStatus"), "正在分析心得，規劃配圖…", "warn");
+      try {
+        var plans = await planEssayImages(text, count, key);
+        essayImages = essayImages.filter(function (im) { return im.source !== "ai"; });
+        var newItems = plans.map(function (p, i) {
+          return {
+            id: "img-" + Date.now() + "-" + i,
+            caption: p.caption || p.captionZh || ("配圖 " + (i + 1)),
+            prompt: p.prompt,
+            b64: "",
+            mime: "image/png",
+            selected: true,
+            source: "ai",
+            searchUrl: "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent((p.caption || "") + " 溫暖 日常")
+          };
+        });
+        essayImages = essayImages.concat(newItems);
+        renderEssayImages();
+        for (var i = 0; i < newItems.length; i++) {
+          var idx = essayImages.length - newItems.length + i;
+          setStatus($("imgStatus"), "正在生成配圖 " + (i + 1) + "／" + newItems.length + "…", "warn");
+          try {
+            var img = await callGeminiImage(newItems[i].prompt, key);
+            essayImages[idx].b64 = img.b64;
+            essayImages[idx].mime = img.mime;
+          } catch (e) {
+            essayImages[idx].caption += "（AI 生成失敗，可改按圖片搜尋）";
+            console.warn(e);
+          }
+          renderEssayImages();
+        }
+        var aiOk = essayImages.filter(function (im) { return im.source === "ai" && im.b64; }).length;
+        var aiTotal = essayImages.filter(function (im) { return im.source === "ai"; }).length;
+        var picked = getSelectedEssayImages().length;
+        setStatus($("imgStatus"), "已完成 " + aiOk + "／" + aiTotal + " 張 AI 配圖（共 " + essayImages.length + " 張，" + picked + " 張已附加到文末）", aiOk ? "" : "warn");
+      } catch (e) {
+        setStatus($("imgStatus"), "配圖失敗：" + (e.message || e), "err");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function extractSnippet(text, maxLen) {
+      var t = String(text || "").replace(/\s+/g, " ").trim();
+      if (t.length <= maxLen) return t;
+      return t.slice(0, maxLen) + "…";
+    }
+
+    function buildLocalEssay(material, authorLine) {
+      var scene = extractSnippet(material, 80) || "今日尋常生活裡的一件小事";
+      var title = "《" + extractSnippet(scene.replace(/[《》]/g, ""), 12) + "》";
+      if (title.length < 4) title = "《從日常照見自己》";
+      var p1 = "剛才在" + scene + "，心裡浮現一些念頭；尋常的一瞬，也在照見我內心的狀態。原來修煉不在遠方，就在柴米油鹽的當下。細想這份觸動，是在邀請我更覺察：這一念從哪裡來、要把我帶往哪裡。";
+      var p2 = "我明知該柔軟、該感恩，但境緣一來，情緒與慣性仍會牽著走。這份「知道」與「做到」的差距，正是我要誠實面對、不往外推責的地方。與其急著改變外境，不如先穩住心，看看真正卡住的點在哪裡。";
+      var p3 = "導師《太陽心語》提醒：看見盲點，就是開始修正；這也契合秒秒 GPS 定位——先把念頭轉回來，不在外找理由。想起有學員在類似境緣中選擇先柔軟、先感恩，也輔助我對照自己。古人說「吾日三省吾身」，白話就是時時回頭看自己，這正是古今中外共通的正能量思維，不必堆砌，一兩句能入心就好。";
+      var p4 = "就像太陽無私普照、不求回報，天地也以寬容承載萬物；我也願把領悟化為具體行動：一句好話、一個微笑、一份耐心。當我懷抱愛與感恩，把修正落在日常裡，眼前的路便多了平安與力量。";
+      return assembleEssay(title, authorLine, p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4);
+    }
+
+    function getEssayBodyParagraphs(text) {
+      var headerLines = getFormatHeaderLines();
+      var footerLines = getFormatFooterLines();
+      return String(text || "").split(/\n\n+/).filter(function (p) {
+        var t = p.trim();
+        if (!t) return false;
+        if (/^《[^》]+》/.test(t)) return false;
+        if (/\d{4}\/\d{1,2}\/\d{1,2}/.test(t.slice(0, 40))) return false;
+        if (headerLines.length && headerLines.every(function (line) { return t.indexOf(line) >= 0; })) return false;
+        if (footerLines.length && footerLines.every(function (line) { return t.indexOf(line) >= 0; })) return false;
+        return true;
+      });
+    }
+
+    function countEssayBodyChars(text) {
+      return getEssayBodyParagraphs(text).join("").replace(/\s/g, "").length;
+    }
+
+    function validateEssay(text) {
+      var checks = [];
+      var hasTitle = /《[^》]{2,}》/.test(text);
+      checks.push({ label: "標題（《》6–15 字意象）", ok: hasTitle });
+      var hasAuthor = /\d{4}\/\d{1,2}\/\d{1,2}/.test(text);
+      checks.push({ label: "作者署名含日期", ok: hasAuthor });
+      var headerLines = getFormatHeaderLines();
+      var hasGreeting = !headerLines.length || headerLines.every(function (line) { return text.indexOf(line) >= 0; });
+      checks.push({ label: headerLines.length ? "問候語（" + headerLines.length + " 句）" : "問候語（已省略）", ok: hasGreeting });
+      var paras = getEssayBodyParagraphs(text);
+      checks.push({ label: "正文 3–4 段", ok: paras.length >= 3 && paras.length <= 4 });
+      var bodyLen = countEssayBodyChars(text);
+      var totalLen = countEssayTotalChars(text);
+      var lim = getEssayLengthLimits();
+      checks.push({
+        label: "正文篇幅（" + lim.bodyMin + "–" + lim.bodyMax + " 字，現 " + bodyLen + " 字）",
+        ok: bodyLen >= lim.bodyMin && bodyLen <= lim.bodyMax
+      });
+      checks.push({
+        label: "全文字數（上限 " + lim.totalMax + " 字，現 " + totalLen + " 字）",
+        ok: totalLen <= lim.totalMax
+      });
+      var footerLines = getFormatFooterLines();
+      var hasClosing = !footerLines.length || footerLines.every(function (line) { return text.indexOf(line) >= 0; });
+      checks.push({ label: footerLines.length ? "感恩迴向（" + footerLines.length + " 句）" : "感恩迴向（已省略）", ok: hasClosing });
+      var noBlame = !/(都是.*的錯|怪.*不好|評判|指責)/.test(text);
+      checks.push({ label: "反求諸己、少評判外在", ok: noBlame });
+      return checks;
+    }
+
+    function renderChecklist(checks) {
+      var ul = $("checklist");
+      ul.innerHTML = checks.map(function (c) {
+        return "<li class=\"" + (c.ok ? "ok" : "fail") + "\">" + c.label + "</li>";
+      }).join("");
+      ul.hidden = false;
+    }
+
+    function renderMediaPreview() {
+      var box = $("mediaPreview");
+      box.innerHTML = mediaItems.map(function (it, idx) {
+        var inner = it.kind === "video"
+          ? "<video src=\"" + it.url + "\" muted playsinline></video>"
+          : "<img src=\"" + it.url + "\" alt=\"素材\" />";
+        return "<div class=\"item\">" + inner + "<span class=\"tag\">" + it.label + "</span></div>";
+      }).join("");
+    }
+
+    function addMediaItem(file, kind, label) {
+      var url = URL.createObjectURL(file);
+      mediaItems.push({ file: file, kind: kind, label: label, url: url });
+      renderMediaPreview();
+    }
+
+    async function analyzeAllMedia(apiKey) {
+      var notes = [];
+      for (var i = 0; i < mediaItems.length; i++) {
+        var it = mediaItems[i];
+        setStatus($("materialStatus"), "正在解析「" + it.label + "」…（" + (i + 1) + "/" + mediaItems.length + "）", "warn");
+        if (!apiKey) {
+          notes.push("【" + it.label + "】（未填 Gemini 金鑰，請用文字描述此" + (it.kind === "video" ? "影片" : "圖片") + "）");
+          continue;
+        }
+        if (it.kind === "video" && it.file.size > MAX_VIDEO_MB * 1024 * 1024) {
+          notes.push("【" + it.label + "】檔案過大，請改短一點或改以文字描述重點。");
+          continue;
+        }
+        try {
+          var res = await callGeminiMultimodal("", it.file, apiKey);
+          notes.push("【" + it.label + "】\n" + res.text);
+        } catch (e) {
+          notes.push("【" + it.label + "】解析失敗：" + (e.message || e));
+        }
+      }
+      return notes.join("\n\n");
+    }
+
+    function saveHistory(text, title) {
+      try {
+        var list = JSON.parse(localStorage.getItem(KEY_HISTORY) || "[]");
+        list.unshift({ ts: Date.now(), title: title || "心得", text: text.slice(0, 4000) });
+        if (list.length > 8) list.length = 8;
+        localStorage.setItem(KEY_HISTORY, JSON.stringify(list));
+        renderHistory();
+      } catch (e) {}
+    }
+
+    function renderHistory() {
+      var list = [];
+      try { list = JSON.parse(localStorage.getItem(KEY_HISTORY) || "[]"); } catch (e) {}
+      var box = $("history");
+      var empty = $("historyEmpty");
+      if (!list.length) {
+        box.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      box.innerHTML = list.map(function (it, idx) {
+        var d = new Date(it.ts);
+        return "<div class=\"history-item\"><strong>" + escapeHtml(it.title) + "</strong> " +
+          d.toLocaleDateString("zh-TW") +
+          " <button type=\"button\" data-idx=\"" + idx + "\">載入</button></div>";
+      }).join("");
+      box.querySelectorAll("button[data-idx]").forEach(function (btn) {
+        btn.onclick = function () {
+          var it = list[Number(btn.getAttribute("data-idx"))];
+          if (it) {
+            setOutputText(it.text);
+            renderChecklist(validateEssay(it.text));
+          }
+        };
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function getNewsEventKeyword() {
+      var q = ($("newsEventKeyword") && $("newsEventKeyword").value || "").trim();
+      if (q) return q;
+      return ($("searchKeyword").value || "").trim();
+    }
+
+    function buildNewsSearchUrls(newsEvent) {
+      var webQ = encodeURIComponent("太陽盛德導師 " + newsEvent + " 天地整理 OR 預言 OR 超級生命密碼");
+      var ytQ = encodeURIComponent("太陽盛德 " + newsEvent + " 天地整理");
+      return {
+        web: "https://www.google.com/search?q=" + webQ,
+        video: "https://www.youtube.com/results?search_query=" + ytQ
+      };
+    }
+
+    function buildNewsEventSearchPrompt(newsEvent, material) {
+      return [
+        "請用 Google 搜尋，針對時事／天災新聞「" + newsEvent + "」，查找與**太陽盛德導師**、**超級生命密碼**、**天圓文化**、官方社群或可信來源相關的資料，供超碼修煉心得 Step3「古今印證」使用。",
+        "",
+        "今日境緣摘要：「" + extractSnippet(material || newsEvent, 150) + "」",
+        "",
+        "請搜集並整理（繁體中文，反求諸己，不評判外在人事）：",
+        "1. **預言／警示**：導師或官方是否曾提及、預言、警示與「" + newsEvent + "」類似的天災、動盪或境緣（附時間脈絡若可考）",
+        "2. **天地整理原則**：相關心法說明——何謂天地整理、如何理解此類境緣、如何回光返照修正自心",
+        "3. **太陽心語／教誨**：優先查找與「" + newsEvent + "」相應的《太陽心語》或導師教誨，可引用原句、白話意涵、與今日境緣印證",
+        "4. **影音**（若有）：YouTube 演講或歌曲，附摘要",
+        "",
+        "請輸出 4–6 則，每則嚴格包含：",
+        "- 類型：（預言／天地整理／教誨／影音 擇一）",
+        "- 標題《…》",
+        "- 出處：…",
+        "- 可引用：…（若無可寫「未找到明確原句，以下據公開資料摘要」）",
+        "- 白話意涵：…",
+        "- 與今日境緣印證：…",
+        "- 參考連結：…",
+        "",
+        "若搜尋不到直接相關預言，請誠實說明，並提供最接近的天地整理或導師教誨供參考。"
+      ].join("\n");
+    }
+
+    function getSearchKeyword() {
+      var q = ($("searchKeyword").value || "").trim();
+      if (q) return q;
+      var mat = ($("materialText").value || "").trim();
+      if (mat) return extractSnippet(mat, 24);
+      return "太陽盛德導師 太陽心語";
+    }
+
+    function buildExternalSearchUrls(keyword, type) {
+      var base = "太陽盛德導師 太陽心語 " + keyword;
+      var q = encodeURIComponent(type === "video" ? "太陽盛德 " + keyword : base);
+      var urls = {
+        video: "https://www.youtube.com/results?search_query=" + q,
+        image: "https://www.google.com/search?tbm=isch&q=" + q,
+        web: "https://www.google.com/search?q=" + q
+      };
+      if (type === "video") return urls.video;
+      if (type === "image") return urls.image;
+      return urls.web;
+    }
+
+    async function loadCatalog() {
+      if (catalogCache) return catalogCache;
+      try {
+        var res = await fetch("../taiyang-music/catalog.json");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        catalogCache = await res.json();
+        return catalogCache;
+      } catch (e) {
+        throw new Error("無法載入歌曲目錄（需連網）");
+      }
+    }
+
+    function searchCatalog(catalog, keyword) {
+      var q = String(keyword || "").toLowerCase();
+      var songs = catalog.songs || [];
+      if (!q) q = "太陽";
+      return songs.filter(function (s) {
+        var blob = ((s.name || "") + " " + (s.title || "") + " " + (s.performerLabel || "")).toLowerCase();
+        return blob.indexOf(q) >= 0 || q.split(/\s+/).some(function (w) { return w && blob.indexOf(w) >= 0; });
+      }).slice(0, 10).map(function (s) {
+        var name = s.name || s.title || "歌曲";
+        return {
+          title: name,
+          type: "導師影音",
+          sage: "太陽盛德導師",
+          quote: "歌曲〈" + name + "〉",
+          plain: (s.title || "") + " — 可從歌词／意境中汲取感恩、轉念、希望等印證。",
+          yinZheng: "聆聽時把觸動連回今日境緣，用白話寫進 Step3，不逐字抄歌词。",
+          summary: s.title || "",
+          url: "https://www.youtube.com/watch?v=" + encodeURIComponent(s.id),
+          source: "本機歌曲目錄"
+        };
+      });
+    }
+
+    function renderSearchResults(items) {
+      var box = $("searchResults");
+      if (!items.length) {
+        box.innerHTML = "<p class=\"hint\">沒有找到結果，可改關鍵字或開外部搜尋。</p>";
+        return;
+      }
+      box.innerHTML = items.map(function (it, idx) {
+        return "<div class=\"search-item\" data-idx=\"" + idx + "\">" +
+          "<strong>" + escapeHtml(it.title) + "</strong>" +
+          "<div class=\"meta\">" + escapeHtml(it.type) + "｜" + escapeHtml(it.source || "") + "</div>" +
+          "<div class=\"sum\">" + escapeHtml(it.summary || "") + "</div>" +
+          "<div class=\"acts\">" +
+          "<button type=\"button\" data-act=\"add\" data-idx=\"" + idx + "\">加入印證</button>" +
+          "<button type=\"button\" data-act=\"open\" data-idx=\"" + idx + "\">開啟連結</button>" +
+          "</div></div>";
+      }).join("");
+      box._items = items;
+      box.querySelectorAll("button[data-act]").forEach(function (btn) {
+        btn.onclick = function () {
+          var idx = Number(btn.getAttribute("data-idx"));
+          var item = box._items[idx];
+          if (!item) return;
+          if (btn.getAttribute("data-act") === "add") addRefItem(item);
+          else window.open(item.url, "_blank", "noopener,noreferrer");
+        };
+      });
+    }
+
+    function getQuoteCounts() {
+      var sage = Number($("quoteCountSage").value);
+      var master = Number($("quoteCountMaster").value);
+      if (isNaN(sage)) sage = 2;
+      if (isNaN(master)) master = 2;
+      return {
+        sage: Math.max(0, Math.min(5, sage)),
+        master: Math.max(0, Math.min(5, master))
+      };
+    }
+
+    function saveQuoteCounts() {
+      var c = getQuoteCounts();
+      try {
+        localStorage.setItem(KEY_QUOTE_COUNTS, JSON.stringify(c));
+      } catch (e) {}
+    }
+
+    function loadQuoteCounts() {
+      try {
+        var raw = localStorage.getItem(KEY_QUOTE_COUNTS);
+        if (!raw) return;
+        var c = JSON.parse(raw);
+        if (c.sage != null) $("quoteCountSage").value = String(c.sage);
+        if (c.master != null) $("quoteCountMaster").value = String(c.master);
+      } catch (e) {}
+    }
+
+    function rankYinZhengPool(pool, blob) {
+      var matched = [];
+      var rest = [];
+      pool.forEach(function (item) {
+        var hit = item.keywords.some(function (k) { return blob.indexOf(k.toLowerCase()) >= 0; });
+        (hit ? matched : rest).push(item);
+      });
+      return matched.concat(rest);
+    }
+
+    function isTaiyangXinyuItem(item) {
+      return /太陽心語|心語/.test((item.sage || "") + (item.keywords || []).join(""));
+    }
+
+    function rankMasterPool(pool, blob) {
+      var xinyuMatched = [];
+      var xinyuRest = [];
+      var matched = [];
+      var rest = [];
+      pool.forEach(function (item) {
+        var isXinyu = isTaiyangXinyuItem(item);
+        var hit = item.keywords.some(function (k) { return blob.indexOf(k.toLowerCase()) >= 0; });
+        if (isXinyu && hit) xinyuMatched.push(item);
+        else if (isXinyu) xinyuRest.push(item);
+        else if (hit) matched.push(item);
+        else rest.push(item);
+      });
+      return xinyuMatched.concat(xinyuRest).concat(matched).concat(rest);
+    }
+
+    function pickYinZhengItems(keyword, material, opts) {
+      opts = opts || {};
+      var counts = opts.counts || getQuoteCounts();
+      var blob = (keyword + " " + (material || "")).toLowerCase();
+      var excludeQuotes = opts.excludeQuotes || [];
+      var offset = opts.offset || 0;
+
+      function pickFromPool(category, limit) {
+        if (!limit) return [];
+        var pool = YINZHENG_LIB.filter(function (i) { return i.category === category; });
+        pool = pool.filter(function (it) {
+          return !excludeQuotes.some(function (q) {
+            return q === it.quote || (it.quote && q.indexOf(it.quote) >= 0);
+          });
+        });
+        var ranked = category === "master" ? rankMasterPool(pool, blob) : rankYinZhengPool(pool, blob);
+        if (offset && ranked.length) {
+          var off = offset % ranked.length;
+          ranked = ranked.slice(off).concat(ranked.slice(0, off));
+        }
+        return ranked.slice(0, limit);
+      }
+
+      var out = [];
+      if (opts.category === "student") {
+        return pickFromPool("student", opts.limit || 3);
+      }
+      if (opts.category === "sage" || !opts.category) {
+        out = out.concat(pickFromPool("sage", counts.sage));
+      }
+      if (opts.category === "master" || !opts.category) {
+        out = out.concat(pickFromPool("master", counts.master));
+      }
+      return out;
+    }
+
+    function matchYinZhengLib(keyword, material) {
+      return pickYinZhengItems(keyword, material);
+    }
+
+    function quoteCountHint() {
+      var c = getQuoteCounts();
+      return "導師 " + c.master + " 句＋古今中外正能量 " + c.sage + " 句";
+    }
+
+    function sageItemsToRefs(items) {
+      return items.map(function (it) {
+        var isMaster = it.category === "master";
+        return {
+          title: it.sage + "：" + it.quote,
+          type: isMaster ? "導師教誨" : "古今中外正能量",
+          category: it.category || (isMaster ? "master" : "sage"),
+          sage: it.sage,
+          quote: it.quote,
+          plain: it.plain,
+          yinZheng: it.yinZheng,
+          summary: it.plain,
+          url: "",
+          source: "本機印證資料庫"
+        };
+      });
+    }
+
+    function addRefItem(item, silent) {
+      if (!item) return false;
+      if (item.url) {
+        var dup = refItems.some(function (r) { return r.url && r.url === item.url; });
+        if (dup) {
+          if (!silent) setStatus($("materialStatus"), "此印證參考已在清單中", "warn");
+          return false;
+        }
+      } else if (item.quote) {
+        var dupQ = refItems.some(function (r) { return r.quote === item.quote && r.sage === item.sage; });
+        if (dupQ) {
+          if (!silent) setStatus($("materialStatus"), "此古籍印證已在清單中", "warn");
+          return false;
+        }
+      }
+      refItems.push({
+        title: item.title || "印證參考",
+        type: item.type || "文章",
+        category: item.category || (/太陽盛德|超碼/.test(item.sage || "") ? "master" : "sage"),
+        sage: item.sage || "",
+        quote: item.quote || "",
+        plain: item.plain || item.summary || "",
+        yinZheng: item.yinZheng || "",
+        summary: item.summary || item.plain || "",
+        url: item.url || "",
+        source: item.source || "手動"
+      });
+      if (!silent) {
+        renderRefList();
+        renderYinZhengPreview();
+        setStatus($("materialStatus"), "已加入印證：" + (item.title || item.quote || ""), "");
+      }
+      return true;
+    }
+
+    function addRefItems(items, silent) {
+      var added = 0;
+      (items || []).forEach(function (it) {
+        if (addRefItem(it, true)) added++;
+      });
+      if (added || silent) {
+        renderRefList();
+        renderYinZhengPreview();
+      }
+      return added;
+    }
+
+    function removeRefsByCategory(category) {
+      refItems = refItems.filter(function (r) { return r.category !== category; });
+      renderRefList();
+      renderYinZhengPreview();
+    }
+
+    function getExcludedQuotes(category) {
+      return refItems.filter(function (r) { return r.category === category; })
+        .map(function (r) {
+          var parts = [];
+          if (r.quote) parts.push(r.quote);
+          if (r.title) parts.push(r.title);
+          return parts.join(" ");
+        }).filter(Boolean);
+    }
+
+    function renderRefList() {
+      var box = $("refList");
+      var empty = $("refEmpty");
+      if (!refItems.length) {
+        box.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      box.innerHTML = refItems.map(function (it, idx) {
+        var quoteBlock = it.quote
+          ? "<div class=\"quote\">「" + escapeHtml(it.quote) + "」" +
+            (it.sage ? " — " + escapeHtml(it.sage) : "") +
+            (it.plain ? "<br/>白話：" + escapeHtml(it.plain) : "") +
+            (it.yinZheng ? "<br/>印證：" + escapeHtml(it.yinZheng) : "") +
+            "</div>"
+          : (it.summary ? "<div class=\"sum\">" + escapeHtml(it.summary) + "</div>" : "");
+        var catLabel = it.category === "student" ? "學員佐證"
+          : (it.category === "master" ? "導師教誨" : (it.category === "sage" ? "古今中外正能量" : it.type));
+        return "<div class=\"ref-item\">" +
+          "<strong>" + escapeHtml(it.title) + "</strong>" +
+          "<div class=\"meta\">" + escapeHtml(catLabel) + "｜" + escapeHtml(it.source || "") + "</div>" +
+          quoteBlock +
+          (it.url ? "<div class=\"sum\" style=\"font-size:0.72rem;margin-top:0.25rem;\">" + escapeHtml(it.url) + "</div>" : "") +
+          "<div class=\"acts\">" +
+          (it.url ? "<button type=\"button\" data-ref-open=\"" + idx + "\">開啟</button>" : "") +
+          "<button type=\"button\" class=\"rm\" data-ref-rm=\"" + idx + "\">移除</button>" +
+          "</div></div>";
+      }).join("");
+      box.querySelectorAll("[data-ref-open]").forEach(function (btn) {
+        btn.onclick = function () {
+          var it = refItems[Number(btn.getAttribute("data-ref-open"))];
+          if (it) window.open(it.url, "_blank", "noopener,noreferrer");
+        };
+      });
+      box.querySelectorAll("[data-ref-rm]").forEach(function (btn) {
+        btn.onclick = function () {
+          refItems.splice(Number(btn.getAttribute("data-ref-rm")), 1);
+          renderRefList();
+          renderYinZhengPreview();
+        };
+      });
+    }
+
+    function renderYinZhengPreview() {
+      var el = $("yinZhengPreview");
+      if (!refItems.length) {
+        el.hidden = true;
+        el.textContent = "";
+        return;
+      }
+      el.hidden = false;
+      el.textContent = refsToMaterial();
+    }
+
+    function sortMasterRefsFirst(list) {
+      return list.slice().sort(function (a, b) {
+        var ax = /太陽心語|心語/.test((a.sage || "") + (a.title || "") + (a.type || ""));
+        var bx = /太陽心語|心語/.test((b.sage || "") + (b.title || "") + (b.type || ""));
+        if (ax && !bx) return -1;
+        if (!ax && bx) return 1;
+        return 0;
+      });
+    }
+
+    function refsToMaterial() {
+      if (!refItems.length) return "";
+      var c = getQuoteCounts();
+      var header = "【印證參考文章資訊｜供 Step3 古今印證充實使用】\n" +
+        "（引用順序：①導師 " + c.master + " 句【優先太陽心語】→ ②學員事蹟（輔助）→ ③古今中外正能量 " + c.sage + " 句）\n";
+      var sageRefs = refItems.filter(function (r) { return r.category === "sage"; });
+      var masterRefs = sortMasterRefsFirst(refItems.filter(function (r) { return r.category === "master"; }));
+      var studentRefs = refItems.filter(function (r) { return r.category === "student"; });
+      var otherRefs = refItems.filter(function (r) {
+        return r.category !== "sage" && r.category !== "master" && r.category !== "student";
+      });
+      function formatBlock(list, label) {
+        if (!list.length) return "";
+        return "\n【" + label + "】\n" + list.map(function (r, i) {
+          var lines = [(i + 1) + ". " + r.title];
+          if (r.sage) lines.push("出處：" + r.sage);
+          if (r.quote) lines.push("可引用：" + r.quote);
+          if (r.plain) lines.push("白話意涵：" + r.plain);
+          if (r.yinZheng) lines.push("與今日境緣印證：" + r.yinZheng);
+          if (r.summary && r.summary !== r.plain) lines.push("文章摘要：" + r.summary);
+          if (r.url) lines.push("參考連結：" + r.url);
+          lines.push("資料來源：" + (r.source || ""));
+          return lines.join("\n");
+        }).join("\n\n---\n\n");
+      }
+      return header + formatBlock(masterRefs, "① 太陽盛德導師話語（優先太陽心語）") +
+        formatBlock(studentRefs, "② 超級生命密碼學員佐證（輔助）") +
+        formatBlock(sageRefs, "③ 古今中外正能量思維事例") +
+        formatBlock(otherRefs, "其他印證參考");
+    }
+
+    function parseGeminiSearchResults(text) {
+      var items = [];
+      var blocks = String(text || "").split(/\n(?=\d+[\.\)、]|[-•*]\s)/);
+      blocks.forEach(function (block) {
+        var urlMatch = block.match(/https?:\/\/[^\s)\]】]+/);
+        var titleMatch = block.match(/[「《]([^」》]+)[」》]/);
+        var title = titleMatch ? titleMatch[1] : extractSnippet(block.replace(urlMatch ? urlMatch[0] : "", ""), 40);
+        var sageMatch = block.match(/出處[：:]\s*(.+)/);
+        var quoteMatch = block.match(/(?:可引用|原句|教誨)[：:]\s*[「"]?([^」"\n]+)/);
+        var plainMatch = block.match(/白話[意涵]*[：:]\s*(.+)/);
+        var yzMatch = block.match(/印證[：:]\s*(.+)/);
+        var typeMatch = block.match(/類型[：:]\s*(.+)/);
+        var refType = typeMatch ? typeMatch[1].trim() : "";
+        var type = /學員佐證|學員分享/.test(block + refType) ? "學員佐證"
+          : /太陽心語|心語/.test(block + refType) ? "太陽心語"
+          : /預言|警示/.test(block + refType) ? "預言"
+          : /天地整理/.test(block + refType) ? "天地整理"
+          : /圖|照片|image/i.test(block) ? "圖片"
+          : (/youtube|影音|影片|video/i.test(block) ? "導師影音" : "文章");
+        var isMaster = /太陽盛德|超碼|導師|太陽心語/.test(block) && !/曾子|孔子|王陽明|老子|弟子規|蘇格拉底|亞里士多德|聖經/.test(block);
+        var isStudent = type === "學員佐證" || (/學員|同修|見證/.test(block) && /分享|心得|轉念/.test(block) && !isMaster);
+        if (!urlMatch && !quoteMatch && !titleMatch) return;
+        items.push({
+          title: title || (isStudent ? "超級生命密碼學員佐證" : "太陽盛德導師印證參考"),
+          type: type,
+          category: isStudent ? "student" : (isMaster || type === "導師影音" ? "master" : "sage"),
+          sage: sageMatch ? sageMatch[1].trim() : (isStudent ? "超級生命密碼學員" : (isMaster ? "太陽盛德導師／網路資料" : "中外聖賢／網路資料")),
+          quote: quoteMatch ? quoteMatch[1].trim() : "",
+          plain: plainMatch ? plainMatch[1].trim() : extractSnippet(block, 100),
+          yinZheng: yzMatch ? yzMatch[1].trim() : "",
+          summary: plainMatch ? plainMatch[1].trim() : extractSnippet(block.replace(urlMatch ? urlMatch[0] : "", ""), 120),
+          url: urlMatch ? urlMatch[0].replace(/[.,;]+$/, "") : "",
+          source: "Gemini 網路搜尋"
+        });
+      });
+      if (!items.length && text.trim()) {
+        items.push({
+          title: "Gemini 印證搜尋摘要",
+          type: "摘要",
+          category: "master",
+          sage: "太陽盛德導師",
+          quote: "",
+          plain: extractSnippet(text, 300),
+          yinZheng: "請從摘要中擷取可白話化印證的句子寫入 Step3。",
+          summary: extractSnippet(text, 300),
+          url: buildExternalSearchUrls(getSearchKeyword(), $("searchType").value),
+          source: "Gemini 網路搜尋"
+        });
+      }
+      return items;
+    }
+
+    function addAllSearchResults() {
+      var box = $("searchResults");
+      if (!box._items || !box._items.length) {
+        alert("請先搜尋");
+        return;
+      }
+      var added = 0;
+      box._items.forEach(function (it) {
+        var before = refItems.length;
+        addRefItem(it);
+        if (refItems.length > before) added++;
+      });
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已加入 " + added + " 筆印證參考", added ? "" : "warn");
+    }
+
+    function searchNewsEventLocal() {
+      var news = getNewsEventKeyword();
+      if (!news) {
+        alert("請輸入時事／天災關鍵字（例：尼泊爾天災）");
+        return;
+      }
+      var material = (($("materialText").value || "").trim() + " " + news).trim();
+      var masterItems = sageItemsToRefs(pickYinZhengItems(news, material, { category: "master" }));
+      var sageItems = sageItemsToRefs(pickYinZhengItems(news, material, { category: "sage" }));
+      var items = masterItems.concat(sageItems).slice(0, 6);
+      $("searchKeyword").value = news;
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機相關心法 " + items.length + " 筆（「" + news + "」）；填金鑰可按「網搜預言／天地整理」", items.length ? "" : "warn");
+    }
+
+    async function searchNewsEventWithGemini() {
+      var news = getNewsEventKeyword();
+      if (!news) {
+        alert("請輸入時事／天災關鍵字（例：尼泊爾天災）");
+        return;
+      }
+      var key = getGeminiKey();
+      if (!key) {
+        alert("網搜預言／天地整理需 Gemini 金鑰。可先按「Google 搜尋」或「本機相關心法」。");
+        searchNewsEventLocal();
+        return;
+      }
+      var material = ($("materialText").value || "").trim();
+      setStatus($("materialStatus"), "正在網搜「" + news + "」相關預言與天地整理…", "warn");
+      $("searchKeyword").value = news;
+      try {
+        var res = await callGeminiText(buildNewsEventSearchPrompt(news, material), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).slice(0, 6);
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "「" + news + "」網搜完成（" + res.model + "），共 " + items.length + " 筆；可按「全部加入印證」", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "時事網搜失敗：" + (e.message || e), "err");
+      }
+    }
+
+    function searchSageLocal() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var counts = getQuoteCounts();
+      var sageItems = sageItemsToRefs(pickYinZhengItems(keyword, material, { category: "sage" }));
+      var masterItems = sageItemsToRefs(pickYinZhengItems(keyword, material, { category: "master" }));
+      var items = masterItems.concat(sageItems);
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機印證 " + items.length + " 筆（" + quoteCountHint() + "）", items.length ? "" : "warn");
+    }
+
+    function buildYinZhengSearchPrompt(keyword, material, counts, opts) {
+      opts = opts || {};
+      var lines = [
+        "請用 Google 搜尋，為超碼修煉心得 Step3「古今印證」搜集資料。",
+        "主題關鍵字：「" + keyword + "」",
+        "今日境緣摘要：「" + extractSnippet(material || "日常生活修煉", 150) + "」",
+        "",
+        "請嚴格依下列句數提供（每則含：標題《…》、出處、可引用、白話意涵、與今日境緣印證、參考連結）："
+      ];
+      if (opts.categoryOnly === "sage") {
+        lines.push("- **僅搜尋古今中外正能量思維事例** exactly " + counts.sage + " 則（含中外聖賢名言、歷史人物正向故事；作為導師教誨與學員案例**之後**的補充，擇合主題者）");
+        lines.push("- 不需要太陽盛德導師話語");
+      } else if (opts.categoryOnly === "master") {
+        lines.push("- **僅搜尋太陽盛德導師話語** exactly " + counts.master + " 則（**優先《太陽心語》**；其次超碼心法、演講、歌曲；優先官方或天圓文化來源）");
+        lines.push("- 不需要古今中外正能量事例");
+      } else {
+        if (counts.master > 0) {
+          lines.push("- **太陽盛德導師話語** exactly " + counts.master + " 則（**優先《太陽心語》**；其次教誨、演講、歌曲；優先官方或天圓文化來源）");
+        }
+        if (counts.sage > 0) {
+          lines.push("- **古今中外正能量思維事例** exactly " + counts.sage + " 則（含聖賢名言、正向人物故事；在導師話語與學員事蹟之後作補充）");
+        }
+      }
+      if (counts.sage === 0 && counts.master === 0 && !opts.categoryOnly) {
+        lines.push("- 各 0 則（略過網搜印證）");
+      }
+      if (opts.exclude && opts.exclude.length) {
+        lines.push("", "【重要】請勿重複以下已選話語，必須另找不同出處、不同原句：");
+        opts.exclude.forEach(function (q) { lines.push("- " + q); });
+      }
+      if (opts.research) {
+        lines.push("", "這是**重新搜尋**請求：請提供與先前不同、但同樣合適主題的替代話語。");
+      }
+      lines.push("繁體中文，反求諸己，不評判他人。");
+      lines.push(TAIYANG_XINYU_SEARCH_NOTE);
+      lines.push(EVIDENCE_PRIORITY_GUIDE);
+      return lines.join("\n");
+    }
+
+    function buildTaiyangXinyuSearchUrls(keyword) {
+      var q = encodeURIComponent("太陽盛德導師 太陽心語 " + keyword);
+      return {
+        web: "https://www.google.com/search?q=" + q,
+        video: "https://www.youtube.com/results?search_query=" + encodeURIComponent("太陽盛德 太陽心語 " + keyword)
+      };
+    }
+
+    function buildTaiyangXinyuSearchPrompt(keyword, material, opts) {
+      opts = opts || {};
+      var count = opts.count || getQuoteCounts().master || 3;
+      var lines = [
+        "請用 Google 搜尋，為超碼修煉心得 Step3「古今印證」搜集**太陽盛德導師《太陽心語》**（繁體中文）。",
+        TAIYANG_XINYU_SEARCH_NOTE,
+        "主題關鍵字：「" + keyword + "」",
+        "今日境緣摘要：「" + extractSnippet(material || keyword, 150) + "」",
+        "",
+        "請輸出 " + count + "–5 則，每則含：",
+        "- 類型：太陽心語",
+        "- 標題《…》",
+        "- 出處：太陽盛德導師｜太陽心語（附日期或平台若可考）",
+        "- 可引用：…（太陽心語原句，勿杜撰）",
+        "- 白話意涵：…",
+        "- 與今日境緣印證：…",
+        "- 參考連結：…",
+        "",
+        EVIDENCE_PRIORITY_GUIDE,
+        "反求諸己，不評判他人。"
+      ];
+      if (opts.exclude && opts.exclude.length) {
+        lines.push("", "請勿重複以下已選太陽心語，另找不同的：");
+        opts.exclude.forEach(function (q) { lines.push("- " + q); });
+      }
+      if (opts.research) lines.push("", "這是**重新搜尋**請求，請提供不同的太陽心語。");
+      return lines.join("\n");
+    }
+
+    function buildStudentSearchUrls(keyword) {
+      var q = encodeURIComponent("超級生命密碼 學員 分享 " + keyword + " 轉念 心得");
+      return {
+        web: "https://www.google.com/search?q=" + q,
+        video: "https://www.youtube.com/results?search_query=" + encodeURIComponent("超級生命密碼 學員 " + keyword)
+      };
+    }
+
+    function buildStudentEvidenceSearchPrompt(keyword, material, opts) {
+      opts = opts || {};
+      var count = opts.count || 4;
+      var lines = [
+        "請用 Google 搜尋，為超碼修煉心得 Step3「古今印證」搜集**超級生命密碼學員佐證資料**（繁體中文）。",
+        "主題關鍵字：「" + keyword + "」",
+        "今日境緣摘要：「" + extractSnippet(material || keyword, 150) + "」",
+        "",
+        "請搜尋學員分享、修煉心得、境緣轉念、見證、共修分享等，找出與主題相關、可寫入心得作為**第二順位輔助佐證**的案例（須在已引用導師話語／太陽心語之後；**古今中外正能量事例排在學員之後**）。",
+        "優先來源：超級生命密碼、天圓文化、官方社群、YouTube 學員分享、部落格心得等。",
+        "",
+        "請輸出 " + count + "–5 則，每則含：",
+        "- 類型：學員佐證",
+        "- 標題《…》",
+        "- 出處：…（平台／活動／文章；不杜撰學員真實姓名，可稱「某位學員」「同修」）",
+        "- 可引用：…（學員分享摘要或原句）",
+        "- 白話意涵：…",
+        "- 與今日境緣印證：…",
+        "- 參考連結：…",
+        "",
+        EVIDENCE_PRIORITY_GUIDE,
+        "反求諸己，不評判、不批評外在人事。"
+      ];
+      if (opts.exclude && opts.exclude.length) {
+        lines.push("", "請勿重複以下已選學員案例，另找不同的：");
+        opts.exclude.forEach(function (q) { lines.push("- " + q); });
+      }
+      if (opts.research) lines.push("", "這是**重新搜尋**請求，請提供不同的學員佐證案例。");
+      return lines.join("\n");
+    }
+
+    function normalizeStudentRefItem(it) {
+      if (!it) return it;
+      it.category = "student";
+      it.type = "學員佐證";
+      if (!it.sage) it.sage = "超級生命密碼學員";
+      return it;
+    }
+
+    function normalizeMasterRefItem(it) {
+      if (!it) return it;
+      if (it.category === "student") return it;
+      it.category = "master";
+      if (/太陽心語|心語/.test((it.sage || "") + (it.title || "") + (it.type || ""))) {
+        it.type = "太陽心語";
+        if (!it.sage) it.sage = "太陽盛德導師｜太陽心語";
+      }
+      return it;
+    }
+
+    function searchTaiyangXinyuLocal() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var picked = pickYinZhengItems(keyword, material, { category: "master" })
+        .filter(isTaiyangXinyuItem);
+      var items = sageItemsToRefs(picked).map(normalizeMasterRefItem);
+      if (!items.length) {
+        items = [normalizeMasterRefItem({
+          title: "太陽心語（本機提示）",
+          sage: "太陽盛德導師｜太陽心語",
+          quote: "",
+          plain: "請用「網搜太陽心語」或 Google 搜尋「太陽盛德導師 太陽心語 " + keyword + "」取得當日或合題原句。",
+          yinZheng: "Step3 印證優先引用太陽心語，再以白話完成轉念。",
+          summary: "優先參考資訊",
+          url: buildTaiyangXinyuSearchUrls(keyword).web,
+          source: "本機提示"
+        })];
+      }
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機太陽心語 " + items.length + " 則（填金鑰可網搜更多）", "");
+    }
+
+    async function searchTaiyangXinyuWithGemini() {
+      var key = getGeminiKey();
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      if (!key) {
+        alert("網搜太陽心語需 Gemini 金鑰。將改顯示本機提示，亦可按「開 Google 文章」手動搜尋。");
+        searchTaiyangXinyuLocal();
+        return;
+      }
+      setStatus($("materialStatus"), "正在網搜太陽盛德導師《太陽心語》…", "warn");
+      try {
+        var res = await callGeminiText(buildTaiyangXinyuSearchPrompt(keyword, material), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).map(normalizeMasterRefItem);
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "太陽心語網搜完成（" + res.model + "），共 " + items.length + " 則；可加入印證", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "太陽心語網搜失敗：" + (e.message || e), "err");
+      }
+    }
+
+    function searchStudentEvidenceLocal() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var picked = pickYinZhengItems(keyword, material, { category: "student" });
+      var items = sageItemsToRefs(picked).map(normalizeStudentRefItem);
+      if (!items.length) {
+        items = [normalizeStudentRefItem({
+          title: "超級生命密碼學員分享（本機提示）",
+          sage: "超級生命密碼學員",
+          quote: "",
+          plain: "可在 Step3 概括引用同修在類似境緣中轉念的實例。填 Gemini 金鑰後按「網搜學員佐證資料」找更多網路案例。",
+          yinZheng: "對照學員如何反求諸己，寫自己的轉念。",
+          summary: "請用網搜取得更多學員案例",
+          url: buildStudentSearchUrls(keyword).web,
+          source: "本機提示"
+        })];
+      }
+      renderSearchResults(items);
+      setStatus($("materialStatus"), "本機學員佐證 " + items.length + " 則（填金鑰可網搜更多）", "");
+    }
+
+    async function searchStudentEvidenceWithGemini() {
+      var key = getGeminiKey();
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      if (!key) {
+        alert("網搜學員佐證需 Gemini 金鑰。將改顯示本機提示，亦可按「開 Google 文章」手動搜尋。");
+        searchStudentEvidenceLocal();
+        return;
+      }
+      setStatus($("materialStatus"), "正在網搜超級生命密碼學員佐證…", "warn");
+      try {
+        var res = await callGeminiText(buildStudentEvidenceSearchPrompt(keyword, material), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).map(normalizeStudentRefItem);
+        if (!items.length) {
+          items = parseGeminiSearchResults(res.text).slice(0, 5).map(normalizeStudentRefItem);
+        }
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "學員佐證網搜完成（" + res.model + "），共 " + items.length + " 則；可加入印證", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "學員佐證網搜失敗：" + (e.message || e), "err");
+      }
+    }
+
+    async function researchStudentEvidence() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var exclude = getExcludedQuotes("student");
+      removeRefsByCategory("student");
+      studentSearchOffset++;
+      setStatus($("materialStatus"), "正在重新搜尋學員佐證…", "warn");
+      var key = getGeminiKey();
+      if (!key) {
+        searchStudentEvidenceLocal();
+        setStatus($("materialStatus"), "重新搜尋需 Gemini 金鑰；已顯示本機提示", "warn");
+        return;
+      }
+      try {
+        var res = await callGeminiText(buildStudentEvidenceSearchPrompt(keyword, material, {
+          exclude: exclude,
+          research: true,
+          count: 4 + (studentSearchOffset % 2)
+        }), key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).map(normalizeStudentRefItem);
+        var added = addRefItems(items.slice(0, 5), true);
+        renderSearchResults(items);
+        renderYinZhengPreview();
+        setStatus($("materialStatus"), "已重新搜尋並加入 " + added + " 則學員佐證", added ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), "重新搜尋學員佐證失敗：" + (e.message || e), "err");
+      }
+    }
+
+    async function researchQuotes(category) {
+      var counts = getQuoteCounts();
+      var limit = category === "sage" ? counts.sage : counts.master;
+      var label = category === "sage" ? "古今中外正能量" : "太陽盛德導師";
+      if (!limit) {
+        alert("請先設定「" + (category === "sage" ? "古今中外正能量" : "太陽盛德導師") + "」至少 1 句");
+        return;
+      }
+      saveQuoteCounts();
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var exclude = getExcludedQuotes(category);
+      removeRefsByCategory(category);
+
+      var offset = category === "sage" ? ++sageSearchOffset : ++masterSearchOffset;
+      setStatus($("materialStatus"), "正在重新搜尋" + label + "話語…", "warn");
+
+      var localPicked = pickYinZhengItems(keyword, material, {
+        category: category,
+        counts: counts,
+        offset: offset,
+        excludeQuotes: exclude
+      });
+      var finalItems = sageItemsToRefs(localPicked);
+      var key = getGeminiKey();
+
+      if (key) {
+        try {
+          var res = await callGeminiText(buildYinZhengSearchPrompt(keyword, material, counts, {
+            categoryOnly: category,
+            exclude: exclude,
+            research: true
+          }), key, { googleSearch: true });
+          var webItems = parseGeminiSearchResults(res.text).filter(function (it) {
+            return it.category === category;
+          });
+          if (webItems.length) finalItems = webItems.slice(0, limit);
+        } catch (e) {
+          if (!finalItems.length) {
+            setStatus($("materialStatus"), "重新搜尋失敗：" + (e.message || e), "err");
+            return;
+          }
+        }
+      }
+
+      var added = addRefItems(finalItems, true);
+      renderSearchResults(finalItems);
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已重新搜尋" + label + "話語 " + added + " 則" +
+        (key ? "（已排除先前結果）" : "（本機輪替；填金鑰可加網搜）"), added ? "" : "warn");
+    }
+
+    function researchSageQuotes() {
+      return researchQuotes("sage");
+    }
+
+    function researchMasterQuotes() {
+      return researchQuotes("master");
+    }
+
+    async function autoCollectYinZheng() {
+      var keyword = getSearchKeyword();
+      var material = ($("materialText").value || "").trim();
+      var counts = getQuoteCounts();
+      saveQuoteCounts();
+      if (counts.sage === 0 && counts.master === 0) {
+        setStatus($("materialStatus"), "請至少選 1 句導師話語或古今中外正能量事例", "err");
+        return;
+      }
+      setStatus($("materialStatus"), "正在搜集印證資料（" + quoteCountHint() + "）…", "warn");
+      var added = 0;
+      pickYinZhengItems(keyword, material).forEach(function (it) {
+        var before = refItems.length;
+        addRefItem(sageItemsToRefs([it])[0]);
+        if (refItems.length > before) added++;
+      });
+      var key = getGeminiKey();
+      if (key && (counts.sage > 0 || counts.master > 0)) {
+        try {
+          var res = await callGeminiText(buildYinZhengSearchPrompt(keyword, material, counts), key, { googleSearch: true });
+          parseGeminiSearchResults(res.text).slice(0, counts.sage + counts.master).forEach(function (it) {
+            var before = refItems.length;
+            addRefItem(it);
+            if (refItems.length > before) added++;
+          });
+        } catch (e) {
+          setStatus($("materialStatus"), "網搜印證失敗（本機已加入 " + added + " 筆）：" + (e.message || e), "warn");
+          renderYinZhengPreview();
+          return;
+        }
+      }
+      renderYinZhengPreview();
+      setStatus($("materialStatus"), "已搜集 " + added + " 筆（" + quoteCountHint() + "）" + (key ? "，含網搜" : "；填金鑰可加網搜"), added ? "" : "warn");
+    }
+
+    async function enrichSelectedRefs() {
+      var key = getGeminiKey();
+      if (!key) {
+        alert("充實參考文章資訊需 Gemini 金鑰。");
+        return;
+      }
+      if (!refItems.length) {
+        alert("請先加入至少一筆印證參考或連結。");
+        return;
+      }
+      var material = ($("materialText").value || "").trim();
+      setStatus($("materialStatus"), "正在充實印證文章資訊…", "warn");
+      try {
+        for (var i = 0; i < refItems.length; i++) {
+          var r = refItems[i];
+          if (r.quote && r.plain && r.yinZheng) continue;
+          var prompt =
+            "針對超碼修煉心得 Step3「古今印證」，充實以下參考為可寫入心得的 **印證參考文章資訊**（繁體中文）：\n" +
+            "標題：" + r.title + "\n" +
+            (r.url ? "連結：" + r.url + "\n" : "") +
+            "已有摘要：" + (r.summary || "無") + "\n" +
+            "今日境緣：" + extractSnippet(material || "日常修煉", 120) + "\n\n" +
+            "請輸出：\n出處：…\n可引用：…\n白話意涵：…\n與今日境緣印證：…\n" +
+            "（反求諸己，白話自然，不評判他人；" + EVIDENCE_PRIORITY_GUIDE + "）";
+          var res = await callGeminiText(prompt, key, r.url ? { googleSearch: true } : {});
+          var sageM = res.text.match(/出處[：:]\s*(.+)/);
+          var quoteM = res.text.match(/可引用[：:]\s*(.+)/);
+          var plainM = res.text.match(/白話意涵[：:]\s*(.+)/);
+          var yzM = res.text.match(/(?:與今日境緣)?印證[：:]\s*(.+)/);
+          if (sageM) r.sage = sageM[1].trim();
+          if (quoteM) r.quote = quoteM[1].replace(/^[「"]|[」"]$/g, "").trim();
+          if (plainM) r.plain = r.summary = plainM[1].trim();
+          if (yzM) r.yinZheng = yzM[1].trim();
+        }
+        renderRefList();
+        renderYinZhengPreview();
+        setStatus($("materialStatus"), "已充實 " + refItems.length + " 筆印證參考文章資訊", "");
+      } catch (e) {
+        setStatus($("materialStatus"), "充實失敗：" + (e.message || e), "err");
+      }
+    }
+
+    async function searchLocalCatalog() {
+      setStatus($("materialStatus"), "搜尋本機歌曲目錄…", "warn");
+      try {
+        var catalog = await loadCatalog();
+        var items = searchCatalog(catalog, getSearchKeyword());
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "找到 " + items.length + " 筆歌曲／MV", items.length ? "" : "warn");
+      } catch (e) {
+        setStatus($("materialStatus"), e.message || String(e), "err");
+      }
+    }
+
+    async function searchWithGemini() {
+      var key = getGeminiKey();
+      if (!key) {
+        alert("Gemini 網路搜尋需先填金鑰。可先按「開 YouTube 搜尋」手動找資料，再貼連結加入參考。");
+        return;
+      }
+      var keyword = getSearchKeyword();
+      var type = $("searchType").value;
+      var counts = getQuoteCounts();
+      saveQuoteCounts();
+      var typeHint = type === "video" ? "演講、歌曲 MV（附教誨摘要供印證）"
+        : type === "image" ? "圖片（說明可聯想之教誨意境）"
+        : type === "article" ? "文章、導師教誨摘錄、博客、官方訊息"
+        : "文章、影音、圖片皆可";
+      setStatus($("materialStatus"), "正在網搜印證（" + quoteCountHint() + "）…", "warn");
+      try {
+        var material = ($("materialText").value || "").trim();
+        var prompt = buildYinZhengSearchPrompt(keyword, material, counts) +
+          "\n\n補充：" + TAIYANG_XINYU_SEARCH_NOTE +
+          " 亦搜尋與「" + keyword + "」相關的" + typeHint + "。" +
+          "總筆數仍以導師 " + counts.master + " 句（優先太陽心語）、古今中外正能量 " + counts.sage + " 句為準。";
+        var res = await callGeminiText(prompt, key, { googleSearch: true });
+        var items = parseGeminiSearchResults(res.text).slice(0, counts.sage + counts.master);
+        renderSearchResults(items);
+        setStatus($("materialStatus"), "印證網搜完成（" + res.model + "），共 " + items.length + " 筆", "");
+      } catch (e) {
+        setStatus($("materialStatus"), "Gemini 搜尋失敗：" + (e.message || e), "err");
+      }
+    }
+
+    function addRefFromUrl() {
+      var url = ($("refUrl").value || "").trim();
+      if (!/^https?:\/\//i.test(url)) {
+        alert("請貼上有效的 http 或 https 連結");
+        return;
+      }
+      var title = "參考連結";
+      var type = "文章";
+      if (/youtube\.com|youtu\.be/i.test(url)) {
+        type = "影音";
+        title = "YouTube 參考";
+      } else if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)) {
+        type = "圖片";
+        title = "圖片參考";
+      }
+      addRefItem({
+        title: title,
+        type: type,
+        sage: /youtube/i.test(url) ? "太陽盛德導師｜YouTube" : "",
+        quote: "",
+        plain: "使用者貼上的參考連結，可按「充實已選參考」自動補印證資訊。",
+        yinZheng: "",
+        summary: "待充實之印證參考",
+        url: url,
+        source: "手動貼上"
+      });
+      $("refUrl").value = "";
+    }
+
+    async function generateEssay() {
+      var btn = $("btnGenerate");
+      btn.disabled = true;
+      persistFormatModule(true);
+      setStatus($("genStatus"), "準備素材…", "warn");
+      try {
+        var author = ($("authorName").value || "家人").trim();
+        var dateVal = $("authorDate").value;
+        var d = dateVal ? new Date(dateVal + "T12:00:00") : new Date();
+        var authorLine = buildAuthorLine(author, d);
+        var textMat = ($("materialText").value || "").trim();
+        var key = getGeminiKey();
+        var mediaNotes = "";
+        if (mediaItems.length) {
+          mediaNotes = await analyzeAllMedia(key);
+        }
+        var refNotes = refsToMaterial();
+        var combined = [textMat, mediaNotes].filter(Boolean).join("\n\n");
+        if (!combined.trim() && !refNotes) {
+          setStatus($("genStatus"), "請至少輸入文字、口說、圖片／影片，或加入印證參考。", "err");
+          return;
+        }
+        localStorage.setItem(KEY_AUTHOR, author);
+
+        var counts = getQuoteCounts();
+        saveQuoteCounts();
+        var essay = "";
+        if (key) {
+          setStatus($("genStatus"), "正在依 SOP 生成…", "warn");
+          var userBlock = "\n【作者署名行】\n" + authorLine +
+            "\n\n【寫作素材｜Step1–2 借境、自省】\n" + (combined || "（以印證參考為主）") +
+            (refNotes ? "\n\n" + refNotes : "") +
+            "\n\n【寫作指示】Step3 古今印證依序：①太陽盛德導師話語（尤其《太陽心語》）約 " + counts.master + " 則 → ②可輔以學員事蹟 → ③古今中外正能量思維約 " + counts.sage + " 則（依印證參考，白話轉念，不可只列連結或堆砌）。" +
+            "\n" + EVIDENCE_PRIORITY_GUIDE +
+            "\n" + buildEssayLengthGuide() + " 請嚴守篇幅，勿超過全文上限。";
+          var res = await callGeminiText(buildSopPrompt() + userBlock, key);
+          essay = res.text;
+          setStatus($("genStatus"), "已用 Gemini（" + res.model + "）生成", "");
+        } else {
+          setStatus($("genStatus"), "未填金鑰，已用本機 SOP 模板生成（建議填金鑰潤飾）", "warn");
+          essay = buildLocalEssay([combined, refNotes].filter(Boolean).join("\n\n"), authorLine);
+        }
+
+        setOutputText(essay);
+        renderChecklist(validateEssay(essay));
+        var titleMatch = essay.match(/《[^》]+》/);
+        saveHistory(essay, titleMatch ? titleMatch[0] : "心得");
+        var attachN = getSelectedEssayImages().length;
+        if (attachN) {
+          setStatus($("genStatus"), ($("genStatus").textContent || "") + "；文末 " + attachN + " 張附件圖仍保留，匯出 Word／PDF 會一併附上", "");
+        }
+      } catch (e) {
+        setStatus($("genStatus"), "生成失敗：" + (e.message || e), "err");
+      } finally {
+        btn.disabled = false;
+        setStatus($("materialStatus"), "", "");
+      }
+    }
+
+    function setupTabs() {
+      document.querySelectorAll(".tabs button[data-tab]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".tabs button").forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          var tab = btn.getAttribute("data-tab");
+          document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("show"); });
+          $("panel" + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add("show");
+        });
+      });
+    }
+
+    function insertTextIntoOutput(text) {
+      var el = $("outputEdit");
+      if (!el || !String(text || "").trim()) return;
+      var t = String(text).trim();
+      var start = el.selectionStart != null ? el.selectionStart : el.value.length;
+      var end = el.selectionEnd != null ? el.selectionEnd : el.value.length;
+      var hasSelection = start !== end;
+      if (hasSelection) {
+        el.value = el.value.slice(0, start) + t + el.value.slice(end);
+        var pos = start + t.length;
+        try { el.focus(); el.setSelectionRange(pos, pos); } catch (e) {}
+      } else {
+        var before = el.value.slice(0, start);
+        var after = el.value.slice(end);
+        var sep = before && !/\s$/.test(before) ? " " : "";
+        el.value = before + sep + t + after;
+        var pos2 = (before + sep + t).length;
+        try { el.focus(); el.setSelectionRange(pos2, pos2); } catch (e) {}
+      }
+      syncOutputFromEdit();
+    }
+
+    function stopEssaySpeak() {
+      if (window.TtsVoices && window.TtsVoices.stopSpeakQueue) {
+        window.TtsVoices.stopSpeakQueue();
+      } else {
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      updateSpeakUi(false);
+    }
+
+    function updateSpeakUi(active) {
+      var speakBtn = $("btnSpeakEssay");
+      var pauseBtn = $("btnPauseSpeak");
+      var stopBtn = $("btnStopSpeak");
+      if (speakBtn) {
+        speakBtn.disabled = !!active;
+        speakBtn.classList.toggle("speaking", !!active);
+      }
+      if (pauseBtn) {
+        pauseBtn.hidden = !active;
+        pauseBtn.textContent = "⏸ 暫停";
+      }
+      if (stopBtn) stopBtn.hidden = !active;
+    }
+
+    function pickEssaySpeakText() {
+      var el = $("outputEdit");
+      var text = "";
+      try {
+        var start = el.selectionStart;
+        var end = el.selectionEnd;
+        if (start != null && end != null && start !== end) {
+          text = el.value.slice(start, end).trim();
+        }
+      } catch (e) {}
+      if (!text) text = getOutputText() || lastOutput;
+      return text;
+    }
+
+    function speakEssayFallback(text) {
+      if (!window.speechSynthesis) {
+        alert("此瀏覽器不支援語音誦讀，請用 Chrome／Edge／Safari。");
+        return false;
+      }
+      stopEssaySpeak();
+      var settings = (window.TtsVoices && window.TtsVoices.getSpeakSettings)
+        ? window.TtsVoices.getSpeakSettings()
+        : { rate: 0.92, pitch: 1, lang: "zh-TW" };
+      var u = new SpeechSynthesisUtterance(String(text || ""));
+      u.rate = settings.rate || 0.92;
+      u.pitch = settings.pitch || 1;
+      if (settings.voice) {
+        u.voice = settings.voice;
+        u.lang = settings.voice.lang || settings.lang || "zh-TW";
+      } else {
+        u.lang = settings.lang || "zh-TW";
+      }
+      u.onend = function () {
+        updateSpeakUi(false);
+        setStatus($("genStatus"), "誦讀完成。", "");
+      };
+      u.onerror = function () {
+        updateSpeakUi(false);
+        setStatus($("genStatus"), "誦讀失敗或已取消。", "err");
+      };
+      updateSpeakUi(true);
+      window.speechSynthesis.speak(u);
+      return true;
+    }
+
+    function startEssaySpeak() {
+      var text = pickEssaySpeakText();
+      if (!text) {
+        setStatus($("genStatus"), "請先生成或輸入心得，再按誦讀。", "err");
+        return;
+      }
+      if (recognition) stopVoice();
+      stopEssaySpeak();
+      if (window.TtsVoices && window.TtsVoices.speakQueued) {
+        window.TtsVoices.speakQueued(text, { rate: 0.92 });
+        updateSpeakUi(true);
+        setStatus($("genStatus"), "正在誦讀心得（可暫停或停止）…", "");
+        return;
+      }
+      if (speakEssayFallback(text)) {
+        setStatus($("genStatus"), "正在誦讀心得…", "");
+      }
+    }
+
+    function pauseEssaySpeak() {
+      if (window.TtsVoices && window.TtsVoices.togglePauseSpeakQueue) {
+        window.TtsVoices.togglePauseSpeakQueue();
+        var st = window.TtsVoices.getSpeakState ? window.TtsVoices.getSpeakState() : {};
+        var btn = $("btnPauseSpeak");
+        if (btn) btn.textContent = st.paused ? "▶ 繼續" : "⏸ 暫停";
+        return;
+      }
+      try {
+        if (!window.speechSynthesis) return;
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        else window.speechSynthesis.pause();
+        var btn2 = $("btnPauseSpeak");
+        if (btn2) btn2.textContent = window.speechSynthesis.paused ? "▶ 繼續" : "⏸ 暫停";
+      } catch (e) {}
+    }
+
+    function setupEssaySpeak() {
+      $("btnSpeakEssay").onclick = startEssaySpeak;
+      $("btnPauseSpeak").onclick = pauseEssaySpeak;
+      $("btnStopSpeak").onclick = function () {
+        stopEssaySpeak();
+        setStatus($("genStatus"), "已停止誦讀。", "");
+      };
+      if (window.TtsVoices && window.TtsVoices.onSpeakStatus && !speakUiBound) {
+        speakUiBound = true;
+        window.TtsVoices.onSpeakStatus(function (ev) {
+          if (!ev) return;
+          if (ev.reason === "done") {
+            updateSpeakUi(false);
+            setStatus($("genStatus"), "誦讀完成。", "");
+          } else if (ev.reason === "stop") {
+            updateSpeakUi(false);
+          } else if (ev.reason === "pause") {
+            var pauseBtn = $("btnPauseSpeak");
+            if (pauseBtn) pauseBtn.textContent = "▶ 繼續";
+          } else if (ev.reason === "resume") {
+            var pauseBtn2 = $("btnPauseSpeak");
+            if (pauseBtn2) pauseBtn2.textContent = "⏸ 暫停";
+          } else if (ev.reason === "start" || ev.reason === "speaking") {
+            updateSpeakUi(true);
+          }
+        });
+      }
+    }
+
+    function stopVoice() {
+      voiceKeepListening = false;
+      if (!recognition) {
+        voiceTarget = null;
+        return;
+      }
+      try { recognition.stop(); } catch (e) {}
+      recognition = null;
+      voiceTarget = null;
+      $("btnVoice").classList.remove("recording");
+      $("btnVoice").textContent = "🎤 開始口說";
+      var btnOut = $("btnOutputVoice");
+      if (btnOut) {
+        btnOut.classList.remove("recording");
+        btnOut.textContent = "🎤 口說修改";
+      }
+    }
+
+    function startVoiceForTarget(target) {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert("此瀏覽器不支援語音辨識，請改用手動打字，或用 Chrome／Edge／Safari。");
+        return;
+      }
+      if (recognition && voiceTarget === target) {
+        stopVoice();
+        return;
+      }
+      if (recognition) stopVoice();
+      stopEssaySpeak();
+
+      voiceTarget = target;
+      voiceKeepListening = target === "output";
+      recognition = new SR();
+      recognition.lang = "zh-TW";
+      recognition.continuous = target === "output";
+      recognition.interimResults = false;
+
+      if (target === "output") {
+        $("btnOutputVoice").classList.add("recording");
+        $("btnOutputVoice").textContent = "■ 停止口說";
+        $("outputVoiceHint").textContent = "正在聆聽…有選取段落則取代選取，否則追加；再按一次停止。";
+        try { $("outputEdit").focus(); } catch (e) {}
+      } else {
+        $("btnVoice").classList.add("recording");
+        $("btnVoice").textContent = "■ 停止口說";
+      }
+
+      recognition.onresult = function (ev) {
+        var chunk = "";
+        for (var i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) chunk += ev.results[i][0].transcript;
+        }
+        if (!chunk.trim()) return;
+        if (voiceTarget === "output") {
+          insertTextIntoOutput(chunk);
+          setStatus($("genStatus"), "已口說修改心得（請按「儲存修改」保留）", "");
+          $("outputVoiceHint").textContent = "已加入口說內容；可繼續口說或按「■ 停止口說」。";
+        } else {
+          var el = $("materialText");
+          el.value = (el.value ? el.value.replace(/\s+$/, "") + " " : "") + chunk;
+          $("voiceHint").textContent = "已加入口說內容，可切到「文字」微調。";
+          document.querySelector(".tabs button[data-tab=\"text\"]").click();
+        }
+      };
+      recognition.onerror = function () {
+        var wasOutput = voiceTarget === "output";
+        stopVoice();
+        if (wasOutput) {
+          $("outputVoiceHint").textContent = "口說失敗或已取消，請改用手動修改。";
+        }
+      };
+      recognition.onend = function () {
+        if (voiceKeepListening && voiceTarget === "output" && recognition) {
+          try { recognition.start(); } catch (e) { stopVoice(); }
+          return;
+        }
+        var wasOutput = voiceTarget === "output";
+        stopVoice();
+        if (wasOutput) {
+          $("outputVoiceHint").textContent = "口說已停止。修改後請按「儲存修改」。";
+        }
+      };
+      recognition.start();
+    }
+
+    function startVoice() {
+      startVoiceForTarget("material");
+    }
+
+    function startOutputVoice() {
+      startVoiceForTarget("output");
+    }
+
+    function handleImageFiles(files, label) {
+      if (!files || !files.length) return;
+      Array.prototype.forEach.call(files, function (file) {
+        if (!/^image\//i.test(file.type)) return;
+        addMediaItem(file, "image", label);
+      });
+      setStatus($("materialStatus"), "已加入 " + files.length + " 張圖片（可按「從上方素材加入」轉為附件）", "");
+    }
+
+    function handleVideoFile(file, label) {
+      if (!file) return;
+      if (!/^video\//i.test(file.type)) {
+        setStatus($("materialStatus"), "請選擇影片檔", "err");
+        return;
+      }
+      if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+        setStatus($("materialStatus"), "影片超過 " + MAX_VIDEO_MB + "MB，請改短或壓縮", "err");
+        return;
+      }
+      addMediaItem(file, "video", label);
+      setStatus($("materialStatus"), "已加入影片：" + (file.name || label), "");
+    }
+
+    function init() {
+      initAuthorDate();
+      setupAuthorDateControls();
+      var savedAuthor = localStorage.getItem(KEY_AUTHOR);
+      if (savedAuthor) $("authorName").value = savedAuthor;
+      var k = localStorage.getItem(KEY_LOCAL) || localStorage.getItem(KEY_GEMINI);
+      if (k) $("geminiKey").value = k;
+
+      setupTabs();
+      renderHistory();
+      loadQuoteCounts();
+      loadExportAttachPref();
+      loadFormatSettings();
+      setupFormatAutoSave();
+      $("btnSaveFormat").onclick = saveFormatSettings;
+      $("btnResetFormat").onclick = resetFormatSettings;
+      $("exportWithAttachments").onchange = function () { syncExportAttachCheckboxes(this.checked); };
+      $("exportWithAttachments2").onchange = function () { syncExportAttachCheckboxes(this.checked); };
+      $("quoteCountSage").onchange = onQuoteCountsChanged;
+      $("quoteCountMaster").onchange = onQuoteCountsChanged;
+
+      $("btnSaveKey").onclick = function () {
+        var v = $("geminiKey").value.trim();
+        if (v) localStorage.setItem(KEY_LOCAL, v);
+        alert(v ? "已儲存金鑰（僅此裝置）" : "金鑰為空");
+      };
+      $("btnClearKey").onclick = function () {
+        localStorage.removeItem(KEY_LOCAL);
+        $("geminiKey").value = "";
+      };
+      $("btnGenerate").onclick = generateEssay;
+      $("btnVoice").onclick = startVoice;
+      $("btnOutputVoice").onclick = startOutputVoice;
+      setupEssaySpeak();
+      $("inputCamera").onchange = function (e) { handleImageFiles(e.target.files, "拍照"); e.target.value = ""; };
+      $("inputImage").onchange = function (e) { handleImageFiles(e.target.files, "圖片"); e.target.value = ""; };
+      $("inputVideoCapture").onchange = function (e) {
+        if (e.target.files && e.target.files[0]) handleVideoFile(e.target.files[0], "錄影");
+        e.target.value = "";
+      };
+      $("inputVideoFile").onchange = function (e) {
+        if (e.target.files && e.target.files[0]) handleVideoFile(e.target.files[0], "影片");
+        e.target.value = "";
+      };
+      $("btnSearchLocal").onclick = searchLocalCatalog;
+      $("btnSearchGemini").onclick = searchWithGemini;
+      $("btnSearchNews").onclick = searchNewsEventWithGemini;
+      $("btnNewsLocal").onclick = searchNewsEventLocal;
+      $("btnNewsAddAll").onclick = addAllSearchResults;
+      $("btnOpenNewsWeb").onclick = function () {
+        var news = getNewsEventKeyword();
+        if (!news) { alert("請輸入時事／天災關鍵字"); return; }
+        window.open(buildNewsSearchUrls(news).web, "_blank", "noopener,noreferrer");
+      };
+      $("btnOpenNewsYt").onclick = function () {
+        var news = getNewsEventKeyword();
+        if (!news) { alert("請輸入時事／天災關鍵字"); return; }
+        window.open(buildNewsSearchUrls(news).video, "_blank", "noopener,noreferrer");
+      };
+      document.querySelectorAll("#newsChips .chip").forEach(function (chip) {
+        chip.onclick = function () {
+          var v = chip.getAttribute("data-news") || "";
+          $("newsEventKeyword").value = v;
+          $("searchKeyword").value = v;
+        };
+      });
+      $("btnSearchSage").onclick = searchSageLocal;
+      $("btnSearchXinyu").onclick = searchTaiyangXinyuWithGemini;
+      $("btnXinyuLocal").onclick = searchTaiyangXinyuLocal;
+      $("btnResearchSage").onclick = researchSageQuotes;
+      $("btnResearchMaster").onclick = researchMasterQuotes;
+      $("btnSearchStudent").onclick = searchStudentEvidenceWithGemini;
+      $("btnResearchStudent").onclick = researchStudentEvidence;
+      $("btnStudentLocal").onclick = searchStudentEvidenceLocal;
+      $("btnAutoYinZheng").onclick = autoCollectYinZheng;
+      $("btnEnrichRefs").onclick = enrichSelectedRefs;
+      $("btnOpenYt").onclick = function () {
+        window.open(buildExternalSearchUrls(getSearchKeyword(), "video"), "_blank", "noopener,noreferrer");
+      };
+      $("btnOpenImg").onclick = function () {
+        window.open(buildExternalSearchUrls(getSearchKeyword(), "image"), "_blank", "noopener,noreferrer");
+      };
+      $("btnOpenWeb").onclick = function () {
+        window.open(buildExternalSearchUrls(getSearchKeyword(), "web"), "_blank", "noopener,noreferrer");
+      };
+      $("btnAddRefUrl").onclick = addRefFromUrl;
+      document.querySelectorAll("#panelSearch .chip[data-q]").forEach(function (chip) {
+        chip.onclick = function () {
+          $("searchKeyword").value = chip.getAttribute("data-q") || "";
+        };
+      });
+      renderRefList();
+      renderYinZhengPreview();
+      $("btnCopySel").onclick = copySelectedText;
+      $("btnCopy").onclick = function () {
+        syncOutputFromEdit();
+        if (!getOutputText()) { alert("請先生成心得"); return; }
+        copyTextToClipboard(getOutputText(), "已複製全文");
+      };
+      $("btnSaveEdit").onclick = saveEditedOutput;
+      $("btnWord").onclick = downloadWord;
+      $("btnPdf").onclick = exportPdf;
+      $("btnGenImages").onclick = generateEssayImages;
+      $("btnDlAttachments").onclick = downloadAllAttachments;
+      $("btnZipAttachments").onclick = downloadAttachmentZip;
+      $("btnClearImages").onclick = clearEssayImages;
+      $("btnAttachAll").onclick = function () { setAllAttachments(true); };
+      $("btnAttachNone").onclick = function () { setAllAttachments(false); };
+      $("inputAttachCamera").onchange = function (e) {
+        if (e.target.files && e.target.files[0]) addAttachmentsFromFiles([e.target.files[0]], "camera");
+        e.target.value = "";
+      };
+      $("inputAttachAlbum").onchange = function (e) {
+        addAttachmentsFromFiles(e.target.files, "album");
+        e.target.value = "";
+      };
+      $("btnAddAttachUrl").onclick = addAttachmentFromUrl;
+      $("btnAddFromMaterial").onclick = addAttachmentsFromMaterial;
+      renderEssayImages();
+      $("outputEdit").addEventListener("input", syncOutputFromEdit);
+      updateEssayLengthHint("");
+      setupPwaInstall();
+      setupShareSheet();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js").catch(function () {});
+      }
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>

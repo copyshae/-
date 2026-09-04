@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-# Sync learning logs 0820-0829 to Desktop\hello-world and push GitHub Pages (master).
+# Sync learning logs 0820-0906 to Desktop\hello-world and push GitHub Pages (master).
 # ASCII-safe for Windows PowerShell 5.1 (save as UTF-8 with BOM).
 $ErrorActionPreference = "Stop"
 $branch = "main"
@@ -38,7 +38,16 @@ $files = @(
   "directory/202608/20260826-learning-log.html",
   "directory/202608/20260827-learning-log.html",
   "directory/202608/20260828-learning-log.html",
-  "directory/202608/20260829-learning-log.html"
+  "directory/202608/20260829-learning-log.html",
+  "directory/202608/20260830-learning-log.html",
+  "directory/202608/20260831-learning-log.html",
+  "directory/202609/index.html",
+  "directory/202609/20260901-learning-log.html",
+  "directory/202609/20260902-learning-log.html",
+  "directory/202609/20260903-learning-log.html",
+  "directory/202609/20260904-learning-log.html",
+  "directory/202609/20260905-learning-log.html",
+  "directory/202609/20260906-learning-log.html"
 )
 
 foreach ($f in $files) { Save-RemoteFile $f }
@@ -55,8 +64,8 @@ if ($cur -ne $pagesBranch) {
 git pull origin $pagesBranch 2>$null
 
 Write-Host ""
-Write-Host "=== git status (expect 0820-0829 logs) ==="
-git add directory/index.html directory/learning-log.html directory/202608/
+Write-Host "=== git status (expect 0830-0906 logs) ==="
+git add directory/index.html directory/learning-log.html directory/202608/ directory/202609/
 git status --short
 
 $pending = git status --porcelain
@@ -67,7 +76,7 @@ if (-not $pending) {
   exit 1
 }
 
-$msg = "learning log 0820-0829 remapped (0829 unchanged, env-edu moved to 0828)"
+$msg = "learning log 0830-0906 one topic per day after 0829"
 git commit -m $msg
 Write-Host ""
 Write-Host "=== git push origin master ==="
@@ -79,9 +88,5 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "=== OK ===" -ForegroundColor Green
+Write-Host "[OK] Pushed. Latest: https://copyshae.github.io/hello-world/directory/202609/20260906-learning-log.html"
 git log -1 --oneline
-Write-Host ""
-Write-Host "Wait 1-2 min, then open:"
-Write-Host "  https://copyshae.github.io/hello-world/directory/202608/index.html"
-Write-Host "  Top entry should be 20260829; 0820=daily-14; 0828=env-edu"
