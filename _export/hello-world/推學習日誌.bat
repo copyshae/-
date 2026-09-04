@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
-title 推學習日誌 0821–0829 到 hello-world
+title 推學習日誌 0830–0906 到 hello-world
 echo.
-echo === 推學習日誌到 hello-world 正式站 ===
+echo === 推學習日誌 0830–0906 到 hello-world 正式站 ===
 echo.
 
 set "ROOT=%USERPROFILE%\Desktop\hello-world"
