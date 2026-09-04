@@ -28,7 +28,7 @@ jobs:
       - name: 同步鏡射到 docs/directory
         run: |
           set -e
-          mkdir -p docs/directory/202608 docs/directory/apps
+          mkdir -p docs/directory/202608 docs/directory/202609 docs/directory/apps
           rsync -a --delete _export/hello-world/directory/apps/habits-7/ docs/directory/apps/habits-7/
           rsync -a docs/daily-14/ docs/directory/apps/daily-14/
           rsync -a docs/doc-reader/ docs/directory/apps/doc-reader/
@@ -37,10 +37,14 @@ jobs:
           rsync -a --delete docs/fu-dao-ni-jia/ docs/directory/apps/fu-dao-ni-jia/
           rsync -a --delete docs/taiyang-lib/ docs/directory/apps/taiyang-lib/
           rsync -a --delete docs/taiyang-xinyu/ docs/directory/apps/taiyang-xinyu/
-          for n in 21 22 23 24 25 26 27 28 29; do
+          for n in 21 22 23 24 25 26 27 28 29 30 31; do
             cp -f "_export/hello-world/directory/202608/202608${n}-learning-log.html" docs/directory/202608/ 2>/dev/null || true
           done
+          for n in 01 02 03; do
+            cp -f "_export/hello-world/directory/202609/202609${n}-learning-log.html" docs/directory/202609/ 2>/dev/null || true
+          done
           cp -f _export/hello-world/directory/202608/index.html docs/directory/202608/index.html
+          cp -f _export/hello-world/directory/202609/index.html docs/directory/202609/index.html 2>/dev/null || true
           cp -f _export/hello-world/directory/index.html docs/directory/index.html
           cp -f _export/hello-world/directory/learning-log.html docs/directory/learning-log.html
           # rewrite hello-world absolute URLs to dash mirror for hosted copies
@@ -53,9 +57,13 @@ jobs:
             -e 's#https://copyshae.github.io/hello-world/directory/apps/fu-dao-ni-jia/#https://copyshae.github.io/-/directory/apps/fu-dao-ni-jia/#g' \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/taiyang-lib/#https://copyshae.github.io/-/directory/apps/taiyang-lib/#g' \
             -e 's#https://copyshae.github.io/hello-world/directory/apps/taiyang-xinyu/#https://copyshae.github.io/-/directory/apps/taiyang-xinyu/#g'
-          for n in 21 22 23 24 25 26 27 28 29; do
+          for n in 21 22 23 24 25 26 27 28 29 30 31; do
             find docs/directory -name '*.html' -print0 | xargs -0 sed -i \
               -e "s#https://copyshae.github.io/hello-world/directory/202608/202608${n}-learning-log.html#https://copyshae.github.io/-/directory/202608/202608${n}-learning-log.html#g"
+          done
+          for n in 01 02 03; do
+            find docs/directory -name '*.html' -print0 | xargs -0 sed -i \
+              -e "s#https://copyshae.github.io/hello-world/directory/202609/202609${n}-learning-log.html#https://copyshae.github.io/-/directory/202609/202609${n}-learning-log.html#g"
           done
       - name: 若有 HELLO_WORLD_TOKEN 則推正式站
         env:
@@ -67,7 +75,7 @@ jobs:
           fi
           git clone --depth 1 --branch master "https://x-access-token:${HELLO_WORLD_TOKEN}@github.com/copyshae/hello-world.git" /tmp/hw
           mkdir -p /tmp/hw/directory/apps/habits-7 /tmp/hw/directory/apps/daily-14 /tmp/hw/directory/apps/doc-reader \
-            /tmp/hw/directory/apps/dizigui-41 /tmp/hw/directory/apps/taiyang-music /tmp/hw/directory/apps/fu-dao-ni-jia /tmp/hw/directory/apps/taiyang-lib /tmp/hw/directory/apps/taiyang-xinyu /tmp/hw/directory/202608
+            /tmp/hw/directory/apps/dizigui-41 /tmp/hw/directory/apps/taiyang-music /tmp/hw/directory/apps/fu-dao-ni-jia /tmp/hw/directory/apps/taiyang-lib /tmp/hw/directory/apps/taiyang-xinyu /tmp/hw/directory/202608 /tmp/hw/directory/202609
           rsync -a _export/hello-world/directory/apps/habits-7/ /tmp/hw/directory/apps/habits-7/
           rsync -a docs/daily-14/ /tmp/hw/directory/apps/daily-14/
           rsync -a docs/doc-reader/ /tmp/hw/directory/apps/doc-reader/
@@ -76,12 +84,16 @@ jobs:
           rsync -a --delete docs/fu-dao-ni-jia/ /tmp/hw/directory/apps/fu-dao-ni-jia/
           rsync -a --delete docs/taiyang-lib/ /tmp/hw/directory/apps/taiyang-lib/
           rsync -a --delete docs/taiyang-xinyu/ /tmp/hw/directory/apps/taiyang-xinyu/
-          for n in 21 22 23 24 25 26 27 28 29; do
+          for n in 21 22 23 24 25 26 27 28 29 30 31; do
             cp -f "_export/hello-world/directory/202608/202608${n}-learning-log.html" /tmp/hw/directory/202608/ 2>/dev/null || true
+          done
+          for n in 01 02 03; do
+            cp -f "_export/hello-world/directory/202609/202609${n}-learning-log.html" /tmp/hw/directory/202609/ 2>/dev/null || true
           done
           cp -f _export/hello-world/directory/learning-log.html /tmp/hw/directory/learning-log.html
           cp -f _export/hello-world/directory/index.html /tmp/hw/directory/index.html
           cp -f _export/hello-world/directory/202608/index.html /tmp/hw/directory/202608/index.html
+          cp -f _export/hello-world/directory/202609/index.html /tmp/hw/directory/202609/index.html 2>/dev/null || true
           cp -f _export/hello-world/directory/202608/20260820-learning-log.html /tmp/hw/directory/202608/ 2>/dev/null || true
           cd /tmp/hw
           git config user.name "github-actions[bot]"
@@ -90,7 +102,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No hello-world changes"
           else
-            git commit -m "同步學習日誌 0824–0829 與弟子規／盛德歌曲 KTV（免開電腦）"
+            git commit -m "同步學習日誌 0830–0903（不含超碼修煉心得）"
             git push origin master
             echo "Pushed hello-world"
           fi
@@ -102,6 +114,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "mirror already current"
           else
-            git commit -m "chore: 鏡射學習日誌 0824–0829 到 docs/directory（Pages）"
+            git commit -m "chore: 鏡射學習日誌 0830–0903 到 docs/directory（Pages）"
             git push
           fi
