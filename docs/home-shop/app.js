@@ -79,10 +79,12 @@
         date: String((raw && raw.date) || today()).slice(0, 32),
         category: normalizeCat(raw && raw.category),
         name: String((raw && raw.name) || "（未命名）").slice(0, 200),
+        model: String((raw && raw.model) || "").slice(0, 80),
         amount: Math.max(0, Number(raw && raw.amount) || 0),
         qty: Number(raw && raw.qty) > 0 ? Number(raw.qty) : 1,
         store: String((raw && raw.store) || "").slice(0, 120),
         receiptNo: String((raw && raw.receiptNo) || "").slice(0, 80),
+        payment: String((raw && raw.payment) || "").slice(0, 80),
         note: String((raw && raw.note) || "").slice(0, 500),
         photo: trimPhoto(raw && raw.photo),
         createdAt: String((raw && raw.createdAt) || new Date().toISOString()).slice(0, 40),
@@ -180,7 +182,7 @@
     var list = items.filter(function (it) {
       if (filterCat !== "all" && normalizeCat(it.category) !== filterCat) return false;
       if (!q) return true;
-      var blob = [it.name, it.store, it.note, it.receiptNo, LABEL[normalizeCat(it.category)], it.date].join(" ").toLowerCase();
+      var blob = [it.name, it.model, it.store, it.note, it.receiptNo, it.payment, LABEL[normalizeCat(it.category)], it.date].join(" ").toLowerCase();
       return blob.indexOf(q) !== -1;
     }).slice().sort(function (a, b) {
       if (a.date === b.date) return (b.createdAt || "").localeCompare(a.createdAt || "");
@@ -197,8 +199,10 @@
       var qty = Number(it.qty) > 1 ? (" × " + it.qty) : "";
       var hasPhoto = !!(it.photo && String(it.photo).indexOf("data:image/") === 0);
       var meta = '<span class="badge">' + LABEL[normalizeCat(it.category)] + "</span> " + esc(it.date || "") +
+        (it.model ? (" · " + esc(it.model)) : "") +
         (it.store ? (" · " + esc(it.store)) : "") +
         (it.receiptNo ? (" · #" + esc(it.receiptNo)) : "") +
+        (it.payment ? (" · " + esc(it.payment)) : "") +
         (Number(it.qty) > 1 ? (" · 單價 " + money(it.amount)) : "") +
         (hasPhoto ? " · 有照片" : "");
       return (
@@ -240,10 +244,12 @@
     if (!keepDate) $("fDate").value = today();
     $("fCat").value = "appliance";
     $("fName").value = "";
+    if ($("fModel")) $("fModel").value = "";
     $("fAmt").value = "";
     $("fQty").value = "1";
     $("fStore").value = "";
     $("fNo").value = "";
+    if ($("fPay")) $("fPay").value = "";
     $("fNote").value = "";
     photoUrl = "";
     $("pCam").value = "";
@@ -260,10 +266,12 @@
     $("fDate").value = it.date || today();
     $("fCat").value = normalizeCat(it.category);
     $("fName").value = it.name || "";
+    if ($("fModel")) $("fModel").value = it.model || "";
     $("fAmt").value = it.amount != null ? it.amount : "";
     $("fQty").value = it.qty || 1;
     $("fStore").value = it.store || "";
     $("fNo").value = it.receiptNo || "";
+    if ($("fPay")) $("fPay").value = it.payment || "";
     $("fNote").value = it.note || "";
     photoUrl = it.photo || "";
     if (photoUrl) {
@@ -277,24 +285,46 @@
     setStatus($("formStatus"), it.id ? ("正在修改：「" + (it.name || "") + "」") : "請修改後按儲存", "warn");
   }
 
-  function compressImage(file, maxSide, quality) {
+  function loadImageElement(file) {
     return new Promise(function (resolve, reject) {
-      var reader = new FileReader();
-      reader.onerror = function () { reject(new Error("讀取失敗")); };
-      reader.onload = function () {
+      function fromObjectUrl() {
+        var url = URL.createObjectURL(file);
         var img = new Image();
         img.onload = function () {
-          var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-          var canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(img.width * scale));
-          canvas.height = Math.max(1, Math.round(img.height * scale));
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", quality));
+          URL.revokeObjectURL(url);
+          resolve(img);
         };
-        img.onerror = function () { reject(new Error("圖片無法開啟")); };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
+        img.onerror = function () {
+          URL.revokeObjectURL(url);
+          reject(new Error("圖片無法開啟（若為 HEIC，請先用「檔案」轉成 JPG，或改用相簿選取）"));
+        };
+        img.src = url;
+      }
+      if (typeof createImageBitmap === "function") {
+        createImageBitmap(file).then(function (bmp) {
+          resolve(bmp);
+        }).catch(function () {
+          fromObjectUrl();
+        });
+      } else {
+        fromObjectUrl();
+      }
+    });
+  }
+
+  function compressImage(file, maxSide, quality) {
+    return loadImageElement(file).then(function (img) {
+      var w = img.width || img.videoWidth || 1;
+      var h = img.height || img.videoHeight || 1;
+      var scale = Math.min(1, maxSide / Math.max(w, h));
+      var canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      if (typeof img.close === "function") {
+        try { img.close(); } catch (e) {}
+      }
+      return canvas.toDataURL("image/jpeg", quality);
     });
   }
 
@@ -317,12 +347,16 @@
 
   function saveItem() {
     var name = ($("fName").value || "").trim();
-    var amount = Number($("fAmt").value);
+    var amtRaw = ($("fAmt").value || "").trim();
+    var amount = Number(amtRaw);
     var qty = Number($("fQty").value);
     var date = $("fDate").value;
-    if (!name) { setStatus($("formStatus"), "請填品名／項目", "err"); return; }
-    if (!date) { setStatus($("formStatus"), "請填日期", "err"); return; }
-    if (!(amount >= 0) || isNaN(amount)) { setStatus($("formStatus"), "請填正確金額", "err"); return; }
+    if (!name) { setStatus($("formStatus"), "請填品名／品項（至少要有品項與金額）", "err"); return; }
+    if (amtRaw === "" || isNaN(amount) || amount < 0) {
+      setStatus($("formStatus"), "請填金額（至少要有品項與金額；贈品可填 0）", "err");
+      return;
+    }
+    if (!date) date = today();
     if (!qty || qty < 1) qty = 1;
 
     var id = $("editId").value;
@@ -332,10 +366,12 @@
       date: date,
       category: $("fCat").value || "appliance",
       name: name,
+      model: ($("fModel") && $("fModel").value || "").trim(),
       amount: amount,
       qty: qty,
       store: ($("fStore").value || "").trim(),
       receiptNo: ($("fNo").value || "").trim(),
+      payment: ($("fPay") && $("fPay").value || "").trim(),
       note: ($("fNote").value || "").trim(),
       photo: trimPhoto(photoUrl),
       updatedAt: now
@@ -393,10 +429,12 @@
       date: partial.date || today(),
       category: normalizeCat(partial.category || "other"),
       name: partial.name || "",
-      amount: partial.amount != null ? Number(partial.amount) : "",
+      model: partial.model || "",
+      amount: partial.amount != null && partial.amount !== "" ? Number(partial.amount) : "",
       qty: partial.qty > 0 ? Number(partial.qty) : 1,
       store: partial.store || "",
       receiptNo: partial.receiptNo || "",
+      payment: partial.payment || "",
       note: partial.note || "",
       photo: trimPhoto(partial.photo || scanUrl || "")
     };
@@ -408,33 +446,43 @@
       $("draftList").innerHTML = "";
       return;
     }
-    $("draftList").innerHTML = drafts.map(function (d, i) {
-      return (
-        '<div class="draft-card" data-key="' + d._key + '">' +
-          "<h3>第 " + (i + 1) + " 筆（可直接改）</h3>" +
-          '<div class="row">' +
-            '<div><label>日期</label><input type="date" data-f="date" value="' + esc(d.date) + '" /></div>' +
-            '<div><label>分類</label><select data-f="category">' +
-              '<option value="appliance"' + (d.category === "appliance" ? " selected" : "") + ">家電</option>" +
-              '<option value="furniture"' + (d.category === "furniture" ? " selected" : "") + ">家具</option>" +
-              '<option value="other"' + (d.category === "other" ? " selected" : "") + ">其他</option>" +
-            "</select></div>" +
-          "</div>" +
-          '<label>品名</label><input type="text" data-f="name" value="' + esc(d.name) + '" />' +
-          '<div class="row">' +
-            '<div><label>金額</label><input type="number" data-f="amount" min="0" step="1" value="' + esc(d.amount) + '" /></div>' +
-            '<div><label>數量</label><input type="number" data-f="qty" min="1" step="1" value="' + esc(d.qty) + '" /></div>' +
-          "</div>" +
-          '<label>店家</label><input type="text" data-f="store" value="' + esc(d.store) + '" />' +
-          '<label>收據編號</label><input type="text" data-f="receiptNo" value="' + esc(d.receiptNo) + '" />' +
-          '<label>備註</label><textarea data-f="note">' + esc(d.note) + "</textarea>" +
-          '<div class="acts">' +
-            '<button type="button" data-a="manual">改到手動表單</button>' +
-            '<button type="button" class="danger" data-a="rm">刪除此列</button>' +
-          "</div>" +
-        "</div>"
-      );
-    }).join("");
+    var draftSum = 0;
+    drafts.forEach(function (d) {
+      var a = Number(d.amount);
+      var q = Number(d.qty) > 0 ? Number(d.qty) : 1;
+      if (!isNaN(a) && a >= 0) draftSum += a * q;
+    });
+    $("draftList").innerHTML =
+      '<p class="hint">本批草稿加總：<strong>' + money(draftSum) + "</strong>（登錄後會併入上方總花費）· 每筆可改可刪；品名與金額必填；贈品金額填 0；其餘欄位沒有可留空</p>" +
+      drafts.map(function (d, i) {
+        return (
+          '<div class="draft-card" data-key="' + d._key + '">' +
+            "<h3>第 " + (i + 1) + " 筆</h3>" +
+            '<div class="row">' +
+              '<div><label>日期</label><input type="date" data-f="date" value="' + esc(d.date) + '" /></div>' +
+              '<div><label>分類</label><select data-f="category">' +
+                '<option value="appliance"' + (d.category === "appliance" ? " selected" : "") + ">家電</option>" +
+                '<option value="furniture"' + (d.category === "furniture" ? " selected" : "") + ">家具</option>" +
+                '<option value="other"' + (d.category === "other" ? " selected" : "") + ">其他</option>" +
+              "</select></div>" +
+            "</div>" +
+            '<label>品名（必填）</label><input type="text" data-f="name" value="' + esc(d.name) + '" />' +
+            '<label>型號（選填）</label><input type="text" data-f="model" value="' + esc(d.model || "") + '" placeholder="沒有可留空" />' +
+            '<div class="row">' +
+              '<div><label>金額（必填；贈品填 0）</label><input type="number" data-f="amount" min="0" step="1" value="' + esc(d.amount) + '" /></div>' +
+              '<div><label>數量</label><input type="number" data-f="qty" min="1" step="1" value="' + esc(d.qty) + '" /></div>' +
+            "</div>" +
+            '<label>店家（選填）</label><input type="text" data-f="store" value="' + esc(d.store) + '" />' +
+            '<label>收據編號（選填）</label><input type="text" data-f="receiptNo" value="' + esc(d.receiptNo) + '" />' +
+            '<label>付款方式（選填）</label><input type="text" data-f="payment" value="' + esc(d.payment || "") + '" placeholder="沒有可留空" />' +
+            '<label>備註（選填）</label><textarea data-f="note">' + esc(d.note) + "</textarea>" +
+            '<div class="acts">' +
+              '<button type="button" data-a="manual">修改（手動表單）</button>' +
+              '<button type="button" class="danger" data-a="rm">刪除此列</button>' +
+            "</div>" +
+          "</div>"
+        );
+      }).join("");
   }
 
   function syncDraft(card) {
@@ -493,9 +541,9 @@
         mime = /\.pdf$/i.test(file.name) ? "application/pdf" : "image/jpeg";
       }
       var prompt =
-        "這是家電／家具相關收據、發票、訂單或費用明細（繁體中文）。請擷取費用項目。只回 JSON，不要 markdown：" +
-        '{"store":"店家","date":"YYYY-MM-DD或空","receiptNo":"編號","items":[{"name":"品名","amount":單價數字,"qty":數量,"category":"appliance|furniture|other","note":"備註"}],"total":總額}。' +
-        "家電 appliance、家具 furniture、運費安裝保固等 other。金額為新台幣數字。看不清可留空。若只有總額，items 放一筆「收據合計」。";
+        "這是台灣家電／家具收據（繁體中文，可能含燦坤等）。只回 JSON，不要 markdown：" +
+        '{"store":"店家或空","date":"YYYY-MM-DD或空","receiptNo":"單號或空","payment":"付款方式或空","items":[{"name":"品名","model":"型號或空","amount":單價數字,"qty":數量,"category":"appliance|furniture|other","note":"備註或空"}],"total":總額}。' +
+        "品名與金額必填；沒有的欄位填空字串勿捏造。贈品／贈送 amount 必須為 0，note 可寫贈品。延保安裝也要逐筆。民國年改西元（+1911）。total 為收據總計。不要擷取姓名電話。";
       var parts = [{ text: prompt }, { inline_data: { mime_type: mime, data: packed.b64 } }];
       var lastErr = null;
       var idx = 0;
@@ -536,26 +584,50 @@
     });
   }
 
+  function toIsoDate(raw) {
+    var s = String(raw || "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // 民國年：115/04/17 或 115-04-17
+    var m = s.match(/^(\d{2,3})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+    if (m) {
+      var y = Number(m[1]);
+      if (y < 1911) y += 1911;
+      return y + "-" + String(m[2]).padStart(2, "0") + "-" + String(m[3]).padStart(2, "0");
+    }
+    return today();
+  }
+
   function draftsFromParsed(parsed, dataUrl) {
     var store = String(parsed.store || "").trim();
-    var date = String(parsed.date || "").trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = today();
+    var date = toIsoDate(parsed.date);
     var receiptNo = String(parsed.receiptNo || "").trim();
+    var payment = String(parsed.payment || "").trim();
     var list = Array.isArray(parsed.items) ? parsed.items : [];
     if (!list.length && Number(parsed.total) > 0) {
-      list = [{ name: "收據合計", amount: Number(parsed.total), qty: 1, category: "other", note: "" }];
+      list = [{ name: "收據合計", model: "", amount: Number(parsed.total), qty: 1, category: "other", note: "" }];
     }
     return list.map(function (raw) {
       var name = String(raw.name || "").trim() || "（未命名）";
+      var note = String(raw.note || "").trim();
+      var amount = Number(raw.amount);
+      if (isNaN(amount) || amount < 0) amount = 0;
+      var giftLike = /贈品|贈送|免費/.test(name + " " + note) || Number(raw.amount) === 0 && /贈/.test(name);
+      if (giftLike || Number(raw.amount) === 0 && /贈品|贈送|免費/.test(name + note)) {
+        amount = 0;
+        if (note.indexOf("贈品") === -1) note = note ? (note + "；贈品") : "贈品";
+      }
+      if (Number(raw.amount) === 0) amount = 0;
       return blankDraft({
         date: date,
         category: guessCategory(name, raw.category),
         name: name,
-        amount: Number(raw.amount) || 0,
+        model: String(raw.model || "").trim(),
+        amount: amount,
         qty: Number(raw.qty) > 0 ? Number(raw.qty) : 1,
         store: store,
         receiptNo: receiptNo,
-        note: String(raw.note || "").trim(),
+        payment: payment,
+        note: note,
         photo: /^image\//i.test((scanFile && scanFile.type) || "") ? trimPhoto(dataUrl || "") : ""
       });
     });
@@ -587,12 +659,18 @@
     $("scanFileName").textContent = file.name + "（" + Math.round(file.size / 1024) + " KB）";
     $("scanPreviewBox").classList.add("on");
     var img = $("scanPreviewImg");
-    if (/^image\//i.test(file.type) || /\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
-      fileToBase64(file).then(function (p) {
-        scanUrl = p.dataUrl;
-        img.hidden = false;
-        img.src = p.dataUrl;
-      });
+    if (/^image\//i.test(file.type) || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.name)) {
+      // 預覽優先用物件網址，避免大圖 data URL 塞爆記憶體；辨識時再壓縮
+      try {
+        if (scanUrl && scanUrl.indexOf("blob:") === 0) URL.revokeObjectURL(scanUrl);
+      } catch (e) {}
+      scanUrl = URL.createObjectURL(file);
+      img.hidden = false;
+      img.src = scanUrl;
+      img.onerror = function () {
+        img.hidden = true;
+        setStatus($("scanStatus"), "預覽失敗，仍可嘗試辨識；若失敗請改選 JPG／PNG", "warn");
+      };
     } else {
       scanUrl = "";
       img.hidden = true;
@@ -603,8 +681,12 @@
 
   function clearScan() {
     scanFile = null;
+    try {
+      if (scanUrl && scanUrl.indexOf("blob:") === 0) URL.revokeObjectURL(scanUrl);
+    } catch (e) {}
     scanUrl = "";
     $("scanCamera").value = "";
+    if ($("scanAlbum")) $("scanAlbum").value = "";
     $("scanFile").value = "";
     $("scanPreviewImg").src = "";
     $("scanPreviewImg").hidden = true;
@@ -625,13 +707,14 @@
       for (var i = 0; i < drafts.length; i++) {
         var d = drafts[i];
         var name = String(d.name || "").trim();
-        var amount = Number(d.amount);
+        var amtRaw = d.amount;
+        var amount = Number(amtRaw);
         if (!name) {
-          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少品名，請補上後再確認", "err");
+          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少品名（至少要有品項與金額）", "err");
           return;
         }
-        if (!(amount >= 0) || isNaN(amount)) {
-          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆金額有誤，請修正", "err");
+        if (amtRaw === "" || amtRaw == null || isNaN(amount) || amount < 0) {
+          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少金額（贈品請填 0）", "err");
           return;
         }
         items.push({
@@ -639,10 +722,12 @@
           date: d.date || today(),
           category: normalizeCat(d.category),
           name: name,
+          model: String(d.model || "").trim(),
           amount: amount,
           qty: Number(d.qty) > 0 ? Number(d.qty) : 1,
           store: String(d.store || "").trim(),
           receiptNo: String(d.receiptNo || "").trim(),
+          payment: String(d.payment || "").trim(),
           note: String(d.note || "").trim(),
           photo: trimPhoto(d.photo),
           createdAt: now,
@@ -653,7 +738,6 @@
       try {
         persist();
       } catch (e) {
-        // 再試：全部去掉照片
         for (var j = items.length - added; j < items.length; j++) {
           if (items[j]) items[j].photo = "";
         }
@@ -670,7 +754,7 @@
       renderList();
       clearScan();
       setStatus($("draftStatus"), "", "");
-      setStatus($("scanStatus"), "已登錄 " + added + " 筆 · 總花費 " + money(calcStats().total), "");
+      setStatus($("scanStatus"), "已登錄 " + added + " 筆 · 目前總花費 " + money(calcStats().total), "");
       switchTab("home");
     } catch (err) {
       setStatus($("draftStatus"), "確認登錄失敗：" + ((err && err.message) || err), "err");
@@ -685,11 +769,13 @@
         "日期": it.date || "",
         "分類": LABEL[normalizeCat(it.category)] || "其他",
         "品名": it.name || "",
+        "型號": it.model || "",
         "單價": Number(it.amount) || 0,
         "數量": Number(it.qty) > 0 ? Number(it.qty) : 1,
         "小計": lineTotal(it),
         "店家": it.store || "",
         "收據編號": it.receiptNo || "",
+        "付款方式": it.payment || "",
         "備註": it.note || "",
         "有照片": it.photo ? "是" : "否",
         id: it.id || ""
@@ -697,12 +783,52 @@
     });
   }
 
+  function isIosLike() {
+    var ua = navigator.userAgent || "";
+    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
   function downloadBlob(blob, filename) {
+    // iOS Safari 常忽略 <a download>；優先用系統分享，其次開新分頁讓使用者儲存
+    if (isIosLike() && typeof navigator.share === "function") {
+      try {
+        var file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], title: filename }).catch(function () {
+            openBlobFallback(blob, filename);
+          });
+        }
+      } catch (e) { /* fall through */ }
+    }
+    if (isIosLike()) {
+      openBlobFallback(blob, filename);
+      return;
+    }
+    var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
     a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  function openBlobFallback(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var w = window.open(url, "_blank");
+    if (!w) {
+      var a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   }
 
   function csvCell(v) {
@@ -711,9 +837,13 @@
   }
 
   function exportExcel() {
+    if (!items.length) {
+      setStatus($("exportStatus"), "目前沒有資料可匯出", "warn");
+      return;
+    }
     var rows = rowsForExport();
     var withPhoto = $("exportWithPhoto").checked;
-    var headers = ["日期", "分類", "品名", "單價", "數量", "小計", "店家", "收據編號", "備註"];
+    var headers = ["日期", "分類", "品名", "型號", "單價", "數量", "小計", "店家", "收據編號", "付款方式", "備註"];
     if (withPhoto) headers.push("有照片");
     headers.push("id");
     var lines = ["\uFEFF" + headers.join(",")];
@@ -727,10 +857,16 @@
     lines.push(csvCell("家具") + "," + csvCell(s.furniture));
     lines.push(csvCell("其他") + "," + csvCell(s.other));
     downloadBlob(new Blob([lines.join("\r\n")], { type: "text/csv;charset=utf-8" }), today() + "_家電家具購物帳.csv");
-    setStatus($("exportStatus"), "已匯出 Excel／CSV（" + rows.length + " 筆）", "");
+    setStatus($("exportStatus"), isIosLike()
+      ? "已準備 Excel／CSV（" + rows.length + " 筆）。iPhone 請在分享選單選「儲存到檔案」，或從新分頁分享儲存。"
+      : "已匯出 Excel／CSV（" + rows.length + " 筆）", "");
   }
 
   function exportPdf() {
+    if (!items.length) {
+      setStatus($("exportStatus"), "目前沒有資料可匯出", "warn");
+      return;
+    }
     var rows = rowsForExport();
     var s = calcStats();
     var withPhoto = $("exportWithPhoto").checked;
@@ -743,15 +879,17 @@
       "<div class=\"t\">總花費：" + money(s.total) + "（共 " + s.count + " 筆）</div>" +
       "<p class=\"m\">家電 " + money(s.appliance) + " · 家具 " + money(s.furniture) + " · 其他 " + money(s.other) +
       " · " + new Date().toLocaleString("zh-TW") + "</p>" +
-      "<table><thead><tr><th>日期</th><th>分類</th><th>品名</th><th class=\"r\">單價</th><th class=\"r\">數量</th><th class=\"r\">小計</th>" +
-      "<th>店家</th><th>收據編號</th><th>備註</th>" + (withPhoto ? "<th>照片</th>" : "") + "</tr></thead><tbody>";
+      "<table><thead><tr><th>日期</th><th>分類</th><th>品名</th><th>型號</th><th class=\"r\">單價</th><th class=\"r\">數量</th><th class=\"r\">小計</th>" +
+      "<th>店家</th><th>收據編號</th><th>付款方式</th><th>備註</th>" + (withPhoto ? "<th>照片</th>" : "") + "</tr></thead><tbody>";
 
     rows.forEach(function (r) {
       html += "<tr><td>" + esc(r["日期"]) + "</td><td>" + esc(r["分類"]) + "</td><td>" + esc(r["品名"]) +
+        "</td><td>" + esc(r["型號"]) +
         "</td><td class=\"r\">" + Number(r["單價"]).toLocaleString("zh-TW") +
         "</td><td class=\"r\">" + r["數量"] +
         "</td><td class=\"r\">" + Number(r["小計"]).toLocaleString("zh-TW") +
         "</td><td>" + esc(r["店家"]) + "</td><td>" + esc(r["收據編號"]) +
+        "</td><td>" + esc(r["付款方式"]) +
         "</td><td>" + esc(r["備註"]) + "</td>" +
         (withPhoto ? ("<td>" + esc(r["有照片"]) + "</td>") : "") + "</tr>";
     });
@@ -769,6 +907,10 @@
   }
 
   function exportJson() {
+    if (!items.length) {
+      setStatus($("exportStatus"), "目前沒有資料可匯出", "warn");
+      return;
+    }
     var payload = {
       app: "home-shop",
       version: 1,
@@ -776,7 +918,9 @@
       items: items
     };
     downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), today() + "_家電家具購物帳.json");
-    setStatus($("exportStatus"), "已匯出 JSON（" + items.length + " 筆）", "");
+    setStatus($("exportStatus"), isIosLike()
+      ? "已準備 JSON（" + items.length + " 筆）。若出現分享選單請選「儲存到檔案」；若開新分頁請用分享／儲存。"
+      : "已匯出 JSON（" + items.length + " 筆）", "");
   }
 
   function parseCsv(text) {
@@ -812,10 +956,12 @@
         date: raw.date || raw["日期"] || today(),
         category: normalizeCat(raw.category || raw["分類"] || "other"),
         name: String(raw.name || raw["品名"] || "").trim() || "（未命名）",
+        model: String(raw.model || raw["型號"] || "").trim(),
         amount: Number(raw.amount != null ? raw.amount : (raw["單價"] != null ? raw["單價"] : raw["小計"])) || 0,
         qty: Number(raw.qty != null ? raw.qty : raw["數量"]) > 0 ? Number(raw.qty != null ? raw.qty : raw["數量"]) : 1,
         store: String(raw.store || raw["店家"] || "").trim(),
         receiptNo: String(raw.receiptNo || raw["收據編號"] || "").trim(),
+        payment: String(raw.payment || raw["付款方式"] || "").trim(),
         note: String(raw.note || raw["備註"] || "").trim(),
         photo: trimPhoto(typeof raw.photo === "string" ? raw.photo : ""),
         createdAt: raw.createdAt || new Date().toISOString(),
@@ -928,6 +1074,15 @@
     $("btnSave").addEventListener("click", saveItem);
     $("btnResetForm").addEventListener("click", function () { resetForm(false); });
     $("btnCancelEdit").addEventListener("click", function () { resetForm(false); });
+
+    function openPicker(inputId) {
+      var el = $(inputId);
+      if (!el) return;
+      try { el.value = ""; } catch (e) {}
+      el.click();
+    }
+    $("btnPCam").addEventListener("click", function () { openPicker("pCam"); });
+    $("btnPFile").addEventListener("click", function () { openPicker("pFile"); });
     $("pCam").addEventListener("change", function () { attachPhoto($("pCam").files && $("pCam").files[0]); });
     $("pFile").addEventListener("change", function () { attachPhoto($("pFile").files && $("pFile").files[0]); });
     $("btnClearPhoto").addEventListener("click", function () {
@@ -938,7 +1093,11 @@
       $("photoPreview").classList.remove("on");
     });
 
+    $("btnScanCamera").addEventListener("click", function () { openPicker("scanCamera"); });
+    $("btnScanAlbum").addEventListener("click", function () { openPicker("scanAlbum"); });
+    $("btnScanFile").addEventListener("click", function () { openPicker("scanFile"); });
     $("scanCamera").addEventListener("change", function () { setScanFile($("scanCamera").files && $("scanCamera").files[0]); });
+    $("scanAlbum").addEventListener("change", function () { setScanFile($("scanAlbum").files && $("scanAlbum").files[0]); });
     $("scanFile").addEventListener("change", function () { setScanFile($("scanFile").files && $("scanFile").files[0]); });
     $("btnScan").addEventListener("click", runScan);
     $("btnClearScan").addEventListener("click", clearScan);
@@ -951,6 +1110,17 @@
     $("draftList").addEventListener("input", function (e) {
       var c = e.target.closest(".draft-card");
       if (c) syncDraft(c);
+      // 即時更新草稿加總，方便知道這批多少錢
+      var hint = $("draftList").querySelector(".hint strong");
+      if (hint) {
+        var sum = 0;
+        drafts.forEach(function (d) {
+          var a = Number(d.amount);
+          var q = Number(d.qty) > 0 ? Number(d.qty) : 1;
+          if (!isNaN(a) && a >= 0) sum += a * q;
+        });
+        hint.textContent = money(sum);
+      }
     });
     $("draftList").addEventListener("change", function (e) {
       var c = e.target.closest(".draft-card");
@@ -973,10 +1143,12 @@
           date: d.date,
           category: d.category,
           name: d.name,
+          model: d.model || "",
           amount: d.amount,
           qty: d.qty,
           store: d.store,
           receiptNo: d.receiptNo,
+          payment: d.payment || "",
           note: d.note,
           photo: d.photo || ""
         });
@@ -1004,6 +1176,7 @@
     $("btnExportPdf").addEventListener("click", exportPdf);
     $("btnExportJson").addEventListener("click", exportJson);
 
+    $("btnImportFile").addEventListener("click", function () { openPicker("importFile"); });
     $("importFile").addEventListener("change", function () {
       var file = $("importFile").files && $("importFile").files[0];
       if (!file) return;
