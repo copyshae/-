@@ -1,7 +1,8 @@
 /* 家電家具購物帳｜Safari 友善離線快取 */
-var CACHE = "home-shop-v3";
+var CACHE = "home-shop-v4";
 var ASSETS = [
   "./index.html",
+  "./app.js?v=10",
   "./app.js",
   "./manifest.json",
   "./icon-180.png",

@@ -107,6 +107,18 @@
     .hint { font-size: .78rem; color: var(--muted); margin-top: .35rem; line-height: 1.5; }
     .status { font-size: .84rem; font-weight: 700; min-height: 1.2rem; margin-top: .35rem; color: var(--ok); }
     .status.warn { color: var(--warn); } .status.err { color: var(--danger); }
+    .flash {
+      display: none; margin-top: .75rem; padding: .7rem .8rem;
+      font-weight: 700; font-size: .9rem; line-height: 1.4;
+      border: 1px solid var(--line); background: rgba(255,255,255,.95); color: var(--ok);
+    }
+    .flash.on { display: block; }
+    .flash.warn { color: var(--warn); border-color: rgba(181,71,8,.35); background: #fff8f0; }
+    .flash.err { color: var(--danger); border-color: rgba(180,35,24,.35); background: #fff5f4; }
+    .draft-bar {
+      position: sticky; top: 0; z-index: 5; margin: .35rem 0 .55rem; padding: .55rem .45rem;
+      background: rgba(255,252,248,.96); border: 1px solid var(--line);
+    }
     .filters { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .65rem; }
     .filters button { flex: 1 1 auto; min-width: 4rem; font-size: .8rem; padding: .4rem .5rem; min-height: 2.4rem; }
     .search { margin-bottom: .55rem; }
@@ -165,6 +177,8 @@
         <div class="cell"><div class="cat c-o">其他</div><div class="amt c-o" id="sumO">$0</div><div class="cnt" id="cntO">0 筆</div></div>
       </div>
     </section>
+
+    <p class="flash" id="appFlash" role="status" aria-live="assertive"></p>
 
     <nav class="tabs" role="tablist">
       <button type="button" class="on" data-tab="home">總覽</button>
@@ -227,12 +241,14 @@
         <div class="card" id="draftCard" hidden>
           <h2>辨識結果（可即時修改）</h2>
           <p class="hint">金額、品名、分類有誤就直接改；也可刪列或轉到手動表單再調。</p>
-          <div class="row">
-            <button type="button" id="btnAddDraft">＋ 新增一列</button>
-            <button type="button" class="primary" id="btnConfirmDrafts">確認登錄全部</button>
+          <div class="draft-bar">
+            <div class="row" style="margin-top:0;">
+              <button type="button" id="btnAddDraft">＋ 新增一列</button>
+              <button type="button" class="primary" id="btnConfirmDrafts">確認登錄全部</button>
+            </div>
+            <p class="status" id="draftStatus"></p>
           </div>
           <div id="draftList"></div>
-          <p class="status" id="draftStatus"></p>
         </div>
       </div>
 
@@ -328,6 +344,6 @@
 
     <footer><a href="../">← 回到首頁</a> · 資料僅存本機</footer>
   </div>
-  <script src="./app.js?v=9"></script>
+  <script src="./app.js?v=10"></script>
 </body>
 </html>

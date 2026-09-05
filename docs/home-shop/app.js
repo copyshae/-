@@ -52,6 +52,26 @@
     el.className = "status" + (kind ? " " + kind : "");
   }
 
+  function flash(msg, kind) {
+    var el = $("appFlash");
+    if (!el) return;
+    el.textContent = msg || "";
+    el.className = "flash" + (msg ? " on" : "") + (kind ? " " + kind : "");
+    if (msg) {
+      try { el.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {
+        try { el.scrollIntoView(true); } catch (e2) {}
+      }
+    }
+  }
+
+  function tellUser(msg, kind, alsoEl) {
+    flash(msg, kind);
+    if (alsoEl) setStatus(alsoEl, msg, kind);
+    if (alsoEl && msg) {
+      try { alsoEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+    }
+  }
+
   function normalizeCat(c) {
     return FROM[c] || FROM[String(c || "").trim()] || "other";
   }
@@ -171,10 +191,14 @@
         localStorage.setItem(STORE, JSON.stringify(payload));
         return { ok: true, stripped: true };
       } catch (e2) {
-        payload = build(true, true);
-        items = payload.items;
-        localStorage.setItem(STORE, JSON.stringify(payload));
-        return { ok: true, stripped: true, truncated: true };
+        try {
+          payload = build(true, true);
+          items = payload.items;
+          localStorage.setItem(STORE, JSON.stringify(payload));
+          return { ok: true, stripped: true, truncated: true };
+        } catch (e3) {
+          throw e3;
+        }
       }
     }
   }
@@ -712,7 +736,7 @@
       setStatus($("scanStatus"), "已用 " + result.model + " 抓到 " + drafts.length + " 筆，請核對修改後確認登錄", "");
       setStatus($("draftStatus"), "有錯可直接改欄位，或轉到手動表單", "warn");
     }).catch(function (err) {
-      setStatus($("scanStatus"), (err && err.message) || "辨識失敗", "err");
+      setStatus($("scanStatus"), friendlyError(err), "err");
     }).then(function () {
       $("btnScan").disabled = false;
     });
@@ -761,10 +785,19 @@
   }
 
   function confirmDrafts() {
+    var btn = $("btnConfirmDrafts");
+    if (btn && btn.getAttribute("data-busy") === "1") return;
+    var prevLabel = btn ? btn.textContent : "確認登錄全部";
+    if (btn) {
+      btn.setAttribute("data-busy", "1");
+      btn.disabled = true;
+      btn.textContent = "登錄中…";
+    }
+    flash("正在登錄…", "warn");
     try {
       document.querySelectorAll(".draft-card").forEach(syncDraft);
       if (!drafts.length) {
-        setStatus($("draftStatus"), "沒有可登錄的項目，請先辨識或按「＋ 新增一列」", "warn");
+        tellUser("沒有可登錄的項目，請先辨識或按「＋ 新增一列」", "warn", $("draftStatus"));
         return;
       }
       var now = new Date().toISOString();
@@ -776,11 +809,11 @@
         var amtRaw = d.amount;
         var amount = Number(amtRaw);
         if (!name) {
-          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少品名（至少要有品項與金額）", "err");
+          tellUser("第 " + (i + 1) + " 筆缺少品名（至少要有品項與金額）", "err", $("draftStatus"));
           return;
         }
         if (amtRaw === "" || amtRaw == null || isNaN(amount) || amount < 0) {
-          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少金額（贈品請填 0）", "err");
+          tellUser("第 " + (i + 1) + " 筆缺少金額（贈品請填 0）", "err", $("draftStatus"));
           return;
         }
         items.push({
@@ -807,7 +840,7 @@
         result = persist();
       } catch (e) {
         items = items.slice(0, startLen);
-        setStatus($("draftStatus"), "儲存失敗。請先匯出備份，或到危險操作清除舊資料後再登錄", "err");
+        tellUser("儲存失敗。請先到「匯出匯入」匯出備份，再按「清除全部收據照片」後重試", "err", $("draftStatus"));
         return;
       }
       drafts = [];
@@ -819,9 +852,20 @@
       var msg = "已登錄 " + added + " 筆 · 目前總花費 " + money(calcStats().total);
       if (result && result.stripped) msg += "（已自動省略照片以完成儲存）";
       setStatus($("scanStatus"), msg, "");
+      flash(msg, "");
       switchTab("home");
+      try {
+        var hero = document.querySelector(".hero");
+        if (hero) hero.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (eScroll) {}
     } catch (err) {
-      setStatus($("draftStatus"), "確認登錄失敗：" + ((err && err.message) || err), "err");
+      tellUser("確認登錄失敗：" + ((err && err.message) || err), "err", $("draftStatus"));
+    } finally {
+      if (btn) {
+        btn.removeAttribute("data-busy");
+        btn.disabled = false;
+        btn.textContent = prevLabel || "確認登錄全部";
+      }
     }
   }
 
@@ -1096,6 +1140,15 @@
   }
 
   function bindEvents() {
+    function on(id, ev, fn) {
+      var el = $(id);
+      if (!el) {
+        console.warn("[購物帳] 找不到元素 #" + id);
+        return;
+      }
+      el.addEventListener(ev, fn);
+    }
+
     document.querySelectorAll(".tabs button").forEach(function (b) {
       b.addEventListener("click", function () { switchTab(b.getAttribute("data-tab")); });
     });
@@ -1103,7 +1156,7 @@
       b.addEventListener("click", function () { switchPath(b.getAttribute("data-path")); });
     });
 
-    $("filters").addEventListener("click", function (e) {
+    on("filters", "click", function (e) {
       var b = e.target.closest("button[data-filter]");
       if (!b) return;
       filterCat = b.getAttribute("data-filter");
@@ -1113,9 +1166,9 @@
       renderList();
     });
 
-    $("searchQ").addEventListener("input", renderList);
+    on("searchQ", "input", renderList);
 
-    $("itemList").addEventListener("click", function (e) {
+    on("itemList", "click", function (e) {
       var b = e.target.closest("button[data-act]");
       if (!b) return;
       var art = b.closest(".item");
@@ -1135,9 +1188,9 @@
       }
     });
 
-    $("btnSave").addEventListener("click", saveItem);
-    $("btnResetForm").addEventListener("click", function () { resetForm(false); });
-    $("btnCancelEdit").addEventListener("click", function () { resetForm(false); });
+    on("btnSave", "click", saveItem);
+    on("btnResetForm", "click", function () { resetForm(false); });
+    on("btnCancelEdit", "click", function () { resetForm(false); });
 
     function openPicker(inputId) {
       var el = $(inputId);
@@ -1145,33 +1198,39 @@
       try { el.value = ""; } catch (e) {}
       el.click();
     }
-    $("btnPCam").addEventListener("click", function () { openPicker("pCam"); });
-    $("btnPFile").addEventListener("click", function () { openPicker("pFile"); });
-    $("pCam").addEventListener("change", function () { attachPhoto($("pCam").files && $("pCam").files[0]); });
-    $("pFile").addEventListener("change", function () { attachPhoto($("pFile").files && $("pFile").files[0]); });
-    $("btnClearPhoto").addEventListener("click", function () {
+    on("btnPCam", "click", function () { openPicker("pCam"); });
+    on("btnPFile", "click", function () { openPicker("pFile"); });
+    on("pCam", "change", function () { attachPhoto($("pCam").files && $("pCam").files[0]); });
+    on("pFile", "change", function () { attachPhoto($("pFile").files && $("pFile").files[0]); });
+    on("btnClearPhoto", "click", function () {
       photoUrl = "";
-      $("pCam").value = "";
-      $("pFile").value = "";
-      $("photoPreview").src = "";
-      $("photoPreview").classList.remove("on");
+      if ($("pCam")) $("pCam").value = "";
+      if ($("pFile")) $("pFile").value = "";
+      if ($("photoPreview")) {
+        $("photoPreview").src = "";
+        $("photoPreview").classList.remove("on");
+      }
     });
 
-    $("btnScanCamera").addEventListener("click", function () { openPicker("scanCamera"); });
-    $("btnScanAlbum").addEventListener("click", function () { openPicker("scanAlbum"); });
-    $("btnScanFile").addEventListener("click", function () { openPicker("scanFile"); });
-    $("scanCamera").addEventListener("change", function () { setScanFile($("scanCamera").files && $("scanCamera").files[0]); });
-    $("scanAlbum").addEventListener("change", function () { setScanFile($("scanAlbum").files && $("scanAlbum").files[0]); });
-    $("scanFile").addEventListener("change", function () { setScanFile($("scanFile").files && $("scanFile").files[0]); });
-    $("btnScan").addEventListener("click", runScan);
-    $("btnClearScan").addEventListener("click", clearScan);
-    $("btnAddDraft").addEventListener("click", function () {
+    on("btnScanCamera", "click", function () { openPicker("scanCamera"); });
+    on("btnScanAlbum", "click", function () { openPicker("scanAlbum"); });
+    on("btnScanFile", "click", function () { openPicker("scanFile"); });
+    on("scanCamera", "change", function () { setScanFile($("scanCamera").files && $("scanCamera").files[0]); });
+    on("scanAlbum", "change", function () { setScanFile($("scanAlbum").files && $("scanAlbum").files[0]); });
+    on("scanFile", "change", function () { setScanFile($("scanFile").files && $("scanFile").files[0]); });
+    on("btnScan", "click", runScan);
+    on("btnClearScan", "click", clearScan);
+    on("btnAddDraft", "click", function () {
       drafts.push(blankDraft({}));
       renderDrafts();
     });
-    $("btnConfirmDrafts").addEventListener("click", confirmDrafts);
+    // 確認登錄：按鈕文案會變「登錄中…」，並在頂部橫幅顯示結果（避免長清單下方訊息看不到）
+    on("btnConfirmDrafts", "click", function (e) {
+      e.preventDefault();
+      confirmDrafts();
+    });
 
-    $("draftList").addEventListener("input", function (e) {
+    on("draftList", "input", function (e) {
       var c = e.target.closest(".draft-card");
       if (c) syncDraft(c);
       // 即時更新草稿加總，方便知道這批多少錢
@@ -1186,16 +1245,17 @@
         hint.textContent = money(sum);
       }
     });
-    $("draftList").addEventListener("change", function (e) {
+    on("draftList", "change", function (e) {
       var c = e.target.closest(".draft-card");
       if (c) syncDraft(c);
     });
-    $("draftList").addEventListener("click", function (e) {
+    on("draftList", "click", function (e) {
       var b = e.target.closest("button[data-a]");
       if (!b) return;
       var card = b.closest(".draft-card");
       if (!card) return;
       var d = syncDraft(card);
+      if (!d) return;
       var act = b.getAttribute("data-a");
       if (act === "rm") {
         drafts = drafts.filter(function (x) { return x._key !== d._key; });
@@ -1224,24 +1284,24 @@
       }
     });
 
-    $("btnSaveKey").addEventListener("click", function () {
+    on("btnSaveKey", "click", function () {
       var k = ($("geminiKey").value || "").trim();
       if (!k) { setStatus($("scanStatus"), "請先貼上金鑰", "warn"); return; }
       try { localStorage.setItem(KEY_GEMINI, k); } catch (e) {}
       setStatus($("scanStatus"), "已記住金鑰（僅本機）", "");
     });
-    $("btnClearKey").addEventListener("click", function () {
+    on("btnClearKey", "click", function () {
       try { localStorage.removeItem(KEY_GEMINI); } catch (e) {}
-      $("geminiKey").value = "";
+      if ($("geminiKey")) $("geminiKey").value = "";
       setStatus($("scanStatus"), "已清除金鑰", "");
     });
 
-    $("btnExportExcel").addEventListener("click", exportExcel);
-    $("btnExportPdf").addEventListener("click", exportPdf);
-    $("btnExportJson").addEventListener("click", exportJson);
+    on("btnExportExcel", "click", exportExcel);
+    on("btnExportPdf", "click", exportPdf);
+    on("btnExportJson", "click", exportJson);
 
-    $("btnImportFile").addEventListener("click", function () { openPicker("importFile"); });
-    $("importFile").addEventListener("change", function () {
+    on("btnImportFile", "click", function () { openPicker("importFile"); });
+    on("importFile", "change", function () {
       var file = $("importFile").files && $("importFile").files[0];
       if (!file) return;
       var name = file.name || "";
@@ -1276,9 +1336,9 @@
       reader.readAsText(file, "utf-8");
     });
 
-    $("btnImportMerge").addEventListener("click", function () { applyImport("merge"); });
-    $("btnImportReplace").addEventListener("click", function () { applyImport("replace"); });
-    $("btnClearPhotos").addEventListener("click", function () {
+    on("btnImportMerge", "click", function () { applyImport("merge"); });
+    on("btnImportReplace", "click", function () { applyImport("replace"); });
+    on("btnClearPhotos", "click", function () {
       var n = 0;
       items = items.map(function (it) {
         if (it.photo) n++;
@@ -1289,12 +1349,13 @@
       try {
         persist();
         setStatus($("dataStatus"), n ? ("已清除 " + n + " 筆照片，品名與金額仍保留。請回「登錄」再按確認登錄。") : "目前沒有照片可清", "");
+        flash(n ? ("已清除 " + n + " 筆照片，可回「登錄」再確認") : "目前沒有照片可清", "");
       } catch (e) {
-        setStatus($("dataStatus"), "清除後仍無法寫入，請先匯出 JSON 備份後再清除全部資料", "err");
+        tellUser("清除後仍無法寫入，請先匯出 JSON 備份後再清除全部資料", "err", $("dataStatus"));
       }
       renderList();
     });
-    $("btnClearAll").addEventListener("click", function () {
+    on("btnClearAll", "click", function () {
       if (!items.length) { setStatus($("dataStatus"), "目前沒有資料", "warn"); return; }
       if (!confirm("確定清除全部 " + items.length + " 筆？請確認已匯出備份。")) return;
       if (!confirm("再次確認：無法復原。")) return;
@@ -1303,6 +1364,7 @@
       renderStats();
       renderList();
       setStatus($("dataStatus"), "已清除全部資料", "");
+      flash("已清除全部資料", "warn");
     });
   }
 
@@ -1328,7 +1390,7 @@
     // 清掉舊版快取，避免 iOS Safari 反覆當掉
     caches.keys().then(function (keys) {
       return Promise.all(keys.filter(function (k) {
-        return /^home-shop-v(1|2)$/.test(k);
+        return /^home-shop-v(1|2|3)$/.test(k);
       }).map(function (k) { return caches.delete(k); }));
     }).catch(function () {}).then(function () {
       return navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
