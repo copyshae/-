@@ -13,9 +13,6 @@
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
   <title>家電家具購物帳</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --ink: #1c303a; --muted: #5a7380; --accent: #1e5a6e; --accent2: #2a7a8f;
@@ -24,7 +21,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       color: var(--ink); line-height: 1.55; min-height: 100vh;
       background:
         radial-gradient(ellipse 90% 50% at 50% -8%, rgba(170,220,230,.85), transparent 58%),
@@ -34,7 +31,7 @@
     .wrap { max-width: 28rem; margin: 0 auto; padding: 1.1rem 1rem 3rem; }
     header { text-align: center; }
     .brand {
-      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-family: "Songti TC", "Noto Serif TC", "PingFang TC", serif;
       font-size: clamp(1.55rem, 7vw, 2rem); font-weight: 700;
       color: var(--accent); letter-spacing: .04em;
     }
@@ -46,7 +43,7 @@
     }
     .hero .label { font-size: .88rem; font-weight: 700; color: var(--muted); letter-spacing: .08em; }
     .hero .total {
-      margin-top: .2rem; font-family: "Noto Serif TC", serif;
+      margin-top: .2rem; font-family: "Songti TC", "PingFang TC", serif;
       font-size: clamp(2rem, 9vw, 2.65rem); font-weight: 700;
       color: var(--accent); font-variant-numeric: tabular-nums;
     }
@@ -78,7 +75,7 @@
       padding: .95rem .85rem; margin-bottom: .75rem;
     }
     .card h2 {
-      font-family: "Noto Serif TC", serif; font-size: 1.05rem;
+      font-family: "Songti TC", "PingFang TC", serif; font-size: 1.05rem;
       color: var(--accent); margin-bottom: .55rem;
     }
     label { display: block; font-size: .82rem; font-weight: 700; color: var(--muted); margin: .45rem 0 .2rem; }
@@ -91,11 +88,37 @@
     .row > * { flex: 1 1 8rem; }
     button.danger { color: var(--danger); border-color: rgba(180,35,24,.35); }
     button:disabled { opacity: .45; cursor: default; }
-    input[type=file] { display: none; }
+    /* iOS Safari：display:none 的 file input 常讓「拍照」點了沒反應，改用視覺隱藏 */
+    input[type=file].file-hidden {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: 0;
+      opacity: 0;
+      overflow: hidden;
+      border: 0;
+      clip: rect(0 0 0 0);
+      pointer-events: none;
+    }
     .fbtn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
     .hint { font-size: .78rem; color: var(--muted); margin-top: .35rem; line-height: 1.5; }
     .status { font-size: .84rem; font-weight: 700; min-height: 1.2rem; margin-top: .35rem; color: var(--ok); }
     .status.warn { color: var(--warn); } .status.err { color: var(--danger); }
+    .flash {
+      display: none; margin-top: .75rem; padding: .7rem .8rem;
+      font-weight: 700; font-size: .9rem; line-height: 1.4;
+      border: 1px solid var(--line); background: rgba(255,255,255,.95); color: var(--ok);
+    }
+    .flash.on { display: block; }
+    .flash.warn { color: var(--warn); border-color: rgba(181,71,8,.35); background: #fff8f0; }
+    .flash.err { color: var(--danger); border-color: rgba(180,35,24,.35); background: #fff5f4; }
+    .draft-bar {
+      position: sticky; top: 0; z-index: 5; margin: .35rem 0 .55rem; padding: .55rem .45rem;
+      background: rgba(255,252,248,.96); border: 1px solid var(--line);
+    }
     .filters { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .65rem; }
     .filters button { flex: 1 1 auto; min-width: 4rem; font-size: .8rem; padding: .4rem .5rem; min-height: 2.4rem; }
     .search { margin-bottom: .55rem; }
@@ -141,7 +164,7 @@
   <div class="wrap">
     <header>
       <h1 class="brand">家電家具購物帳</h1>
-      <p class="sub">拍照／上傳辨識或手動輸入 · 主頁總花費 · 可改可匯出</p>
+      <p class="sub">拍照／上傳辨識或手動輸入 · 主頁顯示總花費 · 每筆可改可刪 · 可匯出</p>
     </header>
 
     <section class="hero" aria-live="polite">
@@ -154,6 +177,8 @@
         <div class="cell"><div class="cat c-o">其他</div><div class="amt c-o" id="sumO">$0</div><div class="cnt" id="cntO">0 筆</div></div>
       </div>
     </section>
+
+    <p class="flash" id="appFlash" role="status" aria-live="assertive"></p>
 
     <nav class="tabs" role="tablist">
       <button type="button" class="on" data-tab="home">總覽</button>
@@ -170,7 +195,7 @@
           <button type="button" data-filter="furniture">家具</button>
           <button type="button" data-filter="other">其他</button>
         </div>
-        <div class="search"><input type="text" id="searchQ" placeholder="搜尋名稱、店家、備註、收據編號…" autocomplete="off" /></div>
+        <div class="search"><input type="text" id="searchQ" placeholder="搜尋品名、型號、店家、收據編號、付款、備註…" autocomplete="off" /></div>
         <div id="itemList"></div>
       </div>
     </section>
@@ -184,12 +209,14 @@
       <div class="path on" id="path-scan">
         <div class="card">
           <h2>從收據／檔案抓費用</h2>
-          <p class="hint">可拍照、相簿選圖，或上傳 PDF／圖片。辨識結果可先修改再登錄；沒金鑰也可改手動輸入。</p>
+          <p class="hint">可拍照、相簿選圖，或上傳 PDF／圖片。辨識結果可先修改再登錄（確認登錄會保存品名與金額；為免空間不足，批次不重複存收據大圖）；沒金鑰也可改手動輸入。收據上沒有的欄位（型號、付款方式等）會留空，可之後再補。若相機沒跳出，請改按「相簿」或「檔案／PDF」。</p>
           <div class="row">
-            <label class="fbtn primary" for="scanCamera">📷 拍照</label>
-            <input type="file" id="scanCamera" accept="image/*" capture="environment" />
-            <label class="fbtn" for="scanFile">📁 上傳檔案</label>
-            <input type="file" id="scanFile" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.heic" />
+            <button type="button" class="fbtn primary" id="btnScanCamera" aria-controls="scanCamera">📷 拍照</button>
+            <input type="file" class="file-hidden" id="scanCamera" accept="image/*" capture="environment" />
+            <button type="button" class="fbtn" id="btnScanAlbum" aria-controls="scanAlbum">🖼 相簿</button>
+            <input type="file" class="file-hidden" id="scanAlbum" accept="image/*,.heic,.heif,image/heic,image/heif" />
+            <button type="button" class="fbtn" id="btnScanFile" aria-controls="scanFile">📁 檔案／PDF</button>
+            <input type="file" class="file-hidden" id="scanFile" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" />
           </div>
           <div class="scan-box" id="scanPreviewBox">
             <img id="scanPreviewImg" alt="預覽" hidden />
@@ -214,19 +241,21 @@
         <div class="card" id="draftCard" hidden>
           <h2>辨識結果（可即時修改）</h2>
           <p class="hint">金額、品名、分類有誤就直接改；也可刪列或轉到手動表單再調。</p>
-          <div class="row">
-            <button type="button" id="btnAddDraft">＋ 新增一列</button>
-            <button type="button" class="primary" id="btnConfirmDrafts">確認登錄全部</button>
+          <div class="draft-bar">
+            <div class="row" style="margin-top:0;">
+              <button type="button" id="btnAddDraft">＋ 新增一列</button>
+              <button type="button" class="primary" id="btnConfirmDrafts">確認登錄全部</button>
+            </div>
+            <p class="status" id="draftStatus"></p>
           </div>
           <div id="draftList"></div>
-          <p class="status" id="draftStatus"></p>
         </div>
       </div>
 
       <div class="path" id="path-manual">
         <div class="card">
           <h2 id="formTitle">手動輸入收據／項目</h2>
-          <p class="hint">不靠辨識也可逐筆輸入；儲存後立刻更新總花費。錯誤可再編輯。</p>
+          <p class="hint">不靠辨識也可逐筆輸入（至少品名＋金額；贈品金額填 0）。儲存後立刻更新總花費；每筆之後都可再編輯或刪除。</p>
           <input type="hidden" id="editId" value="" />
           <div class="row">
             <div><label for="fDate">購買／收據日期</label><input type="date" id="fDate" /></div>
@@ -240,23 +269,27 @@
             </div>
           </div>
           <label for="fName">品名／項目</label>
-          <input type="text" id="fName" placeholder="例：變頻冰箱、實木餐桌" maxlength="120" />
+          <input type="text" id="fName" placeholder="例：日立一對一變頻冷氣" maxlength="120" />
+          <label for="fModel">型號（選填）</label>
+          <input type="text" id="fModel" placeholder="例：RAC-71HP；收據沒有可留空" maxlength="80" />
           <div class="row">
-            <div><label for="fAmt">金額（元）</label><input type="number" id="fAmt" inputmode="decimal" min="0" step="1" placeholder="0" /></div>
+            <div><label for="fAmt">單價／金額（元）</label><input type="number" id="fAmt" inputmode="decimal" min="0" step="1" placeholder="0（贈品可填 0）" /></div>
             <div><label for="fQty">數量</label><input type="number" id="fQty" inputmode="numeric" min="1" step="1" value="1" /></div>
           </div>
-          <label for="fStore">店家／通路</label>
-          <input type="text" id="fStore" placeholder="例：全國電子、宜家、網路商城" maxlength="80" />
-          <label for="fNo">收據／訂單編號</label>
-          <input type="text" id="fNo" placeholder="可填收據號、訂單號" maxlength="80" />
-          <label for="fNote">備註／相關資料</label>
-          <textarea id="fNote" placeholder="保固、型號、安裝日期、付款方式等" maxlength="500"></textarea>
+          <label for="fStore">店家／通路（選填）</label>
+          <input type="text" id="fStore" placeholder="例：燦坤3C、宜家、網路商城" maxlength="80" />
+          <label for="fNo">收據／訂單編號（選填）</label>
+          <input type="text" id="fNo" placeholder="例：銷售單號；沒有可留空" maxlength="80" />
+          <label for="fPay">付款方式（選填）</label>
+          <input type="text" id="fPay" placeholder="例：電子支付、信用卡、現金；沒有可留空" maxlength="80" />
+          <label for="fNote">備註／相關資料（選填）</label>
+          <textarea id="fNote" placeholder="延保、贈品、安裝、保固等；沒有可留空" maxlength="500"></textarea>
           <label>收據／相關照片（選填）</label>
           <div class="row">
-            <label class="fbtn" for="pCam">📷 拍照</label>
-            <input type="file" id="pCam" accept="image/*" capture="environment" />
-            <label class="fbtn" for="pFile">📁 上傳</label>
-            <input type="file" id="pFile" accept="image/*" />
+            <button type="button" class="fbtn" id="btnPCam" aria-controls="pCam">📷 拍照</button>
+            <input type="file" class="file-hidden" id="pCam" accept="image/*" capture="environment" />
+            <button type="button" class="fbtn" id="btnPFile" aria-controls="pFile">🖼 相簿／上傳</button>
+            <input type="file" class="file-hidden" id="pFile" accept="image/*,.heic,.heif,image/heic,image/heif" />
             <button type="button" id="btnClearPhoto">清除照片</button>
           </div>
           <img class="preview" id="photoPreview" alt="預覽" />
@@ -286,8 +319,8 @@
         <h2>匯入</h2>
         <p class="hint">可匯入 JSON 或 CSV／Excel（請另存 CSV）。匯入後可在總覽按「編輯」即時修改。</p>
         <div class="row">
-          <label class="fbtn" for="importFile">選擇 JSON／CSV／Excel</label>
-          <input type="file" id="importFile" accept=".json,.csv,.xlsx,.xls,application/json,text/csv" />
+          <button type="button" class="fbtn" id="btnImportFile" aria-controls="importFile">選擇 JSON／CSV／Excel</button>
+          <input type="file" class="file-hidden" id="importFile" accept=".json,.csv,.xlsx,.xls,application/json,text/csv" />
         </div>
         <p class="hint" id="importHint"></p>
         <div class="row">
@@ -302,6 +335,8 @@
       </div>
       <div class="card">
         <h2>危險操作</h2>
+        <button type="button" id="btnClearPhotos">清除全部收據照片（釋放空間）</button>
+        <p class="hint">保留品名與金額，只刪照片。若出現「儲存失敗，空間可能不足」請先按這個，再回去確認登錄。</p>
         <button type="button" class="danger" id="btnClearAll">清除全部資料</button>
         <p class="hint">無法復原，請先匯出備份。</p>
       </div>
@@ -309,6 +344,6 @@
 
     <footer><a href="../">← 回到首頁</a> · 資料僅存本機</footer>
   </div>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=11"></script>
 </body>
 </html>
