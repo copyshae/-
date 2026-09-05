@@ -13,9 +13,6 @@
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" />
   <title>家電家具購物帳</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --ink: #1c303a; --muted: #5a7380; --accent: #1e5a6e; --accent2: #2a7a8f;
@@ -24,7 +21,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       color: var(--ink); line-height: 1.55; min-height: 100vh;
       background:
         radial-gradient(ellipse 90% 50% at 50% -8%, rgba(170,220,230,.85), transparent 58%),
@@ -34,7 +31,7 @@
     .wrap { max-width: 28rem; margin: 0 auto; padding: 1.1rem 1rem 3rem; }
     header { text-align: center; }
     .brand {
-      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-family: "Songti TC", "Noto Serif TC", "PingFang TC", serif;
       font-size: clamp(1.55rem, 7vw, 2rem); font-weight: 700;
       color: var(--accent); letter-spacing: .04em;
     }
@@ -46,7 +43,7 @@
     }
     .hero .label { font-size: .88rem; font-weight: 700; color: var(--muted); letter-spacing: .08em; }
     .hero .total {
-      margin-top: .2rem; font-family: "Noto Serif TC", serif;
+      margin-top: .2rem; font-family: "Songti TC", "PingFang TC", serif;
       font-size: clamp(2rem, 9vw, 2.65rem); font-weight: 700;
       color: var(--accent); font-variant-numeric: tabular-nums;
     }
@@ -78,7 +75,7 @@
       padding: .95rem .85rem; margin-bottom: .75rem;
     }
     .card h2 {
-      font-family: "Noto Serif TC", serif; font-size: 1.05rem;
+      font-family: "Songti TC", "PingFang TC", serif; font-size: 1.05rem;
       color: var(--accent); margin-bottom: .55rem;
     }
     label { display: block; font-size: .82rem; font-weight: 700; color: var(--muted); margin: .45rem 0 .2rem; }
@@ -309,6 +306,6 @@
 
     <footer><a href="../">← 回到首頁</a> · 資料僅存本機</footer>
   </div>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>

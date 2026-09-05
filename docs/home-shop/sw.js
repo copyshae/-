@@ -1,7 +1,6 @@
-/* 家電家具購物帳｜離線快取 */
-const CACHE = "home-shop-v2";
-const ASSETS = [
-  "./",
+/* 家電家具購物帳｜Safari 友善離線快取 */
+var CACHE = "home-shop-v3";
+var ASSETS = [
   "./index.html",
   "./app.js",
   "./manifest.json",
@@ -11,45 +10,87 @@ const ASSETS = [
   "./share.html"
 ];
 
-self.addEventListener("install", (event) => {
+function canCache(res) {
+  return res && res.ok && res.type === "basic";
+}
+
+self.addEventListener("install", function (event) {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(function (cache) {
+      return Promise.all(
+        ASSETS.map(function (url) {
+          return cache.add(url).catch(function () {});
+        })
+      );
+    }).then(function () {
+      return self.skipWaiting();
+    })
   );
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", function (event) {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys.filter(function (k) { return k !== CACHE; }).map(function (k) {
+          return caches.delete(k);
+        })
+      );
+    }).then(function () {
+      return self.clients.claim();
+    })
   );
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
+self.addEventListener("fetch", function (event) {
+  var req = event.request;
   if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  if (/index\.html$/i.test(url.pathname) || /app\.js$/i.test(url.pathname) || /share\.html$/i.test(url.pathname) || url.pathname.endsWith("/")) {
+
+  var url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  var isDoc =
+    req.mode === "navigate" ||
+    /index\.html$/i.test(url.pathname) ||
+    /\/home-shop\/?$/i.test(url.pathname) ||
+    url.pathname.endsWith("/");
+
+  if (isDoc || /app\.js$/i.test(url.pathname) || /sw\.js$/i.test(url.pathname)) {
     event.respondWith(
       fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
+        .then(function (res) {
+          if (canCache(res) && !/sw\.js$/i.test(url.pathname)) {
+            var copy = res.clone();
+            caches.open(CACHE).then(function (cache) {
+              cache.put(req, copy).catch(function () {});
+            });
+          }
           return res;
         })
-        .catch(() => caches.match(req))
+        .catch(function () {
+          return caches.match(req).then(function (cached) {
+            return cached || caches.match("./index.html");
+          });
+        })
     );
     return;
   }
+
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const live = fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
+    caches.match(req).then(function (cached) {
+      var live = fetch(req)
+        .then(function (res) {
+          if (canCache(res)) {
+            var copy = res.clone();
+            caches.open(CACHE).then(function (cache) {
+              cache.put(req, copy).catch(function () {});
+            });
+          }
           return res;
         })
-        .catch(() => cached);
+        .catch(function () {
+          return cached;
+        });
       return cached || live;
     })
   );

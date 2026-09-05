@@ -62,26 +62,89 @@
     return (Number(it.amount) || 0) * q;
   }
 
+  var PHOTO_MAX = 180000; // data URL 上限，避免 iOS Safari 記憶體爆掉
+
+  function trimPhoto(p) {
+    if (typeof p !== "string" || !p) return "";
+    if (p.length > PHOTO_MAX) return "";
+    if (p.indexOf("data:image/") !== 0 && p.indexOf("blob:") !== 0) return "";
+    return p;
+  }
+
+  function sanitizeItems(list) {
+    if (!Array.isArray(list)) return [];
+    return list.slice(0, 3000).map(function (raw) {
+      return {
+        id: String((raw && raw.id) || uid()).slice(0, 64),
+        date: String((raw && raw.date) || today()).slice(0, 32),
+        category: normalizeCat(raw && raw.category),
+        name: String((raw && raw.name) || "（未命名）").slice(0, 200),
+        amount: Math.max(0, Number(raw && raw.amount) || 0),
+        qty: Number(raw && raw.qty) > 0 ? Number(raw.qty) : 1,
+        store: String((raw && raw.store) || "").slice(0, 120),
+        receiptNo: String((raw && raw.receiptNo) || "").slice(0, 80),
+        note: String((raw && raw.note) || "").slice(0, 500),
+        photo: trimPhoto(raw && raw.photo),
+        createdAt: String((raw && raw.createdAt) || new Date().toISOString()).slice(0, 40),
+        updatedAt: String((raw && raw.updatedAt) || new Date().toISOString()).slice(0, 40)
+      };
+    }).filter(function (it) {
+      return it.name && Number.isFinite(it.amount);
+    });
+  }
+
   function load() {
     try {
       var raw = localStorage.getItem(STORE);
-      var data = raw ? JSON.parse(raw) : null;
-      items = data && Array.isArray(data.items) ? data.items : [];
+      if (raw && raw.length > 2500000) {
+        // 過大狀態會讓 Safari 反覆當掉：先嘗試去掉照片再救回
+        try {
+          var huge = JSON.parse(raw);
+          items = sanitizeItems(huge && huge.items).map(function (it) {
+            it.photo = "";
+            return it;
+          });
+          persist();
+        } catch (eHuge) {
+          localStorage.removeItem(STORE);
+          items = [];
+        }
+      } else {
+        var data = raw ? JSON.parse(raw) : null;
+        items = sanitizeItems(data && data.items);
+      }
     } catch (e) {
+      try { localStorage.removeItem(STORE); } catch (eDel) {}
       items = [];
     }
     try {
       var k = localStorage.getItem(KEY_GEMINI);
-      if (k) $("geminiKey").value = k;
+      if (k) $("geminiKey").value = String(k).slice(0, 200);
     } catch (e2) {}
   }
 
   function persist() {
-    localStorage.setItem(STORE, JSON.stringify({
+    var payload = {
       version: 1,
       updatedAt: new Date().toISOString(),
-      items: items
-    }));
+      items: items.map(function (it) {
+        var copy = Object.assign({}, it);
+        copy.photo = trimPhoto(copy.photo);
+        return copy;
+      })
+    };
+    try {
+      localStorage.setItem(STORE, JSON.stringify(payload));
+    } catch (e) {
+      // Quota：丟掉照片再試一次
+      payload.items = payload.items.map(function (it) {
+        var copy = Object.assign({}, it);
+        copy.photo = "";
+        return copy;
+      });
+      items = payload.items;
+      localStorage.setItem(STORE, JSON.stringify(payload));
+    }
   }
 
   function calcStats() {
@@ -129,18 +192,19 @@
       return;
     }
 
+    // 清單不嵌入 data URL 縮圖，避免 iOS Safari 一次解碼大量圖片而當掉
     $("itemList").innerHTML = list.map(function (it) {
       var qty = Number(it.qty) > 1 ? (" × " + it.qty) : "";
-      var thumb = it.photo ? '<img class="thumb" src="' + it.photo + '" alt="" />' : "";
+      var hasPhoto = !!(it.photo && String(it.photo).indexOf("data:image/") === 0);
       var meta = '<span class="badge">' + LABEL[normalizeCat(it.category)] + "</span> " + esc(it.date || "") +
         (it.store ? (" · " + esc(it.store)) : "") +
         (it.receiptNo ? (" · #" + esc(it.receiptNo)) : "") +
-        (Number(it.qty) > 1 ? (" · 單價 " + money(it.amount)) : "");
+        (Number(it.qty) > 1 ? (" · 單價 " + money(it.amount)) : "") +
+        (hasPhoto ? " · 有照片" : "");
       return (
         '<article class="item" data-id="' + it.id + '">' +
           '<div class="name">' + esc(it.name || "（未命名）") + qty + "</div>" +
           '<div class="amt">' + money(lineTotal(it)) + "</div>" +
-          thumb +
           '<div class="meta">' + meta + "</div>" +
           (it.note ? ('<div class="meta">' + esc(it.note) + "</div>") : "") +
           '<div class="acts">' +
@@ -273,7 +337,7 @@
       store: ($("fStore").value || "").trim(),
       receiptNo: ($("fNo").value || "").trim(),
       note: ($("fNote").value || "").trim(),
-      photo: photoUrl || "",
+      photo: trimPhoto(photoUrl),
       updatedAt: now
     };
 
@@ -308,9 +372,13 @@
   function attachPhoto(file) {
     if (!file) return;
     setStatus($("formStatus"), "壓縮照片中…", "warn");
-    compressImage(file, 960, 0.72).then(function (url) {
-      photoUrl = url;
-      $("photoPreview").src = url;
+    compressImage(file, 720, 0.62).then(function (url) {
+      photoUrl = trimPhoto(url);
+      if (!photoUrl) {
+        setStatus($("formStatus"), "照片太大，已略過附圖（費用仍可登錄）", "warn");
+        return;
+      }
+      $("photoPreview").src = photoUrl;
       $("photoPreview").classList.add("on");
       setStatus($("formStatus"), "照片已就緒", "");
     }).catch(function () {
@@ -330,7 +398,7 @@
       store: partial.store || "",
       receiptNo: partial.receiptNo || "",
       note: partial.note || "",
-      photo: partial.photo || scanUrl || ""
+      photo: trimPhoto(partial.photo || scanUrl || "")
     };
   }
 
@@ -408,7 +476,18 @@
     var apiKey = ($("geminiKey").value || "").trim() || localStorage.getItem(KEY_GEMINI) || "";
     if (!apiKey) return Promise.reject(new Error("請先填 Gemini 金鑰，或改用手動輸入"));
 
-    return fileToBase64(file).then(function (packed) {
+    var prepare = /^image\//i.test(file.type || "")
+      ? compressImage(file, 1280, 0.7).then(function (dataUrl) {
+          var idx = dataUrl.indexOf(",");
+          return {
+            dataUrl: dataUrl,
+            b64: idx >= 0 ? dataUrl.slice(idx + 1) : dataUrl,
+            mime: "image/jpeg"
+          };
+        })
+      : fileToBase64(file);
+
+    return prepare.then(function (packed) {
       var mime = packed.mime;
       if (!mime || mime === "application/octet-stream") {
         mime = /\.pdf$/i.test(file.name) ? "application/pdf" : "image/jpeg";
@@ -477,7 +556,7 @@
         store: store,
         receiptNo: receiptNo,
         note: String(raw.note || "").trim(),
-        photo: /^image\//i.test((scanFile && scanFile.type) || "") ? (dataUrl || "") : ""
+        photo: /^image\//i.test((scanFile && scanFile.type) || "") ? trimPhoto(dataUrl || "") : ""
       });
     });
   }
@@ -535,55 +614,67 @@
   }
 
   function confirmDrafts() {
-    document.querySelectorAll(".draft-card").forEach(syncDraft);
-    if (!drafts.length) {
-      setStatus($("draftStatus"), "沒有可登錄的項目", "warn");
-      return;
-    }
-    var now = new Date().toISOString();
-    var added = 0;
-    for (var i = 0; i < drafts.length; i++) {
-      var d = drafts[i];
-      var name = String(d.name || "").trim();
-      var amount = Number(d.amount);
-      if (!name) {
-        setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少品名", "err");
-        return;
-      }
-      if (!(amount >= 0) || isNaN(amount)) {
-        setStatus($("draftStatus"), "第 " + (i + 1) + " 筆金額有誤", "err");
-        return;
-      }
-      items.push({
-        id: uid(),
-        date: d.date || today(),
-        category: normalizeCat(d.category),
-        name: name,
-        amount: amount,
-        qty: Number(d.qty) > 0 ? Number(d.qty) : 1,
-        store: String(d.store || "").trim(),
-        receiptNo: String(d.receiptNo || "").trim(),
-        note: String(d.note || "").trim(),
-        photo: d.photo || "",
-        createdAt: now,
-        updatedAt: now
-      });
-      added++;
-    }
     try {
-      persist();
-    } catch (e) {
-      setStatus($("draftStatus"), "儲存失敗，空間可能不足", "err");
-      return;
+      document.querySelectorAll(".draft-card").forEach(syncDraft);
+      if (!drafts.length) {
+        setStatus($("draftStatus"), "沒有可登錄的項目，請先辨識或按「＋ 新增一列」", "warn");
+        return;
+      }
+      var now = new Date().toISOString();
+      var added = 0;
+      for (var i = 0; i < drafts.length; i++) {
+        var d = drafts[i];
+        var name = String(d.name || "").trim();
+        var amount = Number(d.amount);
+        if (!name) {
+          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆缺少品名，請補上後再確認", "err");
+          return;
+        }
+        if (!(amount >= 0) || isNaN(amount)) {
+          setStatus($("draftStatus"), "第 " + (i + 1) + " 筆金額有誤，請修正", "err");
+          return;
+        }
+        items.push({
+          id: uid(),
+          date: d.date || today(),
+          category: normalizeCat(d.category),
+          name: name,
+          amount: amount,
+          qty: Number(d.qty) > 0 ? Number(d.qty) : 1,
+          store: String(d.store || "").trim(),
+          receiptNo: String(d.receiptNo || "").trim(),
+          note: String(d.note || "").trim(),
+          photo: trimPhoto(d.photo),
+          createdAt: now,
+          updatedAt: now
+        });
+        added++;
+      }
+      try {
+        persist();
+      } catch (e) {
+        // 再試：全部去掉照片
+        for (var j = items.length - added; j < items.length; j++) {
+          if (items[j]) items[j].photo = "";
+        }
+        try {
+          persist();
+        } catch (e2) {
+          setStatus($("draftStatus"), "儲存失敗，空間可能不足。請先清除照片或匯出後再試", "err");
+          return;
+        }
+      }
+      drafts = [];
+      renderDrafts();
+      renderStats();
+      renderList();
+      clearScan();
+      setStatus($("draftStatus"), "", "");
+      setStatus($("scanStatus"), "已登錄 " + added + " 筆 · 總花費 " + money(calcStats().total), "");
+      switchTab("home");
+    } catch (err) {
+      setStatus($("draftStatus"), "確認登錄失敗：" + ((err && err.message) || err), "err");
     }
-    drafts = [];
-    renderDrafts();
-    renderStats();
-    renderList();
-    clearScan();
-    setStatus($("draftStatus"), "", "");
-    setStatus($("scanStatus"), "已登錄 " + added + " 筆 · 總花費 " + money(calcStats().total), "");
-    switchTab("home");
   }
 
   function rowsForExport() {
@@ -726,7 +817,7 @@
         store: String(raw.store || raw["店家"] || "").trim(),
         receiptNo: String(raw.receiptNo || raw["收據編號"] || "").trim(),
         note: String(raw.note || raw["備註"] || "").trim(),
-        photo: typeof raw.photo === "string" ? raw.photo : "",
+        photo: trimPhoto(typeof raw.photo === "string" ? raw.photo : ""),
         createdAt: raw.createdAt || new Date().toISOString(),
         updatedAt: raw.updatedAt || new Date().toISOString()
       };
@@ -962,13 +1053,43 @@
     });
   }
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  function boot() {
+    try {
+      load();
+      bindEvents();
+      resetForm(false);
+      renderStats();
+      renderList();
+    } catch (err) {
+      var msg = (err && err.message) ? err.message : String(err);
+      try {
+        var el = document.getElementById("totalMeta");
+        if (el) el.textContent = "啟動失敗：" + msg;
+      } catch (e2) {}
+      console.error(err);
+    }
   }
 
-  load();
-  bindEvents();
-  resetForm(false);
-  renderStats();
-  renderList();
+  function registerSw() {
+    if (!("serviceWorker" in navigator)) return;
+    // 清掉舊版快取，避免 iOS Safari 反覆當掉
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.filter(function (k) {
+        return /^home-shop-v(1|2)$/.test(k);
+      }).map(function (k) { return caches.delete(k); }));
+    }).catch(function () {}).then(function () {
+      return navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
+    }).then(function (reg) {
+      if (reg && reg.update) reg.update().catch(function () {});
+    }).catch(function () {});
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+  window.addEventListener("load", function () {
+    setTimeout(registerSw, 300);
+  });
 })();
