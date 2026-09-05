@@ -62,7 +62,7 @@
     return (Number(it.amount) || 0) * q;
   }
 
-  var PHOTO_MAX = 180000; // data URL 上限，避免 iOS Safari 記憶體爆掉
+  var PHOTO_MAX = 90000; // data URL 上限（縮小，避免多筆登錄撐爆本機空間）
 
   function trimPhoto(p) {
     if (typeof p !== "string" || !p) return "";
@@ -99,7 +99,7 @@
     try {
       var raw = localStorage.getItem(STORE);
       if (raw && raw.length > 2500000) {
-        // 過大狀態會讓 Safari 反覆當掉：先嘗試去掉照片再救回
+        // 過大狀態會讓 Safari 反覆當掉／存失敗：先去掉照片再救回
         try {
           var huge = JSON.parse(raw);
           items = sanitizeItems(huge && huge.items).map(function (it) {
@@ -114,6 +114,20 @@
       } else {
         var data = raw ? JSON.parse(raw) : null;
         items = sanitizeItems(data && data.items);
+        // 若本機已接近額度，主動清掉照片，避免「辨識成功卻登錄失敗」
+        try {
+          if (raw && raw.length > 1200000) {
+            var hadPhoto = items.some(function (it) { return !!(it.photo && it.photo.length > 100); });
+            if (hadPhoto) {
+              items = items.map(function (it) {
+                var copy = Object.assign({}, it);
+                copy.photo = "";
+                return copy;
+              });
+              persist();
+            }
+          }
+        } catch (eTrim) {}
       }
     } catch (e) {
       try { localStorage.removeItem(STORE); } catch (eDel) {}
@@ -126,26 +140,42 @@
   }
 
   function persist() {
-    var payload = {
-      version: 1,
-      updatedAt: new Date().toISOString(),
-      items: items.map(function (it) {
-        var copy = Object.assign({}, it);
-        copy.photo = trimPhoto(copy.photo);
-        return copy;
-      })
-    };
+    function build(stripPhotos, truncate) {
+      return {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        items: items.map(function (it) {
+          var copy = Object.assign({}, it);
+          var photo = stripPhotos ? "" : trimPhoto(copy.photo);
+          if (photo && photo.indexOf("blob:") === 0) photo = "";
+          copy.photo = photo;
+          if (truncate) {
+            copy.note = String(copy.note || "").slice(0, 120);
+            copy.model = String(copy.model || "").slice(0, 40);
+            copy.store = String(copy.store || "").slice(0, 60);
+            copy.receiptNo = String(copy.receiptNo || "").slice(0, 40);
+            copy.payment = String(copy.payment || "").slice(0, 40);
+          }
+          return copy;
+        })
+      };
+    }
+    var payload = build(false, false);
     try {
       localStorage.setItem(STORE, JSON.stringify(payload));
-    } catch (e) {
-      // Quota：丟掉照片再試一次
-      payload.items = payload.items.map(function (it) {
-        var copy = Object.assign({}, it);
-        copy.photo = "";
-        return copy;
-      });
+      return { ok: true, stripped: false };
+    } catch (e1) {
+      payload = build(true, false);
       items = payload.items;
-      localStorage.setItem(STORE, JSON.stringify(payload));
+      try {
+        localStorage.setItem(STORE, JSON.stringify(payload));
+        return { ok: true, stripped: true };
+      } catch (e2) {
+        payload = build(true, true);
+        items = payload.items;
+        localStorage.setItem(STORE, JSON.stringify(payload));
+        return { ok: true, stripped: true, truncated: true };
+      }
     }
   }
 
@@ -436,7 +466,8 @@
       receiptNo: partial.receiptNo || "",
       payment: partial.payment || "",
       note: partial.note || "",
-      photo: trimPhoto(partial.photo || scanUrl || "")
+      // 多筆收據列不要各存一張大圖，否則確認登錄會撐爆本機空間
+      photo: ""
     };
   }
 
@@ -453,7 +484,7 @@
       if (!isNaN(a) && a >= 0) draftSum += a * q;
     });
     $("draftList").innerHTML =
-      '<p class="hint">本批草稿加總：<strong>' + money(draftSum) + "</strong>（登錄後會併入上方總花費）· 每筆可改可刪；品名與金額必填；贈品金額填 0；其餘欄位沒有可留空</p>" +
+      '<p class="hint">本批草稿加總：<strong>' + money(draftSum) + "</strong>（登錄後會併入上方總花費）· 每筆可改可刪；品名與金額必填；贈品金額填 0；確認登錄只存品項金額，不重複存收據大圖以免失敗</p>" +
       drafts.map(function (d, i) {
         return (
           '<div class="draft-card" data-key="' + d._key + '">' +
@@ -628,7 +659,7 @@
         receiptNo: receiptNo,
         payment: payment,
         note: note,
-        photo: /^image\//i.test((scanFile && scanFile.type) || "") ? trimPhoto(dataUrl || "") : ""
+        photo: ""
       });
     });
   }
@@ -704,6 +735,7 @@
       }
       var now = new Date().toISOString();
       var added = 0;
+      var startLen = items.length;
       for (var i = 0; i < drafts.length; i++) {
         var d = drafts[i];
         var name = String(d.name || "").trim();
@@ -729,24 +761,20 @@
           receiptNo: String(d.receiptNo || "").trim(),
           payment: String(d.payment || "").trim(),
           note: String(d.note || "").trim(),
-          photo: trimPhoto(d.photo),
+          // 批次登錄不帶收據大圖，避免辨識成功卻因空間不足存失敗
+          photo: "",
           createdAt: now,
           updatedAt: now
         });
         added++;
       }
+      var result;
       try {
-        persist();
+        result = persist();
       } catch (e) {
-        for (var j = items.length - added; j < items.length; j++) {
-          if (items[j]) items[j].photo = "";
-        }
-        try {
-          persist();
-        } catch (e2) {
-          setStatus($("draftStatus"), "儲存失敗，空間可能不足。請先清除照片或匯出後再試", "err");
-          return;
-        }
+        items = items.slice(0, startLen);
+        setStatus($("draftStatus"), "儲存失敗。請先匯出備份，或到危險操作清除舊資料後再登錄", "err");
+        return;
       }
       drafts = [];
       renderDrafts();
@@ -754,7 +782,9 @@
       renderList();
       clearScan();
       setStatus($("draftStatus"), "", "");
-      setStatus($("scanStatus"), "已登錄 " + added + " 筆 · 目前總花費 " + money(calcStats().total), "");
+      var msg = "已登錄 " + added + " 筆 · 目前總花費 " + money(calcStats().total);
+      if (result && result.stripped) msg += "（已自動省略照片以完成儲存）";
+      setStatus($("scanStatus"), msg, "");
       switchTab("home");
     } catch (err) {
       setStatus($("draftStatus"), "確認登錄失敗：" + ((err && err.message) || err), "err");
@@ -1102,7 +1132,7 @@
     $("btnScan").addEventListener("click", runScan);
     $("btnClearScan").addEventListener("click", clearScan);
     $("btnAddDraft").addEventListener("click", function () {
-      drafts.push(blankDraft({ photo: scanUrl || "" }));
+      drafts.push(blankDraft({}));
       renderDrafts();
     });
     $("btnConfirmDrafts").addEventListener("click", confirmDrafts);
@@ -1214,6 +1244,22 @@
 
     $("btnImportMerge").addEventListener("click", function () { applyImport("merge"); });
     $("btnImportReplace").addEventListener("click", function () { applyImport("replace"); });
+    $("btnClearPhotos").addEventListener("click", function () {
+      var n = 0;
+      items = items.map(function (it) {
+        if (it.photo) n++;
+        var copy = Object.assign({}, it);
+        copy.photo = "";
+        return copy;
+      });
+      try {
+        persist();
+        setStatus($("dataStatus"), n ? ("已清除 " + n + " 筆照片，品名與金額仍保留。請回「登錄」再按確認登錄。") : "目前沒有照片可清", "");
+      } catch (e) {
+        setStatus($("dataStatus"), "清除後仍無法寫入，請先匯出 JSON 備份後再清除全部資料", "err");
+      }
+      renderList();
+    });
     $("btnClearAll").addEventListener("click", function () {
       if (!items.length) { setStatus($("dataStatus"), "目前沒有資料", "warn"); return; }
       if (!confirm("確定清除全部 " + items.length + " 筆？請確認已匯出備份。")) return;

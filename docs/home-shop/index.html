@@ -195,7 +195,7 @@
       <div class="path on" id="path-scan">
         <div class="card">
           <h2>從收據／檔案抓費用</h2>
-          <p class="hint">可拍照、相簿選圖，或上傳 PDF／圖片。辨識結果可先修改再登錄；沒金鑰也可改手動輸入。收據上沒有的欄位（型號、付款方式等）會留空，可之後再補。若相機沒跳出，請改按「相簿」或「檔案／PDF」。</p>
+          <p class="hint">可拍照、相簿選圖，或上傳 PDF／圖片。辨識結果可先修改再登錄（確認登錄會保存品名與金額；為免空間不足，批次不重複存收據大圖）；沒金鑰也可改手動輸入。收據上沒有的欄位（型號、付款方式等）會留空，可之後再補。若相機沒跳出，請改按「相簿」或「檔案／PDF」。</p>
           <div class="row">
             <button type="button" class="fbtn primary" id="btnScanCamera" aria-controls="scanCamera">📷 拍照</button>
             <input type="file" class="file-hidden" id="scanCamera" accept="image/*" capture="environment" />
@@ -319,6 +319,8 @@
       </div>
       <div class="card">
         <h2>危險操作</h2>
+        <button type="button" id="btnClearPhotos">清除全部收據照片（釋放空間）</button>
+        <p class="hint">保留品名與金額，只刪照片。若出現「儲存失敗，空間可能不足」請先按這個，再回去確認登錄。</p>
         <button type="button" class="danger" id="btnClearAll">清除全部資料</button>
         <p class="hint">無法復原，請先匯出備份。</p>
       </div>
@@ -326,6 +328,6 @@
 
     <footer><a href="../">← 回到首頁</a> · 資料僅存本機</footer>
   </div>
-  <script src="./app.js?v=7"></script>
+  <script src="./app.js?v=8"></script>
 </body>
 </html>
