@@ -64,11 +64,15 @@
     }
   }
 
-  function tellUser(msg, kind, alsoEl) {
+  function tellUser(msg, kind, alsoEl, useAlert) {
     flash(msg, kind);
     if (alsoEl) setStatus(alsoEl, msg, kind);
     if (alsoEl && msg) {
       try { alsoEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+    }
+    // iPhone 上錯誤若只寫在長清單下方會像「按了沒反應」；關鍵結果再用系統對話框確保看得到
+    if (useAlert && msg) {
+      try { window.alert(msg); } catch (eAlert) {}
     }
   }
 
@@ -797,7 +801,7 @@
     try {
       document.querySelectorAll(".draft-card").forEach(syncDraft);
       if (!drafts.length) {
-        tellUser("沒有可登錄的項目，請先辨識或按「＋ 新增一列」", "warn", $("draftStatus"));
+        tellUser("沒有可登錄的項目，請先辨識或按「＋ 新增一列」", "warn", $("draftStatus"), true);
         return;
       }
       var now = new Date().toISOString();
@@ -809,11 +813,11 @@
         var amtRaw = d.amount;
         var amount = Number(amtRaw);
         if (!name) {
-          tellUser("第 " + (i + 1) + " 筆缺少品名（至少要有品項與金額）", "err", $("draftStatus"));
+          tellUser("第 " + (i + 1) + " 筆缺少品名（至少要有品項與金額）", "err", $("draftStatus"), true);
           return;
         }
         if (amtRaw === "" || amtRaw == null || isNaN(amount) || amount < 0) {
-          tellUser("第 " + (i + 1) + " 筆缺少金額（贈品請填 0）", "err", $("draftStatus"));
+          tellUser("第 " + (i + 1) + " 筆缺少金額（贈品請填 0）", "err", $("draftStatus"), true);
           return;
         }
         items.push({
@@ -840,7 +844,7 @@
         result = persist();
       } catch (e) {
         items = items.slice(0, startLen);
-        tellUser("儲存失敗。請先到「匯出匯入」匯出備份，再按「清除全部收據照片」後重試", "err", $("draftStatus"));
+        tellUser("儲存失敗。請先到「匯出匯入」匯出備份，再按「清除全部收據照片」後重試", "err", $("draftStatus"), true);
         return;
       }
       drafts = [];
@@ -853,13 +857,14 @@
       if (result && result.stripped) msg += "（已自動省略照片以完成儲存）";
       setStatus($("scanStatus"), msg, "");
       flash(msg, "");
+      try { window.alert(msg); } catch (eOk) {}
       switchTab("home");
       try {
         var hero = document.querySelector(".hero");
         if (hero) hero.scrollIntoView({ behavior: "smooth", block: "nearest" });
       } catch (eScroll) {}
     } catch (err) {
-      tellUser("確認登錄失敗：" + ((err && err.message) || err), "err", $("draftStatus"));
+      tellUser("確認登錄失敗：" + ((err && err.message) || err), "err", $("draftStatus"), true);
     } finally {
       if (btn) {
         btn.removeAttribute("data-busy");
