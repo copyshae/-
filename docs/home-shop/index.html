@@ -115,6 +115,11 @@
     .flash.on { display: block; }
     .flash.warn { color: var(--warn); border-color: rgba(181,71,8,.35); background: #fff8f0; }
     .flash.err { color: var(--danger); border-color: rgba(180,35,24,.35); background: #fff5f4; }
+    .draft-card.draft-bad {
+      outline: 2px solid var(--danger);
+      outline-offset: 2px;
+      background: #fff8f7;
+    }
     .draft-bar {
       position: sticky; top: 0; z-index: 5; margin: .35rem 0 .55rem; padding: .55rem .45rem;
       background: rgba(255,252,248,.96); border: 1px solid var(--line);
@@ -344,6 +349,6 @@
 
     <footer><a href="../">← 回到首頁</a> · 資料僅存本機</footer>
   </div>
-  <script src="./app.js?v=10"></script>
+  <script src="./app.js?v=11"></script>
 </body>
 </html>

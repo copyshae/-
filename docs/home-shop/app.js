@@ -784,6 +784,17 @@
     setStatus($("scanStatus"), "", "");
   }
 
+  function focusDraftCard(index) {
+    var cards = document.querySelectorAll(".draft-card");
+    var card = cards[index];
+    if (!card) return;
+    cards.forEach(function (c) { c.classList.remove("draft-bad"); });
+    card.classList.add("draft-bad");
+    try { card.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {
+      try { card.scrollIntoView(true); } catch (e2) {}
+    }
+  }
+
   function confirmDrafts() {
     var btn = $("btnConfirmDrafts");
     if (btn && btn.getAttribute("data-busy") === "1") return;
@@ -800,24 +811,24 @@
         tellUser("沒有可登錄的項目，請先辨識或按「＋ 新增一列」", "warn", $("draftStatus"));
         return;
       }
-      var now = new Date().toISOString();
-      var added = 0;
-      var startLen = items.length;
+      // 先全部核對，通過後再一次寫入，避免中途失敗留下半批
+      var prepared = [];
       for (var i = 0; i < drafts.length; i++) {
         var d = drafts[i];
         var name = String(d.name || "").trim();
         var amtRaw = d.amount;
         var amount = Number(amtRaw);
         if (!name) {
+          focusDraftCard(i);
           tellUser("第 " + (i + 1) + " 筆缺少品名（至少要有品項與金額）", "err", $("draftStatus"));
           return;
         }
         if (amtRaw === "" || amtRaw == null || isNaN(amount) || amount < 0) {
+          focusDraftCard(i);
           tellUser("第 " + (i + 1) + " 筆缺少金額（贈品請填 0）", "err", $("draftStatus"));
           return;
         }
-        items.push({
-          id: uid(),
+        prepared.push({
           date: d.date || today(),
           category: normalizeCat(d.category),
           name: name,
@@ -827,13 +838,30 @@
           store: String(d.store || "").trim(),
           receiptNo: String(d.receiptNo || "").trim(),
           payment: String(d.payment || "").trim(),
-          note: String(d.note || "").trim(),
+          note: String(d.note || "").trim()
+        });
+      }
+      var now = new Date().toISOString();
+      var startLen = items.length;
+      for (var j = 0; j < prepared.length; j++) {
+        var row = prepared[j];
+        items.push({
+          id: uid(),
+          date: row.date,
+          category: row.category,
+          name: row.name,
+          model: row.model,
+          amount: row.amount,
+          qty: row.qty,
+          store: row.store,
+          receiptNo: row.receiptNo,
+          payment: row.payment,
+          note: row.note,
           // 批次登錄不帶收據大圖，避免辨識成功卻因空間不足存失敗
           photo: "",
           createdAt: now,
           updatedAt: now
         });
-        added++;
       }
       var result;
       try {
@@ -843,6 +871,7 @@
         tellUser("儲存失敗。請先到「匯出匯入」匯出備份，再按「清除全部收據照片」後重試", "err", $("draftStatus"));
         return;
       }
+      var added = prepared.length;
       drafts = [];
       renderDrafts();
       renderStats();
@@ -855,6 +884,7 @@
       flash(msg, "");
       switchTab("home");
       try {
+        window.scrollTo(0, 0);
         var hero = document.querySelector(".hero");
         if (hero) hero.scrollIntoView({ behavior: "smooth", block: "nearest" });
       } catch (eScroll) {}
