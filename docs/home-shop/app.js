@@ -13,7 +13,7 @@
     furniture: "furniture",
     other: "other"
   };
-  var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  var MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
 
   var items = [];
   var filterCat = "all";
@@ -551,6 +551,27 @@
     return "other";
   }
 
+  function friendlyError(err) {
+    var msg = String((err && err.message) || err || "");
+    if (/high demand|temporarily|try again later|Resource exhausted|429|quota|overloaded/i.test(msg)) {
+      return "辨識服務目前忙線（需求較高），請等 1～2 分鐘再按一次「辨識並帶入費用」。急用可改「手動輸入」。";
+    }
+    if (/API key|invalid|PERMISSION|401|403|API_KEY/i.test(msg)) {
+      return "Gemini 金鑰無效或無權限，請到 Google AI Studio 重新建立金鑰後再貼上。";
+    }
+    if (/Failed to fetch|NetworkError|network|Load failed/i.test(msg)) {
+      return "網路連線失敗，請確認有上網後再試。";
+    }
+    if (/無法解析辨識結果/.test(msg)) {
+      return "有回應但無法讀出費用項目，請換張清楚一點的照片，或改手動輸入。";
+    }
+    // 英文原文太長時，給簡短中文＋原文摘要
+    if (/[A-Za-z]{20,}/.test(msg) && !/[\u4e00-\u9fff]/.test(msg)) {
+      return "辨識暫時失敗：" + msg.slice(0, 120) + "。請稍後再試，或改手動輸入。";
+    }
+    return msg || "辨識失敗";
+  }
+
   function callGemini(file) {
     var apiKey = ($("geminiKey").value || "").trim() || localStorage.getItem(KEY_GEMINI) || "";
     if (!apiKey) return Promise.reject(new Error("請先填 Gemini 金鑰，或改用手動輸入"));
@@ -578,10 +599,18 @@
       var parts = [{ text: prompt }, { inline_data: { mime_type: mime, data: packed.b64 } }];
       var lastErr = null;
       var idx = 0;
+      // 忙線時先試較輕量的模型
+      var models = MODELS.slice();
+
+      function delay(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
+      }
 
       function tryNext() {
-        if (idx >= MODELS.length) return Promise.reject(lastErr || new Error("Gemini 無回應"));
-        var model = MODELS[idx++];
+        if (idx >= models.length) {
+          return Promise.reject(new Error(friendlyError(lastErr || new Error("Gemini 無回應"))));
+        }
+        var model = models[idx++];
         var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
           encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
         return fetch(url, {
@@ -594,7 +623,12 @@
         }).then(function (res) {
           return res.json().then(function (data) {
             if (!res.ok) {
-              lastErr = new Error((data.error && data.error.message) || ("HTTP " + res.status));
+              var rawMsg = (data.error && data.error.message) || ("HTTP " + res.status);
+              lastErr = new Error(rawMsg);
+              var busy = /high demand|try again later|Resource exhausted|429|overloaded/i.test(rawMsg);
+              if (busy && idx < models.length) {
+                return delay(800).then(tryNext);
+              }
               return tryNext();
             }
             var text = (((data.candidates || [])[0] || {}).content || {}).parts
