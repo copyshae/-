@@ -1395,7 +1395,7 @@
     // 清掉舊版快取，避免 iOS Safari 反覆當掉
     caches.keys().then(function (keys) {
       return Promise.all(keys.filter(function (k) {
-        return /^home-shop-v(1|2|3)$/.test(k);
+        return /^home-shop-v(1|2|3|4)$/.test(k);
       }).map(function (k) { return caches.delete(k); }));
     }).catch(function () {}).then(function () {
       return navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
