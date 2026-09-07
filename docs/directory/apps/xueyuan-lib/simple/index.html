@@ -705,6 +705,7 @@
 
     function applyUrlParams() {
       const sharedItem = (urlParams().get("item") || "").trim();
+      const sharedItems = (urlParams().get("items") || "").trim();
       const sharedQ = (urlParams().get("q") || "").trim();
       const sharedCat = (urlParams().get("cat") || "").trim();
       const sharedCountry = (urlParams().get("country") || "").trim();
@@ -712,6 +713,10 @@
         filterCat = sharedCat;
       }
       if (sharedCountry) filterCountry = sharedCountry;
+      if (sharedItems) {
+        sharedItems.split(",").map((x) => x.trim()).filter(Boolean).forEach((id) => selectedIds.add(id));
+        updatePickCount();
+      }
       if (sharedCat || sharedCountry) {
         renderCatFilter();
         renderList();
@@ -724,6 +729,15 @@
         persist = false;
         if (playById(sharedItem, true)) {
           $("statusLine").textContent = "已從分享連結開啟（不寫入個人記錄）";
+        }
+      } else if (sharedItems && !sharedQ) {
+        const ids = sharedItems.split(",").map((x) => x.trim()).filter(Boolean);
+        filtered = allFlat.filter((x) => ids.includes(x.id));
+        persist = false;
+        renderList();
+        if (filtered.length) {
+          playItem(filtered[0], true, false);
+          setStatus("已開啟分享清單 " + filtered.length + " 則 · 可輪播");
         }
       } else if (sharedCat && !sharedQ) {
         const nm = ((catalog.categories || []).find((c) => c.id === filterCat) || {}).name || sharedCat;
