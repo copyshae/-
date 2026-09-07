@@ -220,6 +220,17 @@ def match_problem(title: str, problem: dict) -> bool:
     return any(k in title for k in problem["keywords"])
 
 
+def make_note(problem: dict, tags: list[str], country: dict) -> str:
+    """每則連結的備註摘要：解決什麼問題的關鍵字＋分類＋地區。"""
+    kw = "、".join(tags[:4]) if tags else "、".join(problem["keywords"][:2])
+    parts = [f"解決問題關鍵字：{kw}"]
+    if problem.get("name"):
+        parts.append(problem["name"])
+    if country.get("name"):
+        parts.append(country["name"])
+    return "｜".join(parts)
+
+
 def make_item(d: dict, problem: dict, country_hint: dict | None = None) -> dict:
     vid = d.get("id")
     title = d.get("title") or ""
@@ -239,6 +250,7 @@ def make_item(d: dict, problem: dict, country_hint: dict | None = None) -> dict:
         "problemId": problem["id"],
         "problemName": problem["name"],
         "problemTags": tags,
+        "note": make_note(problem, tags, country),
         "countryId": country["id"],
         "country": country["name"],
         "channel": channel,
