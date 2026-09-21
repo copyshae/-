@@ -210,10 +210,26 @@
       </div>
       <p class="status" id="captionStatus" style="margin-top:0.35rem">字幕：關（依影片是否提供字幕軌而定）</p>
 
-      <h2 class="section" style="margin-top:0.85rem">聲音旁白（中↔英）</h2>
-      <p class="status" style="margin:0.25rem 0 0.35rem">靜音原片，用選定人聲朗讀翻譯後的旁白（本機語音合成）。</p>
-      <label class="picker-label" for="voiceScript">旁白文字（可改；預設用標題／一句收穫）</label>
-      <textarea id="voiceScript" placeholder="貼上或保留自動帶入的句子，再一鍵轉成中文／英文聲音"></textarea>
+      <h2 class="section" style="margin-top:0.85rem">中↔英對翻（文字／語音／影片）</h2>
+      <p class="status" style="margin:0.25rem 0 0.35rem">輸入中文或英文 → 自動翻成另一種語言並朗讀；可選人聲與旁白語速。</p>
+
+      <label class="picker-label" for="voiceScript">文字輸入（中文或英文都可以）</label>
+      <textarea id="voiceScript" placeholder="在這裡打中文或英文，例如：&#10;我好累。&#10;I am drained."></textarea>
+      <label class="picker-label" for="voiceTranslated">對翻結果（可再改後重念）</label>
+      <textarea id="voiceTranslated" placeholder="對翻後的文字會出現在這裡"></textarea>
+      <div class="row-btns" style="grid-template-columns:1fr 1fr 1fr">
+        <button type="button" id="btnTextToEn" class="primary">文字→英聲</button>
+        <button type="button" id="btnTextToZh" class="primary">文字→中聲</button>
+        <button type="button" id="btnAutoFlip" class="primary">自動對翻</button>
+      </div>
+
+      <div class="opt-row" style="margin-top:0.55rem">
+        <span class="lbl">語音輸入</span>
+        <button type="button" id="btnListenZh">說中文→英</button>
+        <button type="button" id="btnListenEn">說英文→中</button>
+        <button type="button" id="btnStopListen">停止</button>
+      </div>
+
       <label class="picker-label" for="voiceEnSelect">英文人聲</label>
       <select id="voiceEnSelect" aria-label="英文人聲"></select>
       <label class="picker-label" for="voiceZhSelect">中文人聲</label>
@@ -225,20 +241,12 @@
         <button type="button" data-tts="1.25">1.25×</button>
         <button type="button" data-tts="1.5">1.5×</button>
       </div>
-      <div class="row-btns" style="grid-template-columns:1fr 1fr 1fr">
-        <button type="button" id="btnVoiceEn" class="primary">一鍵英聲</button>
-        <button type="button" id="btnVoiceZh" class="primary">一鍵中聲</button>
-        <button type="button" id="btnVoiceOrig">恢復原聲</button>
+      <div class="row-btns" style="grid-template-columns:1fr 1fr">
+        <button type="button" id="btnVoiceEn">再念英聲</button>
+        <button type="button" id="btnVoiceZh">再念中聲</button>
       </div>
-      <div class="row-btns" style="margin-top:0.45rem">
-        <button type="button" id="btnAutoFlip" class="primary">對翻朗讀（自動辨中／英）</button>
-        <button type="button" id="btnStopListen">停止聽／說</button>
-      </div>
-      <div class="opt-row" style="margin-top:0.45rem">
-        <span class="lbl">語音輸入</span>
-        <button type="button" id="btnListenZh">說中文→英</button>
-        <button type="button" id="btnListenEn">說英文→中</button>
-      </div>
+      <button type="button" id="btnVoiceOrig" style="width:100%;margin-top:0.4rem">恢復原片聲音</button>
+
       <label class="picker-label" for="mediaFile">影片／音訊輸入（上傳後辨識對翻）</label>
       <input type="file" id="mediaFile" accept="video/*,audio/*" />
       <video id="localMedia" controls playsinline style="display:none;width:100%;margin-top:0.45rem;border-radius:0.4rem;background:#000;max-height:12rem"></video>
@@ -248,7 +256,7 @@
         <button type="button" id="btnMediaFlip" class="primary">影片／音訊對翻</button>
         <button type="button" id="btnSaveGeminiKey">儲存金鑰</button>
       </div>
-      <p class="status" id="voiceStatus">人聲、旁白語速、語音／影片輸入會記在本機。</p>
+      <p class="status" id="voiceStatus">文字、語音、影片輸入皆可對翻；人聲與語速記在本機。</p>
 
       <label class="picker-label" for="takeawayBox">一句收穫（看完寫下今天學到的一句）</label>
       <input type="text" id="takeawayBox" maxlength="120" placeholder="例：drained = 精疲力盡（比 very tired 更精準）" />
@@ -262,8 +270,8 @@
     <section class="card" aria-label="優化建議">
       <h2 class="section">優化建議</h2>
       <ol class="tips-list">
-        <li><strong>對翻輸入：</strong>可語音說中／英，或上傳影片／音訊（需 Gemini 金鑰）自動辨識並對翻朗讀。</li>
-        <li><strong>聲音旁白：</strong>可選中／英人聲與旁白語速，一鍵把文字念成英文或中文（靜音原片）。</li>
+        <li><strong>文字輸入：</strong>在「文字輸入」打中文或英文，按「文字→英聲／中聲」或「自動對翻」。</li>
+        <li><strong>對翻輸入：</strong>也可語音說中／英，或上傳影片／音訊（需 Gemini 金鑰）自動辨識並對翻朗讀。</li>
         <li><strong>字幕切換：</strong>可用「中文／英文／中英」按鈕；實際顯示仍依該 Shorts 是否提供字幕或自動翻譯。</li>
         <li><strong>先跟讀再滑走：</strong>好句子至少出聲跟 1 次；本頁可設「跟讀循環 ×2／×3」強制重複。</li>
         <li><strong>慢速拆音再加速：</strong>聽不懂先用 0.75× 對齊重音與連音，再回到 1×／1.25×。</li>
@@ -640,22 +648,28 @@
         $("voiceStatus").textContent = "翻譯並準備旁白…";
         let src = ($("voiceScript").value || "").trim() || defaultVoiceScript();
         if (!src) {
-          toast("請先選影片或貼上旁白文字");
+          toast("請先在「文字輸入」打字，或用語音／影片");
           $("voiceStatus").textContent = "沒有文字可轉聲音";
           return;
         }
         $("voiceScript").value = src;
         const translated = await translateText(src, langTarget);
-        if (langTarget === "en" && looksChinese(src)) {
-          $("voiceStatus").textContent = "譯文：" + translated.slice(0, 80);
-        } else if (langTarget === "zh" && !looksChinese(src)) {
-          $("voiceStatus").textContent = "譯文：" + translated.slice(0, 80);
-        }
+        if ($("voiceTranslated")) $("voiceTranslated").value = translated;
+        $("voiceStatus").textContent = "譯文：" + translated.slice(0, 100);
         speakDub(translated, langTarget);
       } catch (err) {
         $("voiceStatus").textContent = String(err.message || err);
         toast("旁白失敗");
       }
+    }
+
+    async function speakTranslatedOnly(langTarget) {
+      const t = ($("voiceTranslated").value || "").trim();
+      if (t) {
+        speakDub(t, langTarget);
+        return;
+      }
+      await oneClickVoice(langTarget);
     }
 
     async function autoFlipSpeak() {
@@ -818,6 +832,7 @@
         const target = parsed.target;
         $("voiceScript").value = source;
         if (target) {
+          if ($("voiceTranslated")) $("voiceTranslated").value = target;
           $("voiceStatus").textContent = "譯文：" + target.slice(0, 100);
           speakDub(target, parsed.toEn || !looksChinese(target) ? "en" : "zh");
         } else {
@@ -1203,9 +1218,11 @@
       localStorage.setItem(VOICE_ZH_KEY, $("voiceZhSelect").value || "");
       toast("已選中文人聲");
     });
-    $("btnVoiceEn").addEventListener("click", () => oneClickVoice("en"));
-    $("btnVoiceZh").addEventListener("click", () => oneClickVoice("zh"));
+    $("btnVoiceEn").addEventListener("click", () => speakTranslatedOnly("en"));
+    $("btnVoiceZh").addEventListener("click", () => speakTranslatedOnly("zh"));
     $("btnVoiceOrig").addEventListener("click", restoreOriginalAudio);
+    $("btnTextToEn").addEventListener("click", () => oneClickVoice("en"));
+    $("btnTextToZh").addEventListener("click", () => oneClickVoice("zh"));
     $("btnAutoFlip").addEventListener("click", () => autoFlipSpeak());
     $("btnListenZh").addEventListener("click", () => startListen("zh"));
     $("btnListenEn").addEventListener("click", () => startListen("en"));
@@ -1329,7 +1346,7 @@
 
     loadCatalog();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=5").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=6").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
