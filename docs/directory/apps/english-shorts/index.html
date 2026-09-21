@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f6e72" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="英文短影音" />
+  <meta name="description" content="YouTube Shorts／IG Reels 碎片時間學英文：搜尋、匯入連結、連續播放。" />
+  <link rel="manifest" href="manifest.json?v=1" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
+  <title>英文短影音學習台</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #123536;
+      --muted: #4a6b68;
+      --paper: #e8f6f4;
+      --accent: #0f6e72;
+      --accent2: #2a9d8f;
+      --line: rgba(15, 110, 114, 0.22);
+      --card: rgba(255, 255, 255, 0.82);
+      --warn: #9a5b00;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        radial-gradient(120% 80% at 10% -10%, rgba(42, 157, 143, 0.18), transparent 55%),
+        radial-gradient(90% 70% at 100% 0%, rgba(15, 110, 114, 0.12), transparent 50%),
+        linear-gradient(180deg, #f3fbfa 0%, var(--paper) 50%, #d5ebe8 100%);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .wrap { max-width: 28rem; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    header { text-align: center; }
+    .brand { font-size: clamp(1.15rem, 5vw, 1.55rem); font-weight: 700; color: var(--accent); line-height: 1.35; }
+    .sub { margin-top: 0.3rem; font-size: 0.86rem; color: var(--muted); }
+    .pill-row { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; }
+    .pill { font-size: 0.72rem; color: var(--accent); background: var(--card); border: 1px solid var(--line); padding: 0.2rem 0.5rem; border-radius: 999px; }
+    .home-card {
+      margin-top: 0.85rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line);
+      border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: center;
+    }
+    .home-icon { width: 3.6rem; height: 3.6rem; border-radius: 0.85rem; flex-shrink: 0; }
+    .home-card p { font-size: 0.78rem; color: var(--muted); }
+    .card {
+      margin-top: 0.85rem; padding: 0.75rem; background: var(--card);
+      border: 1px solid var(--line); border-radius: 0.5rem;
+    }
+    .section { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+    .picker-label { display: block; font-size: 0.78rem; color: var(--muted); margin: 0.45rem 0 0.25rem; font-weight: 500; }
+    input[type="search"], input[type="url"], input[type="text"], select, textarea {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.65rem 0.7rem;
+      border: 1px solid var(--line); border-radius: 0.35rem; background: #fff; color: var(--ink);
+    }
+    textarea { min-height: 4.2rem; resize: vertical; }
+    .filter-row { margin-top: 0.55rem; display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .filter-row button { flex: 1 1 22%; min-width: 4.2rem; font-size: 0.76rem; padding: 0.45rem 0.25rem; }
+    .filter-row button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .player-shell { margin-top: 0.85rem; background: #111; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; position: relative; }
+    #player { width: 100%; height: 100%; }
+    .sub-overlay {
+      display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+      padding: 0.55rem 0.65rem 0.7rem; background: linear-gradient(transparent, rgba(0,0,0,0.78));
+      pointer-events: none; text-align: center;
+    }
+    .sub-overlay.on { display: block; }
+    .sub-overlay .en { color: #fff; font-size: 0.92rem; font-weight: 700; text-shadow: 0 1px 3px #000; line-height: 1.35; }
+    .sub-overlay .zh { color: #b8f3ea; font-size: 0.84rem; font-weight: 600; margin-top: 0.2rem; text-shadow: 0 1px 3px #000; line-height: 1.35; }
+    .sub-overlay .sub-hint { color: rgba(255,255,255,0.75); font-size: 0.72rem; margin-top: 0.25rem; }
+    .now { margin-top: 0.7rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line); border-radius: 0.45rem; }
+    .now h2 { font-size: 1rem; color: var(--accent); font-weight: 700; }
+    .now p { margin-top: 0.2rem; font-size: 0.8rem; color: var(--muted); }
+    .progress-bar { margin-top: 0.5rem; height: 0.35rem; background: rgba(15,110,114,0.15); border-radius: 999px; overflow: hidden; }
+    .progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.3s; }
+    .controls { margin-top: 0.6rem; display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 0.35rem; }
+    button {
+      font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
+      color: var(--ink); padding: 0.55rem 0.3rem; border-radius: 0.35rem; font-weight: 600; font-size: 0.82rem;
+    }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.chip-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem; }
+    .opt-row { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .opt-row .lbl { font-size: 0.76rem; color: var(--muted); margin-right: 0.15rem; }
+    .opt-row button { flex: 0 0 auto; min-width: 2.8rem; padding: 0.4rem 0.55rem; font-size: 0.78rem; }
+    #captionRow button { min-width: 4.4rem; font-size: 0.74rem; padding: 0.4rem 0.4rem; }
+    .tips-list { margin: 0.45rem 0 0; padding-left: 1.1rem; font-size: 0.78rem; color: var(--muted); }
+    .tips-list li { margin: 0.28rem 0; }
+    .tips-list strong { color: var(--ink); }
+    .daily-line { margin-top: 0.45rem; font-size: 0.78rem; color: var(--accent); font-weight: 600; }
+    .creator-chips { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .creator-chips a, .creator-chips button {
+      font-size: 0.72rem; padding: 0.3rem 0.55rem; border-radius: 999px;
+      text-decoration: none; color: var(--accent); background: #fff; border: 1px solid var(--line);
+    }
+    .hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--muted); padding: 0.65rem; background: rgba(255,255,255,0.5); border: 1px dashed var(--line); border-radius: 0.35rem; }
+    .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); min-height: 1.1rem; }
+    .toast {
+      position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%);
+      background: rgba(18, 53, 54, 0.92); color: #fff; padding: 0.55rem 0.9rem;
+      border-radius: 999px; font-size: 0.82rem; z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .toast.show { opacity: 1; }
+    button.busy { opacity: 0.65; pointer-events: none; }
+    .status.err { color: #a33; }
+    .status.ok { color: var(--accent); font-weight: 600; }
+    .copy-row { display: flex; gap: 0.35rem; margin-top: 0.35rem; }
+    .copy-row button { flex: 1; font-size: 0.76rem; padding: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="brand">英文短影音學習台</h1>
+      <p class="sub">Shorts／Reels · 搜尋匯入 · 碎片時間跟讀</p>
+      <div class="pill-row">
+        <span class="pill">連續播放</span>
+        <span class="pill">搜尋匯入</span>
+        <span class="pill">加入主畫面</span>
+      </div>
+    </header>
+
+    <section class="home-card">
+      <img class="home-icon" src="icon-192.png" width="192" height="192" alt="英文短影音學習台圖示" />
+      <div>
+        <p><strong>主畫面圖示：英文短影音</strong></p>
+        <p>Safari／Chrome → <a href="./share.html" style="color:var(--accent);">加入主畫面說明</a></p>
+      </div>
+    </section>
+
+    <section class="card" aria-label="搜尋與匯入">
+      <h2 class="section">搜尋與匯入連結</h2>
+      <label class="picker-label" for="searchBox">搜尋標題／創作者／關鍵字</label>
+      <input type="search" id="searchBox" placeholder="例如：BBC、lend、情境、Eko…" autocomplete="off" />
+
+      <label class="picker-label" for="importUrl">貼上 YouTube／Shorts／IG Reels 連結</label>
+      <textarea id="importUrl" placeholder="https://www.youtube.com/shorts/…&#10;或 Instagram Reels 連結&#10;可一次貼多行"></textarea>
+      <div class="row-btns">
+        <button type="button" id="btnImport" class="primary">＋ 匯入連結</button>
+        <button type="button" id="btnClearMine">清除我的匯入</button>
+      </div>
+      <p class="status" id="importStatus">YouTube 可內嵌播放；IG Reels 會開外部 App／網頁。</p>
+    </section>
+
+    <section class="card" aria-label="推薦頻道">
+      <h2 class="section">推薦創作者</h2>
+      <div class="creator-chips" id="creatorChips"></div>
+    </section>
+
+    <section class="card" aria-label="短影音選單">
+      <h2 class="section">短影音選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
+      <div class="filter-row" role="tablist" aria-label="分類">
+        <button type="button" class="active" data-filter="all" role="tab">全部</button>
+        <button type="button" data-filter="pronounce" role="tab">發音口語</button>
+        <button type="button" data-filter="scene" role="tab">情境短劇</button>
+        <button type="button" data-filter="vocab" role="tab">文法片語</button>
+        <button type="button" data-filter="mine" role="tab">我的匯入</button>
+      </div>
+      <label class="picker-label" for="clipSelect">選擇短影音（選好即播）</label>
+      <select id="clipSelect" aria-label="短影音選單">
+        <option value="">— 載入中 —</option>
+      </select>
+      <button type="button" id="btnPlaySelected" class="primary" style="width:100%;margin-top:0.5rem;font-size:0.95rem;padding:0.65rem;">▶ 播放所選</button>
+    </section>
+
+    <div class="player-shell">
+      <div id="player"></div>
+      <div class="sub-overlay" id="subOverlay" aria-live="polite">
+        <div class="en" id="subEn"></div>
+        <div class="zh" id="subZh"></div>
+        <div class="sub-hint" id="subHint"></div>
+      </div>
+    </div>
+
+    <div class="now">
+      <h2 id="nowTitle">準備播放</h2>
+      <p id="nowMeta">載入清單中…</p>
+      <div class="progress-bar" aria-hidden="true"><i id="progressFill"></i></div>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="btnPrev" disabled>◀ 上一則</button>
+      <button type="button" id="btnPlay" class="primary">▶ 開始連播</button>
+      <button type="button" id="btnNext">下一則 ▶</button>
+    </div>
+
+    <section class="card" aria-label="播放優化">
+      <h2 class="section">播放優化（本機記住）</h2>
+      <div class="opt-row" id="speedRow">
+        <span class="lbl">語速</span>
+        <button type="button" data-speed="0.75">0.75×</button>
+        <button type="button" data-speed="1" class="chip-on">1×</button>
+        <button type="button" data-speed="1.25">1.25×</button>
+        <button type="button" data-speed="1.5">1.5×</button>
+      </div>
+      <div class="opt-row" id="loopRow">
+        <span class="lbl">跟讀循環</span>
+        <button type="button" data-loop="1" class="chip-on">×1</button>
+        <button type="button" data-loop="2">×2</button>
+        <button type="button" data-loop="3">×3</button>
+        <span class="lbl" id="loopHint">播完換下一則</span>
+      </div>
+      <div class="opt-row" id="captionRow" role="group" aria-label="字幕模式">
+        <span class="lbl">字幕</span>
+        <button type="button" data-caption="off" class="chip-on">關</button>
+        <button type="button" data-caption="zh">中文字幕</button>
+        <button type="button" data-caption="en">英文字幕</button>
+        <button type="button" data-caption="dual">中英字幕</button>
+      </div>
+      <p class="status" id="captionStatus" style="margin-top:0.35rem">字幕：關（依影片是否提供字幕軌而定）</p>
+
+      <h2 class="section" style="margin-top:0.85rem">中↔英對翻（文字／語音／影片）</h2>
+      <p class="status" style="margin:0.25rem 0 0.35rem">輸入中文或英文 → 自動翻成另一種語言並朗讀；可選人聲與旁白語速。</p>
+
+      <label class="picker-label" for="voiceScript">文字輸入（中文或英文都可以）</label>
+      <textarea id="voiceScript" placeholder="在這裡打中文或英文，例如：&#10;我好累。&#10;I am drained."></textarea>
+      <label class="picker-label" for="voiceTranslated">對翻結果（可再改後重念）</label>
+      <textarea id="voiceTranslated" placeholder="對翻後的文字會出現在這裡"></textarea>
+      <div class="copy-row">
+        <button type="button" id="btnCopySrc">複製原文</button>
+        <button type="button" id="btnCopyTgt">複製譯文</button>
+        <button type="button" id="btnSwapText">原文⇄譯文對調</button>
+      </div>
+      <div class="row-btns" style="grid-template-columns:1fr 1fr 1fr">
+        <button type="button" id="btnTextToEn" class="primary">文字→英聲</button>
+        <button type="button" id="btnTextToZh" class="primary">文字→中聲</button>
+        <button type="button" id="btnAutoFlip" class="primary">自動對翻</button>
+      </div>
+
+      <div class="opt-row" style="margin-top:0.55rem">
+        <span class="lbl">語音輸入</span>
+        <button type="button" id="btnListenZh">說中文→英</button>
+        <button type="button" id="btnListenEn">說英文→中</button>
+        <button type="button" id="btnStopListen">停止</button>
+      </div>
+
+      <label class="picker-label" for="voiceEnSelect">英文人聲</label>
+      <select id="voiceEnSelect" aria-label="英文人聲"></select>
+      <label class="picker-label" for="voiceZhSelect">中文人聲</label>
+      <select id="voiceZhSelect" aria-label="中文人聲"></select>
+      <div class="opt-row" id="ttsSpeedRow" style="margin-top:0.55rem">
+        <span class="lbl">旁白語速</span>
+        <button type="button" data-tts="0.75">0.75×</button>
+        <button type="button" data-tts="1" class="chip-on">1×</button>
+        <button type="button" data-tts="1.25">1.25×</button>
+        <button type="button" data-tts="1.5">1.5×</button>
+      </div>
+      <div class="row-btns" style="grid-template-columns:1fr 1fr">
+        <button type="button" id="btnVoiceEn">再念英聲</button>
+        <button type="button" id="btnVoiceZh">再念中聲</button>
+      </div>
+      <button type="button" id="btnVoiceOrig" style="width:100%;margin-top:0.4rem">恢復原片聲音</button>
+
+      <label class="picker-label" for="mediaFile">影片／音訊輸入（上傳後辨識對翻）</label>
+      <input type="file" id="mediaFile" accept="video/*,audio/*" />
+      <video id="localMedia" controls playsinline style="display:none;width:100%;margin-top:0.45rem;border-radius:0.4rem;background:#000;max-height:12rem"></video>
+      <label class="picker-label" for="geminiKeyVoice">Gemini 金鑰（影片辨識用，選填；可沿用其他工具已存金鑰）</label>
+      <input type="password" id="geminiKeyVoice" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+      <div class="row-btns">
+        <button type="button" id="btnMediaFlip" class="primary">影片／音訊對翻</button>
+        <button type="button" id="btnSaveGeminiKey">儲存金鑰</button>
+      </div>
+      <p class="status" id="voiceStatus">文字、語音、影片輸入皆可對翻；人聲與語速記在本機。</p>
+
+      <label class="picker-label" for="takeawayBox">一句收穫（看完寫下今天學到的一句）</label>
+      <input type="text" id="takeawayBox" maxlength="120" placeholder="例：drained = 精疲力盡（比 very tired 更精準）" />
+      <div class="row-btns">
+        <button type="button" id="btnSaveTakeaway" class="primary">儲存收穫</button>
+        <button type="button" id="btnMarkShadow">＋今日跟讀 1 次</button>
+      </div>
+      <p class="daily-line" id="dailyLine">今日跟讀：0 次</p>
+    </section>
+
+    <section class="card" aria-label="優化建議">
+      <h2 class="section">優化建議</h2>
+      <ol class="tips-list">
+        <li><strong>文字輸入：</strong>打中文或英文後按對翻；支援 Ctrl／⌘+Enter、複製原文／譯文、對調。</li>
+        <li><strong>對翻輸入：</strong>也可語音說中／英，或上傳影片／音訊（需 Gemini 金鑰）自動辨識並對翻朗讀。</li>
+        <li><strong>字幕切換：</strong>可用「中文／英文／中英」按鈕；實際顯示仍依該 Shorts 是否提供字幕或自動翻譯。</li>
+        <li><strong>先跟讀再滑走：</strong>好句子至少出聲跟 1 次；本頁可設「跟讀循環 ×2／×3」強制重複。</li>
+        <li><strong>慢速拆音再加速：</strong>聽不懂先用 0.75× 對齊重音與連音，再回到 1×／1.25×。</li>
+        <li><strong>一句收穫制：</strong>每則只帶走一句（用字／片語／情境），寫進上方欄位，比狂刷 20 則更有效。</li>
+        <li><strong>分類練、別混刷：</strong>發音口語／情境短劇／文法片語分開練；通勤聽力用情境，排隊空檔用文法。</li>
+        <li><strong>每週 5 分鐘回鍋：</strong>打開「我的匯入」複習收藏，寧可少而熟，不要多而忘。</li>
+        <li><strong>主動餵演算法：</strong>在 YouTube／IG 對優質教學 Shorts 按讚與收藏，推薦流才會愈來愈乾貨。</li>
+        <li><strong>情境複述：</strong>短劇看完用 10 秒自問自答（點餐、結帳、小聊），把輸入變成輸出。</li>
+        <li><strong>IG 另開、YT 連播：</strong>IG Reels 無法內嵌；精華請匯入後每週回顧，連播以 YouTube Shorts 為主。</li>
+      </ol>
+    </section>
+
+    <p class="hint">種子清單含 Eko、Peggy Fo Show、Ariannita、English with Lucy、BBC Learning English；C划算請自行貼連結匯入。</p>
+    <p class="status" id="statusLine"></p>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const CATALOG_URL = "./catalog.json";
+    const STORAGE_KEY = "english-shorts-mine-v1";
+    const LAST_KEY = "english-shorts-last";
+    const SPEED_KEY = "english-shorts-speed";
+    const LOOP_KEY = "english-shorts-loop";
+    const NOTES_KEY = "english-shorts-notes-v1";
+    const DAILY_KEY = "english-shorts-daily-v1";
+    const CAPTION_KEY = "english-shorts-caption";
+    const VOICE_EN_KEY = "english-shorts-voice-en";
+    const VOICE_ZH_KEY = "english-shorts-voice-zh";
+    const TTS_SPEED_KEY = "english-shorts-tts-speed";
+    const GEMINI_VOICE_KEY = "english-shorts-gemini-key";
+
+    let catalog = { clips: [], channels: [], categories: [] };
+    let mine = [];
+    let notes = {};
+    let listFilter = "all";
+    let searchQ = "";
+    let queue = [];
+    let qIndex = 0;
+    let player = null;
+    let apiReady = false;
+    let autoPlay = false;
+    let progressTimer = null;
+    let playSpeed = Number(localStorage.getItem(SPEED_KEY) || "1") || 1;
+    let loopTarget = Number(localStorage.getItem(LOOP_KEY) || "1") || 1;
+    let loopPass = 1;
+    let currentId = null;
+    let captionMode = localStorage.getItem(CAPTION_KEY) || "off"; // off | zh | en | dual
+    let captionRetryTimer = null;
+    let ttsSpeed = Number(localStorage.getItem(TTS_SPEED_KEY) || "1") || 1;
+    let dubbing = false;
+    let wasMutedBeforeDub = false;
+    let recognition = null;
+    let localMediaUrl = null;
+    let translateBusy = false;
+    let translateCache = {};
+    let ttsUnlocked = false;
+    let ttsSpeakToken = 0;
+
+    const FLIP_BTN_IDS = ["btnTextToEn", "btnTextToZh", "btnAutoFlip", "btnVoiceEn", "btnVoiceZh", "btnMediaFlip", "btnListenZh", "btnListenEn"];
+
+    function setFlipBusy(on, msg) {
+      translateBusy = !!on;
+      FLIP_BTN_IDS.forEach((id) => {
+        const el = $(id);
+        if (!el) return;
+        el.disabled = !!on;
+        el.classList.toggle("busy", !!on);
+      });
+      if (msg) {
+        $("voiceStatus").textContent = msg;
+        $("voiceStatus").classList.toggle("err", false);
+        $("voiceStatus").classList.toggle("ok", !on);
+      }
+    }
+
+    function setVoiceErr(msg) {
+      $("voiceStatus").textContent = msg;
+      $("voiceStatus").classList.add("err");
+      $("voiceStatus").classList.remove("ok");
+    }
+
+    function setVoiceOk(msg) {
+      $("voiceStatus").textContent = msg;
+      $("voiceStatus").classList.add("ok");
+      $("voiceStatus").classList.remove("err");
+    }
+
+    function unlockTts() {
+      if (ttsUnlocked || !window.speechSynthesis) return;
+      try {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        u.rate = 1;
+        speechSynthesis.speak(u);
+        speechSynthesis.cancel();
+        ttsUnlocked = true;
+      } catch (_) {}
+    }
+
+    const $ = (id) => document.getElementById(id);
+
+    function todayKey() {
+      const d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
+    function loadDaily() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}") || {};
+        if (raw.day !== todayKey()) return { day: todayKey(), shadows: 0 };
+        return raw;
+      } catch (_) { return { day: todayKey(), shadows: 0 }; }
+    }
+
+    function saveDaily(data) {
+      localStorage.setItem(DAILY_KEY, JSON.stringify(data));
+    }
+
+    function renderDaily() {
+      const d = loadDaily();
+      $("dailyLine").textContent = "今日跟讀：" + (d.shadows || 0) + " 次 · 建議至少 5 次";
+    }
+
+    function bumpShadow(n) {
+      const d = loadDaily();
+      d.day = todayKey();
+      d.shadows = (d.shadows || 0) + (n || 1);
+      saveDaily(d);
+      renderDaily();
+    }
+
+    function loadNotes() {
+      try { notes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}") || {}; }
+      catch (_) { notes = {}; }
+    }
+
+    function saveNotes() {
+      localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    }
+
+    function applySpeedButtons() {
+      document.querySelectorAll("#speedRow button[data-speed]").forEach((b) => {
+        b.classList.toggle("chip-on", Number(b.dataset.speed) === playSpeed);
+      });
+    }
+
+    function applyLoopButtons() {
+      document.querySelectorAll("#loopRow button[data-loop]").forEach((b) => {
+        b.classList.toggle("chip-on", Number(b.dataset.loop) === loopTarget);
+      });
+      $("loopHint").textContent = loopTarget <= 1 ? "播完換下一則" : ("同則重複 " + loopTarget + " 次再換");
+    }
+
+    function applyCaptionButtons() {
+      document.querySelectorAll("#captionRow button[data-caption]").forEach((b) => {
+        b.classList.toggle("chip-on", b.dataset.caption === captionMode);
+      });
+      const labels = { off: "關", zh: "中文字幕", en: "英文字幕", dual: "中英字幕" };
+      const overlay = $("subOverlay");
+      if (captionMode === "off") {
+        overlay.classList.remove("on");
+        $("captionStatus").textContent = "字幕：關";
+      } else {
+        overlay.classList.add("on");
+        $("captionStatus").textContent = "字幕：" + (labels[captionMode] || captionMode) + "（若此片無字幕軌，播放器內可能仍空白）";
+      }
+      updateSubOverlayHint();
+    }
+
+    function updateSubOverlayHint() {
+      const en = $("subEn");
+      const zh = $("subZh");
+      const hint = $("subHint");
+      if (captionMode === "off") {
+        en.textContent = ""; zh.textContent = ""; hint.textContent = "";
+        return;
+      }
+      if (captionMode === "zh") {
+        en.textContent = "";
+        zh.textContent = "中文字幕模式";
+        hint.textContent = "已請播放器開啟中文／自動翻譯字幕";
+      } else if (captionMode === "en") {
+        en.textContent = "English captions";
+        zh.textContent = "";
+        hint.textContent = "已請播放器開啟英文字幕";
+      } else {
+        en.textContent = "English";
+        zh.textContent = "中文";
+        hint.textContent = "雙語：優先開英文字幕，並嘗試中文翻譯軌（依影片支援度）";
+      }
+    }
+
+    function preferredCcLang() {
+      if (captionMode === "zh" || captionMode === "dual") return "zh-Hant";
+      if (captionMode === "en") return "en";
+      return "";
+    }
+
+    function applyCaptions() {
+      clearTimeout(captionRetryTimer);
+      updateSubOverlayHint();
+      if (!player || !player.getOptions) return;
+      try {
+        const mods = player.getOptions() || [];
+        if (mods.indexOf("captions") === -1 && player.loadModule) {
+          try { player.loadModule("captions"); } catch (_) {}
+        }
+      } catch (_) {}
+
+      if (captionMode === "off") {
+        try {
+          if (player.unloadModule) player.unloadModule("captions");
+        } catch (_) {}
+        try {
+          player.setOption && player.setOption("captions", "track", {});
+        } catch (_) {}
+        return;
+      }
+
+      try { player.loadModule && player.loadModule("captions"); } catch (_) {}
+
+      const trySet = () => {
+        try {
+          if (captionMode === "en") {
+            player.setOption("captions", "track", { languageCode: "en" });
+          } else if (captionMode === "zh") {
+            // 優先繁中，失敗再簡中／自動翻譯
+            try {
+              player.setOption("captions", "track", { languageCode: "zh-Hant" });
+            } catch (_) {
+              player.setOption("captions", "track", { languageCode: "zh-Hans" });
+            }
+            try {
+              player.setOption("captions", "track", {
+                languageCode: "en",
+                translationLanguageCode: "zh-Hant"
+              });
+            } catch (_) {}
+          } else if (captionMode === "dual") {
+            // 先開英文，再嘗試帶中文翻譯（部分裝置／影片才支援雙語感）
+            try {
+              player.setOption("captions", "track", { languageCode: "en" });
+            } catch (_) {}
+            try {
+              player.setOption("captions", "track", {
+                languageCode: "en",
+                translationLanguageCode: "zh-Hant"
+              });
+            } catch (_) {}
+            $("subEn").textContent = "English captions on";
+            $("subZh").textContent = "中文翻譯字幕（若影片支援）";
+          }
+          try { player.setOption("captions", "reload", true); } catch (_) {}
+        } catch (err) {
+          $("captionStatus").textContent = "此影片可能無字幕軌，請改點播放器右下角 CC";
+        }
+      };
+
+      trySet();
+      captionRetryTimer = setTimeout(trySet, 800);
+      setTimeout(trySet, 1800);
+    }
+
+    function setPlaybackRate() {
+      if (player && player.setPlaybackRate) {
+        try { player.setPlaybackRate(playSpeed); } catch (_) {}
+      }
+    }
+
+    function looksChinese(text) {
+      const s = String(text || "");
+      const cjk = (s.match(/[\u3400-\u9FFF]/g) || []).length;
+      const latin = (s.match(/[A-Za-z]/g) || []).length;
+      return cjk > 0 && cjk >= latin * 0.35;
+    }
+
+    function defaultVoiceScript() {
+      const clip = currentId ? findClip(currentId) : null;
+      const take = ($("takeawayBox").value || "").trim() || (currentId && notes[currentId]) || "";
+      if (take) return take;
+      if (clip) return clip.title || clip.name || "";
+      const sel = $("clipSelect");
+      const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
+      return (opt && opt.textContent) || "";
+    }
+
+    function syncVoiceScriptFromClip() {
+      const box = $("voiceScript");
+      if (!box) return;
+      if ((box.value || "").trim()) return;
+      box.value = defaultVoiceScript();
+    }
+
+    function applyTtsSpeedButtons() {
+      document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((b) => {
+        b.classList.toggle("chip-on", Number(b.dataset.tts) === ttsSpeed);
+      });
+    }
+
+    function listVoices() {
+      try { return window.speechSynthesis ? speechSynthesis.getVoices() || [] : []; }
+      catch (_) { return []; }
+    }
+
+    function fillVoiceSelects() {
+      const voices = listVoices();
+      const enSel = $("voiceEnSelect");
+      const zhSel = $("voiceZhSelect");
+      if (!enSel || !zhSel) return;
+
+      const en = voices.filter((v) => /^en(-|_)/i.test(v.lang) || /english/i.test(v.name));
+      const zh = voices.filter((v) => /^(zh|cmn)/i.test(v.lang) || /chinese|taiwan|hong kong|中文|國語|粤|粵/i.test(v.name + " " + v.lang));
+      const enList = en.length ? en : voices.filter((v) => v.lang);
+      const zhList = zh.length ? zh : voices.filter((v) => v.lang);
+
+      const savedEn = localStorage.getItem(VOICE_EN_KEY) || "";
+      const savedZh = localStorage.getItem(VOICE_ZH_KEY) || "";
+
+      function voiceKey(v) { return v.voiceURI || (v.name + "|" + v.lang); }
+
+      function fill(sel, list, saved, fallbackLang) {
+        const prev = sel.value;
+        sel.innerHTML = list.map((v) => {
+          const label = v.name + "（" + v.lang + "）";
+          return '<option value="' + esc(voiceKey(v)) + '">' + esc(label) + "</option>";
+        }).join("") || '<option value="">（此裝置無可用人聲）</option>';
+        const want = saved || prev;
+        if (want && [...sel.options].some((o) => o.value === want)) sel.value = want;
+        else if (list.length) {
+          const pref = list.find((v) => v.lang.toLowerCase().indexOf(fallbackLang) === 0)
+            || list.find((v) => /台灣|Taiwan|zh-TW|cmn-TW/i.test(v.name + v.lang))
+            || list[0];
+          sel.value = voiceKey(pref);
+        }
+      }
+
+      fill(enSel, enList, savedEn, "en");
+      fill(zhSel, zhList, savedZh, "zh");
+      if (!translateBusy) {
+        $("voiceStatus").textContent = "英文人聲 " + enList.length + " 種 · 中文人聲 " + zhList.length + " 種 · 旁白語速 " + ttsSpeed + "×";
+        $("voiceStatus").classList.remove("err");
+      }
+    }
+
+    function pickVoice(langTarget) {
+      const voices = listVoices();
+      const key = langTarget === "en" ? $("voiceEnSelect").value : $("voiceZhSelect").value;
+      let v = voices.find((x) => (x.voiceURI || (x.name + "|" + x.lang)) === key)
+        || voices.find((x) => x.name === key);
+      if (v) return v;
+      if (langTarget === "en") {
+        return voices.find((x) => /^en/i.test(x.lang)) || null;
+      }
+      return voices.find((x) => /^(zh|cmn)/i.test(x.lang)) || null;
+    }
+
+    async function translateText(text, toLang) {
+      const q = String(text || "").trim();
+      if (!q) throw new Error("沒有可朗讀的文字");
+      if (toLang === "en" && !looksChinese(q)) return q;
+      if (toLang === "zh" && looksChinese(q) && !/[A-Za-z]{4,}/.test(q)) return q;
+
+      const cacheKey = toLang + "::" + q;
+      if (translateCache[cacheKey]) return translateCache[cacheKey];
+
+      const pair = toLang === "en" ? "zh-TW|en" : "en|zh-TW";
+      const url = "https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q.slice(0, 450)) + "&langpair=" + encodeURIComponent(pair);
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+      let res;
+      try {
+        res = await fetch(url, ctrl ? { signal: ctrl.signal } : undefined);
+      } catch (e) {
+        if (e && e.name === "AbortError") throw new Error("翻譯逾時，請重試");
+        throw new Error("網路錯誤，無法翻譯");
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      if (!res.ok) throw new Error("翻譯服務暫時無法使用（" + res.status + "）");
+      const data = await res.json();
+      if (data && data.responseStatus && Number(data.responseStatus) >= 400) {
+        throw new Error((data.responseDetails || "翻譯配額或服務異常") + "");
+      }
+      const out = data && data.responseData && data.responseData.translatedText;
+      if (!out) throw new Error("翻譯結果空白");
+      const cleaned = String(out).trim();
+      if (/MYMEMORY WARNING/i.test(cleaned)) throw new Error("翻譯服務配額已用完，請稍後再試");
+      translateCache[cacheKey] = cleaned;
+      return cleaned;
+    }
+
+    function stopTts() {
+      ttsSpeakToken += 1;
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+    }
+
+    function restoreOriginalAudio() {
+      stopTts();
+      dubbing = false;
+      if (player) {
+        try {
+          if (!wasMutedBeforeDub && player.unMute) player.unMute();
+          else if (wasMutedBeforeDub && player.mute) player.mute();
+        } catch (_) {}
+      }
+      setVoiceOk("已恢復原片聲音");
+      toast("恢復原聲");
+    }
+
+    function chunkText(text, maxLen) {
+      const s = String(text || "").trim();
+      if (s.length <= maxLen) return [s];
+      const parts = [];
+      let buf = "";
+      const bits = s.split(/(?<=[。！？.!?；;\n])/);
+      bits.forEach((b) => {
+        if ((buf + b).length > maxLen && buf) {
+          parts.push(buf.trim());
+          buf = b;
+        } else buf += b;
+      });
+      if (buf.trim()) parts.push(buf.trim());
+      return parts.filter(Boolean);
+    }
+
+    function speakDub(text, langTarget) {
+      if (!window.speechSynthesis) {
+        setVoiceErr("此瀏覽器不支援語音合成");
+        toast("不支援語音合成");
+        return;
+      }
+      unlockTts();
+      stopTts();
+      const myToken = ttsSpeakToken;
+      const voice = pickVoice(langTarget);
+      const chunks = chunkText(text, 160);
+      if (!chunks.length) return;
+
+      if (player) {
+        try {
+          wasMutedBeforeDub = !!(player.isMuted && player.isMuted());
+          if (player.mute) player.mute();
+        } catch (_) {}
+      }
+      dubbing = true;
+
+      let i = 0;
+      const speakNext = () => {
+        if (myToken !== ttsSpeakToken) return;
+        if (i >= chunks.length) {
+          setVoiceOk("旁白結束（原片仍靜音，可按「恢復原片聲音」）");
+          return;
+        }
+        const u = new SpeechSynthesisUtterance(chunks[i]);
+        u.lang = langTarget === "en" ? "en-US" : "zh-TW";
+        if (voice) u.voice = voice;
+        u.rate = Math.max(0.6, Math.min(1.8, ttsSpeed));
+        u.onend = () => {
+          i += 1;
+          speakNext();
+        };
+        u.onerror = (ev) => {
+          if (ev && (ev.error === "canceled" || ev.error === "interrupted")) return;
+          // 無指定人聲再試一次
+          if (voice && i === 0) {
+            try {
+              const u2 = new SpeechSynthesisUtterance(chunks[i]);
+              u2.lang = langTarget === "en" ? "en-US" : "zh-TW";
+              u2.rate = Math.max(0.6, Math.min(1.8, ttsSpeed));
+              u2.onend = () => { i += 1; speakNext(); };
+              u2.onerror = () => setVoiceErr("旁白播放失敗，請換瀏覽器或人聲");
+              speechSynthesis.speak(u2);
+              return;
+            } catch (_) {}
+          }
+          setVoiceErr("旁白播放失敗：" + ((ev && ev.error) || "unknown"));
+        };
+        try { speechSynthesis.resume(); } catch (_) {}
+        speechSynthesis.speak(u);
+      };
+
+      speakNext();
+      const who = voice ? voice.name : (langTarget === "en" ? "系統英文預設" : "系統中文預設");
+      setVoiceOk("旁白中 · " + who + " · " + ttsSpeed + "× · " + chunks.length + " 段");
+      toast(langTarget === "en" ? "英聲旁白" : "中聲旁白");
+    }
+
+    async function oneClickVoice(langTarget) {
+      if (translateBusy) return;
+      setFlipBusy(true, "翻譯並準備旁白…");
+      try {
+        let src = ($("voiceScript").value || "").trim() || defaultVoiceScript();
+        if (!src) {
+          setVoiceErr("沒有文字可轉聲音");
+          toast("請先輸入文字");
+          return;
+        }
+        $("voiceScript").value = src;
+        const translated = await translateText(src, langTarget);
+        if ($("voiceTranslated")) $("voiceTranslated").value = translated;
+        setVoiceOk("譯文：" + translated.slice(0, 100));
+        speakDub(translated, langTarget);
+      } catch (err) {
+        setVoiceErr(String(err.message || err));
+        toast("對翻失敗");
+      } finally {
+        setFlipBusy(false);
+      }
+    }
+
+    async function speakTranslatedOnly(langTarget) {
+      const t = ($("voiceTranslated").value || "").trim();
+      if (t) {
+        speakDub(t, langTarget);
+        return;
+      }
+      await oneClickVoice(langTarget);
+    }
+
+    async function autoFlipSpeak() {
+      const src = ($("voiceScript").value || "").trim() || defaultVoiceScript();
+      if (!src) { toast("請先輸入或語音／影片取得文字"); return; }
+      $("voiceScript").value = src;
+      const toEn = looksChinese(src);
+      await oneClickVoice(toEn ? "en" : "zh");
+    }
+
+    function getGeminiKey() {
+      const typed = ($("geminiKeyVoice").value || "").trim();
+      if (typed && typed.indexOf("••") !== 0) return typed;
+      return localStorage.getItem(GEMINI_VOICE_KEY)
+        || localStorage.getItem("home-shop-gemini-key")
+        || localStorage.getItem("scan-equip-gemini-key")
+        || localStorage.getItem("math-grader-gemini-key")
+        || "";
+    }
+
+    function stopListenAndSpeak() {
+      try { if (recognition) { recognition.onend = null; recognition.stop(); } } catch (_) {}
+      recognition = null;
+      stopTts();
+      $("voiceStatus").textContent = "已停止聽寫／旁白";
+      toast("已停止");
+    }
+
+    function startListen(fromLang) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        toast("此瀏覽器不支援語音輸入（建議 Safari／Chrome）");
+        $("voiceStatus").textContent = "無法語音輸入";
+        return;
+      }
+      stopListenAndSpeak();
+      recognition = new SR();
+      recognition.lang = fromLang === "zh" ? "zh-TW" : "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+      $("voiceStatus").textContent = fromLang === "zh" ? "請說中文…（說完會翻成英文並朗讀）" : "Please speak English…（說完會翻成中文並朗讀）";
+      toast(fromLang === "zh" ? "開始聽中文" : "開始聽英文");
+
+      recognition.onresult = async (ev) => {
+        let text = "";
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          text += ev.results[i][0].transcript;
+        }
+        text = (text || "").trim();
+        if (!text) return;
+        $("voiceScript").value = text;
+        if (!ev.results[ev.results.length - 1].isFinal) {
+          $("voiceStatus").textContent = "聽寫中：" + text;
+          return;
+        }
+        $("voiceStatus").textContent = "已聽寫，對翻中…";
+        try {
+          await oneClickVoice(fromLang === "zh" ? "en" : "zh");
+        } catch (e) {
+          $("voiceStatus").textContent = String(e.message || e);
+        }
+      };
+      recognition.onerror = (ev) => {
+        $("voiceStatus").textContent = "語音輸入失敗：" + (ev.error || "unknown");
+        toast("語音輸入失敗");
+      };
+      recognition.onend = () => {
+        recognition = null;
+      };
+      try { recognition.start(); }
+      catch (e) {
+        $("voiceStatus").textContent = "無法啟動麥克風：" + (e.message || e);
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || "");
+          const i = s.indexOf(",");
+          resolve(i >= 0 ? s.slice(i + 1) : s);
+        };
+        reader.onerror = () => reject(new Error("讀取檔案失敗"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function geminiTranscribeAndTranslate(file) {
+      const key = getGeminiKey();
+      if (!key) throw new Error("請先貼上並儲存 Gemini 金鑰（影片／音訊辨識需要）");
+      const b64 = await fileToBase64(file);
+      const mime = file.type || "video/mp4";
+      const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+      const prompt = "請聽這段影音內容，先完整轉錄原文，再翻譯成另一種語言（中文↔英文互譯）。用這個格式回覆，不要其他說明：\nSOURCE: <原文>\nTARGET: <譯文>\nDIR: <zh2en 或 en2zh>";
+      let lastErr = null;
+      for (const model of models) {
+        try {
+          const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key);
+          const body = {
+            contents: [{
+              role: "user",
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: mime, data: b64 } }
+              ]
+            }]
+          };
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            lastErr = (data.error && data.error.message) || ("HTTP " + res.status);
+            continue;
+          }
+          const text = (((data.candidates || [])[0] || {}).content || {}).parts
+            ? data.candidates[0].content.parts.map((p) => p.text || "").join("\n")
+            : "";
+          if (!text) { lastErr = "模型沒有回傳文字"; continue; }
+          return text;
+        } catch (e) {
+          lastErr = e.message || String(e);
+        }
+      }
+      throw new Error(lastErr || "Gemini 辨識失敗");
+    }
+
+    function parseGeminiFlip(text) {
+      const src = (text.match(/SOURCE:\s*([\s\S]*?)(?:\nTARGET:|$)/i) || [])[1];
+      const tgt = (text.match(/TARGET:\s*([\s\S]*?)(?:\nDIR:|$)/i) || [])[1];
+      const dir = ((text.match(/DIR:\s*(\S+)/i) || [])[1] || "").toLowerCase();
+      return {
+        source: (src || "").trim(),
+        target: (tgt || "").trim(),
+        toEn: /zh2en/.test(dir) || (!dir && looksChinese(src || text))
+      };
+    }
+
+    async function mediaFlip() {
+      const input = $("mediaFile");
+      const file = input && input.files && input.files[0];
+      if (!file) {
+        toast("請先選擇影片或音訊檔");
+        return;
+      }
+      if (file.size > 18 * 1024 * 1024) {
+        toast("檔案請小於約 18MB");
+        setVoiceErr("檔案太大，請截短片段再上傳");
+        return;
+      }
+      if (translateBusy) return;
+      setFlipBusy(true, "上傳辨識中（Gemini）…");
+      try {
+        const raw = await geminiTranscribeAndTranslate(file);
+        const parsed = parseGeminiFlip(raw);
+        const source = parsed.source || raw;
+        const target = parsed.target;
+        $("voiceScript").value = source;
+        if (target) {
+          if ($("voiceTranslated")) $("voiceTranslated").value = target;
+          setVoiceOk("譯文：" + target.slice(0, 100));
+          speakDub(target, parsed.toEn || !looksChinese(target) ? "en" : "zh");
+        } else {
+          setFlipBusy(false);
+          await autoFlipSpeak();
+          return;
+        }
+      } catch (e) {
+        setVoiceErr(String(e.message || e));
+        toast("影片對翻失敗");
+      } finally {
+        setFlipBusy(false);
+      }
+    }
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 2200);
+    }
+
+    function loadMine() {
+      try { mine = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") || []; }
+      catch (_) { mine = []; }
+      if (!Array.isArray(mine)) mine = [];
+    }
+
+    function saveMine() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mine));
+    }
+
+    function allClips() {
+      const seed = (catalog.clips || []).map((c) => Object.assign({}, c, { source: c.source || "seed" }));
+      return seed.concat(mine);
+    }
+
+    function matchSearch(c, q) {
+      if (!q) return true;
+      const blob = [c.name, c.title, c.creator, c.note, c.category, c.url].join(" ").toLowerCase();
+      return q.split(/\s+/).every((w) => !w || blob.includes(w));
+    }
+
+    function filteredClips() {
+      const q = (searchQ || "").trim().toLowerCase();
+      return allClips().filter((c) => {
+        if (c.kind === "channel") return false;
+        if (listFilter === "mine" && c.source !== "mine") return false;
+        if (listFilter !== "all" && listFilter !== "mine" && c.category !== listFilter) return false;
+        return matchSearch(c, q);
+      });
+    }
+
+    function catLabel(id) {
+      const map = { pronounce: "發音口語", scene: "情境短劇", vocab: "文法片語", mine: "我的匯入" };
+      return map[id] || id || "";
+    }
+
+    function renderCreators() {
+      const el = $("creatorChips");
+      const ch = catalog.channels || [];
+      el.innerHTML = ch.map((c) => {
+        const url = c.channelUrl || "#";
+        return '<a href="' + url + '" target="_blank" rel="noopener">' + (c.creator || c.name) + "</a>";
+      }).join("") +
+        '<button type="button" id="btnFocusMine">只看我的匯入</button>';
+      const btn = document.getElementById("btnFocusMine");
+      if (btn) btn.onclick = () => {
+        listFilter = "mine";
+        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b.dataset.filter === "mine"));
+        renderMenu();
+      };
+    }
+
+    function renderMenu() {
+      const clips = filteredClips();
+      $("listCount").textContent = "共 " + clips.length + " 則";
+      let html = '<option value="">— 請選擇短影音 —</option>';
+      const groups = {};
+      clips.forEach((c) => {
+        const g = c.source === "mine" ? "我的匯入" : (c.creator || catLabel(c.category));
+        (groups[g] = groups[g] || []).push(c);
+      });
+      Object.keys(groups).forEach((g) => {
+        html += '<optgroup label="' + esc(g) + '">';
+        groups[g].forEach((c) => {
+          const mark = c.platform === "instagram" ? " 〔IG〕" : "";
+          html += '<option value="' + esc(c.id) + '">' + esc(c.name || c.title || c.id) + mark + "</option>";
+        });
+        html += "</optgroup>";
+      });
+      $("clipSelect").innerHTML = html;
+      try {
+        const last = localStorage.getItem(LAST_KEY);
+        if (last && clips.some((c) => c.id === last)) $("clipSelect").value = last;
+      } catch (_) {}
+      buildQueueFromFilter();
+      $("nowMeta").textContent = "共 " + queue.length + " 則可連播 · 搜尋或選一則開始";
+    }
+
+    function esc(s) {
+      return String(s || "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+
+    function buildQueueFromFilter() {
+      queue = filteredClips().filter((c) => c.platform !== "instagram" && c.id && !String(c.id).startsWith("ig_"));
+      if (qIndex >= queue.length) qIndex = 0;
+      $("btnPrev").disabled = queue.length < 2;
+    }
+
+    function parseYouTubeId(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return null;
+      let m = s.match(/^[A-Za-z0-9_-]{11}$/);
+      if (m) return m[0];
+      m = s.match(/(?:youtu\.be\/|youtube\.com\/(?:shorts\/|embed\/|live\/|v\/|watch\?(?:.*&)?v=))([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    function isInstagram(url) {
+      return /instagram\.com\/(reel|reels|p)\//i.test(url || "");
+    }
+
+    async function fetchOEmbedTitle(videoId) {
+      const url = "https://www.youtube.com/oembed?url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + videoId) + "&format=json";
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return { title: data.title || "", author: data.author_name || "" };
+      } catch (_) { return null; }
+    }
+
+    async function importLinks() {
+      const text = $("importUrl").value || "";
+      const lines = text.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+      if (!lines.length) {
+        $("importStatus").textContent = "請先貼上至少一則連結";
+        return;
+      }
+      let added = 0, skipped = 0, ig = 0;
+      for (const line of lines) {
+        if (isInstagram(line)) {
+          const id = "ig_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+          if (mine.some((m) => m.url === line)) { skipped++; continue; }
+          mine.unshift({
+            id, name: "IG Reels（外部開啟）", title: "Instagram Reels",
+            creator: "我的匯入", category: "mine", platform: "instagram",
+            url: line, source: "mine", note: "無法內嵌，點選後開啟 Instagram",
+            importedAt: Date.now()
+          });
+          added++; ig++;
+          continue;
+        }
+        const vid = parseYouTubeId(line);
+        if (!vid) { skipped++; continue; }
+        if (allClips().some((c) => c.id === vid)) { skipped++; continue; }
+        const meta = await fetchOEmbedTitle(vid);
+        const title = (meta && meta.title) || ("YouTube " + vid);
+        const author = (meta && meta.author) || "我的匯入";
+        mine.unshift({
+          id: vid,
+          name: title.length > 56 ? title.slice(0, 56) + "…" : title,
+          title, creator: author, category: "mine", platform: "youtube",
+          url: "https://www.youtube.com/shorts/" + vid,
+          source: "mine", note: "自行匯入", importedAt: Date.now()
+        });
+        added++;
+      }
+      saveMine();
+      $("importUrl").value = "";
+      listFilter = "mine";
+      document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b.dataset.filter === "mine"));
+      renderMenu();
+      $("importStatus").textContent = "匯入完成：新增 " + added + " 則" + (ig ? "（含 IG " + ig + "）" : "") + (skipped ? "，略過 " + skipped : "");
+      toast("已匯入 " + added + " 則");
+    }
+
+    function findClip(id) {
+      return allClips().find((c) => c.id === id);
+    }
+
+    function playClip(clip, opts) {
+      opts = opts || {};
+      if (!clip) return;
+      if (clip.platform === "instagram" || String(clip.id).indexOf("ig_") === 0) {
+        $("nowTitle").textContent = clip.name || "IG Reels";
+        $("nowMeta").textContent = "將開啟 Instagram（無法內嵌播放）";
+        window.open(clip.url, "_blank", "noopener");
+        toast("已開 IG 連結");
+        return;
+      }
+      const switching = currentId !== clip.id;
+      if (switching) {
+        currentId = clip.id;
+        loopPass = 1;
+      }
+      localStorage.setItem(LAST_KEY, clip.id);
+      const qi = queue.findIndex((c) => c.id === clip.id);
+      if (qi >= 0) qIndex = qi;
+      $("nowTitle").textContent = clip.name || clip.title || clip.id;
+      const take = notes[clip.id] ? " · 已存收穫" : "";
+      $("nowMeta").textContent = (clip.creator || "") + (clip.note ? " · " + clip.note : "") +
+        (queue.length ? " · 第 " + (qIndex + 1) + "／" + queue.length + " 則" : "") +
+        " · 跟讀 " + loopPass + "／" + loopTarget + take;
+      $("clipSelect").value = clip.id;
+      $("takeawayBox").value = notes[clip.id] || "";
+      $("voiceScript").value = (notes[clip.id] || "").trim() || (clip.title || clip.name || "");
+      if (player && player.loadVideoById) {
+        try { player.loadVideoById({ videoId: clip.id, startSeconds: 0 }); }
+        catch (_) { player.loadVideoById(clip.id, 0); }
+        setTimeout(() => {
+          setPlaybackRate();
+          player.playVideo && player.playVideo();
+        }, 350);
+      } else if (apiReady) {
+        createPlayer(clip.id, true);
+      } else {
+        window._pendingPlay = clip.id;
+      }
+      if (opts.auto) autoPlay = true;
+      $("btnPlay").textContent = "⏸ 暫停連播";
+      startProgress();
+    }
+
+    function playSelected() {
+      const id = $("clipSelect").value;
+      if (!id) { $("statusLine").textContent = "請先選擇短影音"; return; }
+      playClip(findClip(id), { auto: true });
+    }
+
+    function playAt(index) {
+      if (!queue.length) { toast("目前清單沒有可播放的 YouTube 短影音"); return; }
+      qIndex = (index + queue.length) % queue.length;
+      playClip(queue[qIndex], { auto: true });
+    }
+
+    function createPlayer(videoId, autoplay) {
+      const ccPref = preferredCcLang();
+      const vars = {
+        playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1,
+        origin: location.origin,
+        cc_load_policy: captionMode === "off" ? 0 : 1
+      };
+      if (ccPref) vars.cc_lang_pref = ccPref;
+      player = new YT.Player("player", {
+        height: "100%", width: "100%", videoId,
+        playerVars: vars,
+        events: {
+          onReady: () => {
+            setPlaybackRate();
+            applyCaptions();
+            if (autoplay) player.playVideo();
+          },
+          onApiChange: () => { applyCaptions(); },
+          onStateChange: onPlayerState,
+          onError: () => {
+            $("statusLine").textContent = "此影片無法播放，自動跳下一則";
+            if (autoPlay) setTimeout(() => playAt(qIndex + 1), 600);
+          }
+        }
+      });
+    }
+
+    function onPlayerState(e) {
+      if (!window.YT) return;
+      if (e.data === YT.PlayerState.PLAYING) {
+        $("btnPlay").textContent = "⏸ 暫停連播";
+        setPlaybackRate();
+        applyCaptions();
+        startProgress();
+      } else if (e.data === YT.PlayerState.PAUSED) {
+        $("btnPlay").textContent = "▶ 繼續播放";
+      } else if (e.data === YT.PlayerState.ENDED) {
+        if (autoPlay && loopPass < loopTarget) {
+          loopPass += 1;
+          bumpShadow(1);
+          const clip = findClip(currentId);
+          if (clip) playClip(clip, { auto: true });
+          else if (player && player.seekTo) {
+            player.seekTo(0, true);
+            player.playVideo();
+          }
+          return;
+        }
+        if (autoPlay && loopPass >= loopTarget) bumpShadow(1);
+        if (autoPlay && queue.length) {
+          loopPass = 1;
+          playAt(qIndex + 1);
+        } else {
+          $("btnPlay").textContent = "▶ 開始連播";
+        }
+      }
+    }
+
+    function startProgress() {
+      clearInterval(progressTimer);
+      progressTimer = setInterval(() => {
+        if (!player || !player.getDuration) return;
+        try {
+          const d = player.getDuration() || 0;
+          const t = player.getCurrentTime() || 0;
+          $("progressFill").style.width = (d ? Math.min(100, (t / d) * 100) : 0) + "%";
+        } catch (_) {}
+      }, 400);
+    }
+
+    async function loadCatalog() {
+      $("statusLine").textContent = "載入清單…";
+      try {
+        const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) catalog = await res.json();
+      } catch (_) {
+        try {
+          const res = await fetch(CATALOG_URL);
+          if (res.ok) catalog = await res.json();
+        } catch (__) {}
+      }
+      loadMine();
+      loadNotes();
+      applySpeedButtons();
+      applyLoopButtons();
+      applyCaptionButtons();
+      applyTtsSpeedButtons();
+      fillVoiceSelects();
+      renderDaily();
+      renderCreators();
+      renderMenu();
+      $("statusLine").textContent = "種子 " + ((catalog.clips || []).length) + " 則 · 我的匯入 " + mine.length + " 則";
+    }
+
+    document.querySelectorAll(".filter-row button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        listFilter = btn.dataset.filter;
+        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b === btn));
+        renderMenu();
+      });
+    });
+
+    document.querySelectorAll("#speedRow button[data-speed]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        playSpeed = Number(btn.dataset.speed) || 1;
+        localStorage.setItem(SPEED_KEY, String(playSpeed));
+        applySpeedButtons();
+        setPlaybackRate();
+        toast("語速 " + playSpeed + "×");
+      });
+    });
+
+    document.querySelectorAll("#loopRow button[data-loop]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        loopTarget = Number(btn.dataset.loop) || 1;
+        localStorage.setItem(LOOP_KEY, String(loopTarget));
+        loopPass = 1;
+        applyLoopButtons();
+        toast(loopTarget <= 1 ? "播完換下一則" : ("跟讀循環 ×" + loopTarget));
+      });
+    });
+
+    document.querySelectorAll("#captionRow button[data-caption]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        captionMode = btn.dataset.caption || "off";
+        localStorage.setItem(CAPTION_KEY, captionMode);
+        applyCaptionButtons();
+        applyCaptions();
+        const labels = { off: "已關閉字幕", zh: "中文字幕", en: "英文字幕", dual: "中英字幕" };
+        toast(labels[captionMode] || "字幕");
+      });
+    });
+
+    document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        ttsSpeed = Number(btn.dataset.tts) || 1;
+        localStorage.setItem(TTS_SPEED_KEY, String(ttsSpeed));
+        applyTtsSpeedButtons();
+        $("voiceStatus").textContent = "旁白語速 " + ttsSpeed + "×（下次朗讀生效）";
+        toast("旁白語速 " + ttsSpeed + "×");
+      });
+    });
+
+    $("voiceEnSelect").addEventListener("change", () => {
+      localStorage.setItem(VOICE_EN_KEY, $("voiceEnSelect").value || "");
+      toast("已選英文人聲");
+    });
+    $("voiceZhSelect").addEventListener("change", () => {
+      localStorage.setItem(VOICE_ZH_KEY, $("voiceZhSelect").value || "");
+      toast("已選中文人聲");
+    });
+    $("btnVoiceEn").addEventListener("click", () => speakTranslatedOnly("en"));
+    $("btnVoiceZh").addEventListener("click", () => speakTranslatedOnly("zh"));
+    $("btnVoiceOrig").addEventListener("click", restoreOriginalAudio);
+    $("btnTextToEn").addEventListener("click", () => oneClickVoice("en"));
+    $("btnTextToZh").addEventListener("click", () => oneClickVoice("zh"));
+    $("btnAutoFlip").addEventListener("click", () => autoFlipSpeak());
+    $("btnListenZh").addEventListener("click", () => startListen("zh"));
+    $("btnListenEn").addEventListener("click", () => startListen("en"));
+    $("btnStopListen").addEventListener("click", stopListenAndSpeak);
+    $("btnCopySrc").addEventListener("click", async () => {
+      const t = ($("voiceScript").value || "").trim();
+      if (!t) return toast("沒有原文");
+      try { await navigator.clipboard.writeText(t); toast("已複製原文"); }
+      catch (_) { toast("無法複製"); }
+    });
+    $("btnCopyTgt").addEventListener("click", async () => {
+      const t = ($("voiceTranslated").value || "").trim();
+      if (!t) return toast("沒有譯文");
+      try { await navigator.clipboard.writeText(t); toast("已複製譯文"); }
+      catch (_) { toast("無法複製"); }
+    });
+    $("btnSwapText").addEventListener("click", () => {
+      const a = $("voiceScript").value || "";
+      const b = $("voiceTranslated").value || "";
+      $("voiceScript").value = b;
+      $("voiceTranslated").value = a;
+      toast("已對調原文／譯文");
+    });
+    $("voiceScript").addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        autoFlipSpeak();
+      }
+    });
+    document.addEventListener("click", unlockTts, { once: true });
+    document.addEventListener("touchstart", unlockTts, { once: true, passive: true });
+    $("btnMediaFlip").addEventListener("click", () => mediaFlip());
+    $("btnSaveGeminiKey").addEventListener("click", () => {
+      const k = ($("geminiKeyVoice").value || "").trim();
+      if (!k) {
+        localStorage.removeItem(GEMINI_VOICE_KEY);
+        toast("已清除金鑰");
+        return;
+      }
+      localStorage.setItem(GEMINI_VOICE_KEY, k);
+      $("geminiKeyVoice").value = "••••••••";
+      toast("已儲存 Gemini 金鑰");
+    });
+    $("mediaFile").addEventListener("change", () => {
+      const f = $("mediaFile").files && $("mediaFile").files[0];
+      const vid = $("localMedia");
+      if (localMediaUrl) {
+        try { URL.revokeObjectURL(localMediaUrl); } catch (_) {}
+        localMediaUrl = null;
+      }
+      if (!f) {
+        vid.style.display = "none";
+        vid.removeAttribute("src");
+        return;
+      }
+      localMediaUrl = URL.createObjectURL(f);
+      vid.src = localMediaUrl;
+      vid.style.display = "block";
+      $("voiceStatus").textContent = "已載入「" + f.name + "」，可按「影片／音訊對翻」";
+    });
+
+    // 預填金鑰狀態
+    (function initGeminiField() {
+      const k = localStorage.getItem(GEMINI_VOICE_KEY)
+        || localStorage.getItem("home-shop-gemini-key")
+        || localStorage.getItem("scan-equip-gemini-key") || "";
+      if (k) $("geminiKeyVoice").value = "••••••••";
+    })();
+
+    if (window.speechSynthesis) {
+      fillVoiceSelects();
+      speechSynthesis.onvoiceschanged = fillVoiceSelects;
+      const unlock = () => { try { speechSynthesis.getVoices(); } catch (_) {} };
+      document.addEventListener("touchstart", unlock, { once: true, passive: true });
+      document.addEventListener("click", unlock, { once: true });
+    }
+
+    $("btnSaveTakeaway").addEventListener("click", () => {
+      const id = currentId || $("clipSelect").value;
+      const text = ($("takeawayBox").value || "").trim();
+      if (!id) { toast("請先播放或選擇一則"); return; }
+      if (!text) { toast("請先寫下一句收穫"); return; }
+      notes[id] = text;
+      saveNotes();
+      const clip = findClip(id);
+      if (clip && clip.source === "mine") {
+        clip.takeaway = text;
+        saveMine();
+      }
+      bumpShadow(0);
+      toast("已儲存一句收穫");
+      if (clip) {
+        $("nowMeta").textContent = (clip.creator || "") + " · 已存收穫 · 跟讀 " + loopPass + "／" + loopTarget;
+      }
+    });
+
+    $("btnMarkShadow").addEventListener("click", () => {
+      bumpShadow(1);
+      toast("今日跟讀 +1");
+    });
+
+    $("searchBox").addEventListener("input", () => {
+      searchQ = $("searchBox").value || "";
+      renderMenu();
+    });
+    $("btnImport").addEventListener("click", importLinks);
+    $("btnClearMine").addEventListener("click", () => {
+      if (!mine.length) { toast("沒有匯入資料"); return; }
+      if (!confirm("確定清除全部「我的匯入」？")) return;
+      mine = [];
+      saveMine();
+      renderMenu();
+      toast("已清除我的匯入");
+    });
+    $("btnPlaySelected").addEventListener("click", playSelected);
+    $("clipSelect").addEventListener("change", playSelected);
+    $("clipSelect").addEventListener("input", playSelected);
+    $("btnPrev").addEventListener("click", () => { loopPass = 1; playAt(qIndex - 1); });
+    $("btnNext").addEventListener("click", () => { loopPass = 1; playAt(qIndex + 1); });
+    $("btnPlay").addEventListener("click", () => {
+      if (!player) {
+        if (queue.length) playAt(qIndex);
+        else playSelected();
+        return;
+      }
+      const st = player.getPlayerState();
+      if (st === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+        autoPlay = false;
+        $("btnPlay").textContent = "▶ 開始連播";
+      } else {
+        autoPlay = true;
+        setPlaybackRate();
+        if (st === YT.PlayerState.PAUSED) player.playVideo();
+        else if (queue.length) playAt(qIndex);
+        else playSelected();
+      }
+    });
+
+    window.onYouTubeIframeAPIReady = function () {
+      apiReady = true;
+      if (window._pendingPlay) {
+        const c = findClip(window._pendingPlay);
+        if (c) playClip(c, { auto: true });
+        window._pendingPlay = null;
+      }
+    };
+
+    loadCatalog();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js?v=7").catch(() => {});
+    }
+  </script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
+</body>
+</html>
