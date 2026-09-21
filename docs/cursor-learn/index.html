@@ -878,10 +878,19 @@
           finishCueNarration();
         }
       };
-      // 人聲失敗／環境無 TTS 時仍用時間推進字幕段
-      const fallbackMs=Math.min(12000, Math.max(3500, text.length*180));
-      const fb=setTimeout(done, fallbackMs);
-      speakDub(text,"zh",()=>{ clearTimeout(fb); done(); },{keepMuted:true});
+      // 每段至少停留數秒，方便讀字幕；有人聲則說完再換
+      const minHold=Math.min(10000, Math.max(4500, text.length*160));
+      const holdTimer=setTimeout(done, minHold);
+      if(!window.speechSynthesis){
+        // 無人聲時只靠計時換段
+        return;
+      }
+      speakDub(text,"zh",()=>{
+        // 人聲結束若早於最短停留，等到 holdTimer；若較晚則立刻換段
+        const elapsed=Date.now()-cueClockStartMs;
+        if(elapsed>=minHold-200){ clearTimeout(holdTimer); done(); }
+        // else: wait for holdTimer
+      },{keepMuted:true});
     }
 
     async function resolveContentCues(clip){
