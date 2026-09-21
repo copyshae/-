@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
   <meta name="description" content="看 Cursor 相關 YouTube 影片學習：縮圖點選即播，由淺入深。" />
-  <link rel="manifest" href="manifest.json?v=10" />
+  <link rel="manifest" href="manifest.json?v=11" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
@@ -591,6 +591,7 @@
     let cueClockStartMs=0;
     let cueClockBaseSec=0;
     let cueSource=""; // live|bundle|script
+    let cueSpeakGen=0;
 
     function stopCueNarration(){
       if(cueTimer){ clearInterval(cueTimer); cueTimer=null; }
@@ -860,7 +861,6 @@
       if($("modeStatus")) $("modeStatus").textContent="本支內容旁白說完，影片續播／接下支";
     }
 
-    let cueSpeakGen=0;
 
     function speakCueAt(idx){
       const cue=cueList[idx];
@@ -1340,7 +1340,7 @@
 
     bindAll();
     loadCatalog();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=10").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=11").catch(() => {});
   })();
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
