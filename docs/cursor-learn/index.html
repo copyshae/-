@@ -808,7 +808,10 @@
         if(cueSpeaking || (window.speechSynthesis && speechSynthesis.speaking)) return;
         let t=0;
         try{ t=player.getCurrentTime()||0; }catch(_){ return; }
-        while(cueIdx<cueList.length && cueList[cueIdx].end < t-0.35) cueIdx++;
+        // 依目前播放時間對齊該唸的段（影片超前就跳段，不卡在舊段）
+        let i=0;
+        while(i<cueList.length && cueList[i].end < t-0.2) i++;
+        cueIdx=i;
         const cue=cueList[cueIdx];
         if(!cue){
           keepMutedForCues=false;
@@ -817,7 +820,7 @@
           if($("modeStatus")) $("modeStatus").textContent="本支內容旁白說完，影片續播／接下支";
           return;
         }
-        if(t+0.2 < cue.start) return;
+        if(t+0.25 < cue.start) return;
         const text=(cue.zh||cue.en||"").trim();
         if(!text){ cueIdx++; return; }
         cueSpeaking=true;
@@ -825,7 +828,11 @@
         paintOverlayCue(cue);
         if($("voiceTranslated")) $("voiceTranslated").value=text;
         if($("modeStatus")) $("modeStatus").textContent="內容旁白連說中（第 "+(idx+1)+"／"+cueList.length+" 段）";
-        speakDub(text,"zh",()=>{ cueSpeaking=false; if(cueIdx===idx) cueIdx++; },{keepMuted:true});
+        speakDub(text,"zh",()=>{
+          cueSpeaking=false;
+          // 說完後若影片已超過下一段，下一輪 interval 會自動跳齊
+          if(cueIdx===idx) cueIdx=idx+1;
+        },{keepMuted:true});
       }, 200);
     }
 
@@ -847,15 +854,9 @@
         }catch(_){}
       }
 
-      // 2) 預建內容分段（不是主題一句）
+      // 2) 預建內容分段（密集聚在片頭對時，約每段 20 秒，不是主題一句拉滿整片）
       const bundled=vid?cuesFromBundle(vid):[];
       if(bundled.length>=2){
-        // 若實際片長已知，依比例重映射時間
-        const packDur=(captionBundle[vid]&&captionBundle[vid].durationSec)||0;
-        if(duration>30 && packDur>30 && Math.abs(duration-packDur)/packDur>0.12){
-          const scale=duration/packDur;
-          return {cues:bundled.map((c)=>({start:+(c.start*scale).toFixed(2), end:+(c.end*scale).toFixed(2), en:c.en, zh:c.zh})), source:"bundle"};
-        }
         return {cues:bundled, source:"bundle"};
       }
 
