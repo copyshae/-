@@ -107,6 +107,11 @@
       border-radius: 999px; font-size: 0.82rem; z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s;
     }
     .toast.show { opacity: 1; }
+    button.busy { opacity: 0.65; pointer-events: none; }
+    .status.err { color: #a33; }
+    .status.ok { color: var(--accent); font-weight: 600; }
+    .copy-row { display: flex; gap: 0.35rem; margin-top: 0.35rem; }
+    .copy-row button { flex: 1; font-size: 0.76rem; padding: 0.4rem; }
   </style>
 </head>
 <body>
@@ -217,6 +222,11 @@
       <textarea id="voiceScript" placeholder="在這裡打中文或英文，例如：&#10;我好累。&#10;I am drained."></textarea>
       <label class="picker-label" for="voiceTranslated">對翻結果（可再改後重念）</label>
       <textarea id="voiceTranslated" placeholder="對翻後的文字會出現在這裡"></textarea>
+      <div class="copy-row">
+        <button type="button" id="btnCopySrc">複製原文</button>
+        <button type="button" id="btnCopyTgt">複製譯文</button>
+        <button type="button" id="btnSwapText">原文⇄譯文對調</button>
+      </div>
       <div class="row-btns" style="grid-template-columns:1fr 1fr 1fr">
         <button type="button" id="btnTextToEn" class="primary">文字→英聲</button>
         <button type="button" id="btnTextToZh" class="primary">文字→中聲</button>
@@ -270,8 +280,8 @@
     <section class="card" aria-label="優化建議">
       <h2 class="section">優化建議</h2>
       <ol class="tips-list">
-        <li><strong>對翻輸入：</strong>可語音說中／英，或上傳影片／音訊（需 Gemini 金鑰）自動辨識並對翻朗讀。</li>
-        <li><strong>聲音旁白：</strong>可選中／英人聲與旁白語速，一鍵把文字念成英文或中文（靜音原片）。</li>
+        <li><strong>文字輸入：</strong>打中文或英文後按對翻；支援 Ctrl／⌘+Enter、複製原文／譯文、對調。</li>
+        <li><strong>對翻輸入：</strong>也可語音說中／英，或上傳影片／音訊（需 Gemini 金鑰）自動辨識並對翻朗讀。</li>
         <li><strong>字幕切換：</strong>可用「中文／英文／中英」按鈕；實際顯示仍依該 Shorts 是否提供字幕或自動翻譯。</li>
         <li><strong>先跟讀再滑走：</strong>好句子至少出聲跟 1 次；本頁可設「跟讀循環 ×2／×3」強制重複。</li>
         <li><strong>慢速拆音再加速：</strong>聽不懂先用 0.75× 對齊重音與連音，再回到 1×／1.25×。</li>
@@ -325,6 +335,51 @@
     let wasMutedBeforeDub = false;
     let recognition = null;
     let localMediaUrl = null;
+    let translateBusy = false;
+    let translateCache = {};
+    let ttsUnlocked = false;
+    let ttsSpeakToken = 0;
+
+    const FLIP_BTN_IDS = ["btnTextToEn", "btnTextToZh", "btnAutoFlip", "btnVoiceEn", "btnVoiceZh", "btnMediaFlip", "btnListenZh", "btnListenEn"];
+
+    function setFlipBusy(on, msg) {
+      translateBusy = !!on;
+      FLIP_BTN_IDS.forEach((id) => {
+        const el = $(id);
+        if (!el) return;
+        el.disabled = !!on;
+        el.classList.toggle("busy", !!on);
+      });
+      if (msg) {
+        $("voiceStatus").textContent = msg;
+        $("voiceStatus").classList.toggle("err", false);
+        $("voiceStatus").classList.toggle("ok", !on);
+      }
+    }
+
+    function setVoiceErr(msg) {
+      $("voiceStatus").textContent = msg;
+      $("voiceStatus").classList.add("err");
+      $("voiceStatus").classList.remove("ok");
+    }
+
+    function setVoiceOk(msg) {
+      $("voiceStatus").textContent = msg;
+      $("voiceStatus").classList.add("ok");
+      $("voiceStatus").classList.remove("err");
+    }
+
+    function unlockTts() {
+      if (ttsUnlocked || !window.speechSynthesis) return;
+      try {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        u.rate = 1;
+        speechSynthesis.speak(u);
+        speechSynthesis.cancel();
+        ttsUnlocked = true;
+      } catch (_) {}
+    }
 
     const $ = (id) => document.getElementById(id);
 
@@ -538,61 +593,88 @@
       if (!enSel || !zhSel) return;
 
       const en = voices.filter((v) => /^en(-|_)/i.test(v.lang) || /english/i.test(v.name));
-      const zh = voices.filter((v) => /^(zh|cmn)/i.test(v.lang) || /chinese|taiwan|hong kong|中文|國語|粤|粵/i.test(v.name + v.lang));
-      const enList = en.length ? en : voices;
-      const zhList = zh.length ? zh : voices;
+      const zh = voices.filter((v) => /^(zh|cmn)/i.test(v.lang) || /chinese|taiwan|hong kong|中文|國語|粤|粵/i.test(v.name + " " + v.lang));
+      const enList = en.length ? en : voices.filter((v) => v.lang);
+      const zhList = zh.length ? zh : voices.filter((v) => v.lang);
 
       const savedEn = localStorage.getItem(VOICE_EN_KEY) || "";
       const savedZh = localStorage.getItem(VOICE_ZH_KEY) || "";
+
+      function voiceKey(v) { return v.voiceURI || (v.name + "|" + v.lang); }
 
       function fill(sel, list, saved, fallbackLang) {
         const prev = sel.value;
         sel.innerHTML = list.map((v) => {
           const label = v.name + "（" + v.lang + "）";
-          return '<option value="' + esc(v.name) + '">' + esc(label) + "</option>";
+          return '<option value="' + esc(voiceKey(v)) + '">' + esc(label) + "</option>";
         }).join("") || '<option value="">（此裝置無可用人聲）</option>';
         const want = saved || prev;
         if (want && [...sel.options].some((o) => o.value === want)) sel.value = want;
         else if (list.length) {
-          const pref = list.find((v) => v.lang.toLowerCase().indexOf(fallbackLang) === 0) || list[0];
-          sel.value = pref.name;
+          const pref = list.find((v) => v.lang.toLowerCase().indexOf(fallbackLang) === 0)
+            || list.find((v) => /台灣|Taiwan|zh-TW|cmn-TW/i.test(v.name + v.lang))
+            || list[0];
+          sel.value = voiceKey(pref);
         }
       }
 
       fill(enSel, enList, savedEn, "en");
       fill(zhSel, zhList, savedZh, "zh");
-      $("voiceStatus").textContent = "英文人聲 " + enList.length + " 種 · 中文人聲 " + zhList.length + " 種 · 旁白語速 " + ttsSpeed + "×";
+      if (!translateBusy) {
+        $("voiceStatus").textContent = "英文人聲 " + enList.length + " 種 · 中文人聲 " + zhList.length + " 種 · 旁白語速 " + ttsSpeed + "×";
+        $("voiceStatus").classList.remove("err");
+      }
     }
 
     function pickVoice(langTarget) {
       const voices = listVoices();
-      const name = langTarget === "en" ? $("voiceEnSelect").value : $("voiceZhSelect").value;
-      let v = voices.find((x) => x.name === name);
+      const key = langTarget === "en" ? $("voiceEnSelect").value : $("voiceZhSelect").value;
+      let v = voices.find((x) => (x.voiceURI || (x.name + "|" + x.lang)) === key)
+        || voices.find((x) => x.name === key);
       if (v) return v;
       if (langTarget === "en") {
-        return voices.find((x) => /^en/i.test(x.lang)) || voices[0] || null;
+        return voices.find((x) => /^en/i.test(x.lang)) || null;
       }
-      return voices.find((x) => /^(zh|cmn)/i.test(x.lang)) || voices[0] || null;
+      return voices.find((x) => /^(zh|cmn)/i.test(x.lang)) || null;
     }
 
     async function translateText(text, toLang) {
       const q = String(text || "").trim();
       if (!q) throw new Error("沒有可朗讀的文字");
-      const pair = toLang === "en" ? "zh-TW|en" : "en|zh-TW";
-      // 若偵測已是目標語言，直接回傳
       if (toLang === "en" && !looksChinese(q)) return q;
-      if (toLang === "zh" && looksChinese(q) && !/[A-Za-z]{3,}/.test(q)) return q;
+      if (toLang === "zh" && looksChinese(q) && !/[A-Za-z]{4,}/.test(q)) return q;
 
+      const cacheKey = toLang + "::" + q;
+      if (translateCache[cacheKey]) return translateCache[cacheKey];
+
+      const pair = toLang === "en" ? "zh-TW|en" : "en|zh-TW";
       const url = "https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q.slice(0, 450)) + "&langpair=" + encodeURIComponent(pair);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("翻譯服務暫時無法使用");
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+      let res;
+      try {
+        res = await fetch(url, ctrl ? { signal: ctrl.signal } : undefined);
+      } catch (e) {
+        if (e && e.name === "AbortError") throw new Error("翻譯逾時，請重試");
+        throw new Error("網路錯誤，無法翻譯");
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      if (!res.ok) throw new Error("翻譯服務暫時無法使用（" + res.status + "）");
       const data = await res.json();
+      if (data && data.responseStatus && Number(data.responseStatus) >= 400) {
+        throw new Error((data.responseDetails || "翻譯配額或服務異常") + "");
+      }
       const out = data && data.responseData && data.responseData.translatedText;
       if (!out) throw new Error("翻譯結果空白");
-      return String(out).trim();
+      const cleaned = String(out).trim();
+      if (/MYMEMORY WARNING/i.test(cleaned)) throw new Error("翻譯服務配額已用完，請稍後再試");
+      translateCache[cacheKey] = cleaned;
+      return cleaned;
     }
 
     function stopTts() {
+      ttsSpeakToken += 1;
       try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
     }
 
@@ -605,28 +687,38 @@
           else if (wasMutedBeforeDub && player.mute) player.mute();
         } catch (_) {}
       }
-      $("voiceStatus").textContent = "已恢復原片聲音";
+      setVoiceOk("已恢復原片聲音");
       toast("恢復原聲");
+    }
+
+    function chunkText(text, maxLen) {
+      const s = String(text || "").trim();
+      if (s.length <= maxLen) return [s];
+      const parts = [];
+      let buf = "";
+      const bits = s.split(/(?<=[。！？.!?；;\n])/);
+      bits.forEach((b) => {
+        if ((buf + b).length > maxLen && buf) {
+          parts.push(buf.trim());
+          buf = b;
+        } else buf += b;
+      });
+      if (buf.trim()) parts.push(buf.trim());
+      return parts.filter(Boolean);
     }
 
     function speakDub(text, langTarget) {
       if (!window.speechSynthesis) {
-        toast("此瀏覽器不支援語音合成");
+        setVoiceErr("此瀏覽器不支援語音合成");
+        toast("不支援語音合成");
         return;
       }
+      unlockTts();
       stopTts();
-      syncVoiceScriptFromClip();
+      const myToken = ttsSpeakToken;
       const voice = pickVoice(langTarget);
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = langTarget === "en" ? "en-US" : "zh-TW";
-      if (voice) u.voice = voice;
-      u.rate = Math.max(0.5, Math.min(2, ttsSpeed));
-      u.onend = () => {
-        if (dubbing) $("voiceStatus").textContent = "旁白結束（原片仍靜音，可按「恢復原聲」）";
-      };
-      u.onerror = () => {
-        $("voiceStatus").textContent = "旁白播放失敗，請換一個人聲再試";
-      };
+      const chunks = chunkText(text, 160);
+      if (!chunks.length) return;
 
       if (player) {
         try {
@@ -635,31 +727,68 @@
         } catch (_) {}
       }
       dubbing = true;
-      // iOS：先短暫 resume
-      try { speechSynthesis.resume(); } catch (_) {}
-      speechSynthesis.speak(u);
-      const who = voice ? voice.name : (langTarget === "en" ? "英文預設" : "中文預設");
-      $("voiceStatus").textContent = "旁白中 · " + who + " · " + ttsSpeed + "×";
-      toast(langTarget === "en" ? "一鍵英聲" : "一鍵中聲");
+
+      let i = 0;
+      const speakNext = () => {
+        if (myToken !== ttsSpeakToken) return;
+        if (i >= chunks.length) {
+          setVoiceOk("旁白結束（原片仍靜音，可按「恢復原片聲音」）");
+          return;
+        }
+        const u = new SpeechSynthesisUtterance(chunks[i]);
+        u.lang = langTarget === "en" ? "en-US" : "zh-TW";
+        if (voice) u.voice = voice;
+        u.rate = Math.max(0.6, Math.min(1.8, ttsSpeed));
+        u.onend = () => {
+          i += 1;
+          speakNext();
+        };
+        u.onerror = (ev) => {
+          if (ev && (ev.error === "canceled" || ev.error === "interrupted")) return;
+          // 無指定人聲再試一次
+          if (voice && i === 0) {
+            try {
+              const u2 = new SpeechSynthesisUtterance(chunks[i]);
+              u2.lang = langTarget === "en" ? "en-US" : "zh-TW";
+              u2.rate = Math.max(0.6, Math.min(1.8, ttsSpeed));
+              u2.onend = () => { i += 1; speakNext(); };
+              u2.onerror = () => setVoiceErr("旁白播放失敗，請換瀏覽器或人聲");
+              speechSynthesis.speak(u2);
+              return;
+            } catch (_) {}
+          }
+          setVoiceErr("旁白播放失敗：" + ((ev && ev.error) || "unknown"));
+        };
+        try { speechSynthesis.resume(); } catch (_) {}
+        speechSynthesis.speak(u);
+      };
+
+      speakNext();
+      const who = voice ? voice.name : (langTarget === "en" ? "系統英文預設" : "系統中文預設");
+      setVoiceOk("旁白中 · " + who + " · " + ttsSpeed + "× · " + chunks.length + " 段");
+      toast(langTarget === "en" ? "英聲旁白" : "中聲旁白");
     }
 
     async function oneClickVoice(langTarget) {
+      if (translateBusy) return;
+      setFlipBusy(true, "翻譯並準備旁白…");
       try {
-        $("voiceStatus").textContent = "翻譯並準備旁白…";
         let src = ($("voiceScript").value || "").trim() || defaultVoiceScript();
         if (!src) {
-          toast("請先在「文字輸入」打字，或用語音／影片");
-          $("voiceStatus").textContent = "沒有文字可轉聲音";
+          setVoiceErr("沒有文字可轉聲音");
+          toast("請先輸入文字");
           return;
         }
         $("voiceScript").value = src;
         const translated = await translateText(src, langTarget);
         if ($("voiceTranslated")) $("voiceTranslated").value = translated;
-        $("voiceStatus").textContent = "譯文：" + translated.slice(0, 100);
+        setVoiceOk("譯文：" + translated.slice(0, 100));
         speakDub(translated, langTarget);
       } catch (err) {
-        $("voiceStatus").textContent = String(err.message || err);
-        toast("旁白失敗");
+        setVoiceErr(String(err.message || err));
+        toast("對翻失敗");
+      } finally {
+        setFlipBusy(false);
       }
     }
 
@@ -821,10 +950,11 @@
       }
       if (file.size > 18 * 1024 * 1024) {
         toast("檔案請小於約 18MB");
-        $("voiceStatus").textContent = "檔案太大，請截短片段再上傳";
+        setVoiceErr("檔案太大，請截短片段再上傳");
         return;
       }
-      $("voiceStatus").textContent = "上傳辨識中（Gemini）…";
+      if (translateBusy) return;
+      setFlipBusy(true, "上傳辨識中（Gemini）…");
       try {
         const raw = await geminiTranscribeAndTranslate(file);
         const parsed = parseGeminiFlip(raw);
@@ -833,14 +963,18 @@
         $("voiceScript").value = source;
         if (target) {
           if ($("voiceTranslated")) $("voiceTranslated").value = target;
-          $("voiceStatus").textContent = "譯文：" + target.slice(0, 100);
+          setVoiceOk("譯文：" + target.slice(0, 100));
           speakDub(target, parsed.toEn || !looksChinese(target) ? "en" : "zh");
         } else {
+          setFlipBusy(false);
           await autoFlipSpeak();
+          return;
         }
       } catch (e) {
-        $("voiceStatus").textContent = String(e.message || e);
+        setVoiceErr(String(e.message || e));
         toast("影片對翻失敗");
+      } finally {
+        setFlipBusy(false);
       }
     }
 
@@ -1218,13 +1352,42 @@
       localStorage.setItem(VOICE_ZH_KEY, $("voiceZhSelect").value || "");
       toast("已選中文人聲");
     });
-    $("btnVoiceEn").addEventListener("click", () => oneClickVoice("en"));
-    $("btnVoiceZh").addEventListener("click", () => oneClickVoice("zh"));
+    $("btnVoiceEn").addEventListener("click", () => speakTranslatedOnly("en"));
+    $("btnVoiceZh").addEventListener("click", () => speakTranslatedOnly("zh"));
     $("btnVoiceOrig").addEventListener("click", restoreOriginalAudio);
+    $("btnTextToEn").addEventListener("click", () => oneClickVoice("en"));
+    $("btnTextToZh").addEventListener("click", () => oneClickVoice("zh"));
     $("btnAutoFlip").addEventListener("click", () => autoFlipSpeak());
     $("btnListenZh").addEventListener("click", () => startListen("zh"));
     $("btnListenEn").addEventListener("click", () => startListen("en"));
     $("btnStopListen").addEventListener("click", stopListenAndSpeak);
+    $("btnCopySrc").addEventListener("click", async () => {
+      const t = ($("voiceScript").value || "").trim();
+      if (!t) return toast("沒有原文");
+      try { await navigator.clipboard.writeText(t); toast("已複製原文"); }
+      catch (_) { toast("無法複製"); }
+    });
+    $("btnCopyTgt").addEventListener("click", async () => {
+      const t = ($("voiceTranslated").value || "").trim();
+      if (!t) return toast("沒有譯文");
+      try { await navigator.clipboard.writeText(t); toast("已複製譯文"); }
+      catch (_) { toast("無法複製"); }
+    });
+    $("btnSwapText").addEventListener("click", () => {
+      const a = $("voiceScript").value || "";
+      const b = $("voiceTranslated").value || "";
+      $("voiceScript").value = b;
+      $("voiceTranslated").value = a;
+      toast("已對調原文／譯文");
+    });
+    $("voiceScript").addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        autoFlipSpeak();
+      }
+    });
+    document.addEventListener("click", unlockTts, { once: true });
+    document.addEventListener("touchstart", unlockTts, { once: true, passive: true });
     $("btnMediaFlip").addEventListener("click", () => mediaFlip());
     $("btnSaveGeminiKey").addEventListener("click", () => {
       const k = ($("geminiKeyVoice").value || "").trim();
@@ -1344,7 +1507,7 @@
 
     loadCatalog();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=5").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=7").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
