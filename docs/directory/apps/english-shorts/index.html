@@ -209,6 +209,47 @@
         <button type="button" data-caption="dual">中英字幕</button>
       </div>
       <p class="status" id="captionStatus" style="margin-top:0.35rem">字幕：關（依影片是否提供字幕軌而定）</p>
+
+      <h2 class="section" style="margin-top:0.85rem">聲音旁白（中↔英）</h2>
+      <p class="status" style="margin:0.25rem 0 0.35rem">靜音原片，用選定人聲朗讀翻譯後的旁白（本機語音合成）。</p>
+      <label class="picker-label" for="voiceScript">旁白文字（可改；預設用標題／一句收穫）</label>
+      <textarea id="voiceScript" placeholder="貼上或保留自動帶入的句子，再一鍵轉成中文／英文聲音"></textarea>
+      <label class="picker-label" for="voiceEnSelect">英文人聲</label>
+      <select id="voiceEnSelect" aria-label="英文人聲"></select>
+      <label class="picker-label" for="voiceZhSelect">中文人聲</label>
+      <select id="voiceZhSelect" aria-label="中文人聲"></select>
+      <div class="opt-row" id="ttsSpeedRow" style="margin-top:0.55rem">
+        <span class="lbl">旁白語速</span>
+        <button type="button" data-tts="0.75">0.75×</button>
+        <button type="button" data-tts="1" class="chip-on">1×</button>
+        <button type="button" data-tts="1.25">1.25×</button>
+        <button type="button" data-tts="1.5">1.5×</button>
+      </div>
+      <div class="row-btns" style="grid-template-columns:1fr 1fr 1fr">
+        <button type="button" id="btnVoiceEn" class="primary">一鍵英聲</button>
+        <button type="button" id="btnVoiceZh" class="primary">一鍵中聲</button>
+        <button type="button" id="btnVoiceOrig">恢復原聲</button>
+      </div>
+      <div class="row-btns" style="margin-top:0.45rem">
+        <button type="button" id="btnAutoFlip" class="primary">對翻朗讀（自動辨中／英）</button>
+        <button type="button" id="btnStopListen">停止聽／說</button>
+      </div>
+      <div class="opt-row" style="margin-top:0.45rem">
+        <span class="lbl">語音輸入</span>
+        <button type="button" id="btnListenZh">說中文→英</button>
+        <button type="button" id="btnListenEn">說英文→中</button>
+      </div>
+      <label class="picker-label" for="mediaFile">影片／音訊輸入（上傳後辨識對翻）</label>
+      <input type="file" id="mediaFile" accept="video/*,audio/*" />
+      <video id="localMedia" controls playsinline style="display:none;width:100%;margin-top:0.45rem;border-radius:0.4rem;background:#000;max-height:12rem"></video>
+      <label class="picker-label" for="geminiKeyVoice">Gemini 金鑰（影片辨識用，選填；可沿用其他工具已存金鑰）</label>
+      <input type="password" id="geminiKeyVoice" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+      <div class="row-btns">
+        <button type="button" id="btnMediaFlip" class="primary">影片／音訊對翻</button>
+        <button type="button" id="btnSaveGeminiKey">儲存金鑰</button>
+      </div>
+      <p class="status" id="voiceStatus">人聲、旁白語速、語音／影片輸入會記在本機。</p>
+
       <label class="picker-label" for="takeawayBox">一句收穫（看完寫下今天學到的一句）</label>
       <input type="text" id="takeawayBox" maxlength="120" placeholder="例：drained = 精疲力盡（比 very tired 更精準）" />
       <div class="row-btns">
@@ -221,6 +262,8 @@
     <section class="card" aria-label="優化建議">
       <h2 class="section">優化建議</h2>
       <ol class="tips-list">
+        <li><strong>對翻輸入：</strong>可語音說中／英，或上傳影片／音訊（需 Gemini 金鑰）自動辨識並對翻朗讀。</li>
+        <li><strong>聲音旁白：</strong>可選中／英人聲與旁白語速，一鍵把文字念成英文或中文（靜音原片）。</li>
         <li><strong>字幕切換：</strong>可用「中文／英文／中英」按鈕；實際顯示仍依該 Shorts 是否提供字幕或自動翻譯。</li>
         <li><strong>先跟讀再滑走：</strong>好句子至少出聲跟 1 次；本頁可設「跟讀循環 ×2／×3」強制重複。</li>
         <li><strong>慢速拆音再加速：</strong>聽不懂先用 0.75× 對齊重音與連音，再回到 1×／1.25×。</li>
@@ -247,6 +290,10 @@
     const NOTES_KEY = "english-shorts-notes-v1";
     const DAILY_KEY = "english-shorts-daily-v1";
     const CAPTION_KEY = "english-shorts-caption";
+    const VOICE_EN_KEY = "english-shorts-voice-en";
+    const VOICE_ZH_KEY = "english-shorts-voice-zh";
+    const TTS_SPEED_KEY = "english-shorts-tts-speed";
+    const GEMINI_VOICE_KEY = "english-shorts-gemini-key";
 
     let catalog = { clips: [], channels: [], categories: [] };
     let mine = [];
@@ -265,6 +312,11 @@
     let currentId = null;
     let captionMode = localStorage.getItem(CAPTION_KEY) || "off"; // off | zh | en | dual
     let captionRetryTimer = null;
+    let ttsSpeed = Number(localStorage.getItem(TTS_SPEED_KEY) || "1") || 1;
+    let dubbing = false;
+    let wasMutedBeforeDub = false;
+    let recognition = null;
+    let localMediaUrl = null;
 
     const $ = (id) => document.getElementById(id);
 
@@ -433,6 +485,347 @@
     function setPlaybackRate() {
       if (player && player.setPlaybackRate) {
         try { player.setPlaybackRate(playSpeed); } catch (_) {}
+      }
+    }
+
+    function looksChinese(text) {
+      const s = String(text || "");
+      const cjk = (s.match(/[\u3400-\u9FFF]/g) || []).length;
+      const latin = (s.match(/[A-Za-z]/g) || []).length;
+      return cjk > 0 && cjk >= latin * 0.35;
+    }
+
+    function defaultVoiceScript() {
+      const clip = currentId ? findClip(currentId) : null;
+      const take = ($("takeawayBox").value || "").trim() || (currentId && notes[currentId]) || "";
+      if (take) return take;
+      if (clip) return clip.title || clip.name || "";
+      const sel = $("clipSelect");
+      const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
+      return (opt && opt.textContent) || "";
+    }
+
+    function syncVoiceScriptFromClip() {
+      const box = $("voiceScript");
+      if (!box) return;
+      if ((box.value || "").trim()) return;
+      box.value = defaultVoiceScript();
+    }
+
+    function applyTtsSpeedButtons() {
+      document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((b) => {
+        b.classList.toggle("chip-on", Number(b.dataset.tts) === ttsSpeed);
+      });
+    }
+
+    function listVoices() {
+      try { return window.speechSynthesis ? speechSynthesis.getVoices() || [] : []; }
+      catch (_) { return []; }
+    }
+
+    function fillVoiceSelects() {
+      const voices = listVoices();
+      const enSel = $("voiceEnSelect");
+      const zhSel = $("voiceZhSelect");
+      if (!enSel || !zhSel) return;
+
+      const en = voices.filter((v) => /^en(-|_)/i.test(v.lang) || /english/i.test(v.name));
+      const zh = voices.filter((v) => /^(zh|cmn)/i.test(v.lang) || /chinese|taiwan|hong kong|中文|國語|粤|粵/i.test(v.name + v.lang));
+      const enList = en.length ? en : voices;
+      const zhList = zh.length ? zh : voices;
+
+      const savedEn = localStorage.getItem(VOICE_EN_KEY) || "";
+      const savedZh = localStorage.getItem(VOICE_ZH_KEY) || "";
+
+      function fill(sel, list, saved, fallbackLang) {
+        const prev = sel.value;
+        sel.innerHTML = list.map((v) => {
+          const label = v.name + "（" + v.lang + "）";
+          return '<option value="' + esc(v.name) + '">' + esc(label) + "</option>";
+        }).join("") || '<option value="">（此裝置無可用人聲）</option>';
+        const want = saved || prev;
+        if (want && [...sel.options].some((o) => o.value === want)) sel.value = want;
+        else if (list.length) {
+          const pref = list.find((v) => v.lang.toLowerCase().indexOf(fallbackLang) === 0) || list[0];
+          sel.value = pref.name;
+        }
+      }
+
+      fill(enSel, enList, savedEn, "en");
+      fill(zhSel, zhList, savedZh, "zh");
+      $("voiceStatus").textContent = "英文人聲 " + enList.length + " 種 · 中文人聲 " + zhList.length + " 種 · 旁白語速 " + ttsSpeed + "×";
+    }
+
+    function pickVoice(langTarget) {
+      const voices = listVoices();
+      const name = langTarget === "en" ? $("voiceEnSelect").value : $("voiceZhSelect").value;
+      let v = voices.find((x) => x.name === name);
+      if (v) return v;
+      if (langTarget === "en") {
+        return voices.find((x) => /^en/i.test(x.lang)) || voices[0] || null;
+      }
+      return voices.find((x) => /^(zh|cmn)/i.test(x.lang)) || voices[0] || null;
+    }
+
+    async function translateText(text, toLang) {
+      const q = String(text || "").trim();
+      if (!q) throw new Error("沒有可朗讀的文字");
+      const pair = toLang === "en" ? "zh-TW|en" : "en|zh-TW";
+      // 若偵測已是目標語言，直接回傳
+      if (toLang === "en" && !looksChinese(q)) return q;
+      if (toLang === "zh" && looksChinese(q) && !/[A-Za-z]{3,}/.test(q)) return q;
+
+      const url = "https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q.slice(0, 450)) + "&langpair=" + encodeURIComponent(pair);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("翻譯服務暫時無法使用");
+      const data = await res.json();
+      const out = data && data.responseData && data.responseData.translatedText;
+      if (!out) throw new Error("翻譯結果空白");
+      return String(out).trim();
+    }
+
+    function stopTts() {
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+    }
+
+    function restoreOriginalAudio() {
+      stopTts();
+      dubbing = false;
+      if (player) {
+        try {
+          if (!wasMutedBeforeDub && player.unMute) player.unMute();
+          else if (wasMutedBeforeDub && player.mute) player.mute();
+        } catch (_) {}
+      }
+      $("voiceStatus").textContent = "已恢復原片聲音";
+      toast("恢復原聲");
+    }
+
+    function speakDub(text, langTarget) {
+      if (!window.speechSynthesis) {
+        toast("此瀏覽器不支援語音合成");
+        return;
+      }
+      stopTts();
+      syncVoiceScriptFromClip();
+      const voice = pickVoice(langTarget);
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = langTarget === "en" ? "en-US" : "zh-TW";
+      if (voice) u.voice = voice;
+      u.rate = Math.max(0.5, Math.min(2, ttsSpeed));
+      u.onend = () => {
+        if (dubbing) $("voiceStatus").textContent = "旁白結束（原片仍靜音，可按「恢復原聲」）";
+      };
+      u.onerror = () => {
+        $("voiceStatus").textContent = "旁白播放失敗，請換一個人聲再試";
+      };
+
+      if (player) {
+        try {
+          wasMutedBeforeDub = !!(player.isMuted && player.isMuted());
+          if (player.mute) player.mute();
+        } catch (_) {}
+      }
+      dubbing = true;
+      // iOS：先短暫 resume
+      try { speechSynthesis.resume(); } catch (_) {}
+      speechSynthesis.speak(u);
+      const who = voice ? voice.name : (langTarget === "en" ? "英文預設" : "中文預設");
+      $("voiceStatus").textContent = "旁白中 · " + who + " · " + ttsSpeed + "×";
+      toast(langTarget === "en" ? "一鍵英聲" : "一鍵中聲");
+    }
+
+    async function oneClickVoice(langTarget) {
+      try {
+        $("voiceStatus").textContent = "翻譯並準備旁白…";
+        let src = ($("voiceScript").value || "").trim() || defaultVoiceScript();
+        if (!src) {
+          toast("請先選影片或貼上旁白文字");
+          $("voiceStatus").textContent = "沒有文字可轉聲音";
+          return;
+        }
+        $("voiceScript").value = src;
+        const translated = await translateText(src, langTarget);
+        if (langTarget === "en" && looksChinese(src)) {
+          $("voiceStatus").textContent = "譯文：" + translated.slice(0, 80);
+        } else if (langTarget === "zh" && !looksChinese(src)) {
+          $("voiceStatus").textContent = "譯文：" + translated.slice(0, 80);
+        }
+        speakDub(translated, langTarget);
+      } catch (err) {
+        $("voiceStatus").textContent = String(err.message || err);
+        toast("旁白失敗");
+      }
+    }
+
+    async function autoFlipSpeak() {
+      const src = ($("voiceScript").value || "").trim() || defaultVoiceScript();
+      if (!src) { toast("請先輸入或語音／影片取得文字"); return; }
+      $("voiceScript").value = src;
+      const toEn = looksChinese(src);
+      await oneClickVoice(toEn ? "en" : "zh");
+    }
+
+    function getGeminiKey() {
+      const typed = ($("geminiKeyVoice").value || "").trim();
+      if (typed && typed.indexOf("••") !== 0) return typed;
+      return localStorage.getItem(GEMINI_VOICE_KEY)
+        || localStorage.getItem("home-shop-gemini-key")
+        || localStorage.getItem("scan-equip-gemini-key")
+        || localStorage.getItem("math-grader-gemini-key")
+        || "";
+    }
+
+    function stopListenAndSpeak() {
+      try { if (recognition) { recognition.onend = null; recognition.stop(); } } catch (_) {}
+      recognition = null;
+      stopTts();
+      $("voiceStatus").textContent = "已停止聽寫／旁白";
+      toast("已停止");
+    }
+
+    function startListen(fromLang) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        toast("此瀏覽器不支援語音輸入（建議 Safari／Chrome）");
+        $("voiceStatus").textContent = "無法語音輸入";
+        return;
+      }
+      stopListenAndSpeak();
+      recognition = new SR();
+      recognition.lang = fromLang === "zh" ? "zh-TW" : "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+      $("voiceStatus").textContent = fromLang === "zh" ? "請說中文…（說完會翻成英文並朗讀）" : "Please speak English…（說完會翻成中文並朗讀）";
+      toast(fromLang === "zh" ? "開始聽中文" : "開始聽英文");
+
+      recognition.onresult = async (ev) => {
+        let text = "";
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          text += ev.results[i][0].transcript;
+        }
+        text = (text || "").trim();
+        if (!text) return;
+        $("voiceScript").value = text;
+        if (!ev.results[ev.results.length - 1].isFinal) {
+          $("voiceStatus").textContent = "聽寫中：" + text;
+          return;
+        }
+        $("voiceStatus").textContent = "已聽寫，對翻中…";
+        try {
+          await oneClickVoice(fromLang === "zh" ? "en" : "zh");
+        } catch (e) {
+          $("voiceStatus").textContent = String(e.message || e);
+        }
+      };
+      recognition.onerror = (ev) => {
+        $("voiceStatus").textContent = "語音輸入失敗：" + (ev.error || "unknown");
+        toast("語音輸入失敗");
+      };
+      recognition.onend = () => {
+        recognition = null;
+      };
+      try { recognition.start(); }
+      catch (e) {
+        $("voiceStatus").textContent = "無法啟動麥克風：" + (e.message || e);
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || "");
+          const i = s.indexOf(",");
+          resolve(i >= 0 ? s.slice(i + 1) : s);
+        };
+        reader.onerror = () => reject(new Error("讀取檔案失敗"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function geminiTranscribeAndTranslate(file) {
+      const key = getGeminiKey();
+      if (!key) throw new Error("請先貼上並儲存 Gemini 金鑰（影片／音訊辨識需要）");
+      const b64 = await fileToBase64(file);
+      const mime = file.type || "video/mp4";
+      const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+      const prompt = "請聽這段影音內容，先完整轉錄原文，再翻譯成另一種語言（中文↔英文互譯）。用這個格式回覆，不要其他說明：\nSOURCE: <原文>\nTARGET: <譯文>\nDIR: <zh2en 或 en2zh>";
+      let lastErr = null;
+      for (const model of models) {
+        try {
+          const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key);
+          const body = {
+            contents: [{
+              role: "user",
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: mime, data: b64 } }
+              ]
+            }]
+          };
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            lastErr = (data.error && data.error.message) || ("HTTP " + res.status);
+            continue;
+          }
+          const text = (((data.candidates || [])[0] || {}).content || {}).parts
+            ? data.candidates[0].content.parts.map((p) => p.text || "").join("\n")
+            : "";
+          if (!text) { lastErr = "模型沒有回傳文字"; continue; }
+          return text;
+        } catch (e) {
+          lastErr = e.message || String(e);
+        }
+      }
+      throw new Error(lastErr || "Gemini 辨識失敗");
+    }
+
+    function parseGeminiFlip(text) {
+      const src = (text.match(/SOURCE:\s*([\s\S]*?)(?:\nTARGET:|$)/i) || [])[1];
+      const tgt = (text.match(/TARGET:\s*([\s\S]*?)(?:\nDIR:|$)/i) || [])[1];
+      const dir = ((text.match(/DIR:\s*(\S+)/i) || [])[1] || "").toLowerCase();
+      return {
+        source: (src || "").trim(),
+        target: (tgt || "").trim(),
+        toEn: /zh2en/.test(dir) || (!dir && looksChinese(src || text))
+      };
+    }
+
+    async function mediaFlip() {
+      const input = $("mediaFile");
+      const file = input && input.files && input.files[0];
+      if (!file) {
+        toast("請先選擇影片或音訊檔");
+        return;
+      }
+      if (file.size > 18 * 1024 * 1024) {
+        toast("檔案請小於約 18MB");
+        $("voiceStatus").textContent = "檔案太大，請截短片段再上傳";
+        return;
+      }
+      $("voiceStatus").textContent = "上傳辨識中（Gemini）…";
+      try {
+        const raw = await geminiTranscribeAndTranslate(file);
+        const parsed = parseGeminiFlip(raw);
+        const source = parsed.source || raw;
+        const target = parsed.target;
+        $("voiceScript").value = source;
+        if (target) {
+          $("voiceStatus").textContent = "譯文：" + target.slice(0, 100);
+          speakDub(target, parsed.toEn || !looksChinese(target) ? "en" : "zh");
+        } else {
+          await autoFlipSpeak();
+        }
+      } catch (e) {
+        $("voiceStatus").textContent = String(e.message || e);
+        toast("影片對翻失敗");
       }
     }
 
@@ -629,6 +1022,7 @@
         " · 跟讀 " + loopPass + "／" + loopTarget + take;
       $("clipSelect").value = clip.id;
       $("takeawayBox").value = notes[clip.id] || "";
+      $("voiceScript").value = (notes[clip.id] || "").trim() || (clip.title || clip.name || "");
       if (player && player.loadVideoById) {
         try { player.loadVideoById({ videoId: clip.id, startSeconds: 0 }); }
         catch (_) { player.loadVideoById(clip.id, 0); }
@@ -744,6 +1138,8 @@
       applySpeedButtons();
       applyLoopButtons();
       applyCaptionButtons();
+      applyTtsSpeedButtons();
+      fillVoiceSelects();
       renderDaily();
       renderCreators();
       renderMenu();
@@ -788,6 +1184,77 @@
         toast(labels[captionMode] || "字幕");
       });
     });
+
+    document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        ttsSpeed = Number(btn.dataset.tts) || 1;
+        localStorage.setItem(TTS_SPEED_KEY, String(ttsSpeed));
+        applyTtsSpeedButtons();
+        $("voiceStatus").textContent = "旁白語速 " + ttsSpeed + "×（下次朗讀生效）";
+        toast("旁白語速 " + ttsSpeed + "×");
+      });
+    });
+
+    $("voiceEnSelect").addEventListener("change", () => {
+      localStorage.setItem(VOICE_EN_KEY, $("voiceEnSelect").value || "");
+      toast("已選英文人聲");
+    });
+    $("voiceZhSelect").addEventListener("change", () => {
+      localStorage.setItem(VOICE_ZH_KEY, $("voiceZhSelect").value || "");
+      toast("已選中文人聲");
+    });
+    $("btnVoiceEn").addEventListener("click", () => oneClickVoice("en"));
+    $("btnVoiceZh").addEventListener("click", () => oneClickVoice("zh"));
+    $("btnVoiceOrig").addEventListener("click", restoreOriginalAudio);
+    $("btnAutoFlip").addEventListener("click", () => autoFlipSpeak());
+    $("btnListenZh").addEventListener("click", () => startListen("zh"));
+    $("btnListenEn").addEventListener("click", () => startListen("en"));
+    $("btnStopListen").addEventListener("click", stopListenAndSpeak);
+    $("btnMediaFlip").addEventListener("click", () => mediaFlip());
+    $("btnSaveGeminiKey").addEventListener("click", () => {
+      const k = ($("geminiKeyVoice").value || "").trim();
+      if (!k) {
+        localStorage.removeItem(GEMINI_VOICE_KEY);
+        toast("已清除金鑰");
+        return;
+      }
+      localStorage.setItem(GEMINI_VOICE_KEY, k);
+      $("geminiKeyVoice").value = "••••••••";
+      toast("已儲存 Gemini 金鑰");
+    });
+    $("mediaFile").addEventListener("change", () => {
+      const f = $("mediaFile").files && $("mediaFile").files[0];
+      const vid = $("localMedia");
+      if (localMediaUrl) {
+        try { URL.revokeObjectURL(localMediaUrl); } catch (_) {}
+        localMediaUrl = null;
+      }
+      if (!f) {
+        vid.style.display = "none";
+        vid.removeAttribute("src");
+        return;
+      }
+      localMediaUrl = URL.createObjectURL(f);
+      vid.src = localMediaUrl;
+      vid.style.display = "block";
+      $("voiceStatus").textContent = "已載入「" + f.name + "」，可按「影片／音訊對翻」";
+    });
+
+    // 預填金鑰狀態
+    (function initGeminiField() {
+      const k = localStorage.getItem(GEMINI_VOICE_KEY)
+        || localStorage.getItem("home-shop-gemini-key")
+        || localStorage.getItem("scan-equip-gemini-key") || "";
+      if (k) $("geminiKeyVoice").value = "••••••••";
+    })();
+
+    if (window.speechSynthesis) {
+      fillVoiceSelects();
+      speechSynthesis.onvoiceschanged = fillVoiceSelects;
+      const unlock = () => { try { speechSynthesis.getVoices(); } catch (_) {} };
+      document.addEventListener("touchstart", unlock, { once: true, passive: true });
+      document.addEventListener("click", unlock, { once: true });
+    }
 
     $("btnSaveTakeaway").addEventListener("click", () => {
       const id = currentId || $("clipSelect").value;
@@ -862,7 +1329,7 @@
 
     loadCatalog();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=3").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=5").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
