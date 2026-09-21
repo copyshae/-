@@ -61,8 +61,17 @@
     .filter-row { margin-top: 0.55rem; display: flex; gap: 0.3rem; flex-wrap: wrap; }
     .filter-row button { flex: 1 1 22%; min-width: 4.2rem; font-size: 0.76rem; padding: 0.45rem 0.25rem; }
     .filter-row button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .player-shell { margin-top: 0.85rem; background: #111; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; }
+    .player-shell { margin-top: 0.85rem; background: #111; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; position: relative; }
     #player { width: 100%; height: 100%; }
+    .sub-overlay {
+      display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+      padding: 0.55rem 0.65rem 0.7rem; background: linear-gradient(transparent, rgba(0,0,0,0.78));
+      pointer-events: none; text-align: center;
+    }
+    .sub-overlay.on { display: block; }
+    .sub-overlay .en { color: #fff; font-size: 0.92rem; font-weight: 700; text-shadow: 0 1px 3px #000; line-height: 1.35; }
+    .sub-overlay .zh { color: #b8f3ea; font-size: 0.84rem; font-weight: 600; margin-top: 0.2rem; text-shadow: 0 1px 3px #000; line-height: 1.35; }
+    .sub-overlay .sub-hint { color: rgba(255,255,255,0.75); font-size: 0.72rem; margin-top: 0.25rem; }
     .now { margin-top: 0.7rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line); border-radius: 0.45rem; }
     .now h2 { font-size: 1rem; color: var(--accent); font-weight: 700; }
     .now p { margin-top: 0.2rem; font-size: 0.8rem; color: var(--muted); }
@@ -154,7 +163,14 @@
       <button type="button" id="btnPlaySelected" class="primary" style="width:100%;margin-top:0.5rem;font-size:0.95rem;padding:0.65rem;">▶ 播放所選</button>
     </section>
 
-    <div class="player-shell"><div id="player"></div></div>
+    <div class="player-shell">
+      <div id="player"></div>
+      <div class="sub-overlay" id="subOverlay" aria-live="polite">
+        <div class="en" id="subEn"></div>
+        <div class="zh" id="subZh"></div>
+        <div class="sub-hint" id="subHint"></div>
+      </div>
+    </div>
 
     <div class="now">
       <h2 id="nowTitle">準備播放</h2>
@@ -184,6 +200,14 @@
         <button type="button" data-loop="3">×3</button>
         <span class="lbl" id="loopHint">播完換下一則</span>
       </div>
+      <div class="opt-row" id="captionRow" role="group" aria-label="字幕模式">
+        <span class="lbl">字幕</span>
+        <button type="button" data-caption="off" class="chip-on">關</button>
+        <button type="button" data-caption="zh">中文</button>
+        <button type="button" data-caption="en">英文</button>
+        <button type="button" data-caption="dual">中英</button>
+      </div>
+      <p class="status" id="captionStatus" style="margin-top:0.35rem">字幕：關（依影片是否提供字幕軌而定）</p>
       <label class="picker-label" for="takeawayBox">一句收穫（看完寫下今天學到的一句）</label>
       <input type="text" id="takeawayBox" maxlength="120" placeholder="例：drained = 精疲力盡（比 very tired 更精準）" />
       <div class="row-btns">
@@ -196,6 +220,7 @@
     <section class="card" aria-label="優化建議">
       <h2 class="section">優化建議</h2>
       <ol class="tips-list">
+        <li><strong>字幕切換：</strong>可用「中文／英文／中英」按鈕；實際顯示仍依該 Shorts 是否提供字幕或自動翻譯。</li>
         <li><strong>先跟讀再滑走：</strong>好句子至少出聲跟 1 次；本頁可設「跟讀循環 ×2／×3」強制重複。</li>
         <li><strong>慢速拆音再加速：</strong>聽不懂先用 0.75× 對齊重音與連音，再回到 1×／1.25×。</li>
         <li><strong>一句收穫制：</strong>每則只帶走一句（用字／片語／情境），寫進上方欄位，比狂刷 20 則更有效。</li>
@@ -220,6 +245,7 @@
     const LOOP_KEY = "english-shorts-loop";
     const NOTES_KEY = "english-shorts-notes-v1";
     const DAILY_KEY = "english-shorts-daily-v1";
+    const CAPTION_KEY = "english-shorts-caption";
 
     let catalog = { clips: [], channels: [], categories: [] };
     let mine = [];
@@ -236,6 +262,8 @@
     let loopTarget = Number(localStorage.getItem(LOOP_KEY) || "1") || 1;
     let loopPass = 1;
     let currentId = null;
+    let captionMode = localStorage.getItem(CAPTION_KEY) || "off"; // off | zh | en | dual
+    let captionRetryTimer = null;
 
     const $ = (id) => document.getElementById(id);
 
@@ -289,6 +317,116 @@
         b.classList.toggle("chip-on", Number(b.dataset.loop) === loopTarget);
       });
       $("loopHint").textContent = loopTarget <= 1 ? "播完換下一則" : ("同則重複 " + loopTarget + " 次再換");
+    }
+
+    function applyCaptionButtons() {
+      document.querySelectorAll("#captionRow button[data-caption]").forEach((b) => {
+        b.classList.toggle("chip-on", b.dataset.caption === captionMode);
+      });
+      const labels = { off: "關", zh: "中文", en: "英文", dual: "中英同時" };
+      const overlay = $("subOverlay");
+      if (captionMode === "off") {
+        overlay.classList.remove("on");
+        $("captionStatus").textContent = "字幕：關";
+      } else {
+        overlay.classList.add("on");
+        $("captionStatus").textContent = "字幕：" + (labels[captionMode] || captionMode) + "（若此片無字幕軌，播放器內可能仍空白）";
+      }
+      updateSubOverlayHint();
+    }
+
+    function updateSubOverlayHint() {
+      const en = $("subEn");
+      const zh = $("subZh");
+      const hint = $("subHint");
+      if (captionMode === "off") {
+        en.textContent = ""; zh.textContent = ""; hint.textContent = "";
+        return;
+      }
+      if (captionMode === "zh") {
+        en.textContent = "";
+        zh.textContent = "中文字幕模式";
+        hint.textContent = "已請播放器開啟中文／自動翻譯字幕";
+      } else if (captionMode === "en") {
+        en.textContent = "English captions";
+        zh.textContent = "";
+        hint.textContent = "已請播放器開啟英文字幕";
+      } else {
+        en.textContent = "English";
+        zh.textContent = "中文";
+        hint.textContent = "雙語：優先開英文字幕，並嘗試中文翻譯軌（依影片支援度）";
+      }
+    }
+
+    function preferredCcLang() {
+      if (captionMode === "zh" || captionMode === "dual") return "zh-Hant";
+      if (captionMode === "en") return "en";
+      return "";
+    }
+
+    function applyCaptions() {
+      clearTimeout(captionRetryTimer);
+      updateSubOverlayHint();
+      if (!player || !player.getOptions) return;
+      try {
+        const mods = player.getOptions() || [];
+        if (mods.indexOf("captions") === -1 && player.loadModule) {
+          try { player.loadModule("captions"); } catch (_) {}
+        }
+      } catch (_) {}
+
+      if (captionMode === "off") {
+        try {
+          if (player.unloadModule) player.unloadModule("captions");
+        } catch (_) {}
+        try {
+          player.setOption && player.setOption("captions", "track", {});
+        } catch (_) {}
+        return;
+      }
+
+      try { player.loadModule && player.loadModule("captions"); } catch (_) {}
+
+      const trySet = () => {
+        try {
+          if (captionMode === "en") {
+            player.setOption("captions", "track", { languageCode: "en" });
+          } else if (captionMode === "zh") {
+            // 優先繁中，失敗再簡中／自動翻譯
+            try {
+              player.setOption("captions", "track", { languageCode: "zh-Hant" });
+            } catch (_) {
+              player.setOption("captions", "track", { languageCode: "zh-Hans" });
+            }
+            try {
+              player.setOption("captions", "track", {
+                languageCode: "en",
+                translationLanguageCode: "zh-Hant"
+              });
+            } catch (_) {}
+          } else if (captionMode === "dual") {
+            // 先開英文，再嘗試帶中文翻譯（部分裝置／影片才支援雙語感）
+            try {
+              player.setOption("captions", "track", { languageCode: "en" });
+            } catch (_) {}
+            try {
+              player.setOption("captions", "track", {
+                languageCode: "en",
+                translationLanguageCode: "zh-Hant"
+              });
+            } catch (_) {}
+            $("subEn").textContent = "English captions on";
+            $("subZh").textContent = "中文翻譯字幕（若影片支援）";
+          }
+          try { player.setOption("captions", "reload", true); } catch (_) {}
+        } catch (err) {
+          $("captionStatus").textContent = "此影片可能無字幕軌，請改點播放器右下角 CC";
+        }
+      };
+
+      trySet();
+      captionRetryTimer = setTimeout(trySet, 800);
+      setTimeout(trySet, 1800);
     }
 
     function setPlaybackRate() {
@@ -520,14 +658,23 @@
     }
 
     function createPlayer(videoId, autoplay) {
+      const ccPref = preferredCcLang();
+      const vars = {
+        playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1,
+        origin: location.origin,
+        cc_load_policy: captionMode === "off" ? 0 : 1
+      };
+      if (ccPref) vars.cc_lang_pref = ccPref;
       player = new YT.Player("player", {
         height: "100%", width: "100%", videoId,
-        playerVars: { playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1, origin: location.origin },
+        playerVars: vars,
         events: {
           onReady: () => {
             setPlaybackRate();
+            applyCaptions();
             if (autoplay) player.playVideo();
           },
+          onApiChange: () => { applyCaptions(); },
           onStateChange: onPlayerState,
           onError: () => {
             $("statusLine").textContent = "此影片無法播放，自動跳下一則";
@@ -542,6 +689,7 @@
       if (e.data === YT.PlayerState.PLAYING) {
         $("btnPlay").textContent = "⏸ 暫停連播";
         setPlaybackRate();
+        applyCaptions();
         startProgress();
       } else if (e.data === YT.PlayerState.PAUSED) {
         $("btnPlay").textContent = "▶ 繼續播放";
@@ -594,6 +742,7 @@
       loadNotes();
       applySpeedButtons();
       applyLoopButtons();
+      applyCaptionButtons();
       renderDaily();
       renderCreators();
       renderMenu();
@@ -625,6 +774,17 @@
         loopPass = 1;
         applyLoopButtons();
         toast(loopTarget <= 1 ? "播完換下一則" : ("跟讀循環 ×" + loopTarget));
+      });
+    });
+
+    document.querySelectorAll("#captionRow button[data-caption]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        captionMode = btn.dataset.caption || "off";
+        localStorage.setItem(CAPTION_KEY, captionMode);
+        applyCaptionButtons();
+        applyCaptions();
+        const labels = { off: "已關閉字幕", zh: "中文字幕", en: "英文字幕", dual: "中英字幕" };
+        toast(labels[captionMode] || "字幕");
       });
     });
 
@@ -701,7 +861,7 @@
 
     loadCatalog();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=3").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
