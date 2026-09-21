@@ -1,5 +1,5 @@
 /* 英文短影音學習台 */
-const CACHE = "english-shorts-v1";
+const CACHE = "english-shorts-v2";
 const ASSETS = [
   "./",
   "./index.html",

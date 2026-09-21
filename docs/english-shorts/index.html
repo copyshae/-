@@ -75,7 +75,15 @@
     }
     button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.chip-on { background: var(--accent); color: #fff; border-color: var(--accent); }
     .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem; }
+    .opt-row { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .opt-row .lbl { font-size: 0.76rem; color: var(--muted); margin-right: 0.15rem; }
+    .opt-row button { flex: 0 0 auto; min-width: 2.8rem; padding: 0.4rem 0.55rem; font-size: 0.78rem; }
+    .tips-list { margin: 0.45rem 0 0; padding-left: 1.1rem; font-size: 0.78rem; color: var(--muted); }
+    .tips-list li { margin: 0.28rem 0; }
+    .tips-list strong { color: var(--ink); }
+    .daily-line { margin-top: 0.45rem; font-size: 0.78rem; color: var(--accent); font-weight: 600; }
     .creator-chips { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .creator-chips a, .creator-chips button {
       font-size: 0.72rem; padding: 0.3rem 0.55rem; border-radius: 999px;
@@ -160,10 +168,46 @@
       <button type="button" id="btnNext">下一則 ▶</button>
     </div>
 
-    <p class="hint">
-      <strong>學習小技巧：</strong>① 刷到好句子就跟讀（Shadowing）一次；② 用本機「我的匯入」收藏精華；③ 多按讚／收藏你喜歡的 Shorts，讓演算法多推高品質內容。
-      <br />IG Reels 無法內嵌時，會導向 Instagram；YouTube Shorts 可在此頁連續播放。
-    </p>
+    <section class="card" aria-label="播放優化">
+      <h2 class="section">播放優化（本機記住）</h2>
+      <div class="opt-row" id="speedRow">
+        <span class="lbl">語速</span>
+        <button type="button" data-speed="0.75">0.75×</button>
+        <button type="button" data-speed="1" class="chip-on">1×</button>
+        <button type="button" data-speed="1.25">1.25×</button>
+        <button type="button" data-speed="1.5">1.5×</button>
+      </div>
+      <div class="opt-row" id="loopRow">
+        <span class="lbl">跟讀循環</span>
+        <button type="button" data-loop="1" class="chip-on">×1</button>
+        <button type="button" data-loop="2">×2</button>
+        <button type="button" data-loop="3">×3</button>
+        <span class="lbl" id="loopHint">播完換下一則</span>
+      </div>
+      <label class="picker-label" for="takeawayBox">一句收穫（看完寫下今天學到的一句）</label>
+      <input type="text" id="takeawayBox" maxlength="120" placeholder="例：drained = 精疲力盡（比 very tired 更精準）" />
+      <div class="row-btns">
+        <button type="button" id="btnSaveTakeaway" class="primary">儲存收穫</button>
+        <button type="button" id="btnMarkShadow">＋今日跟讀 1 次</button>
+      </div>
+      <p class="daily-line" id="dailyLine">今日跟讀：0 次</p>
+    </section>
+
+    <section class="card" aria-label="優化建議">
+      <h2 class="section">優化建議</h2>
+      <ol class="tips-list">
+        <li><strong>先跟讀再滑走：</strong>好句子至少出聲跟 1 次；本頁可設「跟讀循環 ×2／×3」強制重複。</li>
+        <li><strong>慢速拆音再加速：</strong>聽不懂先用 0.75× 對齊重音與連音，再回到 1×／1.25×。</li>
+        <li><strong>一句收穫制：</strong>每則只帶走一句（用字／片語／情境），寫進上方欄位，比狂刷 20 則更有效。</li>
+        <li><strong>分類練、別混刷：</strong>發音口語／情境短劇／文法片語分開練；通勤聽力用情境，排隊空檔用文法。</li>
+        <li><strong>每週 5 分鐘回鍋：</strong>打開「我的匯入」複習收藏，寧可少而熟，不要多而忘。</li>
+        <li><strong>主動餵演算法：</strong>在 YouTube／IG 對優質教學 Shorts 按讚與收藏，推薦流才會愈來愈乾貨。</li>
+        <li><strong>情境複述：</strong>短劇看完用 10 秒自問自答（點餐、結帳、小聊），把輸入變成輸出。</li>
+        <li><strong>IG 另開、YT 連播：</strong>IG Reels 無法內嵌；精華請匯入後每週回顧，連播以 YouTube Shorts 為主。</li>
+      </ol>
+    </section>
+
+    <p class="hint">種子清單含 Eko、Peggy Fo Show、Ariannita、English with Lucy、BBC Learning English；C划算請自行貼連結匯入。</p>
     <p class="status" id="statusLine"></p>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -172,9 +216,14 @@
     const CATALOG_URL = "./catalog.json";
     const STORAGE_KEY = "english-shorts-mine-v1";
     const LAST_KEY = "english-shorts-last";
+    const SPEED_KEY = "english-shorts-speed";
+    const LOOP_KEY = "english-shorts-loop";
+    const NOTES_KEY = "english-shorts-notes-v1";
+    const DAILY_KEY = "english-shorts-daily-v1";
 
     let catalog = { clips: [], channels: [], categories: [] };
     let mine = [];
+    let notes = {};
     let listFilter = "all";
     let searchQ = "";
     let queue = [];
@@ -183,8 +232,70 @@
     let apiReady = false;
     let autoPlay = false;
     let progressTimer = null;
+    let playSpeed = Number(localStorage.getItem(SPEED_KEY) || "1") || 1;
+    let loopTarget = Number(localStorage.getItem(LOOP_KEY) || "1") || 1;
+    let loopPass = 1;
+    let currentId = null;
 
     const $ = (id) => document.getElementById(id);
+
+    function todayKey() {
+      const d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
+    function loadDaily() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}") || {};
+        if (raw.day !== todayKey()) return { day: todayKey(), shadows: 0 };
+        return raw;
+      } catch (_) { return { day: todayKey(), shadows: 0 }; }
+    }
+
+    function saveDaily(data) {
+      localStorage.setItem(DAILY_KEY, JSON.stringify(data));
+    }
+
+    function renderDaily() {
+      const d = loadDaily();
+      $("dailyLine").textContent = "今日跟讀：" + (d.shadows || 0) + " 次 · 建議至少 5 次";
+    }
+
+    function bumpShadow(n) {
+      const d = loadDaily();
+      d.day = todayKey();
+      d.shadows = (d.shadows || 0) + (n || 1);
+      saveDaily(d);
+      renderDaily();
+    }
+
+    function loadNotes() {
+      try { notes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}") || {}; }
+      catch (_) { notes = {}; }
+    }
+
+    function saveNotes() {
+      localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    }
+
+    function applySpeedButtons() {
+      document.querySelectorAll("#speedRow button[data-speed]").forEach((b) => {
+        b.classList.toggle("chip-on", Number(b.dataset.speed) === playSpeed);
+      });
+    }
+
+    function applyLoopButtons() {
+      document.querySelectorAll("#loopRow button[data-loop]").forEach((b) => {
+        b.classList.toggle("chip-on", Number(b.dataset.loop) === loopTarget);
+      });
+      $("loopHint").textContent = loopTarget <= 1 ? "播完換下一則" : ("同則重複 " + loopTarget + " 次再換");
+    }
+
+    function setPlaybackRate() {
+      if (player && player.setPlaybackRate) {
+        try { player.setPlaybackRate(playSpeed); } catch (_) {}
+      }
+    }
 
     function toast(msg) {
       const el = $("toast");
@@ -364,17 +475,28 @@
         toast("已開 IG 連結");
         return;
       }
+      const switching = currentId !== clip.id;
+      if (switching) {
+        currentId = clip.id;
+        loopPass = 1;
+      }
       localStorage.setItem(LAST_KEY, clip.id);
       const qi = queue.findIndex((c) => c.id === clip.id);
       if (qi >= 0) qIndex = qi;
       $("nowTitle").textContent = clip.name || clip.title || clip.id;
+      const take = notes[clip.id] ? " · 已存收穫" : "";
       $("nowMeta").textContent = (clip.creator || "") + (clip.note ? " · " + clip.note : "") +
-        (queue.length ? " · 第 " + (qIndex + 1) + "／" + queue.length + " 則" : "");
+        (queue.length ? " · 第 " + (qIndex + 1) + "／" + queue.length + " 則" : "") +
+        " · 跟讀 " + loopPass + "／" + loopTarget + take;
       $("clipSelect").value = clip.id;
+      $("takeawayBox").value = notes[clip.id] || "";
       if (player && player.loadVideoById) {
         try { player.loadVideoById({ videoId: clip.id, startSeconds: 0 }); }
         catch (_) { player.loadVideoById(clip.id, 0); }
-        setTimeout(() => player.playVideo && player.playVideo(), 350);
+        setTimeout(() => {
+          setPlaybackRate();
+          player.playVideo && player.playVideo();
+        }, 350);
       } else if (apiReady) {
         createPlayer(clip.id, true);
       } else {
@@ -402,7 +524,10 @@
         height: "100%", width: "100%", videoId,
         playerVars: { playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1, origin: location.origin },
         events: {
-          onReady: () => { if (autoplay) player.playVideo(); },
+          onReady: () => {
+            setPlaybackRate();
+            if (autoplay) player.playVideo();
+          },
           onStateChange: onPlayerState,
           onError: () => {
             $("statusLine").textContent = "此影片無法播放，自動跳下一則";
@@ -416,12 +541,29 @@
       if (!window.YT) return;
       if (e.data === YT.PlayerState.PLAYING) {
         $("btnPlay").textContent = "⏸ 暫停連播";
+        setPlaybackRate();
         startProgress();
       } else if (e.data === YT.PlayerState.PAUSED) {
         $("btnPlay").textContent = "▶ 繼續播放";
       } else if (e.data === YT.PlayerState.ENDED) {
-        if (autoPlay && queue.length) playAt(qIndex + 1);
-        else $("btnPlay").textContent = "▶ 開始連播";
+        if (autoPlay && loopPass < loopTarget) {
+          loopPass += 1;
+          bumpShadow(1);
+          const clip = findClip(currentId);
+          if (clip) playClip(clip, { auto: true });
+          else if (player && player.seekTo) {
+            player.seekTo(0, true);
+            player.playVideo();
+          }
+          return;
+        }
+        if (autoPlay && loopPass >= loopTarget) bumpShadow(1);
+        if (autoPlay && queue.length) {
+          loopPass = 1;
+          playAt(qIndex + 1);
+        } else {
+          $("btnPlay").textContent = "▶ 開始連播";
+        }
       }
     }
 
@@ -449,6 +591,10 @@
         } catch (__) {}
       }
       loadMine();
+      loadNotes();
+      applySpeedButtons();
+      applyLoopButtons();
+      renderDaily();
       renderCreators();
       renderMenu();
       $("statusLine").textContent = "種子 " + ((catalog.clips || []).length) + " 則 · 我的匯入 " + mine.length + " 則";
@@ -460,6 +606,50 @@
         document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b === btn));
         renderMenu();
       });
+    });
+
+    document.querySelectorAll("#speedRow button[data-speed]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        playSpeed = Number(btn.dataset.speed) || 1;
+        localStorage.setItem(SPEED_KEY, String(playSpeed));
+        applySpeedButtons();
+        setPlaybackRate();
+        toast("語速 " + playSpeed + "×");
+      });
+    });
+
+    document.querySelectorAll("#loopRow button[data-loop]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        loopTarget = Number(btn.dataset.loop) || 1;
+        localStorage.setItem(LOOP_KEY, String(loopTarget));
+        loopPass = 1;
+        applyLoopButtons();
+        toast(loopTarget <= 1 ? "播完換下一則" : ("跟讀循環 ×" + loopTarget));
+      });
+    });
+
+    $("btnSaveTakeaway").addEventListener("click", () => {
+      const id = currentId || $("clipSelect").value;
+      const text = ($("takeawayBox").value || "").trim();
+      if (!id) { toast("請先播放或選擇一則"); return; }
+      if (!text) { toast("請先寫下一句收穫"); return; }
+      notes[id] = text;
+      saveNotes();
+      const clip = findClip(id);
+      if (clip && clip.source === "mine") {
+        clip.takeaway = text;
+        saveMine();
+      }
+      bumpShadow(0);
+      toast("已儲存一句收穫");
+      if (clip) {
+        $("nowMeta").textContent = (clip.creator || "") + " · 已存收穫 · 跟讀 " + loopPass + "／" + loopTarget;
+      }
+    });
+
+    $("btnMarkShadow").addEventListener("click", () => {
+      bumpShadow(1);
+      toast("今日跟讀 +1");
     });
 
     $("searchBox").addEventListener("input", () => {
@@ -478,8 +668,8 @@
     $("btnPlaySelected").addEventListener("click", playSelected);
     $("clipSelect").addEventListener("change", playSelected);
     $("clipSelect").addEventListener("input", playSelected);
-    $("btnPrev").addEventListener("click", () => playAt(qIndex - 1));
-    $("btnNext").addEventListener("click", () => playAt(qIndex + 1));
+    $("btnPrev").addEventListener("click", () => { loopPass = 1; playAt(qIndex - 1); });
+    $("btnNext").addEventListener("click", () => { loopPass = 1; playAt(qIndex + 1); });
     $("btnPlay").addEventListener("click", () => {
       if (!player) {
         if (queue.length) playAt(qIndex);
@@ -493,6 +683,7 @@
         $("btnPlay").textContent = "▶ 開始連播";
       } else {
         autoPlay = true;
+        setPlaybackRate();
         if (st === YT.PlayerState.PAUSED) player.playVideo();
         else if (queue.length) playAt(qIndex);
         else playSelected();
@@ -510,7 +701,7 @@
 
     loadCatalog();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=1").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
