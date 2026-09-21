@@ -596,7 +596,7 @@
       if(cueTimer){ clearInterval(cueTimer); cueTimer=null; }
       if(overlayTimer){ clearInterval(overlayTimer); overlayTimer=null; }
       cueList=[]; cueIdx=0; cueSpeaking=false; keepMutedForCues=false; lastOverlayKey="";
-      cueClockStartMs=0; cueClockBaseSec=0; cueSource="";
+      cueClockStartMs=0; cueClockBaseSec=0; cueSource=""; cueSpeakGen+=1;
     }
 
     function effectiveCueTime(){
@@ -860,11 +860,14 @@
       if($("modeStatus")) $("modeStatus").textContent="本支內容旁白說完，影片續播／接下支";
     }
 
+    let cueSpeakGen=0;
+
     function speakCueAt(idx){
       const cue=cueList[idx];
       if(!cue) return;
       const text=(cue.zh||cue.en||"").trim();
       if(!text){ cueIdx=idx+1; return; }
+      const gen=++cueSpeakGen;
       cueSpeaking=true;
       cueIdx=idx;
       paintOverlayCue(cue);
@@ -874,7 +877,7 @@
       cueClockStartMs=Date.now();
       let finished=false;
       const done=()=>{
-        if(finished) return;
+        if(finished || gen!==cueSpeakGen) return;
         finished=true;
         cueSpeaking=false;
         cueIdx=idx+1;
@@ -886,19 +889,22 @@
           finishCueNarration();
         }
       };
-      // 每段至少停留數秒，方便讀字幕；有人聲則說完再換
-      const minHold=Math.min(10000, Math.max(4500, text.length*160));
-      const holdTimer=setTimeout(done, minHold);
-      if(!window.speechSynthesis){
-        // 無人聲時只靠計時換段
-        return;
-      }
-      speakDub(text,"zh",()=>{
-        // 人聲結束若早於最短停留，等到 holdTimer；若較晚則立刻換段
-        const elapsed=Date.now()-cueClockStartMs;
-        if(elapsed>=minHold-200){ clearTimeout(holdTimer); done(); }
-        // else: wait for holdTimer
-      },{keepMuted:true});
+      const minHold=Math.min(10000, Math.max(5000, text.length*170));
+      setTimeout(done, minHold);
+      if(!window.speechSynthesis) return;
+      // 人聲僅輔助；換段只由本段 gen 的計時器控制，避免 cancel 造成跳段
+      try{
+        unlockTts();
+        if(player){ try{ if(player.mute) player.mute(); }catch(_){} }
+        keepMutedForCues=true;
+        const u=new SpeechSynthesisUtterance(text);
+        u.lang="zh-TW";
+        const voice=pickVoice("zh"); if(voice) u.voice=voice;
+        u.rate=Math.max(0.6,Math.min(1.8,ttsSpeed));
+        try{ speechSynthesis.resume(); }catch(_){}
+        speechSynthesis.speak(u);
+        setVoiceOk("中聲旁白中 · "+ttsSpeed+"×");
+      }catch(_){}
     }
 
     async function resolveContentCues(clip){
