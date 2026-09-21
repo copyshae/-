@@ -588,11 +588,29 @@
     let cueIdx=0;
     let cueSpeaking=false;
     let lastOverlayKey="";
+    let cueClockStartMs=0;
+    let cueClockBaseSec=0;
+    let cueSource=""; // live|bundle|script
 
     function stopCueNarration(){
       if(cueTimer){ clearInterval(cueTimer); cueTimer=null; }
       if(overlayTimer){ clearInterval(overlayTimer); overlayTimer=null; }
       cueList=[]; cueIdx=0; cueSpeaking=false; keepMutedForCues=false; lastOverlayKey="";
+      cueClockStartMs=0; cueClockBaseSec=0; cueSource="";
+    }
+
+    function effectiveCueTime(){
+      let t=0;
+      try{ if(player) t=player.getCurrentTime()||0; }catch(_){}
+      // 影片時間幾乎不動時（嵌入受限），用牆鐘推進內容字幕／旁白
+      if(cueClockStartMs && contNarrate){
+        const wall=cueClockBaseSec+((Date.now()-cueClockStartMs)/1000);
+        if(t < 1.2 && wall > 2) return wall;
+        // 影片正常播放時仍以影片時間為準
+        if(t >= 1.2) return t;
+        return Math.max(t, wall);
+      }
+      return t;
     }
 
     function fullZhScript(clip){
@@ -792,9 +810,8 @@
     function startOverlaySync(){
       if(overlayTimer) clearInterval(overlayTimer);
       overlayTimer=setInterval(()=>{
-        if(!player || !cueList.length) return;
-        let t=0;
-        try{ t=player.getCurrentTime()||0; }catch(_){ return; }
+        if(!cueList.length) return;
+        const t=effectiveCueTime();
         paintOverlayCue(cueAtTime(t));
       }, 180);
     }
@@ -802,38 +819,69 @@
     function startCueSync(){
       if(cueTimer) clearInterval(cueTimer);
       keepMutedForCues=!!contNarrate;
+      cueClockStartMs=Date.now();
+      try{ cueClockBaseSec=player&&player.getCurrentTime? (player.getCurrentTime()||0):0; }catch(_){ cueClockBaseSec=0; }
       startOverlaySync();
       cueTimer=setInterval(()=>{
-        if(!contNarrate || !player || !cueList.length) return;
+        if(!contNarrate || !cueList.length) return;
         if(cueSpeaking || (window.speechSynthesis && speechSynthesis.speaking)) return;
-        let t=0;
-        try{ t=player.getCurrentTime()||0; }catch(_){ return; }
-        // 依目前播放時間對齊該唸的段（影片超前就跳段，不卡在舊段）
-        let i=0;
-        while(i<cueList.length && cueList[i].end < t-0.2) i++;
-        cueIdx=i;
-        const cue=cueList[cueIdx];
-        if(!cue){
-          keepMutedForCues=false;
-          try{ if(player&&player.unMute) player.unMute(); }catch(_){}
-          dubbing=false;
-          if($("modeStatus")) $("modeStatus").textContent="本支內容旁白說完，影片續播／接下支";
+        const t=effectiveCueTime();
+
+        if(cueSource==="live"){
+          // 原片字幕：嚴格跟影片時間
+          let i=0;
+          while(i<cueList.length && cueList[i].end < t-0.2) i++;
+          cueIdx=i;
+          const cue=cueList[cueIdx];
+          if(!cue){ finishCueNarration(); return; }
+          if(t+0.35 < cue.start) return;
+          speakCueAt(cueIdx);
           return;
         }
-        if(t+0.25 < cue.start) return;
-        const text=(cue.zh||cue.en||"").trim();
-        if(!text){ cueIdx++; return; }
-        cueSpeaking=true;
-        const idx=cueIdx;
-        paintOverlayCue(cue);
-        if($("voiceTranslated")) $("voiceTranslated").value=text;
-        if($("modeStatus")) $("modeStatus").textContent="內容旁白連說中（第 "+(idx+1)+"／"+cueList.length+" 段）";
-        speakDub(text,"zh",()=>{
-          cueSpeaking=false;
-          // 說完後若影片已超過下一段，下一輪 interval 會自動跳齊
-          if(cueIdx===idx) cueIdx=idx+1;
-        },{keepMuted:true});
+
+        // 內容包／腳本：連續逐段說完（不卡在主題一句，也不死等片長）
+        if(cueIdx>=cueList.length){ finishCueNarration(); return; }
+        speakCueAt(cueIdx);
       }, 200);
+    }
+
+    function finishCueNarration(){
+      keepMutedForCues=false;
+      try{ if(player&&player.unMute) player.unMute(); }catch(_){}
+      dubbing=false;
+      if($("modeStatus")) $("modeStatus").textContent="本支內容旁白說完，影片續播／接下支";
+    }
+
+    function speakCueAt(idx){
+      const cue=cueList[idx];
+      if(!cue) return;
+      const text=(cue.zh||cue.en||"").trim();
+      if(!text){ cueIdx=idx+1; return; }
+      cueSpeaking=true;
+      cueIdx=idx;
+      paintOverlayCue(cue);
+      if($("voiceTranslated")) $("voiceTranslated").value=text;
+      if($("modeStatus")) $("modeStatus").textContent="內容旁白連說中（第 "+(idx+1)+"／"+cueList.length+" 段）· 非只唸主題";
+      cueClockBaseSec=cue.start;
+      cueClockStartMs=Date.now();
+      let finished=false;
+      const done=()=>{
+        if(finished) return;
+        finished=true;
+        cueSpeaking=false;
+        cueIdx=idx+1;
+        if(cueList[cueIdx]){
+          cueClockBaseSec=cueList[cueIdx].start;
+          cueClockStartMs=Date.now();
+          paintOverlayCue(cueList[cueIdx]);
+        } else {
+          finishCueNarration();
+        }
+      };
+      // 人聲失敗／環境無 TTS 時仍用時間推進字幕段
+      const fallbackMs=Math.min(12000, Math.max(3500, text.length*180));
+      const fb=setTimeout(done, fallbackMs);
+      speakDub(text,"zh",()=>{ clearTimeout(fb); done(); },{keepMuted:true});
     }
 
     async function resolveContentCues(clip){
@@ -878,15 +926,16 @@
       const resolved=await resolveContentCues(clip);
       if(my!==narrateToken) return;
       const zhCues=resolved.cues||[];
+      cueSource=resolved.source||"";
       if(zhCues.length>=2){
         cueList=zhCues; cueIdx=0;
         if($("voiceTranslated")) $("voiceTranslated").value=zhCues.map((x)=>x.zh||x.en).join(" ");
         const label=resolved.source==="live"?"原片字幕翻譯":(resolved.source==="bundle"?"內容分段字幕":"腳本分段");
         if($("modeStatus")) $("modeStatus").textContent=label+"對時連說中（"+zhCues.length+" 段）· 影片持續播放";
         toast(label+"：連續中文字幕／人聲");
-        // 先短暫開場一句，再進入對時跟讀
-        const intro=(zhCues[0]&&(zhCues[0].zh||zhCues[0].en))||script;
         keepMutedForCues=true;
+        cueClockStartMs=Date.now();
+        cueClockBaseSec=0;
         startOverlaySync();
         paintOverlayCue(zhCues[0]);
         speakDub("開始跟讀本支內容。","zh",()=>{ if(my===narrateToken) startCueSync(); },{keepMuted:true});
