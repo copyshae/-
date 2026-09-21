@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
   <meta name="description" content="匯入 YouTube 學 Cursor：由淺入深；中英字幕與中文人聲旁白。" />
-  <link rel="manifest" href="manifest.json?v=4" />
+  <link rel="manifest" href="manifest.json?v=5" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
@@ -39,14 +39,14 @@
     .row-btns button:disabled{opacity:.45;cursor:not-allowed}
     .player-shell{margin-top:.55rem;aspect-ratio:16/9;background:#122033;border-radius:.45rem;overflow:hidden;position:relative}
     #player{width:100%;height:100%}
-    .sub-overlay{display:none;position:absolute;left:0;right:0;bottom:0;z-index:3;padding:.55rem .65rem .7rem;background:linear-gradient(transparent,rgba(0,0,0,.78));pointer-events:none;text-align:center}
+    .sub-overlay{display:none;position:absolute;left:0;right:0;bottom:0;z-index:3;padding:.7rem .75rem .85rem;background:linear-gradient(transparent,rgba(0,0,0,.88));pointer-events:none;text-align:center}
     .sub-overlay.on{display:block}
-    .sub-overlay .en{color:#fff;font-size:.9rem;font-weight:700;text-shadow:0 1px 3px #000}
-    .sub-overlay .zh{color:#b8f3ea;font-size:.82rem;font-weight:600;margin-top:.15rem;text-shadow:0 1px 3px #000}
-    .sub-overlay .sub-hint{color:rgba(255,255,255,.75);font-size:.7rem;margin-top:.2rem}
-    .now strong{font-size:.92rem}
+    .sub-overlay .en{color:#fff;font-size:clamp(1.05rem,3.8vw,1.35rem);font-weight:700;text-shadow:0 2px 4px #000;line-height:1.35}
+    .sub-overlay .zh{color:#c6ffe9;font-size:clamp(1.25rem,5.2vw,1.75rem);font-weight:800;margin-top:.25rem;text-shadow:0 2px 5px #000;line-height:1.35}
+    .sub-overlay .sub-hint{color:rgba(255,255,255,.82);font-size:clamp(.78rem,2.8vw,.95rem);margin-top:.28rem;font-weight:600}
+    .now strong{font-size:1.05rem}
     .meta{font-size:.75rem;color:var(--muted);margin-top:.2rem}
-    .zh-sum{margin-top:.35rem;padding:.5rem .6rem;background:rgba(31,111,120,.08);border-radius:.35rem;font-size:.84rem}
+    .zh-sum{margin-top:.35rem;padding:.65rem .7rem;background:rgba(31,111,120,.1);border-radius:.4rem;font-size:clamp(1rem,3.6vw,1.2rem);font-weight:700;line-height:1.45;color:var(--ink)}
     .opt-row{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin-top:.45rem}
     .opt-row .lbl{font-size:.75rem;color:var(--muted)}
     .opt-row button{font:inherit;font-size:.74rem;padding:.35rem .5rem;border-radius:.3rem;border:1px solid var(--line);background:#fff;cursor:pointer}
@@ -70,7 +70,7 @@
 <body>
   <div class="wrap">
     <h1 class="brand">Cursor 學習平台</h1>
-    <p class="sub">YouTube 匯入學習 · 由淺入深 · 中英字幕／中文人聲</p>
+    <p class="sub">只收 Cursor 相關 YouTube · 由淺入深 · 大字中文字幕</p>
 
     <section class="home-card">
       <img src="icon-192.png" width="192" height="192" alt="Cursor 學習平台圖示" />
@@ -89,10 +89,10 @@
     </div>
 
     <section class="card">
-      <h2 class="section">匯入 YouTube 影片</h2>
-      <p class="meta">貼連結即可（可多行）。種子片已排：初階→中階→進階。</p>
-      <label class="picker-label" for="importUrl">YouTube 連結</label>
-      <textarea id="importUrl" placeholder="https://www.youtube.com/watch?v=…"></textarea>
+      <h2 class="section">匯入 Cursor 相關 YouTube</h2>
+      <p class="meta">只收標題含「Cursor」的教學片（可多行）。種子清單已由淺入深排好。</p>
+      <label class="picker-label" for="importUrl">YouTube 連結（須為 Cursor 相關）</label>
+      <textarea id="importUrl" placeholder="https://www.youtube.com/watch?v=…（標題需含 Cursor）"></textarea>
       <div class="row-btns">
         <button type="button" id="btnImport">匯入並加入清單</button>
         <button type="button" class="secondary" id="btnClearMine">清除我的匯入</button>
@@ -115,7 +115,7 @@
         <button type="button" data-level="mine">我的匯入</button>
       </div>
       <label class="picker-label" for="searchQ">搜尋</label>
-      <input type="search" id="searchQ" placeholder="標題、創作者、中文摘要…" />
+      <input type="search" id="searchQ" placeholder="搜尋：Cursor、Rules、Agent、資料科學…" />
       <label class="picker-label" for="clipSelect">選擇影片（選好即播）</label>
       <select id="clipSelect"><option value="">— 載入中 —</option></select>
       <div class="row-btns three">
@@ -278,7 +278,7 @@
     }
     function matchSearch(c,q){
       if(!q) return true;
-      const blob=[c.name,c.title,c.creator,c.note,c.zhSummary,c.url].join(" ").toLowerCase();
+      const blob=[c.name,c.title,c.creator,c.note,c.zhSummary,c.category,c.url].concat(c.tags||[]).join(" ").toLowerCase();
       return q.split(/\s+/).every((w)=>!w||blob.includes(w));
     }
     function filteredClips(){
@@ -361,15 +361,27 @@
       const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"中英字幕"};
       const overlay=$("subOverlay");
       if(captionMode==="off"){ overlay.classList.remove("on"); $("captionStatus").textContent="字幕：關"; }
-      else { overlay.classList.add("on"); $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+"（依影片是否提供字幕軌）"; }
+      else { overlay.classList.add("on"); $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+"（讀取原片字幕並翻中文；中文為放大字）"; }
       updateSubOverlayHint();
     }
     function updateSubOverlayHint(){
       const en=$("subEn"), zh=$("subZh"), hint=$("subHint");
+      const clip=currentId?findClip(currentId):null;
+      const zhLine=(clip&&(clip.zhSummary||clip.note))||"";
       if(captionMode==="off"){ en.textContent=""; zh.textContent=""; hint.textContent=""; return; }
-      if(captionMode==="zh"){ en.textContent=""; zh.textContent="中文字幕模式"; hint.textContent="已請播放器開中文／自動翻譯字幕"; }
-      else if(captionMode==="en"){ en.textContent="English captions"; zh.textContent=""; hint.textContent="已請播放器開英文字幕"; }
-      else { en.textContent="English"; zh.textContent="中文"; hint.textContent="雙語：英文＋中文翻譯（依影片支援）"; }
+      if(captionMode==="zh"){
+        en.textContent="";
+        zh.textContent=zhLine||"中文字幕（讀取原片字幕並翻成中文）";
+        hint.textContent="已請播放器讀取原片字幕→翻成中文；上方為放大中文輔助";
+      } else if(captionMode==="en"){
+        en.textContent=clip?(clip.title||clip.name||"English captions"):"English captions";
+        zh.textContent="";
+        hint.textContent="已請播放器開啟英文字幕";
+      } else {
+        en.textContent=clip?(clip.title||"English"):"English";
+        zh.textContent=zhLine||"中文對照";
+        hint.textContent="中英對照：原片英文字幕＋放大中文輔助／自動翻譯";
+      }
     }
     function applyCaptions(){
       clearTimeout(captionRetryTimer); updateSubOverlayHint();
@@ -527,6 +539,7 @@
       $("nowTitle").textContent=clip.name||clip.title||vid;
       $("nowMeta").textContent=(clip.source==="mine"?"我的匯入":levelLabel(clipLevel(clip)))+" · "+(clip.creator||"")+(done[clip.id]?" · 已看完":"");
       $("zhSum").textContent=clip.zhSummary||clip.note||"（此則尚無中文摘要，可自行對翻標題）";
+      updateSubOverlayHint();
       $("noteBox").value=notes[clip.id]||"";
       $("clipSelect").value=clip.id;
       $("btnMarkDone").textContent=done[clip.id]?"取消已看完":"標記已看完";
@@ -562,19 +575,22 @@
     async function importLinks(){
       const lines=($("importUrl").value||"").split(/\n+/).map((x)=>x.trim()).filter(Boolean);
       if(!lines.length){ $("importStatus").textContent="請先貼上 YouTube 連結"; return; }
-      let added=0,skipped=0;
+      let added=0,skipped=0,rejected=0;
       for(const line of lines){
         const vid=parseYouTubeId(line); if(!vid){ skipped++; continue; }
         if(allClips().some((m)=>m.videoId===vid||(m.url||"").includes(vid))){ skipped++; continue; }
         const meta=await fetchOEmbedTitle(vid);
-        const title=(meta&&meta.title)||("YouTube "+vid);
+        const title=(meta&&meta.title)||("");
         const author=(meta&&meta.author)||"我的匯入";
-        mine.unshift({id:"mine_"+vid,name:title,title,creator:author,category:"mine",platform:"youtube",url:"https://www.youtube.com/watch?v="+vid,videoId:vid,source:"mine",level:2,levelName:"中階",note:"自行匯入",zhSummary:"自行匯入的影片（可用對翻／中聲輔助）",importedAt:Date.now()});
+        const blob=(title+" "+author+" "+line).toLowerCase();
+        if(blob.indexOf("cursor")===-1){ rejected++; continue; }
+        const name=title||("Cursor 影片 "+vid);
+        mine.unshift({id:"mine_"+vid,name:name,title:name,creator:author,category:"mine",tags:["Cursor","我的匯入"],platform:"youtube",url:"https://www.youtube.com/watch?v="+vid,videoId:vid,source:"mine",level:2,levelName:"中階",note:"自行匯入（Cursor 相關）",zhSummary:"自行匯入的 Cursor 相關影片（可用對翻／中聲輔助）",importedAt:Date.now()});
         added++;
       }
       saveMine(); $("importUrl").value=""; levelFilter="mine"; syncFilterButtons(); renderMenu();
-      $("importStatus").textContent="匯入完成：新增 "+added+" 則"+(skipped?"，略過 "+skipped:"");
-      toast("已匯入 "+added+" 則");
+      $("importStatus").textContent="匯入完成：新增 "+added+" 則"+(skipped?"，略過重複／無效 "+skipped:"")+(rejected?"，非 Cursor 相關已拒收 "+rejected:"");
+      toast(added?"已匯入 "+added+" 則":(rejected?"只收 Cursor 相關影片":"沒有新增"));
       if(added&&mine[0]) playClip(mine[0],{auto:true});
     }
 
@@ -650,7 +666,7 @@
       if(window._pendingPlay){ const c=findClip(window._pendingPlay); if(c) playClip(c,{auto:true}); window._pendingPlay=null; }
     };
     loadCatalog();
-    if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=4").catch(()=>{});
+    if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=5").catch(()=>{});
   })();
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>

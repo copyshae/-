@@ -2,7 +2,7 @@
   "id": "/-/cursor-learn/",
   "name": "Cursor 學習平台",
   "short_name": "Cursor學習",
-  "description": "匯入 YouTube 學 Cursor：由淺入深，中英字幕與中文人聲旁白。",
+  "description": "只收錄 Cursor 相關 YouTube 教學：由淺入深，放大中文字幕與中文人聲。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
