@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
-  <meta name="description" content="匯入 YouTube 學 Cursor：由淺入深；中英字幕與中文人聲旁白。" />
-  <link rel="manifest" href="manifest.json?v=5" />
+  <meta name="description" content="看 Cursor 相關 YouTube 影片學習：縮圖點選即播，由淺入深。" />
+  <link rel="manifest" href="manifest.json?v=6" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
@@ -63,6 +63,18 @@
     .status.err{color:#b33}.status.ok{color:var(--ok)}
     .tips-list{margin:.4rem 0 0;padding-left:1.1rem;font-size:.78rem;color:var(--muted)}
     .tips-list li{margin:.28rem 0}.tips-list strong{color:var(--ink)}
+
+    .video-grid{display:grid;gap:.55rem;margin-top:.55rem}
+    .vcard{display:grid;grid-template-columns:7.2rem 1fr;gap:.55rem;align-items:center;width:100%;text-align:left;padding:.45rem;border:1px solid var(--line);border-radius:.45rem;background:#fff;cursor:pointer;font:inherit;color:inherit}
+    .vcard.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(31,111,120,.25)}
+    .vcard img{width:7.2rem;height:4.05rem;object-fit:cover;border-radius:.3rem;background:#123}
+    .vcard .vt{font-size:.86rem;font-weight:700;line-height:1.3}
+    .vcard .vm{font-size:.72rem;color:var(--muted);margin-top:.2rem}
+    .vcard .vl{display:inline-block;font-size:.68rem;font-weight:700;color:var(--accent);background:rgba(31,111,120,.1);padding:.1rem .35rem;border-radius:999px;margin-top:.25rem}
+    details.tools{margin-top:.75rem;padding:.65rem .75rem;background:var(--card);border:1px solid var(--line);border-radius:.55rem}
+    details.tools>summary{cursor:pointer;font-weight:700;color:var(--accent);font-size:.9rem}
+    .player-card{margin-top:.65rem;padding:.65rem;background:var(--card);border:1px solid var(--line);border-radius:.55rem}
+    .player-shell{margin-top:0;aspect-ratio:16/9;background:#122033;border-radius:.45rem;overflow:hidden;position:relative}
     .toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);background:rgba(20,32,51,.92);color:#fff;padding:.55rem .9rem;border-radius:999px;font-size:.82rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
     .toast.show{opacity:1}
   </style>
@@ -70,62 +82,19 @@
 <body>
   <div class="wrap">
     <h1 class="brand">Cursor 學習平台</h1>
-    <p class="sub">只收 Cursor 相關 YouTube · 由淺入深 · 大字中文字幕</p>
+    <p class="sub">看 YouTube 影片學 Cursor · 點縮圖即播 · 由淺入深</p>
 
     <section class="home-card">
       <img src="icon-192.png" width="192" height="192" alt="Cursor 學習平台圖示" />
       <div>
         <p><strong>主畫面圖示：Cursor學習</strong></p>
-        <p>英文不好也能學：先開中文字幕或中聲旁白</p>
+        <p>下面直接選影片播放</p>
         <button type="button" class="install-btn" id="btnInstallHome">加入主畫面</button>
         <a class="install-btn" href="./share.html" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.25rem">圖文說明</a>
       </div>
     </section>
 
-    <div class="progress-wrap">
-      <div class="meta">已看完進度（本機）</div>
-      <div class="bar"><i id="progFill"></i></div>
-      <div class="pct" id="progText">0／0</div>
-    </div>
-
-    <section class="card">
-      <h2 class="section">匯入 Cursor 相關 YouTube</h2>
-      <p class="meta">只收標題含「Cursor」的教學片（可多行）。種子清單已由淺入深排好。</p>
-      <label class="picker-label" for="importUrl">YouTube 連結（須為 Cursor 相關）</label>
-      <textarea id="importUrl" placeholder="https://www.youtube.com/watch?v=…（標題需含 Cursor）"></textarea>
-      <div class="row-btns">
-        <button type="button" id="btnImport">匯入並加入清單</button>
-        <button type="button" class="secondary" id="btnClearMine">清除我的匯入</button>
-      </div>
-      <p class="status" id="importStatus"></p>
-    </section>
-
-    <section class="card">
-      <h2 class="section">推薦頻道</h2>
-      <div class="chips" id="creatorChips"></div>
-    </section>
-
-    <section class="card">
-      <h2 class="section">影片選單 <span id="listCount" style="font-weight:400;font-size:.78rem;color:var(--muted)"></span></h2>
-      <div class="filter-row" id="levelFilterRow">
-        <button type="button" class="active" data-level="all">全部</button>
-        <button type="button" data-level="1">初階</button>
-        <button type="button" data-level="2">中階</button>
-        <button type="button" data-level="3">進階</button>
-        <button type="button" data-level="mine">我的匯入</button>
-      </div>
-      <label class="picker-label" for="searchQ">搜尋</label>
-      <input type="search" id="searchQ" placeholder="搜尋：Cursor、Rules、Agent、資料科學…" />
-      <label class="picker-label" for="clipSelect">選擇影片（選好即播）</label>
-      <select id="clipSelect"><option value="">— 載入中 —</option></select>
-      <div class="row-btns three">
-        <button type="button" id="btnPrev" disabled>◀ 上一則</button>
-        <button type="button" id="btnPlay">▶ 開始連播</button>
-        <button type="button" id="btnNext">下一則 ▶</button>
-      </div>
-    </section>
-
-    <section class="card">
+    <section class="player-card" aria-label="影片播放器">
       <div class="player-shell">
         <div id="player"></div>
         <div class="sub-overlay" id="subOverlay">
@@ -135,13 +104,17 @@
         </div>
       </div>
       <div class="now" style="margin-top:.45rem">
-        <strong id="nowTitle">尚未選片</strong>
-        <p class="meta" id="nowMeta">請選一則或匯入連結</p>
-        <div class="zh-sum" id="zhSum">選片後會顯示中文學習摘要</div>
+        <strong id="nowTitle">載入影片中…</strong>
+        <p class="meta" id="nowMeta">點下方縮圖即可播放</p>
+        <div class="zh-sum" id="zhSum">選片後顯示中文摘要</div>
       </div>
-
+      <div class="row-btns three">
+        <button type="button" id="btnPrev" disabled>◀ 上一則</button>
+        <button type="button" id="btnPlay">▶ 播放</button>
+        <button type="button" id="btnNext">下一則 ▶</button>
+      </div>
       <div class="opt-row" id="speedRow">
-        <span class="lbl">影片語速</span>
+        <span class="lbl">語速</span>
         <button type="button" data-speed="0.75">0.75×</button>
         <button type="button" data-speed="1" class="chip-on">1×</button>
         <button type="button" data-speed="1.25">1.25×</button>
@@ -150,30 +123,70 @@
       <div class="opt-row" id="captionRow">
         <span class="lbl">字幕</span>
         <button type="button" data-caption="off">關</button>
-        <button type="button" data-caption="zh" class="chip-on">中文字幕</button>
-        <button type="button" data-caption="en">英文字幕</button>
-        <button type="button" data-caption="dual">中英字幕</button>
+        <button type="button" data-caption="zh" class="chip-on">中文大字</button>
+        <button type="button" data-caption="en">英文</button>
+        <button type="button" data-caption="dual">中英</button>
       </div>
-      <p class="status" id="captionStatus">預設中文字幕（英文不好可先用這個）</p>
+      <p class="status" id="captionStatus">預設中文大字字幕</p>
+      <div class="row-btns">
+        <button type="button" id="btnMarkDone">標記已看完</button>
+        <button type="button" class="secondary" id="btnOpenYt">在 YouTube 開啟</button>
+      </div>
+    </section>
 
-      <h2 class="section" style="margin-top:.85rem">中英對翻／人聲旁白</h2>
-      <p class="meta">英文片聽不懂：貼重點或用摘要 →「文字→中聲」用中文聽懂。</p>
-      <label class="picker-label" for="voiceScript">原文（英／中皆可）</label>
-      <textarea id="voiceScript" placeholder="可貼英文句子，或用下方「帶入中文摘要」"></textarea>
-      <label class="picker-label" for="voiceTranslated">對翻結果</label>
-      <textarea id="voiceTranslated" placeholder="譯文會出現在這裡"></textarea>
+    <div class="progress-wrap">
+      <div class="meta">已看完進度（本機）</div>
+      <div class="bar"><i id="progFill"></i></div>
+      <div class="pct" id="progText">0／0</div>
+    </div>
+
+    <section class="card" aria-label="影片清單">
+      <h2 class="section">Cursor 影片 <span id="listCount" style="font-weight:400;font-size:.78rem;color:var(--muted)"></span></h2>
+      <div class="filter-row" id="levelFilterRow">
+        <button type="button" class="active" data-level="all">全部</button>
+        <button type="button" data-level="1">初階</button>
+        <button type="button" data-level="2">中階</button>
+        <button type="button" data-level="3">進階</button>
+        <button type="button" data-level="mine">我的匯入</button>
+      </div>
+      <label class="picker-label" for="searchQ">搜尋影片</label>
+      <input type="search" id="searchQ" placeholder="Cursor、Rules、Agent…" />
+      <select id="clipSelect" hidden aria-hidden="true"><option value="">—</option></select>
+      <div class="video-grid" id="videoGrid"></div>
+    </section>
+
+    <details class="tools">
+      <summary>匯入更多 Cursor 影片</summary>
+      <p class="meta" style="margin-top:.4rem">標題須含 Cursor。可貼多行連結。</p>
+      <label class="picker-label" for="importUrl">YouTube 連結</label>
+      <textarea id="importUrl" placeholder="https://www.youtube.com/watch?v=…"></textarea>
+      <div class="row-btns">
+        <button type="button" id="btnImport">匯入並播放</button>
+        <button type="button" class="secondary" id="btnClearMine">清除我的匯入</button>
+      </div>
+      <p class="status" id="importStatus"></p>
+      <div class="chips" id="creatorChips" style="margin-top:.5rem"></div>
+    </details>
+
+    <details class="tools">
+      <summary>聽不懂英文？對翻／中聲旁白</summary>
+      <p class="meta" style="margin-top:.4rem">把英文句子翻成中文並朗讀；也可朗讀中文摘要。</p>
+      <label class="picker-label" for="voiceScript">原文</label>
+      <textarea id="voiceScript" placeholder="貼英文或中文"></textarea>
+      <label class="picker-label" for="voiceTranslated">譯文</label>
+      <textarea id="voiceTranslated"></textarea>
       <div class="copy-row">
         <button type="button" id="btnCopySrc">複製原文</button>
         <button type="button" id="btnCopyTgt">複製譯文</button>
-        <button type="button" id="btnSwapText">原文⇄譯文</button>
+        <button type="button" id="btnSwapText">對調</button>
       </div>
       <div class="row-btns three">
-        <button type="button" id="btnTextToEn">文字→英聲</button>
-        <button type="button" id="btnTextToZh">文字→中聲</button>
+        <button type="button" id="btnTextToEn">→英聲</button>
+        <button type="button" id="btnTextToZh">→中聲</button>
         <button type="button" id="btnAutoFlip">自動對翻</button>
       </div>
       <div class="row-btns">
-        <button type="button" class="secondary" id="btnLoadZhSum">帶入中文摘要並朗讀</button>
+        <button type="button" class="secondary" id="btnLoadZhSum">朗讀中文摘要</button>
         <button type="button" class="secondary" id="btnVoiceOrig">恢復原片聲音</button>
       </div>
       <label class="picker-label" for="voiceZhSelect">中文人聲</label>
@@ -191,32 +204,23 @@
         <button type="button" id="btnVoiceZh">再念中聲</button>
         <button type="button" id="btnVoiceEn">再念英聲</button>
       </div>
-      <p class="status" id="voiceStatus">建議：英文片先按「帶入中文摘要並朗讀」</p>
-
-      <div class="row-btns" style="margin-top:.65rem">
-        <button type="button" id="btnMarkDone">標記已看完</button>
-        <button type="button" class="secondary" id="btnOpenYt">在 YouTube 開啟</button>
-      </div>
-      <label class="picker-label" for="noteBox">一句中文筆記（本機）</label>
+      <p class="status" id="voiceStatus">先播影片；需要時再打開此區</p>
+      <label class="picker-label" for="noteBox">一句中文筆記</label>
       <textarea id="noteBox" placeholder="例：Rules 要寫清楚禁止事項"></textarea>
       <button type="button" class="act secondary" id="btnSaveNote" style="width:100%;margin-top:.4rem">儲存筆記</button>
       <p class="status" id="statusLine"></p>
-    </section>
+    </details>
 
-    <section class="card">
-      <h2 class="section">英文不好怎麼學（優化建議）</h2>
+    <details class="tools">
+      <summary>使用提示</summary>
       <ol class="tips-list" id="tipsList">
-        <li><strong>預設中文字幕：</strong>進頁已開中文；仍空白就點播放器 CC，或改用「中英字幕」。</li>
-        <li><strong>先聽中文摘要：</strong>選片後按「帶入中文摘要並朗讀」，先懂這則在教什麼再看影片。</li>
-        <li><strong>只走初階→中階：</strong>別一開始就跳 Cloud Agent；清單已由淺入深。</li>
-        <li><strong>聽不懂就降速：</strong>影片 0.75×；旁白語速可另調。</li>
-        <li><strong>一句筆記制：</strong>每則只寫一句中文收穫，比硬啃全文有效。</li>
-        <li><strong>英文句子→中聲：</strong>看到重要英文句貼進原文框，按「文字→中聲」。</li>
-        <li><strong>恢復原聲：</strong>旁白時會靜音原片；聽完按「恢復原片聲音」。</li>
+        <li><strong>先看影片：</strong>點縮圖即播，清單已由淺入深。</li>
+        <li><strong>中文大字：</strong>預設開啟；也可切中英／英文。</li>
+        <li><strong>聽不懂：</strong>打開「對翻／中聲旁白」。</li>
       </ol>
-    </section>
+    </details>
   </div>
-  <div class="toast" id="toast"></div>
+<div class="toast" id="toast"></div>
 
   <script>
   (function () {
@@ -321,17 +325,29 @@
       if(!tips||!tips.length) return;
       $("tipsList").innerHTML=tips.map((t)=>"<li>"+esc(t)+"</li>").join("");
     }
+    function thumbUrl(c){
+      const vid=c.videoId||parseYouTubeId(c.url)||"";
+      return vid?("https://i.ytimg.com/vi/"+vid+"/hqdefault.jpg"):"icon-192.png";
+    }
     function renderMenu(){
       const clips=filteredClips();
-      $("listCount").textContent="共 "+clips.length+" 則（由淺→深）";
-      let html='<option value="">— 請選擇影片 —</option>', last=null;
-      clips.forEach((c)=>{
-        const lv=c.source==="mine"?"我的匯入":levelLabel(clipLevel(c));
-        if(lv!==last){ if(last!==null) html+="</optgroup>"; html+='<optgroup label="'+esc(lv)+'">'; last=lv; }
-        html+='<option value="'+esc(c.id)+'">'+(done[c.id]?"✓ ":"")+esc(c.name||c.title||c.id)+"</option>";
-      });
-      if(last!==null) html+="</optgroup>";
+      $("listCount").textContent="共 "+clips.length+" 支影片（由淺→深）";
+      let html='<option value="">—</option>';
+      clips.forEach((c)=>{ html+='<option value="'+esc(c.id)+'">'+esc(c.name||c.title||c.id)+"</option>"; });
       $("clipSelect").innerHTML=html;
+      const grid=$("videoGrid");
+      grid.innerHTML=clips.map((c)=>{
+        const lv=c.source==="mine"?"我的匯入":levelLabel(clipLevel(c));
+        const mark=done[c.id]?"✓ ":"";
+        return '<button type="button" class="vcard'+(c.id===currentId?" on":"")+'" data-id="'+esc(c.id)+'">'
+          +'<img src="'+esc(thumbUrl(c))+'" alt="" loading="lazy" />'
+          +'<div><div class="vt">'+mark+esc(c.name||c.title||c.id)+'</div>'
+          +'<div class="vm">'+esc(c.creator||"")+'</div>'
+          +'<span class="vl">'+esc(lv)+'</span></div></button>';
+      }).join("")||'<p class="meta">沒有符合的影片</p>';
+      grid.querySelectorAll(".vcard").forEach((btn)=>{
+        btn.onclick=()=>{ const c=findClip(btn.getAttribute("data-id")); if(c) playClip(c,{auto:true}); };
+      });
       try{ const lastId=localStorage.getItem(LAST_KEY); if(lastId&&clips.some((c)=>c.id===lastId)) $("clipSelect").value=lastId; }catch(_){}
       queue=clips.slice(); if(qIndex>=queue.length) qIndex=0;
       $("btnPrev").disabled=queue.length<2;
@@ -543,6 +559,7 @@
       $("noteBox").value=notes[clip.id]||"";
       $("clipSelect").value=clip.id;
       $("btnMarkDone").textContent=done[clip.id]?"取消已看完":"標記已看完";
+      document.querySelectorAll("#videoGrid .vcard").forEach((b)=>b.classList.toggle("on", b.getAttribute("data-id")===clip.id));
       if(!($("voiceScript").value||"").trim()) $("voiceScript").value=clip.zhSummary||clip.note||clip.title||"";
       autoPlay=!!opts.auto;
       if(!apiReady){ window._pendingPlay=clip.id; toast("載入播放器…"); return; }
@@ -599,7 +616,13 @@
       try{ const res=await fetch(CATALOG_URL+"?t="+Date.now(),{cache:"no-store"}); if(res.ok) catalog=await res.json(); }catch(_){}
       loadStore(); applySpeedButtons(); applyTtsSpeedButtons(); applyCaptionButtons();
       fillVoiceSelects(); renderCreators(); renderTips(); renderMenu(); renderProgress();
-      $("statusLine").textContent="種子 "+((catalog.clips||[]).length)+" 則 · 匯入 "+mine.length+" 則 · 由淺入深";
+      $("statusLine").textContent="種子 "+((catalog.clips||[]).length)+" 支影片 · 匯入 "+mine.length+" · 由淺入深";
+      // 自動選第一支（或上次）影片並準備播放
+      const clips=filteredClips();
+      let start=null;
+      try{ const last=localStorage.getItem(LAST_KEY); if(last) start=clips.find((c)=>c.id===last)||null; }catch(_){}
+      if(!start && clips.length) start=clips[0];
+      if(start) playClip(start,{auto:false});
     }
 
     // events
@@ -666,7 +689,7 @@
       if(window._pendingPlay){ const c=findClip(window._pendingPlay); if(c) playClip(c,{auto:true}); window._pendingPlay=null; }
     };
     loadCatalog();
-    if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=5").catch(()=>{});
+    if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=6").catch(()=>{});
   })();
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
