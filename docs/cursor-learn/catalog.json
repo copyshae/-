@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-21T20:20:00Z",
+  "updatedAt": "2026-09-21T20:30:00Z",
   "title": "Cursor 學習平台",
   "description": "搜尋匯入 Cursor 相關 YouTube：由淺入深；點縮圖即播；可更新清單",
   "scopeNote": "僅 Cursor 相關。按「更新清單」重新抓取並搜尋匯入。",
@@ -60,7 +60,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Cursor Composer Agent in 20 Minutes",
-      "zhSummary": "20 分鐘看懂 Composer／Agent：下指令、看 diff、修錯誤。"
+      "zhSummary": "這支用約二十分鐘帶你上手 Composer 與 Agent。",
+      "zhScript": "這支用約二十分鐘帶你上手 Composer 與 Agent。會看到怎麼下指令、檢視 diff、以及遇到錯誤怎麼修。請跟著操作一次：給一個小任務，看它改哪些檔，再自己確認結果。"
     },
     {
       "id": "yt_4IskO3BKwNY",
@@ -79,7 +80,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Cursor 101",
-      "zhSummary": "認識 Cursor 畫面與 Agent 視圖，完成第一次小改動。"
+      "zhSummary": "這支是 Cursor 官方入門。",
+      "zhScript": "這支是 Cursor 官方入門。先認識編輯器畫面與 Agent 視圖。重點是：你負責目標與驗收，AI 負責加速草稿。看完後，試著用一句話描述「要完成什麼、不要動什麼」。"
     },
     {
       "id": "yt_l30Eb76Tk5s",
@@ -98,7 +100,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Cursor 2.0 - Full Tutorial for Beginners",
-      "zhSummary": "Cursor 2.0 新手完整教學。"
+      "zhSummary": "Cursor 2.0 新手教學。",
+      "zhScript": "Cursor 2.0 新手教學。若你版本較新，仍可學其「任務拆解與驗收」思路，介面差異再對照官方文件。"
     },
     {
       "id": "yt_5DnOOa-5dTU",
@@ -117,7 +120,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Cursor 3.0 Ultimate Guide: Beginner to Pro in 60 min",
-      "zhSummary": "Cursor 3.0 從入門到進階總覽。"
+      "zhSummary": "這支從入門到進階總覽 Cursor 3.0。",
+      "zhScript": "這支從入門到進階總覽 Cursor 3.0。可當地圖用：先抓整體，再回放你最需要的段落。"
     },
     {
       "id": "yt_Tv8mLrLtyxo",
@@ -136,7 +140,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Cursor 3.0 - Full Course for Beginners",
-      "zhSummary": "Cursor 3.0 新手完整課程。"
+      "zhSummary": "Cursor 3.0 新手課程。",
+      "zhScript": "Cursor 3.0 新手課程。會涵蓋新介面與常見工作流。以「小步修改＋看 diff」為原則，避免一次大改。"
     },
     {
       "id": "yt_ocMOZpuAMw4",
@@ -155,7 +160,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Cursor Tutorial for Beginners (AI Code Editor)",
-      "zhSummary": "Cursor 新手教學：AI 程式編輯器入門。"
+      "zhSummary": "這是 Cursor 新手向教學，從安裝與基本操作開始。",
+      "zhScript": "這是 Cursor 新手向教學，從安裝與基本操作開始。先學會開專案、對話、接受或拒絕修改。不要一次丟太大任務。"
     },
     {
       "id": "yt_IsXrCBlAshg",
@@ -174,7 +180,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "How to Setup Rules in Cursor",
-      "zhSummary": "如何在 Cursor 設定 Rules。"
+      "zhSummary": "專門示範如何設定 Cursor Rules。",
+      "zhScript": "專門示範如何設定 Cursor Rules。跟著畫面逐步新增規則，並用一個小提示詞測試規則是否生效。"
     },
     {
       "id": "yt_6vtBq6TBGyo",
@@ -193,7 +200,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "How to Add Rules to Cursor AI (2026)",
-      "zhSummary": "在 Cursor 設定裡新增 Rules，讓 Agent 跟著專案習慣。"
+      "zhSummary": "這支教你在 Cursor 新增 Rules。",
+      "zhScript": "這支教你在 Cursor 新增 Rules。Rules 是給 Agent 的長期規則，例如技術棧、禁止事項、檔案風格。設定好之後，之後對話會比較穩定、少跑題。"
     },
     {
       "id": "yt_AFgKFdMkVk0",
@@ -212,7 +220,8 @@
       "level": 1,
       "levelName": "初階",
       "note": "Learn the Entire Cursor Agent in 26 Minutes!",
-      "zhSummary": "約 26 分鐘學會 Cursor Agent。"
+      "zhSummary": "約二十六分鐘把 Cursor Agent 主流程走完。",
+      "zhScript": "約二十六分鐘把 Cursor Agent 主流程走完。建議完整看一次，再重播你卡住的段落。"
     },
     {
       "id": "yt_nIK2UxECBi0",
@@ -231,7 +240,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "🔥 Complete Cursor AI Tutorial | How to Use Cursor AI | Intellipaat",
-      "zhSummary": "完整 Cursor AI 教學：怎麼開始用。"
+      "zhSummary": "完整 Cursor 教學，適合想從頭建立使用習慣的人。",
+      "zhScript": "完整 Cursor 教學，適合想從頭建立使用習慣的人。建議邊看邊在自己專案實作同一類操作，才記得以後。"
     },
     {
       "id": "yt_z4xruISaBfc",
@@ -250,7 +260,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Cursor 201",
-      "zhSummary": "把模糊需求變成可執行任務；日常開發節奏。"
+      "zhSummary": "這是 Cursor 官方進階節奏示範。",
+      "zhScript": "這是 Cursor 官方進階節奏示範。把模糊需求拆成可執行任務，再交給 Agent。重點流程：釐清目標、補上下文、小步修改、立刻驗收。"
     },
     {
       "id": "yt_8Yf9IoXkROM",
@@ -269,7 +280,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Cursor Just Unleashed GrokBot (Everything You NEED to Know)",
-      "zhSummary": "Cursor 新功能 GrokBot 重點。"
+      "zhSummary": "介紹 Cursor 相關新能力與注意事項。",
+      "zhScript": "介紹 Cursor 相關新能力與注意事項。先弄懂能做什麼、不能做什麼，再決定是否納入你的流程。"
     },
     {
       "id": "yt_eN69OLhOz2Q",
@@ -288,7 +300,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Cursor for Data Science",
-      "zhSummary": "官方示範：在 Cursor 做資料科學。"
+      "zhSummary": "官方示範如何用 Cursor 做資料科學。",
+      "zhScript": "官方示範如何用 Cursor 做資料科學。包含 Notebook、模型選擇與實際操作。重點不是取代分析判斷，而是加速寫碼與除錯。"
     },
     {
       "id": "yt_nWcEjZYeeVo",
@@ -307,7 +320,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "4 Cursor Productivity Tips!! #cursor #ai #productivity #tips #coding",
-      "zhSummary": "Cursor 生產力小技巧。"
+      "zhSummary": "幾個提升 Cursor 生產力的小技巧。",
+      "zhScript": "幾個提升 Cursor 生產力的小技巧。挑一兩個立刻用在日常，比一次學太多更有效。"
     },
     {
       "id": "yt_elEf91zKa5c",
@@ -326,7 +340,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Cursor + Jupyter Notebooks: My AI Data Analysis Workflow",
-      "zhSummary": "Cursor＋Jupyter 資料分析工作流。"
+      "zhSummary": "這支示範 Cursor 搭配 Jupyter 做資料分析。",
+      "zhScript": "這支示範 Cursor 搭配 Jupyter 做資料分析。看它如何協助整理流程、修錯誤、產生圖表程式。你仍要自己執行單元格並檢查結果。"
     },
     {
       "id": "yt_gw8otRr2zpw",
@@ -345,7 +360,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Ultimate Cursor AI IDE Rules Guide: All 5 Levels and .cursorrules (2025)",
-      "zhSummary": "Cursor Rules 五種層級一次弄懂。"
+      "zhSummary": "這支完整介紹 Cursor Rules 的多種層級，例如 always、auto、agent、manual。",
+      "zhScript": "這支完整介紹 Cursor Rules 的多種層級，例如 always、auto、agent、manual。不同規則要在對的時機生效，才不會互相干擾。看完後試著為你的專案寫一條「禁止事項」規則。"
     },
     {
       "id": "yt_pmS67mn5Y44",
@@ -364,7 +380,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Why Cursor Ditched Rules for Skills",
-      "zhSummary": "為什麼 Cursor 從 Rules 走向 Skills。"
+      "zhSummary": "說明 Cursor 從 Rules 走向 Skills 的思路。",
+      "zhScript": "說明 Cursor 從 Rules 走向 Skills 的思路。理解差異後，再決定你的專案要保留哪些規則、補哪些技能描述。"
     },
     {
       "id": "yt_vjyAba8-QA8",
@@ -383,7 +400,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Cursor AI Just Got Smarter: 4 New Rule Types, Smarter Auto Gen, and Pro Tips!",
-      "zhSummary": "四種新規則類型與自動產生技巧。"
+      "zhSummary": "這支講新的規則類型與自動產生技巧。",
+      "zhScript": "這支講新的規則類型與自動產生技巧。你可以讓 Cursor 幫你起草規則，再人工收斂。記得規則要短、可檢查、可執行。"
     },
     {
       "id": "yt_442OlyuqeX4",
@@ -402,7 +420,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Easiest Way to Build AI Agents with Cursor AI (Includes Cursor Rules + AI Agent Boilerplate)",
-      "zhSummary": "用 Cursor Rules＋範本組出 AI Agent。"
+      "zhSummary": "這支教你在 Cursor 用 Rules 與範本組出 AI Agent。",
+      "zhScript": "這支教你在 Cursor 用 Rules 與範本組出 AI Agent。跟著建立基本骨架，再逐步加能力。完成後用一個真實小需求驗收。"
     },
     {
       "id": "yt_7wN24cc4YHQ",
@@ -421,7 +440,8 @@
       "level": 2,
       "levelName": "中階",
       "note": "Why Everyone's Deleting Their Cursor Rules",
-      "zhSummary": "關於精簡 Cursor Rules 的討論。"
+      "zhSummary": "討論為什麼有人會精簡或刪除過多 Rules。",
+      "zhScript": "討論為什麼有人會精簡或刪除過多 Rules。重點是：規則太多會互相衝突，寧可少而清楚。"
     },
     {
       "id": "yt_0JsmvKps9po",
@@ -440,7 +460,8 @@
       "level": 3,
       "levelName": "進階",
       "note": "Cursor Cloud Agents",
-      "zhSummary": "Cursor Cloud Agents：雲端長跑與自動化。"
+      "zhSummary": "這支介紹 Cursor Cloud Agents。",
+      "zhScript": "這支介紹 Cursor Cloud Agents。適合較長、可在雲端跑的任務與自動化。先搞懂何時用本機 Agent、何時用雲端，再嘗試一個小的雲端任務。"
     },
     {
       "id": "yt_-ikaeesLSqc",
@@ -459,7 +480,8 @@
       "level": 3,
       "levelName": "進階",
       "note": "Mastering Cursor Rules: Advanced Agentic Coding Technique #cursor #vibecoding",
-      "zhSummary": "進階 Cursor Rules 與 Agent 編碼技巧。"
+      "zhSummary": "進階 Rules 與 Agent 編碼技巧。",
+      "zhScript": "進階 Rules 與 Agent 編碼技巧。適合已會基本操作的人。看完後為專案補兩條「高風險區禁止亂改」的規則。"
     }
   ],
   "discoverIds": [
