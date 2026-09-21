@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f6e72" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="英文短影音" />
+  <meta name="description" content="YouTube Shorts／IG Reels 碎片時間學英文：搜尋、匯入連結、連續播放。" />
+  <link rel="manifest" href="manifest.json?v=1" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
+  <title>英文短影音學習台</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #123536;
+      --muted: #4a6b68;
+      --paper: #e8f6f4;
+      --accent: #0f6e72;
+      --accent2: #2a9d8f;
+      --line: rgba(15, 110, 114, 0.22);
+      --card: rgba(255, 255, 255, 0.82);
+      --warn: #9a5b00;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        radial-gradient(120% 80% at 10% -10%, rgba(42, 157, 143, 0.18), transparent 55%),
+        radial-gradient(90% 70% at 100% 0%, rgba(15, 110, 114, 0.12), transparent 50%),
+        linear-gradient(180deg, #f3fbfa 0%, var(--paper) 50%, #d5ebe8 100%);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .wrap { max-width: 28rem; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    header { text-align: center; }
+    .brand { font-size: clamp(1.15rem, 5vw, 1.55rem); font-weight: 700; color: var(--accent); line-height: 1.35; }
+    .sub { margin-top: 0.3rem; font-size: 0.86rem; color: var(--muted); }
+    .pill-row { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; }
+    .pill { font-size: 0.72rem; color: var(--accent); background: var(--card); border: 1px solid var(--line); padding: 0.2rem 0.5rem; border-radius: 999px; }
+    .home-card {
+      margin-top: 0.85rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line);
+      border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: center;
+    }
+    .home-icon { width: 3.6rem; height: 3.6rem; border-radius: 0.85rem; flex-shrink: 0; }
+    .home-card p { font-size: 0.78rem; color: var(--muted); }
+    .card {
+      margin-top: 0.85rem; padding: 0.75rem; background: var(--card);
+      border: 1px solid var(--line); border-radius: 0.5rem;
+    }
+    .section { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+    .picker-label { display: block; font-size: 0.78rem; color: var(--muted); margin: 0.45rem 0 0.25rem; font-weight: 500; }
+    input[type="search"], input[type="url"], input[type="text"], select, textarea {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.65rem 0.7rem;
+      border: 1px solid var(--line); border-radius: 0.35rem; background: #fff; color: var(--ink);
+    }
+    textarea { min-height: 4.2rem; resize: vertical; }
+    .filter-row { margin-top: 0.55rem; display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .filter-row button { flex: 1 1 22%; min-width: 4.2rem; font-size: 0.76rem; padding: 0.45rem 0.25rem; }
+    .filter-row button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .player-shell { margin-top: 0.85rem; background: #111; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; }
+    #player { width: 100%; height: 100%; }
+    .now { margin-top: 0.7rem; padding: 0.75rem; background: var(--card); border: 1px solid var(--line); border-radius: 0.45rem; }
+    .now h2 { font-size: 1rem; color: var(--accent); font-weight: 700; }
+    .now p { margin-top: 0.2rem; font-size: 0.8rem; color: var(--muted); }
+    .progress-bar { margin-top: 0.5rem; height: 0.35rem; background: rgba(15,110,114,0.15); border-radius: 999px; overflow: hidden; }
+    .progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.3s; }
+    .controls { margin-top: 0.6rem; display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 0.35rem; }
+    button {
+      font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
+      color: var(--ink); padding: 0.55rem 0.3rem; border-radius: 0.35rem; font-weight: 600; font-size: 0.82rem;
+    }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem; }
+    .creator-chips { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .creator-chips a, .creator-chips button {
+      font-size: 0.72rem; padding: 0.3rem 0.55rem; border-radius: 999px;
+      text-decoration: none; color: var(--accent); background: #fff; border: 1px solid var(--line);
+    }
+    .hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--muted); padding: 0.65rem; background: rgba(255,255,255,0.5); border: 1px dashed var(--line); border-radius: 0.35rem; }
+    .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); min-height: 1.1rem; }
+    .toast {
+      position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%);
+      background: rgba(18, 53, 54, 0.92); color: #fff; padding: 0.55rem 0.9rem;
+      border-radius: 999px; font-size: 0.82rem; z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="brand">英文短影音學習台</h1>
+      <p class="sub">Shorts／Reels · 搜尋匯入 · 碎片時間跟讀</p>
+      <div class="pill-row">
+        <span class="pill">連續播放</span>
+        <span class="pill">搜尋匯入</span>
+        <span class="pill">加入主畫面</span>
+      </div>
+    </header>
+
+    <section class="home-card">
+      <img class="home-icon" src="icon-192.png" width="192" height="192" alt="英文短影音學習台圖示" />
+      <div>
+        <p><strong>主畫面圖示：英文短影音</strong></p>
+        <p>Safari／Chrome → <a href="./share.html" style="color:var(--accent);">加入主畫面說明</a></p>
+      </div>
+    </section>
+
+    <section class="card" aria-label="搜尋與匯入">
+      <h2 class="section">搜尋與匯入連結</h2>
+      <label class="picker-label" for="searchBox">搜尋標題／創作者／關鍵字</label>
+      <input type="search" id="searchBox" placeholder="例如：BBC、lend、情境、Eko…" autocomplete="off" />
+
+      <label class="picker-label" for="importUrl">貼上 YouTube／Shorts／IG Reels 連結</label>
+      <textarea id="importUrl" placeholder="https://www.youtube.com/shorts/…&#10;或 Instagram Reels 連結&#10;可一次貼多行"></textarea>
+      <div class="row-btns">
+        <button type="button" id="btnImport" class="primary">＋ 匯入連結</button>
+        <button type="button" id="btnClearMine">清除我的匯入</button>
+      </div>
+      <p class="status" id="importStatus">YouTube 可內嵌播放；IG Reels 會開外部 App／網頁。</p>
+    </section>
+
+    <section class="card" aria-label="推薦頻道">
+      <h2 class="section">推薦創作者</h2>
+      <div class="creator-chips" id="creatorChips"></div>
+    </section>
+
+    <section class="card" aria-label="短影音選單">
+      <h2 class="section">短影音選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
+      <div class="filter-row" role="tablist" aria-label="分類">
+        <button type="button" class="active" data-filter="all" role="tab">全部</button>
+        <button type="button" data-filter="pronounce" role="tab">發音口語</button>
+        <button type="button" data-filter="scene" role="tab">情境短劇</button>
+        <button type="button" data-filter="vocab" role="tab">文法片語</button>
+        <button type="button" data-filter="mine" role="tab">我的匯入</button>
+      </div>
+      <label class="picker-label" for="clipSelect">選擇短影音（選好即播）</label>
+      <select id="clipSelect" aria-label="短影音選單">
+        <option value="">— 載入中 —</option>
+      </select>
+      <button type="button" id="btnPlaySelected" class="primary" style="width:100%;margin-top:0.5rem;font-size:0.95rem;padding:0.65rem;">▶ 播放所選</button>
+    </section>
+
+    <div class="player-shell"><div id="player"></div></div>
+
+    <div class="now">
+      <h2 id="nowTitle">準備播放</h2>
+      <p id="nowMeta">載入清單中…</p>
+      <div class="progress-bar" aria-hidden="true"><i id="progressFill"></i></div>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="btnPrev" disabled>◀ 上一則</button>
+      <button type="button" id="btnPlay" class="primary">▶ 開始連播</button>
+      <button type="button" id="btnNext">下一則 ▶</button>
+    </div>
+
+    <p class="hint">
+      <strong>學習小技巧：</strong>① 刷到好句子就跟讀（Shadowing）一次；② 用本機「我的匯入」收藏精華；③ 多按讚／收藏你喜歡的 Shorts，讓演算法多推高品質內容。
+      <br />IG Reels 無法內嵌時，會導向 Instagram；YouTube Shorts 可在此頁連續播放。
+    </p>
+    <p class="status" id="statusLine"></p>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const CATALOG_URL = "./catalog.json";
+    const STORAGE_KEY = "english-shorts-mine-v1";
+    const LAST_KEY = "english-shorts-last";
+
+    let catalog = { clips: [], channels: [], categories: [] };
+    let mine = [];
+    let listFilter = "all";
+    let searchQ = "";
+    let queue = [];
+    let qIndex = 0;
+    let player = null;
+    let apiReady = false;
+    let autoPlay = false;
+    let progressTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 2200);
+    }
+
+    function loadMine() {
+      try { mine = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") || []; }
+      catch (_) { mine = []; }
+      if (!Array.isArray(mine)) mine = [];
+    }
+
+    function saveMine() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mine));
+    }
+
+    function allClips() {
+      const seed = (catalog.clips || []).map((c) => Object.assign({}, c, { source: c.source || "seed" }));
+      return seed.concat(mine);
+    }
+
+    function matchSearch(c, q) {
+      if (!q) return true;
+      const blob = [c.name, c.title, c.creator, c.note, c.category, c.url].join(" ").toLowerCase();
+      return q.split(/\s+/).every((w) => !w || blob.includes(w));
+    }
+
+    function filteredClips() {
+      const q = (searchQ || "").trim().toLowerCase();
+      return allClips().filter((c) => {
+        if (c.kind === "channel") return false;
+        if (listFilter === "mine" && c.source !== "mine") return false;
+        if (listFilter !== "all" && listFilter !== "mine" && c.category !== listFilter) return false;
+        return matchSearch(c, q);
+      });
+    }
+
+    function catLabel(id) {
+      const map = { pronounce: "發音口語", scene: "情境短劇", vocab: "文法片語", mine: "我的匯入" };
+      return map[id] || id || "";
+    }
+
+    function renderCreators() {
+      const el = $("creatorChips");
+      const ch = catalog.channels || [];
+      el.innerHTML = ch.map((c) => {
+        const url = c.channelUrl || "#";
+        return '<a href="' + url + '" target="_blank" rel="noopener">' + (c.creator || c.name) + "</a>";
+      }).join("") +
+        '<button type="button" id="btnFocusMine">只看我的匯入</button>';
+      const btn = document.getElementById("btnFocusMine");
+      if (btn) btn.onclick = () => {
+        listFilter = "mine";
+        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b.dataset.filter === "mine"));
+        renderMenu();
+      };
+    }
+
+    function renderMenu() {
+      const clips = filteredClips();
+      $("listCount").textContent = "共 " + clips.length + " 則";
+      let html = '<option value="">— 請選擇短影音 —</option>';
+      const groups = {};
+      clips.forEach((c) => {
+        const g = c.source === "mine" ? "我的匯入" : (c.creator || catLabel(c.category));
+        (groups[g] = groups[g] || []).push(c);
+      });
+      Object.keys(groups).forEach((g) => {
+        html += '<optgroup label="' + esc(g) + '">';
+        groups[g].forEach((c) => {
+          const mark = c.platform === "instagram" ? " 〔IG〕" : "";
+          html += '<option value="' + esc(c.id) + '">' + esc(c.name || c.title || c.id) + mark + "</option>";
+        });
+        html += "</optgroup>";
+      });
+      $("clipSelect").innerHTML = html;
+      try {
+        const last = localStorage.getItem(LAST_KEY);
+        if (last && clips.some((c) => c.id === last)) $("clipSelect").value = last;
+      } catch (_) {}
+      buildQueueFromFilter();
+      $("nowMeta").textContent = "共 " + queue.length + " 則可連播 · 搜尋或選一則開始";
+    }
+
+    function esc(s) {
+      return String(s || "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+
+    function buildQueueFromFilter() {
+      queue = filteredClips().filter((c) => c.platform !== "instagram" && c.id && !String(c.id).startsWith("ig_"));
+      if (qIndex >= queue.length) qIndex = 0;
+      $("btnPrev").disabled = queue.length < 2;
+    }
+
+    function parseYouTubeId(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return null;
+      let m = s.match(/^[A-Za-z0-9_-]{11}$/);
+      if (m) return m[0];
+      m = s.match(/(?:youtu\.be\/|youtube\.com\/(?:shorts\/|embed\/|live\/|v\/|watch\?(?:.*&)?v=))([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    function isInstagram(url) {
+      return /instagram\.com\/(reel|reels|p)\//i.test(url || "");
+    }
+
+    async function fetchOEmbedTitle(videoId) {
+      const url = "https://www.youtube.com/oembed?url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + videoId) + "&format=json";
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return { title: data.title || "", author: data.author_name || "" };
+      } catch (_) { return null; }
+    }
+
+    async function importLinks() {
+      const text = $("importUrl").value || "";
+      const lines = text.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+      if (!lines.length) {
+        $("importStatus").textContent = "請先貼上至少一則連結";
+        return;
+      }
+      let added = 0, skipped = 0, ig = 0;
+      for (const line of lines) {
+        if (isInstagram(line)) {
+          const id = "ig_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+          if (mine.some((m) => m.url === line)) { skipped++; continue; }
+          mine.unshift({
+            id, name: "IG Reels（外部開啟）", title: "Instagram Reels",
+            creator: "我的匯入", category: "mine", platform: "instagram",
+            url: line, source: "mine", note: "無法內嵌，點選後開啟 Instagram",
+            importedAt: Date.now()
+          });
+          added++; ig++;
+          continue;
+        }
+        const vid = parseYouTubeId(line);
+        if (!vid) { skipped++; continue; }
+        if (allClips().some((c) => c.id === vid)) { skipped++; continue; }
+        const meta = await fetchOEmbedTitle(vid);
+        const title = (meta && meta.title) || ("YouTube " + vid);
+        const author = (meta && meta.author) || "我的匯入";
+        mine.unshift({
+          id: vid,
+          name: title.length > 56 ? title.slice(0, 56) + "…" : title,
+          title, creator: author, category: "mine", platform: "youtube",
+          url: "https://www.youtube.com/shorts/" + vid,
+          source: "mine", note: "自行匯入", importedAt: Date.now()
+        });
+        added++;
+      }
+      saveMine();
+      $("importUrl").value = "";
+      listFilter = "mine";
+      document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b.dataset.filter === "mine"));
+      renderMenu();
+      $("importStatus").textContent = "匯入完成：新增 " + added + " 則" + (ig ? "（含 IG " + ig + "）" : "") + (skipped ? "，略過 " + skipped : "");
+      toast("已匯入 " + added + " 則");
+    }
+
+    function findClip(id) {
+      return allClips().find((c) => c.id === id);
+    }
+
+    function playClip(clip, opts) {
+      opts = opts || {};
+      if (!clip) return;
+      if (clip.platform === "instagram" || String(clip.id).indexOf("ig_") === 0) {
+        $("nowTitle").textContent = clip.name || "IG Reels";
+        $("nowMeta").textContent = "將開啟 Instagram（無法內嵌播放）";
+        window.open(clip.url, "_blank", "noopener");
+        toast("已開 IG 連結");
+        return;
+      }
+      localStorage.setItem(LAST_KEY, clip.id);
+      const qi = queue.findIndex((c) => c.id === clip.id);
+      if (qi >= 0) qIndex = qi;
+      $("nowTitle").textContent = clip.name || clip.title || clip.id;
+      $("nowMeta").textContent = (clip.creator || "") + (clip.note ? " · " + clip.note : "") +
+        (queue.length ? " · 第 " + (qIndex + 1) + "／" + queue.length + " 則" : "");
+      $("clipSelect").value = clip.id;
+      if (player && player.loadVideoById) {
+        try { player.loadVideoById({ videoId: clip.id, startSeconds: 0 }); }
+        catch (_) { player.loadVideoById(clip.id, 0); }
+        setTimeout(() => player.playVideo && player.playVideo(), 350);
+      } else if (apiReady) {
+        createPlayer(clip.id, true);
+      } else {
+        window._pendingPlay = clip.id;
+      }
+      if (opts.auto) autoPlay = true;
+      $("btnPlay").textContent = "⏸ 暫停連播";
+      startProgress();
+    }
+
+    function playSelected() {
+      const id = $("clipSelect").value;
+      if (!id) { $("statusLine").textContent = "請先選擇短影音"; return; }
+      playClip(findClip(id), { auto: true });
+    }
+
+    function playAt(index) {
+      if (!queue.length) { toast("目前清單沒有可播放的 YouTube 短影音"); return; }
+      qIndex = (index + queue.length) % queue.length;
+      playClip(queue[qIndex], { auto: true });
+    }
+
+    function createPlayer(videoId, autoplay) {
+      player = new YT.Player("player", {
+        height: "100%", width: "100%", videoId,
+        playerVars: { playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1, origin: location.origin },
+        events: {
+          onReady: () => { if (autoplay) player.playVideo(); },
+          onStateChange: onPlayerState,
+          onError: () => {
+            $("statusLine").textContent = "此影片無法播放，自動跳下一則";
+            if (autoPlay) setTimeout(() => playAt(qIndex + 1), 600);
+          }
+        }
+      });
+    }
+
+    function onPlayerState(e) {
+      if (!window.YT) return;
+      if (e.data === YT.PlayerState.PLAYING) {
+        $("btnPlay").textContent = "⏸ 暫停連播";
+        startProgress();
+      } else if (e.data === YT.PlayerState.PAUSED) {
+        $("btnPlay").textContent = "▶ 繼續播放";
+      } else if (e.data === YT.PlayerState.ENDED) {
+        if (autoPlay && queue.length) playAt(qIndex + 1);
+        else $("btnPlay").textContent = "▶ 開始連播";
+      }
+    }
+
+    function startProgress() {
+      clearInterval(progressTimer);
+      progressTimer = setInterval(() => {
+        if (!player || !player.getDuration) return;
+        try {
+          const d = player.getDuration() || 0;
+          const t = player.getCurrentTime() || 0;
+          $("progressFill").style.width = (d ? Math.min(100, (t / d) * 100) : 0) + "%";
+        } catch (_) {}
+      }, 400);
+    }
+
+    async function loadCatalog() {
+      $("statusLine").textContent = "載入清單…";
+      try {
+        const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) catalog = await res.json();
+      } catch (_) {
+        try {
+          const res = await fetch(CATALOG_URL);
+          if (res.ok) catalog = await res.json();
+        } catch (__) {}
+      }
+      loadMine();
+      renderCreators();
+      renderMenu();
+      $("statusLine").textContent = "種子 " + ((catalog.clips || []).length) + " 則 · 我的匯入 " + mine.length + " 則";
+    }
+
+    document.querySelectorAll(".filter-row button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        listFilter = btn.dataset.filter;
+        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b === btn));
+        renderMenu();
+      });
+    });
+
+    $("searchBox").addEventListener("input", () => {
+      searchQ = $("searchBox").value || "";
+      renderMenu();
+    });
+    $("btnImport").addEventListener("click", importLinks);
+    $("btnClearMine").addEventListener("click", () => {
+      if (!mine.length) { toast("沒有匯入資料"); return; }
+      if (!confirm("確定清除全部「我的匯入」？")) return;
+      mine = [];
+      saveMine();
+      renderMenu();
+      toast("已清除我的匯入");
+    });
+    $("btnPlaySelected").addEventListener("click", playSelected);
+    $("clipSelect").addEventListener("change", playSelected);
+    $("clipSelect").addEventListener("input", playSelected);
+    $("btnPrev").addEventListener("click", () => playAt(qIndex - 1));
+    $("btnNext").addEventListener("click", () => playAt(qIndex + 1));
+    $("btnPlay").addEventListener("click", () => {
+      if (!player) {
+        if (queue.length) playAt(qIndex);
+        else playSelected();
+        return;
+      }
+      const st = player.getPlayerState();
+      if (st === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+        autoPlay = false;
+        $("btnPlay").textContent = "▶ 開始連播";
+      } else {
+        autoPlay = true;
+        if (st === YT.PlayerState.PAUSED) player.playVideo();
+        else if (queue.length) playAt(qIndex);
+        else playSelected();
+      }
+    });
+
+    window.onYouTubeIframeAPIReady = function () {
+      apiReady = true;
+      if (window._pendingPlay) {
+        const c = findClip(window._pendingPlay);
+        if (c) playClip(c, { auto: true });
+        window._pendingPlay = null;
+      }
+    };
+
+    loadCatalog();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js?v=1").catch(() => {});
+    }
+  </script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
+</body>
+</html>
