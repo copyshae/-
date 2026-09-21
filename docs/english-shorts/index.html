@@ -47,6 +47,10 @@
     }
     .home-icon { width: 3.6rem; height: 3.6rem; border-radius: 0.85rem; flex-shrink: 0; }
     .home-card p { font-size: 0.78rem; color: var(--muted); }
+    .home-card .install-btn {
+      display: inline-block; margin-top: 0.35rem; padding: 0.45rem 0.75rem; font-size: 0.8rem; font-weight: 700;
+      background: var(--accent); color: #fff; border: 0; border-radius: 0.35rem; text-decoration: none; cursor: pointer;
+    }
     .card {
       margin-top: 0.85rem; padding: 0.75rem; background: var(--card);
       border: 1px solid var(--line); border-radius: 0.5rem;
@@ -130,7 +134,9 @@
       <img class="home-icon" src="icon-192.png" width="192" height="192" alt="英文短影音學習台圖示" />
       <div>
         <p><strong>主畫面圖示：英文短影音</strong></p>
-        <p>Safari／Chrome → <a href="./share.html" style="color:var(--accent);">加入主畫面說明</a></p>
+        <p>可像 App 一樣從主畫面開啟</p>
+        <button type="button" class="install-btn" id="btnInstallHome">加入主畫面</button>
+        <a class="install-btn" href="./share.html" id="linkInstallHelp" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:0.25rem">圖文說明</a>
       </div>
     </section>
 
@@ -155,12 +161,18 @@
 
     <section class="card" aria-label="短影音選單">
       <h2 class="section">短影音選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
-      <div class="filter-row" role="tablist" aria-label="分類">
-        <button type="button" class="active" data-filter="all" role="tab">全部</button>
-        <button type="button" data-filter="pronounce" role="tab">發音口語</button>
-        <button type="button" data-filter="scene" role="tab">情境短劇</button>
-        <button type="button" data-filter="vocab" role="tab">文法片語</button>
-        <button type="button" data-filter="mine" role="tab">我的匯入</button>
+      <div class="filter-row" id="levelFilterRow" role="tablist" aria-label="程度（由淺至進階）">
+        <button type="button" class="active" data-level="all" role="tab">全部</button>
+        <button type="button" data-level="1" role="tab">初階</button>
+        <button type="button" data-level="2" role="tab">中階</button>
+        <button type="button" data-level="3" role="tab">進階</button>
+        <button type="button" data-level="mine" role="tab">我的匯入</button>
+      </div>
+      <div class="filter-row" id="typeFilterRow" role="tablist" aria-label="類型" style="margin-top:0.35rem">
+        <button type="button" class="active" data-type="all" role="tab">全部類型</button>
+        <button type="button" data-type="vocab" role="tab">文法片語</button>
+        <button type="button" data-type="scene" role="tab">情境短劇</button>
+        <button type="button" data-type="pronounce" role="tab">發音口語</button>
       </div>
       <label class="picker-label" for="clipSelect">選擇短影音（選好即播）</label>
       <select id="clipSelect" aria-label="短影音選單">
@@ -316,7 +328,9 @@
     let catalog = { clips: [], channels: [], categories: [] };
     let mine = [];
     let notes = {};
-    let listFilter = "all";
+    let levelFilter = "all";
+    let typeFilter = "all";
+    let deferredInstall = null;
     let searchQ = "";
     let queue = [];
     let qIndex = 0;
@@ -1007,19 +1021,49 @@
       return q.split(/\s+/).every((w) => !w || blob.includes(w));
     }
 
+    function clipLevel(c) {
+      const n = Number(c.level);
+      return n === 1 || n === 2 || n === 3 ? n : 2;
+    }
+
     function filteredClips() {
       const q = (searchQ || "").trim().toLowerCase();
-      return allClips().filter((c) => {
+      const list = allClips().filter((c) => {
         if (c.kind === "channel") return false;
-        if (listFilter === "mine" && c.source !== "mine") return false;
-        if (listFilter !== "all" && listFilter !== "mine" && c.category !== listFilter) return false;
+        if (levelFilter === "mine") {
+          if (c.source !== "mine") return false;
+        } else if (levelFilter !== "all") {
+          if (c.source === "mine") return false;
+          if (String(clipLevel(c)) !== String(levelFilter)) return false;
+        }
+        if (typeFilter !== "all" && c.category !== typeFilter) return false;
         return matchSearch(c, q);
       });
+      list.sort((a, b) => {
+        const la = a.source === "mine" ? 9 : clipLevel(a);
+        const lb = b.source === "mine" ? 9 : clipLevel(b);
+        if (la !== lb) return la - lb;
+        return String(a.name || a.title || "").localeCompare(String(b.name || b.title || ""), "zh-Hant");
+      });
+      return list;
     }
 
     function catLabel(id) {
       const map = { pronounce: "發音口語", scene: "情境短劇", vocab: "文法片語", mine: "我的匯入" };
       return map[id] || id || "";
+    }
+
+    function levelLabel(n) {
+      return ({ 1: "初階", 2: "中階", 3: "進階" })[n] || "";
+    }
+
+    function syncFilterButtons() {
+      document.querySelectorAll("#levelFilterRow button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.level === String(levelFilter));
+      });
+      document.querySelectorAll("#typeFilterRow button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.type === String(typeFilter));
+      });
     }
 
     function renderCreators() {
@@ -1032,8 +1076,8 @@
         '<button type="button" id="btnFocusMine">只看我的匯入</button>';
       const btn = document.getElementById("btnFocusMine");
       if (btn) btn.onclick = () => {
-        listFilter = "mine";
-        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b.dataset.filter === "mine"));
+        levelFilter = "mine";
+        syncFilterButtons();
         renderMenu();
       };
     }
@@ -1051,7 +1095,8 @@
         html += '<optgroup label="' + esc(g) + '">';
         groups[g].forEach((c) => {
           const mark = c.platform === "instagram" ? " 〔IG〕" : "";
-          html += '<option value="' + esc(c.id) + '">' + esc(c.name || c.title || c.id) + mark + "</option>";
+          const lv = c.source === "mine" ? "" : ("〔" + levelLabel(clipLevel(c)) + "〕");
+          html += '<option value="' + esc(c.id) + '">' + lv + esc(c.name || c.title || c.id) + mark + "</option>";
         });
         html += "</optgroup>";
       });
@@ -1135,8 +1180,8 @@
       }
       saveMine();
       $("importUrl").value = "";
-      listFilter = "mine";
-      document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b.dataset.filter === "mine"));
+      levelFilter = "mine";
+      syncFilterButtons();
       renderMenu();
       $("importStatus").textContent = "匯入完成：新增 " + added + " 則" + (ig ? "（含 IG " + ig + "）" : "") + (skipped ? "，略過 " + skipped : "");
       toast("已匯入 " + added + " 則");
@@ -1295,13 +1340,65 @@
       $("statusLine").textContent = "種子 " + ((catalog.clips || []).length) + " 則 · 我的匯入 " + mine.length + " 則";
     }
 
-    document.querySelectorAll(".filter-row button").forEach((btn) => {
+    document.querySelectorAll("#levelFilterRow button").forEach((btn) => {
       btn.addEventListener("click", () => {
-        listFilter = btn.dataset.filter;
-        document.querySelectorAll(".filter-row button").forEach((b) => b.classList.toggle("active", b === btn));
+        levelFilter = btn.dataset.level || "all";
+        syncFilterButtons();
         renderMenu();
       });
     });
+    document.querySelectorAll("#typeFilterRow button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        typeFilter = btn.dataset.type || "all";
+        syncFilterButtons();
+        renderMenu();
+      });
+    });
+
+    function isIOSDevice() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    function isStandaloneApp() {
+      return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    }
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstall = e;
+      const btn = $("btnInstallHome");
+      if (btn) btn.textContent = "安裝到主畫面";
+    });
+    window.addEventListener("appinstalled", () => {
+      deferredInstall = null;
+      const btn = $("btnInstallHome");
+      if (btn) btn.textContent = "已加入主畫面";
+      toast("已加入主畫面");
+    });
+    $("btnInstallHome").addEventListener("click", async () => {
+      if (isStandaloneApp()) {
+        toast("你已從主畫面開啟");
+        return;
+      }
+      if (deferredInstall) {
+        deferredInstall.prompt();
+        try { await deferredInstall.userChoice; } catch (_) {}
+        deferredInstall = null;
+        return;
+      }
+      if (isIOSDevice()) {
+        toast("iPhone：用 Safari 開啟 → 分享 → 加入主畫面");
+        location.href = "./share.html";
+        return;
+      }
+      toast("請用 Chrome 開啟 → 選單 → 加入主畫面");
+      location.href = "./share.html";
+    });
+    if (isStandaloneApp()) {
+      const btn = $("btnInstallHome");
+      if (btn) btn.textContent = "已從主畫面開啟";
+    }
 
     document.querySelectorAll("#speedRow button[data-speed]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1507,7 +1604,7 @@
 
     loadCatalog();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=7").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=8").catch(() => {});
     }
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>

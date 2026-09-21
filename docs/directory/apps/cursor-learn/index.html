@@ -110,6 +110,10 @@
     }
     .home-card img { width: 3.2rem; height: 3.2rem; border-radius: 0.75rem; }
     .home-card p { font-size: 0.78rem; color: var(--muted); }
+    .home-card .install-btn {
+      display: inline-block; margin-top: 0.35rem; padding: 0.45rem 0.75rem; font-size: 0.8rem; font-weight: 700;
+      background: var(--accent); color: #fff; border: 0; border-radius: 0.35rem; text-decoration: none; cursor: pointer;
+    }
     .empty { color: var(--muted); font-size: 0.84rem; padding: 0.75rem 0; }
     .toast {
       position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%);
@@ -128,8 +132,10 @@
     <section class="home-card">
       <img src="icon-192.png" width="192" height="192" alt="Cursor 學習平台圖示" />
       <div>
-        <p><strong>可加入主畫面</strong></p>
-        <p>Safari／Chrome → <a class="link" href="./share.html">加入說明</a></p>
+        <p><strong>主畫面圖示：Cursor學習</strong></p>
+        <p>可像 App 一樣從主畫面開啟</p>
+        <button type="button" class="install-btn" id="btnInstallHome">加入主畫面</button>
+        <a class="install-btn" href="./share.html" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:0.25rem">圖文說明</a>
       </div>
     </section>
 
@@ -317,7 +323,7 @@
           !q || (g.term + g.def).toLowerCase().includes(q)
         );
         $("glossList").innerHTML = items.map((g) =>
-          '<article class="card"><h2>' + esc(g.term) + "</h2><p class="meta">' + esc(g.def) + "</p></article>"
+          '<article class="card"><h2>' + esc(g.term) + '</h2><p class="meta">' + esc(g.def) + '</p></article>'
         ).join("") || '<p class="empty">無符合詞彙</p>';
       };
       $("glossQ").oninput = paint;
@@ -405,8 +411,44 @@
     }
 
     boot();
+    (function setupInstall() {
+      let deferredInstall = null;
+      const btn = $("btnInstallHome");
+      if (!btn) return;
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      }
+      function standalone() {
+        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+      }
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredInstall = e;
+        btn.textContent = "安裝到主畫面";
+      });
+      window.addEventListener("appinstalled", () => {
+        deferredInstall = null;
+        btn.textContent = "已加入主畫面";
+        toast("已加入主畫面");
+      });
+      btn.addEventListener("click", async () => {
+        if (standalone()) { toast("你已從主畫面開啟"); return; }
+        if (deferredInstall) {
+          deferredInstall.prompt();
+          try { await deferredInstall.userChoice; } catch (_) {}
+          deferredInstall = null;
+          return;
+        }
+        toast(isIOS()
+          ? "iPhone：用 Safari 開啟 → 分享 → 加入主畫面"
+          : "請用 Chrome 開啟 → 選單 → 加入主畫面");
+        location.href = "./share.html";
+      });
+      if (standalone()) btn.textContent = "已從主畫面開啟";
+    })();
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=1").catch(() => {});
+      navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
     }
   </script>
 </body>
