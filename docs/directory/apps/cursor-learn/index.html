@@ -648,7 +648,10 @@
       ];
       for(const u of proxies){
         try{
-          const res=await fetch(u,{mode:"cors"});
+          const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+          const timer=ctrl?setTimeout(()=>ctrl.abort(),2500):null;
+          const res=await fetch(u, ctrl?{mode:"cors",signal:ctrl.signal}:{mode:"cors"});
+          if(timer) clearTimeout(timer);
           if(!res.ok) continue;
           const txt=await res.text();
           if(!txt||txt.length<40||/<html/i.test(txt)||/Internal Server Error/i.test(txt)) continue;
@@ -661,22 +664,27 @@
     async function fetchEnglishCues(videoId){
       const cached=readLiveCueCache(videoId);
       if(cached) return cached.map((c)=>({start:c.start,end:c.end,en:c.en||"",zh:c.zh||""}));
+      // 快速嘗試；逾時就改用內容字幕包，避免一直停在「載入中」
       const urls=[
         "https://www.youtube.com/api/timedtext?v="+videoId+"&lang=en&fmt=vtt",
-        "https://www.youtube.com/api/timedtext?v="+videoId+"&lang=en-US&fmt=vtt",
-        "https://www.youtube.com/api/timedtext?v="+videoId+"&kind=asr&lang=en&fmt=vtt",
-        "https://www.youtube.com/api/timedtext?v="+videoId+"&lang=en&fmt=srv3",
-        "https://video.google.com/timedtext?v="+videoId+"&lang=en&fmt=vtt"
+        "https://www.youtube.com/api/timedtext?v="+videoId+"&kind=asr&lang=en&fmt=vtt"
       ];
-      for(const u of urls){
-        const txt=await fetchViaProxy(u);
-        if(!txt) continue;
-        let cues=[];
-        if(/WEBVTT|<|\d{2}:\d{2}/.test(txt)) cues=parseVtt(txt);
-        if(!cues.length && txt.trim().startsWith("{")) cues=parseJson3(txt);
-        if(cues.length>=3) return cues;
-      }
-      return [];
+      const overall=new Promise((resolve)=>{
+        const t=setTimeout(()=>resolve(""),5500);
+        (async()=>{
+          for(const u of urls){
+            const txt=await fetchViaProxy(u);
+            if(txt){ clearTimeout(t); resolve(txt); return; }
+          }
+          clearTimeout(t); resolve("");
+        })();
+      });
+      const txt=await overall;
+      if(!txt) return [];
+      let cues=[];
+      if(/WEBVTT|<|\d{2}:\d{2}/.test(txt)) cues=parseVtt(txt);
+      if(!cues.length && txt.trim().startsWith("{")) cues=parseJson3(txt);
+      return cues.length>=3?cues:[];
     }
 
     function parseJson3(raw){
@@ -899,7 +907,24 @@
       try{ if(player&&player.getDuration) duration=player.getDuration()||0; }catch(_){}
       if(!duration && vid && captionBundle[vid]) duration=captionBundle[vid].durationSec||0;
 
-      // 1) 即時原片英文字幕 → 翻中文（使用者瀏覽器若能抓到）
+      // 1) 先用預建內容分段（立刻可用，不是主題一句）
+      const bundled=vid?cuesFromBundle(vid):[];
+      if(bundled.length>=2){
+        // 背景再試原片字幕；成功則下次／快取可用
+        if(vid){
+          fetchEnglishCues(vid).then(async (live)=>{
+            if(live.length>=3){
+              try{
+                const zhCues=await translateCuesToZh(live.slice(0,120));
+                writeLiveCueCache(vid, zhCues);
+              }catch(_){}
+            }
+          }).catch(()=>{});
+        }
+        return {cues:bundled, source:"bundle"};
+      }
+
+      // 2) 即時原片英文字幕 → 翻中文（無預建時）
       if(vid){
         try{
           const live=await fetchEnglishCues(vid);
@@ -909,12 +934,6 @@
             return {cues:zhCues, source:"live"};
           }
         }catch(_){}
-      }
-
-      // 2) 預建內容分段（密集聚在片頭對時，約每段 20 秒，不是主題一句拉滿整片）
-      const bundled=vid?cuesFromBundle(vid):[];
-      if(bundled.length>=2){
-        return {cues:bundled, source:"bundle"};
       }
 
       // 3) 把完整中文腳本切成多段對時
