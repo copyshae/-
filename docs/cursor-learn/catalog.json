@@ -1,0 +1,176 @@
+{
+  "updatedAt": "2026-09-21T18:00:00Z",
+  "title": "Cursor 學習平台",
+  "description": "匯入 YouTube 學 Cursor：由淺入深；英文字幕／中英對照／中文人聲旁白",
+  "levelOrder": [
+    {
+      "id": 1,
+      "name": "初階",
+      "hint": "介面、Composer、基本規則"
+    },
+    {
+      "id": 2,
+      "name": "中階",
+      "hint": "工作流、規則分級、情境應用"
+    },
+    {
+      "id": 3,
+      "name": "進階",
+      "hint": "Cloud Agent、自建 Agent"
+    }
+  ],
+  "channels": [
+    {
+      "id": "ch_cursor",
+      "name": "Cursor 官方頻道",
+      "creator": "Cursor",
+      "channelUrl": "https://www.youtube.com/@cursor_ai",
+      "note": "官方入門與進階示範",
+      "level": 1
+    }
+  ],
+  "clips": [
+    {
+      "id": "yt_4IskO3BKwNY",
+      "name": "Cursor 101（官方入門）",
+      "title": "Cursor 101",
+      "creator": "Cursor",
+      "category": "intro",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=4IskO3BKwNY",
+      "videoId": "4IskO3BKwNY",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "認識介面、Agent 視圖與第一次小改動",
+      "zhSummary": "認識 Cursor 畫面與 Agent 視圖，完成第一次小改動。適合完全新手。"
+    },
+    {
+      "id": "yt_GAe1IQtHqVU",
+      "name": "Composer Agent 20 分鐘上手",
+      "title": "Cursor Composer Agent in 20 Minutes",
+      "creator": "Developers Digest",
+      "category": "composer",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=GAe1IQtHqVU",
+      "videoId": "GAe1IQtHqVU",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Composer／Agent 基本操作與實作示範",
+      "zhSummary": "20 分鐘看懂 Composer／Agent：怎麼下指令、看 diff、修錯誤。"
+    },
+    {
+      "id": "yt_6vtBq6TBGyo",
+      "name": "如何新增 Cursor Rules",
+      "title": "How to Add Rules to Cursor AI (2026)",
+      "creator": "The Code City",
+      "category": "rules",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=6vtBq6TBGyo",
+      "videoId": "6vtBq6TBGyo",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "在設定裡建立規則，讓 Agent 跟著專案習慣",
+      "zhSummary": "學會在設定裡新增 Rules，讓 AI 跟著你的專案習慣寫程式。"
+    },
+    {
+      "id": "yt_z4xruISaBfc",
+      "name": "Cursor 201（官方進階）",
+      "title": "Cursor 201",
+      "creator": "Cursor",
+      "category": "workflow",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=z4xruISaBfc",
+      "videoId": "z4xruISaBfc",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "從模糊需求到可執行任務的日常工作流",
+      "zhSummary": "把模糊需求變成可執行任務；日常開發節奏示範。"
+    },
+    {
+      "id": "yt_gw8otRr2zpw",
+      "name": "Rules 五層完整指南",
+      "title": "Ultimate Cursor AI IDE Rules Guide",
+      "creator": "Kirill Markin",
+      "category": "rules",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=gw8otRr2zpw",
+      "videoId": "gw8otRr2zpw",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Always／Auto／Agent／Manual 等規則類型",
+      "zhSummary": "Rules 五種層級（Always／Auto／Agent／Manual 等）一次弄懂。"
+    },
+    {
+      "id": "yt_vjyAba8-QA8",
+      "name": "四種新規則類型與技巧",
+      "title": "Cursor AI Just Got Smarter: 4 New Rule Types",
+      "creator": "BMad Code",
+      "category": "rules",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=vjyAba8-QA8",
+      "videoId": "vjyAba8-QA8",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "新規則類型與自動產生技巧",
+      "zhSummary": "四種新規則類型與自動產生技巧，讓規則更好用。"
+    },
+    {
+      "id": "yt_eN69OLhOz2Q",
+      "name": "Cursor 做資料科學",
+      "title": "Cursor for Data Science",
+      "creator": "Cursor",
+      "category": "scene",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=eN69OLhOz2Q",
+      "videoId": "eN69OLhOz2Q",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Notebook、模型選擇與資料情境示範",
+      "zhSummary": "用 Cursor 做資料科學：Notebook、模型選擇與操作示範。"
+    },
+    {
+      "id": "yt_0JsmvKps9po",
+      "name": "Cursor Cloud Agents",
+      "title": "Cursor Cloud Agents",
+      "creator": "Cursor",
+      "category": "cloud",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=0JsmvKps9po",
+      "videoId": "0JsmvKps9po",
+      "source": "seed",
+      "level": 3,
+      "levelName": "進階",
+      "note": "雲端 Agent、排程與自動化方向",
+      "zhSummary": "Cloud Agents：雲端長跑任務、排程與自動化方向。"
+    },
+    {
+      "id": "yt_442OlyuqeX4",
+      "name": "用 Cursor 建立 AI Agent",
+      "title": "Easiest Way to Build AI Agents with Cursor AI",
+      "creator": "Learn To Build AI",
+      "category": "agent",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=442OlyuqeX4",
+      "videoId": "442OlyuqeX4",
+      "source": "seed",
+      "level": 3,
+      "levelName": "進階",
+      "note": "Rules＋boilerplate 組出可用 Agent",
+      "zhSummary": "用 Rules＋範本組出可用 AI Agent（進階實作）。"
+    }
+  ],
+  "learnerTips": [
+    "英文不好：先開「中文字幕」或「中英字幕」，聽不懂再按「文字→中聲」聽重點。",
+    "先看初階 3 則（101、Composer、Rules），再進中階，不要一次跳 Cloud Agent。",
+    "每則只帶走一句中文筆記（寫在筆記欄），比硬啃完整英文更快。",
+    "語速可先 0.75×，對齊後再回 1×；旁白語速也可分開調。",
+    "匯入自己找到的教學片後，用「自動對翻」把標題／筆記翻成中文再聽。"
+  ]
+}
