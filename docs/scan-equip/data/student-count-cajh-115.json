@@ -1,0 +1,185 @@
+{
+  "schoolName": "彰化縣立彰安國民中學",
+  "schoolYear": "115 學年",
+  "source": "參加對象名冊_學生_115 (1).csv",
+  "note": "欄位已由「年級、班別、班別人數」改為「班級、人數」（班級＝年級×100＋班別）。含特教等非官方班；官方 34 班以掃具台導師名單為準。",
+  "classCount": 35,
+  "studentTotal": 801,
+  "classCounts": [
+    {
+      "className": "101",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "102",
+      "studentCount": 25,
+      "official": true
+    },
+    {
+      "className": "103",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "104",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "105",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "106",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "107",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "108",
+      "studentCount": 25,
+      "official": true
+    },
+    {
+      "className": "109",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "110",
+      "studentCount": 23,
+      "official": true
+    },
+    {
+      "className": "111",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "112",
+      "studentCount": 26,
+      "official": false
+    },
+    {
+      "className": "113",
+      "studentCount": 9,
+      "official": false
+    },
+    {
+      "className": "201",
+      "studentCount": 29,
+      "official": true
+    },
+    {
+      "className": "202",
+      "studentCount": 29,
+      "official": true
+    },
+    {
+      "className": "203",
+      "studentCount": 29,
+      "official": true
+    },
+    {
+      "className": "204",
+      "studentCount": 29,
+      "official": true
+    },
+    {
+      "className": "205",
+      "studentCount": 29,
+      "official": true
+    },
+    {
+      "className": "206",
+      "studentCount": 28,
+      "official": true
+    },
+    {
+      "className": "207",
+      "studentCount": 23,
+      "official": true
+    },
+    {
+      "className": "208",
+      "studentCount": 5,
+      "official": true
+    },
+    {
+      "className": "209",
+      "studentCount": 23,
+      "official": true
+    },
+    {
+      "className": "210",
+      "studentCount": 8,
+      "official": true
+    },
+    {
+      "className": "211",
+      "studentCount": 26,
+      "official": true
+    },
+    {
+      "className": "212",
+      "studentCount": 1,
+      "official": true
+    },
+    {
+      "className": "301",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "302",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "303",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "304",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "305",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "306",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "307",
+      "studentCount": 21,
+      "official": true
+    },
+    {
+      "className": "308",
+      "studentCount": 5,
+      "official": true
+    },
+    {
+      "className": "309",
+      "studentCount": 27,
+      "official": true
+    },
+    {
+      "className": "310",
+      "studentCount": 9,
+      "official": true
+    }
+  ]
+}
