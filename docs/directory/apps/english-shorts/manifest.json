@@ -1,0 +1,35 @@
+{
+  "id": "/-/english-shorts/",
+  "name": "英文短影音學習台",
+  "short_name": "英文短影音",
+  "description": "YouTube Shorts／IG Reels 碎片時間學英文：搜尋、匯入連結、連續播放。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#e8f6f4",
+  "theme_color": "#0f6e72",
+  "lang": "zh-Hant",
+  "categories": ["education", "entertainment"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
