@@ -89,6 +89,7 @@
     .opt-row { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
     .opt-row .lbl { font-size: 0.76rem; color: var(--muted); margin-right: 0.15rem; }
     .opt-row button { flex: 0 0 auto; min-width: 2.8rem; padding: 0.4rem 0.55rem; font-size: 0.78rem; }
+    #captionRow button { min-width: 4.4rem; font-size: 0.74rem; padding: 0.4rem 0.4rem; }
     .tips-list { margin: 0.45rem 0 0; padding-left: 1.1rem; font-size: 0.78rem; color: var(--muted); }
     .tips-list li { margin: 0.28rem 0; }
     .tips-list strong { color: var(--ink); }
@@ -323,7 +324,7 @@
       document.querySelectorAll("#captionRow button[data-caption]").forEach((b) => {
         b.classList.toggle("chip-on", b.dataset.caption === captionMode);
       });
-      const labels = { off: "關", zh: "中文", en: "英文", dual: "中英同時" };
+      const labels = { off: "關", zh: "中文字幕", en: "英文字幕", dual: "中英字幕" };
       const overlay = $("subOverlay");
       if (captionMode === "off") {
         overlay.classList.remove("on");
