@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a3348" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
+  <meta name="description" content="Cursor 學習平台：路徑、課程、提示詞、詞彙、小測驗與進度追蹤。" />
+  <link rel="manifest" href="manifest.json?v=1" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
+  <title>Cursor 學習平台</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Sans:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #142033;
+      --muted: #5a6b7d;
+      --accent: #1f6f78;
+      --accent2: #2a8f9a;
+      --line: rgba(31, 111, 120, 0.22);
+      --card: rgba(255, 255, 255, 0.88);
+      --bg1: #eef5f6;
+      --ok: #1f6b4a;
+      --warn: #9a5b00;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        radial-gradient(100% 70% at 0% 0%, rgba(42, 143, 154, 0.16), transparent 50%),
+        radial-gradient(80% 60% at 100% 10%, rgba(26, 51, 72, 0.1), transparent 45%),
+        linear-gradient(180deg, #f7fbfb 0%, var(--bg1) 55%, #dfecef 100%);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 28rem; margin: 0 auto; padding: 1rem 1rem 5.5rem; }
+    .brand {
+      font-family: "IBM Plex Sans", "Noto Sans TC", sans-serif;
+      font-size: clamp(1.25rem, 5.2vw, 1.65rem);
+      font-weight: 700; color: var(--accent); text-align: center; line-height: 1.3;
+    }
+    .sub { text-align: center; color: var(--muted); font-size: 0.86rem; margin-top: 0.35rem; }
+    .progress-wrap {
+      margin-top: 0.85rem; padding: 0.75rem; background: var(--card);
+      border: 1px solid var(--line); border-radius: 0.55rem;
+    }
+    .progress-wrap .lbl { font-size: 0.78rem; color: var(--muted); }
+    .bar { margin-top: 0.4rem; height: 0.45rem; background: rgba(31,111,120,0.12); border-radius: 999px; overflow: hidden; }
+    .bar > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .35s; }
+    .pct { margin-top: 0.35rem; font-size: 0.82rem; font-weight: 700; color: var(--accent); }
+    .tabs {
+      position: sticky; top: 0; z-index: 20; margin: 0.75rem -1rem 0; padding: 0.45rem 1rem;
+      background: rgba(247, 251, 251, 0.92); backdrop-filter: blur(8px);
+      display: flex; gap: 0.3rem; overflow-x: auto;
+    }
+    .tabs button {
+      flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+      font: inherit; font-size: 0.78rem; font-weight: 600; padding: 0.45rem 0.7rem; border-radius: 999px; cursor: pointer;
+    }
+    .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .panel { display: none; margin-top: 0.75rem; }
+    .panel.on { display: block; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 0.55rem;
+      padding: 0.85rem; margin-top: 0.65rem;
+    }
+    .card h2 { font-size: 0.95rem; color: var(--accent); }
+    .card h3 { font-size: 0.9rem; margin-top: 0.15rem; }
+    .meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+    .tag {
+      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--accent);
+      background: rgba(31,111,120,0.1); padding: 0.12rem 0.4rem; border-radius: 999px; margin-right: 0.25rem;
+    }
+    ul.pts { margin: 0.45rem 0 0 1.1rem; font-size: 0.84rem; color: var(--ink); }
+    ul.pts li { margin: 0.25rem 0; }
+    .do, .check {
+      margin-top: 0.55rem; padding: 0.55rem 0.65rem; border-radius: 0.4rem; font-size: 0.82rem;
+    }
+    .do { background: rgba(31,111,120,0.08); }
+    .check { background: rgba(31,107,74,0.1); color: var(--ok); }
+    button.act {
+      margin-top: 0.55rem; width: 100%; font: inherit; font-weight: 700; font-size: 0.88rem;
+      padding: 0.65rem; border-radius: 0.4rem; border: 1px solid var(--accent);
+      background: var(--accent); color: #fff; cursor: pointer;
+    }
+    button.act.secondary { background: #fff; color: var(--accent); }
+    button.act:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.done-mark { background: var(--ok); border-color: var(--ok); }
+    input[type="search"], textarea, select {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.6rem 0.7rem;
+      border: 1px solid var(--line); border-radius: 0.35rem; background: #fff;
+    }
+    textarea { min-height: 5.5rem; resize: vertical; }
+    .prompt-box {
+      margin-top: 0.45rem; padding: 0.65rem; background: #122033; color: #e8eef5;
+      border-radius: 0.4rem; font-size: 0.8rem; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .choice {
+      display: block; width: 100%; text-align: left; margin-top: 0.4rem; padding: 0.6rem 0.7rem;
+      border: 1px solid var(--line); border-radius: 0.4rem; background: #fff; font: inherit; font-size: 0.84rem; cursor: pointer;
+    }
+    .choice.correct { border-color: var(--ok); background: rgba(31,107,74,0.12); }
+    .choice.wrong { border-color: #b33; background: rgba(180,50,50,0.08); }
+    .home-card {
+      margin-top: 0.75rem; padding: 0.7rem; background: var(--card); border: 1px solid var(--line);
+      border-radius: 0.5rem; display: flex; gap: 0.7rem; align-items: center;
+    }
+    .home-card img { width: 3.2rem; height: 3.2rem; border-radius: 0.75rem; }
+    .home-card p { font-size: 0.78rem; color: var(--muted); }
+    .empty { color: var(--muted); font-size: 0.84rem; padding: 0.75rem 0; }
+    .toast {
+      position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%);
+      background: rgba(20,32,51,0.92); color: #fff; padding: 0.55rem 0.9rem;
+      border-radius: 999px; font-size: 0.82rem; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50;
+    }
+    .toast.show { opacity: 1; }
+    a.link { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="brand">Cursor 學習平台</h1>
+    <p class="sub">路徑學習 · 提示詞庫 · 詞彙 · 小測驗 · 本機進度</p>
+
+    <section class="home-card">
+      <img src="icon-192.png" width="192" height="192" alt="Cursor 學習平台圖示" />
+      <div>
+        <p><strong>可加入主畫面</strong></p>
+        <p>Safari／Chrome → <a class="link" href="./share.html">加入說明</a></p>
+      </div>
+    </section>
+
+    <div class="progress-wrap">
+      <div class="lbl">整體進度（課程完成）</div>
+      <div class="bar" aria-hidden="true"><i id="progFill"></i></div>
+      <div class="pct" id="progText">0／0</div>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="學習區塊">
+      <button type="button" class="on" data-tab="paths">路徑</button>
+      <button type="button" data-tab="lessons">課程</button>
+      <button type="button" data-tab="prompts">提示詞</button>
+      <button type="button" data-tab="glossary">詞彙</button>
+      <button type="button" data-tab="drills">測驗</button>
+      <button type="button" data-tab="lab">練習場</button>
+    </nav>
+
+    <section class="panel on" id="tab-paths"></section>
+    <section class="panel" id="tab-lessons"></section>
+    <section class="panel" id="tab-prompts"></section>
+    <section class="panel" id="tab-glossary"></section>
+    <section class="panel" id="tab-drills"></section>
+    <section class="panel" id="tab-lab">
+      <div class="card">
+        <h2>提示詞練習場</h2>
+        <p class="meta">把真實任務寫成四段式提示，可複製去 Cursor 使用。</p>
+        <label class="meta" for="labGoal">目標</label>
+        <textarea id="labGoal" placeholder="使用者可感知的完成結果"></textarea>
+        <label class="meta" for="labConstraint">約束</label>
+        <textarea id="labConstraint" placeholder="技術棧、禁止事項、只改哪些檔"></textarea>
+        <label class="meta" for="labAccept">驗收</label>
+        <textarea id="labAccept" placeholder="如何證明完成（步驟／測試）"></textarea>
+        <label class="meta" for="labInput">輸入</label>
+        <textarea id="labInput" placeholder="錯誤訊息、@檔案、現況說明"></textarea>
+        <button type="button" class="act" id="btnBuildPrompt">產生提示詞</button>
+        <button type="button" class="act secondary" id="btnCopyPrompt">複製提示詞</button>
+        <div class="prompt-box" id="labOut">（產生後顯示於此）</div>
+      </div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const DATA_URL = "./curriculum.json";
+    const STORE = "cursor-learn-progress-v1";
+    let data = { paths: [], lessons: [], prompts: [], glossary: [], drills: [] };
+    let progress = { done: {}, drill: {}, updatedAt: 0 };
+    let lessonFilter = "all";
+
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 2000);
+    }
+
+    function loadProgress() {
+      try { progress = Object.assign({ done: {}, drill: {} }, JSON.parse(localStorage.getItem(STORE) || "{}")); }
+      catch (_) { progress = { done: {}, drill: {} }; }
+      if (!progress.done) progress.done = {};
+      if (!progress.drill) progress.drill = {};
+    }
+
+    function saveProgress() {
+      progress.updatedAt = Date.now();
+      localStorage.setItem(STORE, JSON.stringify(progress));
+      renderProgress();
+    }
+
+    function lessonMap() {
+      const m = {};
+      (data.lessons || []).forEach((l) => { m[l.id] = l; });
+      return m;
+    }
+
+    function renderProgress() {
+      const total = (data.lessons || []).length || 1;
+      const done = Object.keys(progress.done).filter((k) => progress.done[k]).length;
+      const pct = Math.round((done / total) * 100);
+      $("progFill").style.width = pct + "%";
+      $("progText").textContent = done + "／" + total + " 課 · " + pct + "%";
+    }
+
+    function esc(s) {
+      return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function renderPaths() {
+      const map = lessonMap();
+      $("tab-paths").innerHTML = (data.paths || []).map((p) => {
+        const lessons = (p.lessons || []).map((id) => map[id]).filter(Boolean);
+        const doneN = lessons.filter((l) => progress.done[l.id]).length;
+        return '<article class="card">' +
+          '<span class="tag">' + esc(p.level) + '</span><span class="tag">約 ' + esc(p.minutes) + ' 分</span>' +
+          '<h2 style="margin-top:0.35rem">' + esc(p.name) + '</h2>' +
+          '<p class="meta">' + esc(p.goal) + '</p>' +
+          '<p class="meta">進度 ' + doneN + '／' + lessons.length + '</p>' +
+          '<ul class="pts">' + lessons.map((l) =>
+            '<li>' + (progress.done[l.id] ? "✓ " : "") + esc(l.title) + "</li>"
+          ).join("") + "</ul>" +
+          '<button type="button" class="act secondary" data-open-path="' + esc(p.id) + '">打開此路徑課程</button>' +
+          "</article>";
+      }).join("") || '<p class="empty">尚無路徑</p>';
+
+      $("tab-paths").querySelectorAll("[data-open-path]").forEach((btn) => {
+        btn.onclick = () => {
+          lessonFilter = btn.getAttribute("data-open-path");
+          document.querySelector('.tabs button[data-tab="lessons"]').click();
+          renderLessons();
+        };
+      });
+    }
+
+    function renderLessons() {
+      const map = lessonMap();
+      let list = data.lessons || [];
+      if (lessonFilter !== "all") {
+        const path = (data.paths || []).find((p) => p.id === lessonFilter);
+        if (path) list = (path.lessons || []).map((id) => map[id]).filter(Boolean);
+      }
+      const filterBar = '<div class="card" style="padding:0.65rem">' +
+        '<label class="meta" for="pathFilter">篩選路徑</label>' +
+        '<select id="pathFilter">' +
+        '<option value="all">全部課程</option>' +
+        (data.paths || []).map((p) => '<option value="' + esc(p.id) + '"' + (lessonFilter === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>").join("") +
+        "</select></div>";
+
+      $("tab-lessons").innerHTML = filterBar + list.map((l) => {
+        const done = !!progress.done[l.id];
+        return '<article class="card" id="lesson-' + esc(l.id) + '">' +
+          '<span class="tag">' + esc(l.mins) + " 分</span>" +
+          (done ? '<span class="tag">已完成</span>' : "") +
+          "<h3>" + esc(l.title) + "</h3>" +
+          '<p class="meta">' + esc(l.summary) + "</p>" +
+          '<ul class="pts">' + (l.points || []).map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" +
+          '<div class="do"><strong>動手：</strong>' + esc(l.do) + "</div>" +
+          '<div class="check"><strong>自檢：</strong>' + esc(l.check) + "</div>" +
+          '<button type="button" class="act' + (done ? " done-mark" : "") + '" data-toggle-lesson="' + esc(l.id) + '">' +
+          (done ? "標成未完成" : "標成已完成") + "</button></article>";
+      }).join("");
+
+      const sel = $("pathFilter");
+      if (sel) sel.onchange = () => { lessonFilter = sel.value; renderLessons(); };
+      $("tab-lessons").querySelectorAll("[data-toggle-lesson]").forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute("data-toggle-lesson");
+          progress.done[id] = !progress.done[id];
+          if (!progress.done[id]) delete progress.done[id];
+          saveProgress();
+          renderLessons();
+          renderPaths();
+          toast(progress.done[id] ? "已完成一課" : "已取消完成");
+        };
+      });
+    }
+
+    function renderPrompts() {
+      $("tab-prompts").innerHTML = (data.prompts || []).map((p) =>
+        '<article class="card"><h2>' + esc(p.title) + "</h2>" +
+        '<div class="prompt-box" id="prompt-' + esc(p.id) + '">' + esc(p.text) + "</div>" +
+        '<button type="button" class="act secondary" data-copy-prompt="' + esc(p.id) + '">複製模板</button></article>'
+      ).join("");
+      $("tab-prompts").querySelectorAll("[data-copy-prompt]").forEach((btn) => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute("data-copy-prompt");
+          const p = (data.prompts || []).find((x) => x.id === id);
+          if (!p) return;
+          try { await navigator.clipboard.writeText(p.text); toast("已複製提示詞模板"); }
+          catch (_) { toast("無法複製"); }
+        };
+      });
+    }
+
+    function renderGlossary() {
+      $("tab-glossary").innerHTML =
+        '<div class="card"><input type="search" id="glossQ" placeholder="搜尋詞彙…" /></div>' +
+        '<div id="glossList"></div>';
+      const paint = () => {
+        const q = (($("glossQ").value || "")).trim().toLowerCase();
+        const items = (data.glossary || []).filter((g) =>
+          !q || (g.term + g.def).toLowerCase().includes(q)
+        );
+        $("glossList").innerHTML = items.map((g) =>
+          '<article class="card"><h2>' + esc(g.term) + "</h2><p class="meta">' + esc(g.def) + "</p></article>"
+        ).join("") || '<p class="empty">無符合詞彙</p>';
+      };
+      $("glossQ").oninput = paint;
+      paint();
+    }
+
+    function renderDrills() {
+      $("tab-drills").innerHTML = (data.drills || []).map((d, idx) => {
+        const scored = progress.drill[d.id];
+        return '<article class="card" id="drill-' + esc(d.id) + '">' +
+          "<h2>題 " + (idx + 1) + "</h2>" +
+          '<p class="meta">' + esc(d.q) + "</p>" +
+          (d.choices || []).map((c, i) =>
+            '<button type="button" class="choice" data-drill="' + esc(d.id) + '" data-i="' + i + '">' + esc(c) + "</button>"
+          ).join("") +
+          '<p class="meta" id="why-' + esc(d.id) + '">' + (scored != null ? esc(d.why) : "") + "</p></article>";
+      }).join("");
+
+      $("tab-drills").querySelectorAll(".choice").forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute("data-drill");
+          const i = Number(btn.getAttribute("data-i"));
+          const d = (data.drills || []).find((x) => x.id === id);
+          if (!d) return;
+          const card = document.getElementById("drill-" + id);
+          card.querySelectorAll(".choice").forEach((b) => {
+            b.classList.remove("correct", "wrong");
+            b.disabled = true;
+            const bi = Number(b.getAttribute("data-i"));
+            if (bi === d.answer) b.classList.add("correct");
+            if (bi === i && i !== d.answer) b.classList.add("wrong");
+          });
+          progress.drill[id] = i === d.answer ? 1 : 0;
+          saveProgress();
+          $("why-" + id).textContent = d.why;
+          toast(i === d.answer ? "答對了" : "再看解析");
+        };
+      });
+    }
+
+    function buildLabPrompt() {
+      const goal = ($("labGoal").value || "").trim();
+      const constraint = ($("labConstraint").value || "").trim();
+      const accept = ($("labAccept").value || "").trim();
+      const input = ($("labInput").value || "").trim();
+      const out =
+        "【目標】\n" + (goal || "（未填）") + "\n\n" +
+        "【約束】\n" + (constraint || "（未填）") + "\n\n" +
+        "【驗收】\n" + (accept || "（未填）") + "\n\n" +
+        "【輸入／上下文】\n" + (input || "（未填）") + "\n\n" +
+        "請先確認理解；若資訊不足先問我，再給最小必要變更。";
+      $("labOut").textContent = out;
+      return out;
+    }
+
+    function bindTabs() {
+      document.querySelectorAll(".tabs button").forEach((btn) => {
+        btn.onclick = () => {
+          document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b === btn));
+          document.querySelectorAll(".panel").forEach((p) => p.classList.remove("on"));
+          $("tab-" + btn.dataset.tab).classList.add("on");
+        };
+      });
+      $("btnBuildPrompt").onclick = () => { buildLabPrompt(); toast("已產生提示詞"); };
+      $("btnCopyPrompt").onclick = async () => {
+        const t = buildLabPrompt();
+        try { await navigator.clipboard.writeText(t); toast("已複製"); }
+        catch (_) { toast("無法複製"); }
+      };
+    }
+
+    async function boot() {
+      loadProgress();
+      bindTabs();
+      try {
+        const res = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) data = await res.json();
+      } catch (_) {}
+      renderProgress();
+      renderPaths();
+      renderLessons();
+      renderPrompts();
+      renderGlossary();
+      renderDrills();
+    }
+
+    boot();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js?v=1").catch(() => {});
+    }
+  </script>
+</body>
+</html>

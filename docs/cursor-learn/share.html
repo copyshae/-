@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a3348" />
+  <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
+  <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
+  <link rel="manifest" href="manifest.json" />
+  <title>加入主畫面｜Cursor 學習平台</title>
+  <style>
+    body { font-family: "PingFang TC", "Noto Sans TC", sans-serif; margin: 0; padding: 2rem 1.2rem; background: #eef5f6; color: #142033; line-height: 1.6; }
+    .wrap { max-width: 22rem; margin: 0 auto; text-align: center; }
+    h1 { color: #1f6f78; font-size: 1.25rem; }
+    p, ol { text-align: left; color: #5a6b7d; font-size: 0.92rem; }
+    .icon { width: 5.5rem; height: 5.5rem; border-radius: 1.1rem; margin: 1rem auto 0; }
+    a.btn { display: block; margin-top: 1rem; background: #1f6f78; color: #fff; text-decoration: none; font-weight: 700; padding: 1rem; border-radius: 0.35rem; }
+    .url { margin-top: 0.75rem; padding: 0.75rem; background: #fff; font-size: 0.8rem; word-break: break-all; text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cursor 學習平台<br />加入主畫面</h1>
+    <img class="icon" src="icon-192.png" alt="Cursor 學習平台圖示" />
+    <p>路徑課程、提示詞庫、詞彙、小測驗與本機進度追蹤。</p>
+    <div class="url" id="url">https://copyshae.github.io/-/cursor-learn/</div>
+    <a class="btn" id="open" href="./index.html">打開 Cursor 學習平台</a>
+    <ol>
+      <li>iPhone：Safari 開啟上方網址 → 分享 → 加入主畫面</li>
+      <li>Android：Chrome 開啟 → ⋮ → 加入主畫面</li>
+    </ol>
+  </div>
+  <script>
+    var u = location.href.replace(/share\.html.*$/, "");
+    if (u.indexOf("http") !== 0) u = "https://copyshae.github.io/-/cursor-learn/";
+    document.getElementById("url").textContent = u;
+    document.getElementById("open").href = u;
+  </script>
+</body>
+</html>
