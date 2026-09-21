@@ -1,62 +1,180 @@
 {
-  "updatedAt": "2026-09-21T18:25:00Z",
+  "updatedAt": "2026-09-21T20:20:00Z",
   "title": "Cursor 學習平台",
-  "description": "只收錄與 Cursor 相關的 YouTube 教學：由淺入深；中英字幕／中文人聲",
-  "scopeNote": "本平台種子清單僅限 Cursor IDE／Agent／Rules／Cloud 相關影片；匯入時也會檢查標題是否含 Cursor。",
+  "description": "搜尋匯入 Cursor 相關 YouTube：由淺入深；點縮圖即播；可更新清單",
+  "scopeNote": "僅 Cursor 相關。按「更新清單」重新抓取並搜尋匯入。",
+  "searchQueries": [
+    "Cursor AI tutorial",
+    "Cursor AI rules",
+    "Cursor composer agent",
+    "Cursor cloud agents",
+    "Cursor IDE beginners"
+  ],
   "levelOrder": [
-    { "id": 1, "name": "初階", "hint": "介面、Composer、基本 Rules" },
-    { "id": 2, "name": "中階", "hint": "工作流、Rules 進階、Notebook" },
-    { "id": 3, "name": "進階", "hint": "Cloud Agent、自建 Agent" }
+    {
+      "id": 1,
+      "name": "初階",
+      "hint": "入門與介面"
+    },
+    {
+      "id": 2,
+      "name": "中階",
+      "hint": "Rules／工作流／資料科學"
+    },
+    {
+      "id": 3,
+      "name": "進階",
+      "hint": "Cloud／進階 Agent"
+    }
   ],
   "channels": [
     {
       "id": "ch_cursor",
-      "name": "Cursor 官方頻道",
+      "name": "Cursor 官方",
       "creator": "Cursor",
       "channelUrl": "https://www.youtube.com/@cursor_ai",
-      "note": "官方入門與進階示範",
+      "note": "官方頻道",
       "level": 1
     }
   ],
   "learnerTips": [
-    "本平台只放 Cursor 相關影片；匯入時標題需含 Cursor。",
-    "英文不好：先開「中文字幕／中英字幕」（大字），聽不懂再按「帶入中文摘要並朗讀」。",
-    "先看完初階再進中階，最後才 Cloud Agent。",
-    "每則只寫一句中文筆記。",
-    "旁白時原片會靜音，聽完按「恢復原片聲音」。"
+    "點縮圖即可播放。",
+    "按「更新清單」重新載入並搜尋匯入 Cursor 相關連結。",
+    "英文不好：開中文大字字幕或對翻／中聲。"
   ],
   "clips": [
     {
-      "id": "yt_4IskO3BKwNY",
-      "name": "Cursor 101（官方入門）",
-      "title": "Cursor 101",
-      "creator": "Cursor",
-      "category": "intro",
-      "tags": ["Cursor", "入門", "官方"],
-      "platform": "youtube",
-      "url": "https://www.youtube.com/watch?v=4IskO3BKwNY",
-      "videoId": "4IskO3BKwNY",
-      "source": "seed",
-      "level": 1,
-      "levelName": "初階",
-      "note": "認識介面、Agent 視圖與第一次小改動",
-      "zhSummary": "認識 Cursor 畫面與 Agent 視圖，完成第一次小改動。適合完全新手。"
-    },
-    {
       "id": "yt_GAe1IQtHqVU",
-      "name": "Composer Agent 20 分鐘上手",
+      "name": "Composer Agent 20 分鐘",
       "title": "Cursor Composer Agent in 20 Minutes",
       "creator": "Developers Digest",
-      "category": "composer",
-      "tags": ["Cursor", "Composer", "Agent"],
+      "category": "agent",
+      "tags": [
+        "Cursor",
+        "agent"
+      ],
       "platform": "youtube",
       "url": "https://www.youtube.com/watch?v=GAe1IQtHqVU",
       "videoId": "GAe1IQtHqVU",
       "source": "seed",
       "level": 1,
       "levelName": "初階",
-      "note": "Composer／Agent 基本操作與實作示範",
-      "zhSummary": "20 分鐘看懂 Composer／Agent：怎麼下指令、看 diff、修錯誤。"
+      "note": "Cursor Composer Agent in 20 Minutes",
+      "zhSummary": "20 分鐘看懂 Composer／Agent：下指令、看 diff、修錯誤。"
+    },
+    {
+      "id": "yt_4IskO3BKwNY",
+      "name": "Cursor 101（官方入門）",
+      "title": "Cursor 101",
+      "creator": "Cursor",
+      "category": "intro",
+      "tags": [
+        "Cursor",
+        "intro"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=4IskO3BKwNY",
+      "videoId": "4IskO3BKwNY",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Cursor 101",
+      "zhSummary": "認識 Cursor 畫面與 Agent 視圖，完成第一次小改動。"
+    },
+    {
+      "id": "yt_l30Eb76Tk5s",
+      "name": "Cursor 2.0 新手教學",
+      "title": "Cursor 2.0 - Full Tutorial for Beginners",
+      "creator": "Tech With Tim",
+      "category": "intro",
+      "tags": [
+        "Cursor",
+        "intro"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=l30Eb76Tk5s",
+      "videoId": "l30Eb76Tk5s",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Cursor 2.0 - Full Tutorial for Beginners",
+      "zhSummary": "Cursor 2.0 新手完整教學。"
+    },
+    {
+      "id": "yt_5DnOOa-5dTU",
+      "name": "Cursor 3.0 入門到進階",
+      "title": "Cursor 3.0 Ultimate Guide: Beginner to Pro in 60 min",
+      "creator": "Riley Brown",
+      "category": "intro",
+      "tags": [
+        "Cursor",
+        "intro"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=5DnOOa-5dTU",
+      "videoId": "5DnOOa-5dTU",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Cursor 3.0 Ultimate Guide: Beginner to Pro in 60 min",
+      "zhSummary": "Cursor 3.0 從入門到進階總覽。"
+    },
+    {
+      "id": "yt_Tv8mLrLtyxo",
+      "name": "Cursor 3.0 新手課程",
+      "title": "Cursor 3.0 - Full Course for Beginners",
+      "creator": "Tech With Tim",
+      "category": "intro",
+      "tags": [
+        "Cursor",
+        "intro"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=Tv8mLrLtyxo",
+      "videoId": "Tv8mLrLtyxo",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Cursor 3.0 - Full Course for Beginners",
+      "zhSummary": "Cursor 3.0 新手完整課程。"
+    },
+    {
+      "id": "yt_ocMOZpuAMw4",
+      "name": "Cursor 新手教學",
+      "title": "Cursor Tutorial for Beginners (AI Code Editor)",
+      "creator": "Tech With Tim",
+      "category": "intro",
+      "tags": [
+        "Cursor",
+        "intro"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=ocMOZpuAMw4",
+      "videoId": "ocMOZpuAMw4",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Cursor Tutorial for Beginners (AI Code Editor)",
+      "zhSummary": "Cursor 新手教學：AI 程式編輯器入門。"
+    },
+    {
+      "id": "yt_IsXrCBlAshg",
+      "name": "Setup Rules in Cursor",
+      "title": "How to Setup Rules in Cursor",
+      "creator": "hUndefined",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=IsXrCBlAshg",
+      "videoId": "IsXrCBlAshg",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "How to Setup Rules in Cursor",
+      "zhSummary": "如何在 Cursor 設定 Rules。"
     },
     {
       "id": "yt_6vtBq6TBGyo",
@@ -64,63 +182,94 @@
       "title": "How to Add Rules to Cursor AI (2026)",
       "creator": "The Code City",
       "category": "rules",
-      "tags": ["Cursor", "Rules", "規則"],
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
       "platform": "youtube",
       "url": "https://www.youtube.com/watch?v=6vtBq6TBGyo",
       "videoId": "6vtBq6TBGyo",
       "source": "seed",
       "level": 1,
       "levelName": "初階",
-      "note": "在設定裡建立規則，讓 AI 跟著專案習慣",
-      "zhSummary": "學會在 Cursor 設定裡新增 Rules，讓 Agent 跟著你的專案習慣寫程式。"
+      "note": "How to Add Rules to Cursor AI (2026)",
+      "zhSummary": "在 Cursor 設定裡新增 Rules，讓 Agent 跟著專案習慣。"
+    },
+    {
+      "id": "yt_AFgKFdMkVk0",
+      "name": "學會 Cursor Agent（26 分）",
+      "title": "Learn the Entire Cursor Agent in 26 Minutes!",
+      "creator": "Superposition",
+      "category": "agent",
+      "tags": [
+        "Cursor",
+        "agent"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=AFgKFdMkVk0",
+      "videoId": "AFgKFdMkVk0",
+      "source": "seed",
+      "level": 1,
+      "levelName": "初階",
+      "note": "Learn the Entire Cursor Agent in 26 Minutes!",
+      "zhSummary": "約 26 分鐘學會 Cursor Agent。"
+    },
+    {
+      "id": "yt_nIK2UxECBi0",
+      "name": "Complete Cursor Tutorial",
+      "title": "🔥 Complete Cursor AI Tutorial | How to Use Cursor AI | Intellipaat",
+      "creator": "Intellipaat",
+      "category": "intro",
+      "tags": [
+        "Cursor",
+        "intro"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=nIK2UxECBi0",
+      "videoId": "nIK2UxECBi0",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "🔥 Complete Cursor AI Tutorial | How to Use Cursor AI | Intellipaat",
+      "zhSummary": "完整 Cursor AI 教學：怎麼開始用。"
     },
     {
       "id": "yt_z4xruISaBfc",
-      "name": "Cursor 201（官方進階）",
+      "name": "Cursor 201（官方）",
       "title": "Cursor 201",
       "creator": "Cursor",
       "category": "workflow",
-      "tags": ["Cursor", "工作流", "官方"],
+      "tags": [
+        "Cursor",
+        "workflow"
+      ],
       "platform": "youtube",
       "url": "https://www.youtube.com/watch?v=z4xruISaBfc",
       "videoId": "z4xruISaBfc",
       "source": "seed",
       "level": 2,
       "levelName": "中階",
-      "note": "從模糊需求到可執行任務的日常工作流",
-      "zhSummary": "把模糊需求變成可執行任務；Cursor 日常開發節奏示範。"
+      "note": "Cursor 201",
+      "zhSummary": "把模糊需求變成可執行任務；日常開發節奏。"
     },
     {
-      "id": "yt_gw8otRr2zpw",
-      "name": "Cursor Rules 五層完整指南",
-      "title": "Ultimate Cursor AI IDE Rules Guide",
-      "creator": "Kirill Markin",
-      "category": "rules",
-      "tags": ["Cursor", "Rules", "規則"],
+      "id": "yt_8Yf9IoXkROM",
+      "name": "Cursor GrokBot 介紹",
+      "title": "Cursor Just Unleashed GrokBot (Everything You NEED to Know)",
+      "creator": "Riley Brown",
+      "category": "workflow",
+      "tags": [
+        "Cursor",
+        "workflow"
+      ],
       "platform": "youtube",
-      "url": "https://www.youtube.com/watch?v=gw8otRr2zpw",
-      "videoId": "gw8otRr2zpw",
+      "url": "https://www.youtube.com/watch?v=8Yf9IoXkROM",
+      "videoId": "8Yf9IoXkROM",
       "source": "seed",
       "level": 2,
       "levelName": "中階",
-      "note": "Always／Auto／Agent／Manual 等規則類型",
-      "zhSummary": "Cursor Rules 五種層級一次弄懂，讓規則在對的時機自動生效。"
-    },
-    {
-      "id": "yt_vjyAba8-QA8",
-      "name": "Cursor 四種新規則類型",
-      "title": "Cursor AI Just Got Smarter: 4 New Rule Types",
-      "creator": "BMad Code",
-      "category": "rules",
-      "tags": ["Cursor", "Rules"],
-      "platform": "youtube",
-      "url": "https://www.youtube.com/watch?v=vjyAba8-QA8",
-      "videoId": "vjyAba8-QA8",
-      "source": "seed",
-      "level": 2,
-      "levelName": "中階",
-      "note": "新規則類型與自動產生技巧",
-      "zhSummary": "Cursor 四種新規則類型與自動產生技巧，讓規則更好用。"
+      "note": "Cursor Just Unleashed GrokBot (Everything You NEED to Know)",
+      "zhSummary": "Cursor 新功能 GrokBot 重點。"
     },
     {
       "id": "yt_eN69OLhOz2Q",
@@ -128,31 +277,151 @@
       "title": "Cursor for Data Science",
       "creator": "Cursor",
       "category": "datascience",
-      "tags": ["Cursor", "資料科學", "Notebook", "官方"],
+      "tags": [
+        "Cursor",
+        "datascience"
+      ],
       "platform": "youtube",
       "url": "https://www.youtube.com/watch?v=eN69OLhOz2Q",
       "videoId": "eN69OLhOz2Q",
       "source": "seed",
       "level": 2,
       "levelName": "中階",
-      "note": "用 Cursor 做資料科學工作流",
-      "zhSummary": "官方示範：在 Cursor 裡做資料科學（Notebook、模型選擇與操作）。"
+      "note": "Cursor for Data Science",
+      "zhSummary": "官方示範：在 Cursor 做資料科學。"
+    },
+    {
+      "id": "yt_nWcEjZYeeVo",
+      "name": "Cursor 生產力技巧",
+      "title": "4 Cursor Productivity Tips!! #cursor #ai #productivity #tips #coding",
+      "creator": "Jessica Wang",
+      "category": "workflow",
+      "tags": [
+        "Cursor",
+        "workflow"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=nWcEjZYeeVo",
+      "videoId": "nWcEjZYeeVo",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "4 Cursor Productivity Tips!! #cursor #ai #productivity #tips #coding",
+      "zhSummary": "Cursor 生產力小技巧。"
     },
     {
       "id": "yt_elEf91zKa5c",
-      "name": "Cursor＋Jupyter 資料分析流程",
+      "name": "Cursor＋Jupyter 資料分析",
       "title": "Cursor + Jupyter Notebooks: My AI Data Analysis Workflow",
       "creator": "ZazenCodes",
       "category": "datascience",
-      "tags": ["Cursor", "Jupyter", "資料分析"],
+      "tags": [
+        "Cursor",
+        "datascience"
+      ],
       "platform": "youtube",
       "url": "https://www.youtube.com/watch?v=elEf91zKa5c",
       "videoId": "elEf91zKa5c",
       "source": "seed",
       "level": 2,
       "levelName": "中階",
-      "note": "Cursor 搭配 Jupyter 做 AI 資料分析",
-      "zhSummary": "用 Cursor＋Jupyter Notebook 跑資料分析工作流（仍聚焦 Cursor 操作）。"
+      "note": "Cursor + Jupyter Notebooks: My AI Data Analysis Workflow",
+      "zhSummary": "Cursor＋Jupyter 資料分析工作流。"
+    },
+    {
+      "id": "yt_gw8otRr2zpw",
+      "name": "Rules 五層指南",
+      "title": "Ultimate Cursor AI IDE Rules Guide: All 5 Levels and .cursorrules (2025)",
+      "creator": "Kirill Markin",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=gw8otRr2zpw",
+      "videoId": "gw8otRr2zpw",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Ultimate Cursor AI IDE Rules Guide: All 5 Levels and .cursorrules (2025)",
+      "zhSummary": "Cursor Rules 五種層級一次弄懂。"
+    },
+    {
+      "id": "yt_pmS67mn5Y44",
+      "name": "Rules 改 Skills 說明",
+      "title": "Why Cursor Ditched Rules for Skills",
+      "creator": "AI Native Dev",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=pmS67mn5Y44",
+      "videoId": "pmS67mn5Y44",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Why Cursor Ditched Rules for Skills",
+      "zhSummary": "為什麼 Cursor 從 Rules 走向 Skills。"
+    },
+    {
+      "id": "yt_vjyAba8-QA8",
+      "name": "四種新規則類型",
+      "title": "Cursor AI Just Got Smarter: 4 New Rule Types, Smarter Auto Gen, and Pro Tips!",
+      "creator": "BMad Code",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=vjyAba8-QA8",
+      "videoId": "vjyAba8-QA8",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Cursor AI Just Got Smarter: 4 New Rule Types, Smarter Auto Gen, and Pro Tips!",
+      "zhSummary": "四種新規則類型與自動產生技巧。"
+    },
+    {
+      "id": "yt_442OlyuqeX4",
+      "name": "用 Cursor 建立 AI Agent",
+      "title": "Easiest Way to Build AI Agents with Cursor AI (Includes Cursor Rules + AI Agent Boilerplate)",
+      "creator": "Learn To Build AI",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=442OlyuqeX4",
+      "videoId": "442OlyuqeX4",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Easiest Way to Build AI Agents with Cursor AI (Includes Cursor Rules + AI Agent Boilerplate)",
+      "zhSummary": "用 Cursor Rules＋範本組出 AI Agent。"
+    },
+    {
+      "id": "yt_7wN24cc4YHQ",
+      "name": "精簡 Cursor Rules",
+      "title": "Why Everyone's Deleting Their Cursor Rules",
+      "creator": "Better Stack",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=7wN24cc4YHQ",
+      "videoId": "7wN24cc4YHQ",
+      "source": "seed",
+      "level": 2,
+      "levelName": "中階",
+      "note": "Why Everyone's Deleting Their Cursor Rules",
+      "zhSummary": "關於精簡 Cursor Rules 的討論。"
     },
     {
       "id": "yt_0JsmvKps9po",
@@ -160,31 +429,61 @@
       "title": "Cursor Cloud Agents",
       "creator": "Cursor",
       "category": "cloud",
-      "tags": ["Cursor", "Cloud", "Agent", "官方"],
+      "tags": [
+        "Cursor",
+        "cloud"
+      ],
       "platform": "youtube",
       "url": "https://www.youtube.com/watch?v=0JsmvKps9po",
       "videoId": "0JsmvKps9po",
       "source": "seed",
       "level": 3,
       "levelName": "進階",
-      "note": "雲端 Agent、排程與自動化",
-      "zhSummary": "Cursor Cloud Agents：雲端長跑任務、排程與自動化方向。"
+      "note": "Cursor Cloud Agents",
+      "zhSummary": "Cursor Cloud Agents：雲端長跑與自動化。"
     },
     {
-      "id": "yt_442OlyuqeX4",
-      "name": "用 Cursor 建立 AI Agent",
-      "title": "Easiest Way to Build AI Agents with Cursor AI",
-      "creator": "Learn To Build AI",
-      "category": "agent",
-      "tags": ["Cursor", "Agent", "Rules"],
+      "id": "yt_-ikaeesLSqc",
+      "name": "進階 Cursor Rules",
+      "title": "Mastering Cursor Rules: Advanced Agentic Coding Technique #cursor #vibecoding",
+      "creator": "Hyperskill",
+      "category": "rules",
+      "tags": [
+        "Cursor",
+        "rules"
+      ],
       "platform": "youtube",
-      "url": "https://www.youtube.com/watch?v=442OlyuqeX4",
-      "videoId": "442OlyuqeX4",
+      "url": "https://www.youtube.com/watch?v=-ikaeesLSqc",
+      "videoId": "-ikaeesLSqc",
       "source": "seed",
       "level": 3,
       "levelName": "進階",
-      "note": "Rules＋boilerplate 在 Cursor 組 Agent",
-      "zhSummary": "在 Cursor 裡用 Rules＋範本組出可用 AI Agent（進階實作）。"
+      "note": "Mastering Cursor Rules: Advanced Agentic Coding Technique #cursor #vibecoding",
+      "zhSummary": "進階 Cursor Rules 與 Agent 編碼技巧。"
     }
+  ],
+  "discoverIds": [
+    "GAe1IQtHqVU",
+    "4IskO3BKwNY",
+    "l30Eb76Tk5s",
+    "5DnOOa-5dTU",
+    "Tv8mLrLtyxo",
+    "ocMOZpuAMw4",
+    "IsXrCBlAshg",
+    "6vtBq6TBGyo",
+    "AFgKFdMkVk0",
+    "nIK2UxECBi0",
+    "z4xruISaBfc",
+    "8Yf9IoXkROM",
+    "eN69OLhOz2Q",
+    "nWcEjZYeeVo",
+    "elEf91zKa5c",
+    "gw8otRr2zpw",
+    "pmS67mn5Y44",
+    "vjyAba8-QA8",
+    "442OlyuqeX4",
+    "7wN24cc4YHQ",
+    "0JsmvKps9po",
+    "-ikaeesLSqc"
   ]
 }

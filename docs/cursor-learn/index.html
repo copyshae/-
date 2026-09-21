@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
   <meta name="description" content="看 Cursor 相關 YouTube 影片學習：縮圖點選即播，由淺入深。" />
-  <link rel="manifest" href="manifest.json?v=6" />
+  <link rel="manifest" href="manifest.json?v=7" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
@@ -151,6 +151,11 @@
       </div>
       <label class="picker-label" for="searchQ">搜尋影片</label>
       <input type="search" id="searchQ" placeholder="Cursor、Rules、Agent…" />
+      <div class="row-btns" style="margin-top:.45rem">
+        <button type="button" id="btnUpdateCatalog">更新清單（搜尋匯入）</button>
+        <button type="button" class="secondary" id="btnPlayFirst">播放第一支</button>
+      </div>
+      <p class="status" id="updateStatus">可按「更新清單」重新抓取 Cursor 相關影片</p>
       <select id="clipSelect" hidden aria-hidden="true"><option value="">—</option></select>
       <div class="video-grid" id="videoGrid"></div>
     </section>
@@ -248,7 +253,22 @@
     let deferredInstall = null;
 
     const $ = (id) => document.getElementById(id);
+    const EXTRA_KEY = "cursor-learn-extra-v1";
+    let extras = [];
     const FLIP = ["btnTextToEn","btnTextToZh","btnAutoFlip","btnVoiceEn","btnVoiceZh","btnLoadZhSum"];
+    function on(id, ev, fn) {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener(ev, fn);
+    }
+    function markYtReady() {
+      apiReady = true;
+      if (window._pendingPlay) {
+        const c = findClip(window._pendingPlay);
+        if (c) playClip(c, { auto: true });
+        window._pendingPlay = null;
+      }
+    }
 
     function toast(msg) {
       const el = $("toast"); el.textContent = msg; el.classList.add("show");
@@ -268,9 +288,12 @@
     function loadStore(){
       try{ mine=JSON.parse(localStorage.getItem(MINE_KEY)||"[]")||[]; }catch(_){ mine=[]; }
       if(!Array.isArray(mine)) mine=[];
+      try{ extras=JSON.parse(localStorage.getItem(EXTRA_KEY)||"[]")||[]; }catch(_){ extras=[]; }
+      if(!Array.isArray(extras)) extras=[];
       try{ done=JSON.parse(localStorage.getItem(DONE_KEY)||"{}")||{}; }catch(_){ done={}; }
       try{ notes=JSON.parse(localStorage.getItem(NOTES_KEY)||"{}")||{}; }catch(_){ notes={}; }
     }
+    function saveExtras(){ localStorage.setItem(EXTRA_KEY, JSON.stringify(extras)); }
     function saveMine(){ localStorage.setItem(MINE_KEY, JSON.stringify(mine)); }
     function saveDone(){ localStorage.setItem(DONE_KEY, JSON.stringify(done)); renderProgress(); }
     function saveNotes(){ localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }
@@ -278,7 +301,12 @@
     function clipLevel(c){ const n=Number(c.level); return (n===1||n===2||n===3)?n:2; }
     function levelLabel(n){ return ({1:"初階",2:"中階",3:"進階"})[n]||""; }
     function allClips(){
-      return (catalog.clips||[]).map((c)=>Object.assign({},c,{source:c.source||"seed"})).concat(mine);
+      const seed=(catalog.clips||[]).map((c)=>Object.assign({},c,{source:c.source||"seed"}));
+      const ex=(extras||[]).map((c)=>Object.assign({},c,{source:c.source||"discover"}));
+      // prefer seed over extras over mine duplicates by videoId
+      const map=new Map();
+      seed.concat(ex).concat(mine).forEach((c)=>{ const k=c.videoId||c.id; if(!map.has(k)) map.set(k,c); });
+      return [...map.values()];
     }
     function matchSearch(c,q){
       if(!q) return true;
@@ -562,7 +590,19 @@
       document.querySelectorAll("#videoGrid .vcard").forEach((b)=>b.classList.toggle("on", b.getAttribute("data-id")===clip.id));
       if(!($("voiceScript").value||"").trim()) $("voiceScript").value=clip.zhSummary||clip.note||clip.title||"";
       autoPlay=!!opts.auto;
-      if(!apiReady){ window._pendingPlay=clip.id; toast("載入播放器…"); return; }
+      if(!(window.YT&&YT.Player)){
+        window._pendingPlay=clip.id;
+        toast("載入播放器…");
+        // 若 API 其實已到但 callback 錯過，輪詢補上
+        let n=0;
+        const wait=setInterval(()=>{
+          n++;
+          if(window.YT&&YT.Player){ clearInterval(wait); markYtReady(); }
+          else if(n>40){ clearInterval(wait); toast("播放器載入失敗，請重新整理"); }
+        },250);
+        return;
+      }
+      apiReady=true;
       if(!player){
         player=new YT.Player("player",{
           videoId:vid, playerVars:{rel:0,modestbranding:1,playsinline:1,cc_load_policy:1},
@@ -572,10 +612,11 @@
           }
         });
       } else {
-        player.loadVideoById(vid); setPlaybackRate(); applyCaptions();
+        try{ player.loadVideoById(vid); }catch(_){ player=null; return playClip(clip,opts); }
+        setPlaybackRate(); applyCaptions();
         if(autoPlay) try{player.playVideo();}catch(_){}
       }
-      $("btnPlay").textContent="⏸ 暫停連播";
+      if($("btnPlay")) $("btnPlay").textContent=autoPlay?"⏸ 暫停":"▶ 播放";
     }
     function onPlayerState(e){
       if(e.data===YT.PlayerState.PLAYING){ $("btnPlay").textContent="⏸ 暫停連播"; autoPlay=true; setPlaybackRate(); applyCaptions(); }
@@ -625,71 +666,168 @@
       if(start) playClip(start,{auto:false});
     }
 
-    // events
-    document.querySelectorAll("#levelFilterRow button").forEach((btn)=>btn.addEventListener("click",()=>{ levelFilter=btn.dataset.level||"all"; syncFilterButtons(); renderMenu(); }));
-    document.querySelectorAll("#speedRow button[data-speed]").forEach((btn)=>btn.addEventListener("click",()=>{ playSpeed=Number(btn.dataset.speed)||1; localStorage.setItem(SPEED_KEY,String(playSpeed)); applySpeedButtons(); setPlaybackRate(); toast("影片語速 "+playSpeed+"×"); }));
-    document.querySelectorAll("#captionRow button[data-caption]").forEach((btn)=>btn.addEventListener("click",()=>{ captionMode=btn.dataset.caption||"off"; localStorage.setItem(CAPTION_KEY,captionMode); applyCaptionButtons(); applyCaptions(); toast(({off:"已關字幕",zh:"中文字幕",en:"英文字幕",dual:"中英字幕"})[captionMode]||"字幕"); }));
-    document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn)=>btn.addEventListener("click",()=>{ ttsSpeed=Number(btn.dataset.tts)||1; localStorage.setItem(TTS_SPEED_KEY,String(ttsSpeed)); applyTtsSpeedButtons(); toast("旁白語速 "+ttsSpeed+"×"); }));
-    $("searchQ").addEventListener("input",()=>{ searchQ=$("searchQ").value||""; renderMenu(); });
-    $("btnImport").onclick=importLinks;
-    $("btnClearMine").onclick=()=>{ mine=[]; saveMine(); renderMenu(); toast("已清除我的匯入"); };
-    $("clipSelect").onchange=playSelected;
-    $("btnPrev").onclick=()=>playAt(qIndex-1);
-    $("btnNext").onclick=()=>playAt(qIndex+1);
-    $("btnPlay").onclick=()=>{
-      if(!player){ if(queue.length) playAt(qIndex); else playSelected(); return; }
-      const st=player.getPlayerState();
-      if(st===YT.PlayerState.PLAYING){ player.pauseVideo(); autoPlay=false; $("btnPlay").textContent="▶ 開始連播"; }
-      else { autoPlay=true; setPlaybackRate(); if(st===YT.PlayerState.PAUSED) player.playVideo(); else if(queue.length) playAt(qIndex); else playSelected(); }
-    };
-    $("btnMarkDone").onclick=()=>{
-      if(!currentId) return toast("請先選影片");
-      if(done[currentId]){ delete done[currentId]; toast("已取消"); } else { done[currentId]=true; toast("已標記看完"); }
-      saveDone(); renderMenu();
-      $("btnMarkDone").textContent=done[currentId]?"取消已看完":"標記已看完";
-    };
-    $("btnOpenYt").onclick=()=>{ const c=findClip(currentId); if(!c) return toast("請先選影片"); window.open(c.url,"_blank","noopener"); };
-    $("btnSaveNote").onclick=()=>{ if(!currentId) return toast("請先選影片"); notes[currentId]=$("noteBox").value||""; saveNotes(); toast("筆記已存"); };
-    $("btnTextToEn").onclick=()=>oneClickVoice("en");
-    $("btnTextToZh").onclick=()=>oneClickVoice("zh");
-    $("btnAutoFlip").onclick=()=>autoFlipSpeak();
-    $("btnVoiceEn").onclick=()=>speakTranslatedOnly("en");
-    $("btnVoiceZh").onclick=()=>speakTranslatedOnly("zh");
-    $("btnVoiceOrig").onclick=restoreOriginalAudio;
-    $("btnLoadZhSum").onclick=async ()=>{
-      const clip=currentId?findClip(currentId):null;
-      const t=(clip&&(clip.zhSummary||clip.note))||defaultVoiceScript();
-      if(!t){ toast("沒有摘要"); return; }
-      $("voiceScript").value=t; $("voiceTranslated").value=t; speakDub(t,"zh");
-    };
-    $("btnCopySrc").onclick=async ()=>{ try{ await navigator.clipboard.writeText($("voiceScript").value||""); toast("已複製原文"); }catch(_){ toast("無法複製"); } };
-    $("btnCopyTgt").onclick=async ()=>{ try{ await navigator.clipboard.writeText($("voiceTranslated").value||""); toast("已複製譯文"); }catch(_){ toast("無法複製"); } };
-    $("btnSwapText").onclick=()=>{ const a=$("voiceScript").value,b=$("voiceTranslated").value; $("voiceScript").value=b; $("voiceTranslated").value=a; toast("已對調"); };
-    $("voiceEnSelect").onchange=()=>localStorage.setItem(VOICE_EN_KEY,$("voiceEnSelect").value||"");
-    $("voiceZhSelect").onchange=()=>localStorage.setItem(VOICE_ZH_KEY,$("voiceZhSelect").value||"");
-    if(window.speechSynthesis){ speechSynthesis.onvoiceschanged=fillVoiceSelects; }
+    // events（皆做空值保護）
+    function bindAll() {
+      document.querySelectorAll("#levelFilterRow button").forEach((btn) => {
+        btn.onclick = () => { levelFilter = btn.dataset.level || "all"; syncFilterButtons(); renderMenu(); };
+      });
+      document.querySelectorAll("#speedRow button[data-speed]").forEach((btn) => {
+        btn.onclick = () => {
+          playSpeed = Number(btn.dataset.speed) || 1;
+          localStorage.setItem(SPEED_KEY, String(playSpeed));
+          applySpeedButtons(); setPlaybackRate(); toast("影片語速 " + playSpeed + "×");
+        };
+      });
+      document.querySelectorAll("#captionRow button[data-caption]").forEach((btn) => {
+        btn.onclick = () => {
+          captionMode = btn.dataset.caption || "off";
+          localStorage.setItem(CAPTION_KEY, captionMode);
+          applyCaptionButtons(); applyCaptions();
+          toast(({ off: "已關字幕", zh: "中文大字", en: "英文字幕", dual: "中英字幕" })[captionMode] || "字幕");
+        };
+      });
+      document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn) => {
+        btn.onclick = () => {
+          ttsSpeed = Number(btn.dataset.tts) || 1;
+          localStorage.setItem(TTS_SPEED_KEY, String(ttsSpeed));
+          applyTtsSpeedButtons(); toast("旁白語速 " + ttsSpeed + "×");
+        };
+      });
+      on("searchQ", "input", () => { searchQ = $("searchQ").value || ""; renderMenu(); });
+      on("btnImport", "click", () => importLinks());
+      on("btnClearMine", "click", () => { mine = []; saveMine(); renderMenu(); toast("已清除我的匯入"); });
+      on("clipSelect", "change", playSelected);
+      on("clipSelect", "input", playSelected);
+      on("btnPrev", "click", () => playAt(qIndex - 1));
+      on("btnNext", "click", () => playAt(qIndex + 1));
+      on("btnPlayFirst", "click", () => { if (queue.length) playAt(0); else toast("尚無影片"); });
+      on("btnPlay", "click", () => {
+        unlockTts();
+        if (!player) {
+          if (queue.length) playAt(qIndex);
+          else if (currentId) playClip(findClip(currentId), { auto: true });
+          else toast("請先點下方縮圖選影片");
+          return;
+        }
+        try {
+          const st = player.getPlayerState();
+          if (st === YT.PlayerState.PLAYING) {
+            player.pauseVideo(); autoPlay = false; $("btnPlay").textContent = "▶ 播放";
+          } else {
+            autoPlay = true; setPlaybackRate();
+            if (st === YT.PlayerState.PAUSED) player.playVideo();
+            else if (queue.length) playAt(qIndex);
+            else playClip(findClip(currentId), { auto: true });
+          }
+        } catch (e) { toast("播放失敗，請重選縮圖"); }
+      });
+      on("btnMarkDone", "click", () => {
+        if (!currentId) return toast("請先選影片");
+        if (done[currentId]) { delete done[currentId]; toast("已取消"); }
+        else { done[currentId] = true; toast("已標記看完"); }
+        saveDone(); renderMenu();
+        $("btnMarkDone").textContent = done[currentId] ? "取消已看完" : "標記已看完";
+      });
+      on("btnOpenYt", "click", () => {
+        const c = findClip(currentId); if (!c) return toast("請先選影片");
+        window.open(c.url, "_blank", "noopener");
+      });
+      on("btnSaveNote", "click", () => {
+        if (!currentId) return toast("請先選影片");
+        notes[currentId] = $("noteBox").value || ""; saveNotes(); toast("筆記已存");
+      });
+      on("btnTextToEn", "click", () => oneClickVoice("en"));
+      on("btnTextToZh", "click", () => oneClickVoice("zh"));
+      on("btnAutoFlip", "click", () => autoFlipSpeak());
+      on("btnVoiceEn", "click", () => speakTranslatedOnly("en"));
+      on("btnVoiceZh", "click", () => speakTranslatedOnly("zh"));
+      on("btnVoiceOrig", "click", restoreOriginalAudio);
+      on("btnLoadZhSum", "click", async () => {
+        const clip = currentId ? findClip(currentId) : null;
+        const tx = (clip && (clip.zhSummary || clip.note)) || defaultVoiceScript();
+        if (!tx) { toast("沒有摘要"); return; }
+        $("voiceScript").value = tx; $("voiceTranslated").value = tx; speakDub(tx, "zh");
+      });
+      on("btnCopySrc", "click", async () => {
+        try { await navigator.clipboard.writeText($("voiceScript").value || ""); toast("已複製原文"); }
+        catch (_) { toast("無法複製"); }
+      });
+      on("btnCopyTgt", "click", async () => {
+        try { await navigator.clipboard.writeText($("voiceTranslated").value || ""); toast("已複製譯文"); }
+        catch (_) { toast("無法複製"); }
+      });
+      on("btnSwapText", "click", () => {
+        const a = $("voiceScript").value, b = $("voiceTranslated").value;
+        $("voiceScript").value = b; $("voiceTranslated").value = a; toast("已對調");
+      });
+      on("voiceEnSelect", "change", () => localStorage.setItem(VOICE_EN_KEY, $("voiceEnSelect").value || ""));
+      on("voiceZhSelect", "change", () => localStorage.setItem(VOICE_ZH_KEY, $("voiceZhSelect").value || ""));
+      on("btnUpdateCatalog", "click", () => updateCatalogAndDiscover());
+      if (window.speechSynthesis) speechSynthesis.onvoiceschanged = fillVoiceSelects;
+    }
 
-    (function setupInstall(){
-      const btn=$("btnInstallHome");
-      const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-      const standalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
-      window.addEventListener("beforeinstallprompt",(e)=>{ e.preventDefault(); deferredInstall=e; btn.textContent="安裝到主畫面"; });
-      window.addEventListener("appinstalled",()=>{ deferredInstall=null; btn.textContent="已加入主畫面"; toast("已加入主畫面"); });
-      btn.onclick=async ()=>{
-        if(standalone()){ toast("你已從主畫面開啟"); return; }
-        if(deferredInstall){ deferredInstall.prompt(); try{ await deferredInstall.userChoice; }catch(_){} deferredInstall=null; return; }
-        toast(isIOS?"iPhone：Safari → 分享 → 加入主畫面":"Chrome → 選單 → 加入主畫面");
-        location.href="./share.html";
+    async function updateCatalogAndDiscover() {
+      const st = $("updateStatus");
+      if (st) st.textContent = "更新中：重新抓取清單…";
+      toast("更新清單中…");
+      try {
+        const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) catalog = await res.json();
+      } catch (_) {}
+      // 用種子＋搜尋關鍵字對應的常見 Cursor 片 ID 再驗一次（oembed），自動匯入新片
+      const seedIds = new Set(allClips().map((c) => c.videoId).filter(Boolean));
+      const candidates = (catalog.discoverIds || []).slice();
+      // 從現有種子再擴一輪常見相關片（避免空 discover）
+      const builtin = ["ocMOZpuAMw4","nIK2UxECBi0","Tv8mLrLtyxo","5DnOOa-5dTU","IsXrCBlAshg","nWcEjZYeeVo","pmS67mn5Y44","7wN24cc4YHQ","-ikaeesLSqc","8Yf9IoXkROM","AFgKFdMkVk0","l30Eb76Tk5s","4IskO3BKwNY","GAe1IQtHqVU","6vtBq6TBGyo","z4xruISaBfc","gw8otRr2zpw","vjyAba8-QA8","eN69OLhOz2Q","elEf91zKa5c","0JsmvKps9po","442OlyuqeX4"];
+      builtin.forEach((id) => { if (!seedIds.has(id)) candidates.push(id); });
+      let added = 0, checked = 0;
+      for (const vid of [...new Set(candidates)]) {
+        if (seedIds.has(vid)) continue;
+        checked++;
+        if (st) st.textContent = "搜尋匯入中… " + checked + "／檢查新連結";
+        const meta = await fetchOEmbedTitle(vid);
+        if (!meta || !meta.title) continue;
+        const blob = (meta.title + " " + (meta.author || "")).toLowerCase();
+        if (blob.indexOf("cursor") === -1) continue;
+        extras.unshift({
+          id: "disc_" + vid, name: meta.title, title: meta.title, creator: meta.author || "",
+          category: "discover", tags: ["Cursor", "更新匯入"], platform: "youtube",
+          url: "https://www.youtube.com/watch?v=" + vid, videoId: vid, source: "discover",
+          level: 2, levelName: "中階", note: "更新清單自動匯入",
+          zhSummary: "自動搜尋匯入的 Cursor 相關影片：" + meta.title, importedAt: Date.now()
+        });
+        seedIds.add(vid); added++;
+      }
+      saveExtras();
+      renderCreators(); renderTips(); renderMenu(); renderProgress();
+      if (st) st.textContent = "更新完成：種子 " + ((catalog.clips || []).length) + " 支，新匯入 " + added + " 支";
+      toast(added ? ("已匯入 " + added + " 支新影片") : "清單已更新（沒有新片）");
+      const clips = filteredClips();
+      if (clips.length && !currentId) playClip(clips[0], { auto: false });
+    }
+
+    (function setupInstall() {
+      const btn = $("btnInstallHome"); if (!btn) return;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const standalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+      window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstall = e; btn.textContent = "安裝到主畫面"; });
+      window.addEventListener("appinstalled", () => { deferredInstall = null; btn.textContent = "已加入主畫面"; toast("已加入主畫面"); });
+      btn.onclick = async () => {
+        if (standalone()) { toast("你已從主畫面開啟"); return; }
+        if (deferredInstall) { deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch (_) {} deferredInstall = null; return; }
+        toast(isIOS ? "iPhone：Safari → 分享 → 加入主畫面" : "Chrome → 選單 → 加入主畫面");
+        location.href = "./share.html";
       };
-      if(standalone()) btn.textContent="已從主畫面開啟";
+      if (standalone()) btn.textContent = "已從主畫面開啟";
     })();
 
-    window.onYouTubeIframeAPIReady=function(){
-      apiReady=true;
-      if(window._pendingPlay){ const c=findClip(window._pendingPlay); if(c) playClip(c,{auto:true}); window._pendingPlay=null; }
-    };
+    window.onYouTubeIframeAPIReady = markYtReady;
+    // 若 iframe_api 已先載入，立刻補觸發
+    if (window.YT && YT.Player) markYtReady();
+
+    bindAll();
     loadCatalog();
-    if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=6").catch(()=>{});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=7").catch(() => {});
   })();
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
