@@ -30,7 +30,7 @@
   <div class="wrap">
     <h1>Cursor 學習平台<br />加入主畫面</h1>
     <img class="icon" src="icon-192.png" alt="Cursor 學習平台圖示" />
-    <p>路徑課程、提示詞庫、詞彙、小測驗與本機進度追蹤。加入後主畫面圖示名稱：<strong>Cursor學習</strong>。</p>
+    <p>只收錄<strong>Cursor 相關</strong> YouTube 教學（由淺入深）。英文不好也能用：<strong>放大中文字幕／中英對照／中文人聲</strong>。圖示：<strong>Cursor學習</strong>。</p>
     <p class="installed" id="standaloneMsg" hidden>✓ 已從主畫面開啟</p>
     <div class="url" id="url">https://copyshae.github.io/-/cursor-learn/</div>
     <a class="btn" id="open" href="./index.html">打開 Cursor 學習平台</a>
@@ -38,8 +38,8 @@
     <button type="button" class="btn" id="btnInstall">安裝到主畫面</button>
     <p class="status" id="status"></p>
     <ol>
-      <li><strong>iPhone</strong>：用 Safari 開啟上方網址 → 點下方「分享」→「加入主畫面」→ 完成</li>
-      <li><strong>Android</strong>：用 Chrome 開啟 → 右上 ⋮ →「加入主畫面」或「安裝應用程式」；若出現上方「安裝到主畫面」按鈕也可直接按</li>
+      <li><strong>iPhone</strong>：Safari 開上方網址 → 分享 →「加入主畫面」</li>
+      <li><strong>Android</strong>：Chrome → ⋮ →「加入主畫面」；或按上方安裝按鈕</li>
     </ol>
   </div>
   <script>
@@ -56,36 +56,25 @@
       var t = document.getElementById("url").textContent;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(t).then(function () {
-          document.getElementById("status").textContent = "已複製，請貼到 Safari／Chrome 開啟後再加入";
+          document.getElementById("status").textContent = "已複製，請貼到 Safari／Chrome 再開";
         });
-      } else {
-        prompt("長按全選複製：", t);
-      }
+      } else { prompt("長按全選複製：", t); }
     };
     window.addEventListener("beforeinstallprompt", function (e) {
-      e.preventDefault();
-      deferredPrompt = e;
+      e.preventDefault(); deferredPrompt = e;
       document.getElementById("status").textContent = "可直接按「安裝到主畫面」";
     });
     document.getElementById("btnInstall").onclick = function () {
       if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
-        document.getElementById("status").textContent = "你已從主畫面開啟本 App";
-        return;
+        document.getElementById("status").textContent = "你已從主畫面開啟"; return;
       }
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
-        return;
-      }
-      var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(function () { deferredPrompt = null; }); return; }
+      var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       document.getElementById("status").textContent = ios
-        ? "請用 Safari 開啟本頁，再點下方「分享」→「加入主畫面」"
-        : "請用 Chrome 開啟本頁，再從右上選單選「加入主畫面」";
+        ? "請用 Safari 開啟 → 分享 → 加入主畫面"
+        : "請用 Chrome 開啟 → 選單 → 加入主畫面";
     };
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=2").catch(function () {});
-    }
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=4").catch(function () {});
   </script>
 </body>
 </html>

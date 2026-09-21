@@ -4,452 +4,671 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1a3348" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
-  <meta name="description" content="Cursor 學習平台：路徑、課程、提示詞、詞彙、小測驗與進度追蹤。" />
-  <link rel="manifest" href="manifest.json?v=1" />
+  <meta name="description" content="匯入 YouTube 學 Cursor：由淺入深；中英字幕與中文人聲旁白。" />
+  <link rel="manifest" href="manifest.json?v=5" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Sans:wght@500;700&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --ink: #142033;
-      --muted: #5a6b7d;
-      --accent: #1f6f78;
-      --accent2: #2a8f9a;
-      --line: rgba(31, 111, 120, 0.22);
-      --card: rgba(255, 255, 255, 0.88);
-      --bg1: #eef5f6;
-      --ok: #1f6b4a;
-      --warn: #9a5b00;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Noto Sans TC", "PingFang TC", sans-serif;
-      color: var(--ink);
-      line-height: 1.55;
-      background:
-        radial-gradient(100% 70% at 0% 0%, rgba(42, 143, 154, 0.16), transparent 50%),
-        radial-gradient(80% 60% at 100% 10%, rgba(26, 51, 72, 0.1), transparent 45%),
-        linear-gradient(180deg, #f7fbfb 0%, var(--bg1) 55%, #dfecef 100%);
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-      min-height: 100vh;
-    }
-    .wrap { max-width: 28rem; margin: 0 auto; padding: 1rem 1rem 5.5rem; }
-    .brand {
-      font-family: "IBM Plex Sans", "Noto Sans TC", sans-serif;
-      font-size: clamp(1.25rem, 5.2vw, 1.65rem);
-      font-weight: 700; color: var(--accent); text-align: center; line-height: 1.3;
-    }
-    .sub { text-align: center; color: var(--muted); font-size: 0.86rem; margin-top: 0.35rem; }
-    .progress-wrap {
-      margin-top: 0.85rem; padding: 0.75rem; background: var(--card);
-      border: 1px solid var(--line); border-radius: 0.55rem;
-    }
-    .progress-wrap .lbl { font-size: 0.78rem; color: var(--muted); }
-    .bar { margin-top: 0.4rem; height: 0.45rem; background: rgba(31,111,120,0.12); border-radius: 999px; overflow: hidden; }
-    .bar > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .35s; }
-    .pct { margin-top: 0.35rem; font-size: 0.82rem; font-weight: 700; color: var(--accent); }
-    .tabs {
-      position: sticky; top: 0; z-index: 20; margin: 0.75rem -1rem 0; padding: 0.45rem 1rem;
-      background: rgba(247, 251, 251, 0.92); backdrop-filter: blur(8px);
-      display: flex; gap: 0.3rem; overflow-x: auto;
-    }
-    .tabs button {
-      flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--ink);
-      font: inherit; font-size: 0.78rem; font-weight: 600; padding: 0.45rem 0.7rem; border-radius: 999px; cursor: pointer;
-    }
-    .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .panel { display: none; margin-top: 0.75rem; }
-    .panel.on { display: block; }
-    .card {
-      background: var(--card); border: 1px solid var(--line); border-radius: 0.55rem;
-      padding: 0.85rem; margin-top: 0.65rem;
-    }
-    .card h2 { font-size: 0.95rem; color: var(--accent); }
-    .card h3 { font-size: 0.9rem; margin-top: 0.15rem; }
-    .meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
-    .tag {
-      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--accent);
-      background: rgba(31,111,120,0.1); padding: 0.12rem 0.4rem; border-radius: 999px; margin-right: 0.25rem;
-    }
-    ul.pts { margin: 0.45rem 0 0 1.1rem; font-size: 0.84rem; color: var(--ink); }
-    ul.pts li { margin: 0.25rem 0; }
-    .do, .check {
-      margin-top: 0.55rem; padding: 0.55rem 0.65rem; border-radius: 0.4rem; font-size: 0.82rem;
-    }
-    .do { background: rgba(31,111,120,0.08); }
-    .check { background: rgba(31,107,74,0.1); color: var(--ok); }
-    button.act {
-      margin-top: 0.55rem; width: 100%; font: inherit; font-weight: 700; font-size: 0.88rem;
-      padding: 0.65rem; border-radius: 0.4rem; border: 1px solid var(--accent);
-      background: var(--accent); color: #fff; cursor: pointer;
-    }
-    button.act.secondary { background: #fff; color: var(--accent); }
-    button.act:disabled { opacity: 0.45; cursor: not-allowed; }
-    button.done-mark { background: var(--ok); border-color: var(--ok); }
-    input[type="search"], textarea, select {
-      width: 100%; font: inherit; font-size: 16px; padding: 0.6rem 0.7rem;
-      border: 1px solid var(--line); border-radius: 0.35rem; background: #fff;
-    }
-    textarea { min-height: 5.5rem; resize: vertical; }
-    .prompt-box {
-      margin-top: 0.45rem; padding: 0.65rem; background: #122033; color: #e8eef5;
-      border-radius: 0.4rem; font-size: 0.8rem; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-    .choice {
-      display: block; width: 100%; text-align: left; margin-top: 0.4rem; padding: 0.6rem 0.7rem;
-      border: 1px solid var(--line); border-radius: 0.4rem; background: #fff; font: inherit; font-size: 0.84rem; cursor: pointer;
-    }
-    .choice.correct { border-color: var(--ok); background: rgba(31,107,74,0.12); }
-    .choice.wrong { border-color: #b33; background: rgba(180,50,50,0.08); }
-    .home-card {
-      margin-top: 0.75rem; padding: 0.7rem; background: var(--card); border: 1px solid var(--line);
-      border-radius: 0.5rem; display: flex; gap: 0.7rem; align-items: center;
-    }
-    .home-card img { width: 3.2rem; height: 3.2rem; border-radius: 0.75rem; }
-    .home-card p { font-size: 0.78rem; color: var(--muted); }
-    .home-card .install-btn {
-      display: inline-block; margin-top: 0.35rem; padding: 0.45rem 0.75rem; font-size: 0.8rem; font-weight: 700;
-      background: var(--accent); color: #fff; border: 0; border-radius: 0.35rem; text-decoration: none; cursor: pointer;
-    }
-    .empty { color: var(--muted); font-size: 0.84rem; padding: 0.75rem 0; }
-    .toast {
-      position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%);
-      background: rgba(20,32,51,0.92); color: #fff; padding: 0.55rem 0.9rem;
-      border-radius: 999px; font-size: 0.82rem; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50;
-    }
-    .toast.show { opacity: 1; }
-    a.link { color: var(--accent); }
+    :root{--ink:#142033;--muted:#5a6b7d;--accent:#1f6f78;--accent2:#2a8f9a;--line:rgba(31,111,120,.22);--card:rgba(255,255,255,.9);--bg1:#eef5f6;--ok:#1f6b4a;--warn:#9a5b00}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Noto Sans TC","PingFang TC",sans-serif;color:var(--ink);line-height:1.55;background:radial-gradient(100% 70% at 0% 0%,rgba(42,143,154,.16),transparent 50%),linear-gradient(180deg,#f7fbfb 0%,var(--bg1) 55%,#dfecef 100%);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh}
+    .wrap{max-width:28rem;margin:0 auto;padding:1rem 1rem 2.5rem}
+    .brand{font-family:"IBM Plex Sans","Noto Sans TC",sans-serif;font-size:clamp(1.2rem,5vw,1.6rem);font-weight:700;color:var(--accent);text-align:center;line-height:1.3}
+    .sub{text-align:center;color:var(--muted);font-size:.86rem;margin-top:.35rem}
+    .home-card,.card{margin-top:.75rem;padding:.75rem;background:var(--card);border:1px solid var(--line);border-radius:.55rem}
+    .home-card{display:flex;gap:.7rem;align-items:center}
+    .home-card img{width:3.2rem;height:3.2rem;border-radius:.75rem}
+    .home-card p{font-size:.78rem;color:var(--muted)}
+    .install-btn{display:inline-block;margin-top:.35rem;padding:.45rem .75rem;font-size:.8rem;font-weight:700;background:var(--accent);color:#fff;border:0;border-radius:.35rem;text-decoration:none;cursor:pointer}
+    .section{font-size:.95rem;color:var(--accent);margin-bottom:.4rem}
+    .picker-label{display:block;font-size:.78rem;color:var(--muted);margin:.45rem 0 .25rem}
+    textarea,select,input[type=search],input[type=text]{width:100%;font:inherit;font-size:16px;padding:.6rem .7rem;border:1px solid var(--line);border-radius:.35rem;background:#fff}
+    textarea{min-height:3.8rem;resize:vertical}
+    .filter-row{margin-top:.5rem;display:flex;gap:.3rem;flex-wrap:wrap}
+    .filter-row button{flex:1 1 22%;min-width:4rem;font:inherit;font-size:.76rem;font-weight:600;padding:.45rem .2rem;border:1px solid var(--line);border-radius:.35rem;background:#fff;cursor:pointer}
+    .filter-row button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .row-btns{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.5rem}
+    .row-btns.three{grid-template-columns:1fr 1fr 1fr}
+    .row-btns button,.act{font:inherit;font-weight:700;font-size:.84rem;padding:.65rem;border-radius:.4rem;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+    .row-btns button.secondary,.act.secondary{background:#fff;color:var(--accent)}
+    .row-btns button:disabled{opacity:.45;cursor:not-allowed}
+    .player-shell{margin-top:.55rem;aspect-ratio:16/9;background:#122033;border-radius:.45rem;overflow:hidden;position:relative}
+    #player{width:100%;height:100%}
+    .sub-overlay{display:none;position:absolute;left:0;right:0;bottom:0;z-index:3;padding:.7rem .75rem .85rem;background:linear-gradient(transparent,rgba(0,0,0,.88));pointer-events:none;text-align:center}
+    .sub-overlay.on{display:block}
+    .sub-overlay .en{color:#fff;font-size:clamp(1.05rem,3.8vw,1.35rem);font-weight:700;text-shadow:0 2px 4px #000;line-height:1.35}
+    .sub-overlay .zh{color:#c6ffe9;font-size:clamp(1.25rem,5.2vw,1.75rem);font-weight:800;margin-top:.25rem;text-shadow:0 2px 5px #000;line-height:1.35}
+    .sub-overlay .sub-hint{color:rgba(255,255,255,.82);font-size:clamp(.78rem,2.8vw,.95rem);margin-top:.28rem;font-weight:600}
+    .now strong{font-size:1.05rem}
+    .meta{font-size:.75rem;color:var(--muted);margin-top:.2rem}
+    .zh-sum{margin-top:.35rem;padding:.65rem .7rem;background:rgba(31,111,120,.1);border-radius:.4rem;font-size:clamp(1rem,3.6vw,1.2rem);font-weight:700;line-height:1.45;color:var(--ink)}
+    .opt-row{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin-top:.45rem}
+    .opt-row .lbl{font-size:.75rem;color:var(--muted)}
+    .opt-row button{font:inherit;font-size:.74rem;padding:.35rem .5rem;border-radius:.3rem;border:1px solid var(--line);background:#fff;cursor:pointer}
+    .opt-row button.chip-on{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .copy-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;margin-top:.4rem}
+    .copy-row button{font:inherit;font-size:.74rem;padding:.45rem .25rem;border:1px solid var(--line);border-radius:.3rem;background:#fff;cursor:pointer}
+    .progress-wrap{margin-top:.75rem;padding:.75rem;background:var(--card);border:1px solid var(--line);border-radius:.55rem}
+    .bar{margin-top:.35rem;height:.45rem;background:rgba(31,111,120,.12);border-radius:999px;overflow:hidden}
+    .bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s}
+    .pct{margin-top:.3rem;font-size:.82rem;font-weight:700;color:var(--accent)}
+    .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.35rem}
+    .chips a,.chips button{font-size:.74rem;padding:.3rem .55rem;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--accent);text-decoration:none;cursor:pointer;font:inherit}
+    .status{font-size:.78rem;color:var(--muted);margin-top:.35rem}
+    .status.err{color:#b33}.status.ok{color:var(--ok)}
+    .tips-list{margin:.4rem 0 0;padding-left:1.1rem;font-size:.78rem;color:var(--muted)}
+    .tips-list li{margin:.28rem 0}.tips-list strong{color:var(--ink)}
+    .toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);background:rgba(20,32,51,.92);color:#fff;padding:.55rem .9rem;border-radius:999px;font-size:.82rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+    .toast.show{opacity:1}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1 class="brand">Cursor 學習平台</h1>
-    <p class="sub">路徑學習 · 提示詞庫 · 詞彙 · 小測驗 · 本機進度</p>
+    <p class="sub">只收 Cursor 相關 YouTube · 由淺入深 · 大字中文字幕</p>
 
     <section class="home-card">
       <img src="icon-192.png" width="192" height="192" alt="Cursor 學習平台圖示" />
       <div>
         <p><strong>主畫面圖示：Cursor學習</strong></p>
-        <p>可像 App 一樣從主畫面開啟</p>
+        <p>英文不好也能學：先開中文字幕或中聲旁白</p>
         <button type="button" class="install-btn" id="btnInstallHome">加入主畫面</button>
-        <a class="install-btn" href="./share.html" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:0.25rem">圖文說明</a>
+        <a class="install-btn" href="./share.html" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.25rem">圖文說明</a>
       </div>
     </section>
 
     <div class="progress-wrap">
-      <div class="lbl">整體進度（課程完成）</div>
-      <div class="bar" aria-hidden="true"><i id="progFill"></i></div>
+      <div class="meta">已看完進度（本機）</div>
+      <div class="bar"><i id="progFill"></i></div>
       <div class="pct" id="progText">0／0</div>
     </div>
 
-    <nav class="tabs" role="tablist" aria-label="學習區塊">
-      <button type="button" class="on" data-tab="paths">路徑</button>
-      <button type="button" data-tab="lessons">課程</button>
-      <button type="button" data-tab="prompts">提示詞</button>
-      <button type="button" data-tab="glossary">詞彙</button>
-      <button type="button" data-tab="drills">測驗</button>
-      <button type="button" data-tab="lab">練習場</button>
-    </nav>
+    <section class="card">
+      <h2 class="section">匯入 Cursor 相關 YouTube</h2>
+      <p class="meta">只收標題含「Cursor」的教學片（可多行）。種子清單已由淺入深排好。</p>
+      <label class="picker-label" for="importUrl">YouTube 連結（須為 Cursor 相關）</label>
+      <textarea id="importUrl" placeholder="https://www.youtube.com/watch?v=…（標題需含 Cursor）"></textarea>
+      <div class="row-btns">
+        <button type="button" id="btnImport">匯入並加入清單</button>
+        <button type="button" class="secondary" id="btnClearMine">清除我的匯入</button>
+      </div>
+      <p class="status" id="importStatus"></p>
+    </section>
 
-    <section class="panel on" id="tab-paths"></section>
-    <section class="panel" id="tab-lessons"></section>
-    <section class="panel" id="tab-prompts"></section>
-    <section class="panel" id="tab-glossary"></section>
-    <section class="panel" id="tab-drills"></section>
-    <section class="panel" id="tab-lab">
-      <div class="card">
-        <h2>提示詞練習場</h2>
-        <p class="meta">把真實任務寫成四段式提示，可複製去 Cursor 使用。</p>
-        <label class="meta" for="labGoal">目標</label>
-        <textarea id="labGoal" placeholder="使用者可感知的完成結果"></textarea>
-        <label class="meta" for="labConstraint">約束</label>
-        <textarea id="labConstraint" placeholder="技術棧、禁止事項、只改哪些檔"></textarea>
-        <label class="meta" for="labAccept">驗收</label>
-        <textarea id="labAccept" placeholder="如何證明完成（步驟／測試）"></textarea>
-        <label class="meta" for="labInput">輸入</label>
-        <textarea id="labInput" placeholder="錯誤訊息、@檔案、現況說明"></textarea>
-        <button type="button" class="act" id="btnBuildPrompt">產生提示詞</button>
-        <button type="button" class="act secondary" id="btnCopyPrompt">複製提示詞</button>
-        <div class="prompt-box" id="labOut">（產生後顯示於此）</div>
+    <section class="card">
+      <h2 class="section">推薦頻道</h2>
+      <div class="chips" id="creatorChips"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="section">影片選單 <span id="listCount" style="font-weight:400;font-size:.78rem;color:var(--muted)"></span></h2>
+      <div class="filter-row" id="levelFilterRow">
+        <button type="button" class="active" data-level="all">全部</button>
+        <button type="button" data-level="1">初階</button>
+        <button type="button" data-level="2">中階</button>
+        <button type="button" data-level="3">進階</button>
+        <button type="button" data-level="mine">我的匯入</button>
+      </div>
+      <label class="picker-label" for="searchQ">搜尋</label>
+      <input type="search" id="searchQ" placeholder="搜尋：Cursor、Rules、Agent、資料科學…" />
+      <label class="picker-label" for="clipSelect">選擇影片（選好即播）</label>
+      <select id="clipSelect"><option value="">— 載入中 —</option></select>
+      <div class="row-btns three">
+        <button type="button" id="btnPrev" disabled>◀ 上一則</button>
+        <button type="button" id="btnPlay">▶ 開始連播</button>
+        <button type="button" id="btnNext">下一則 ▶</button>
       </div>
     </section>
+
+    <section class="card">
+      <div class="player-shell">
+        <div id="player"></div>
+        <div class="sub-overlay" id="subOverlay">
+          <div class="en" id="subEn"></div>
+          <div class="zh" id="subZh"></div>
+          <div class="sub-hint" id="subHint"></div>
+        </div>
+      </div>
+      <div class="now" style="margin-top:.45rem">
+        <strong id="nowTitle">尚未選片</strong>
+        <p class="meta" id="nowMeta">請選一則或匯入連結</p>
+        <div class="zh-sum" id="zhSum">選片後會顯示中文學習摘要</div>
+      </div>
+
+      <div class="opt-row" id="speedRow">
+        <span class="lbl">影片語速</span>
+        <button type="button" data-speed="0.75">0.75×</button>
+        <button type="button" data-speed="1" class="chip-on">1×</button>
+        <button type="button" data-speed="1.25">1.25×</button>
+        <button type="button" data-speed="1.5">1.5×</button>
+      </div>
+      <div class="opt-row" id="captionRow">
+        <span class="lbl">字幕</span>
+        <button type="button" data-caption="off">關</button>
+        <button type="button" data-caption="zh" class="chip-on">中文字幕</button>
+        <button type="button" data-caption="en">英文字幕</button>
+        <button type="button" data-caption="dual">中英字幕</button>
+      </div>
+      <p class="status" id="captionStatus">預設中文字幕（英文不好可先用這個）</p>
+
+      <h2 class="section" style="margin-top:.85rem">中英對翻／人聲旁白</h2>
+      <p class="meta">英文片聽不懂：貼重點或用摘要 →「文字→中聲」用中文聽懂。</p>
+      <label class="picker-label" for="voiceScript">原文（英／中皆可）</label>
+      <textarea id="voiceScript" placeholder="可貼英文句子，或用下方「帶入中文摘要」"></textarea>
+      <label class="picker-label" for="voiceTranslated">對翻結果</label>
+      <textarea id="voiceTranslated" placeholder="譯文會出現在這裡"></textarea>
+      <div class="copy-row">
+        <button type="button" id="btnCopySrc">複製原文</button>
+        <button type="button" id="btnCopyTgt">複製譯文</button>
+        <button type="button" id="btnSwapText">原文⇄譯文</button>
+      </div>
+      <div class="row-btns three">
+        <button type="button" id="btnTextToEn">文字→英聲</button>
+        <button type="button" id="btnTextToZh">文字→中聲</button>
+        <button type="button" id="btnAutoFlip">自動對翻</button>
+      </div>
+      <div class="row-btns">
+        <button type="button" class="secondary" id="btnLoadZhSum">帶入中文摘要並朗讀</button>
+        <button type="button" class="secondary" id="btnVoiceOrig">恢復原片聲音</button>
+      </div>
+      <label class="picker-label" for="voiceZhSelect">中文人聲</label>
+      <select id="voiceZhSelect"></select>
+      <label class="picker-label" for="voiceEnSelect">英文人聲</label>
+      <select id="voiceEnSelect"></select>
+      <div class="opt-row" id="ttsSpeedRow">
+        <span class="lbl">旁白語速</span>
+        <button type="button" data-tts="0.75">0.75×</button>
+        <button type="button" data-tts="1" class="chip-on">1×</button>
+        <button type="button" data-tts="1.25">1.25×</button>
+        <button type="button" data-tts="1.5">1.5×</button>
+      </div>
+      <div class="row-btns">
+        <button type="button" id="btnVoiceZh">再念中聲</button>
+        <button type="button" id="btnVoiceEn">再念英聲</button>
+      </div>
+      <p class="status" id="voiceStatus">建議：英文片先按「帶入中文摘要並朗讀」</p>
+
+      <div class="row-btns" style="margin-top:.65rem">
+        <button type="button" id="btnMarkDone">標記已看完</button>
+        <button type="button" class="secondary" id="btnOpenYt">在 YouTube 開啟</button>
+      </div>
+      <label class="picker-label" for="noteBox">一句中文筆記（本機）</label>
+      <textarea id="noteBox" placeholder="例：Rules 要寫清楚禁止事項"></textarea>
+      <button type="button" class="act secondary" id="btnSaveNote" style="width:100%;margin-top:.4rem">儲存筆記</button>
+      <p class="status" id="statusLine"></p>
+    </section>
+
+    <section class="card">
+      <h2 class="section">英文不好怎麼學（優化建議）</h2>
+      <ol class="tips-list" id="tipsList">
+        <li><strong>預設中文字幕：</strong>進頁已開中文；仍空白就點播放器 CC，或改用「中英字幕」。</li>
+        <li><strong>先聽中文摘要：</strong>選片後按「帶入中文摘要並朗讀」，先懂這則在教什麼再看影片。</li>
+        <li><strong>只走初階→中階：</strong>別一開始就跳 Cloud Agent；清單已由淺入深。</li>
+        <li><strong>聽不懂就降速：</strong>影片 0.75×；旁白語速可另調。</li>
+        <li><strong>一句筆記制：</strong>每則只寫一句中文收穫，比硬啃全文有效。</li>
+        <li><strong>英文句子→中聲：</strong>看到重要英文句貼進原文框，按「文字→中聲」。</li>
+        <li><strong>恢復原聲：</strong>旁白時會靜音原片；聽完按「恢復原片聲音」。</li>
+      </ol>
+    </section>
   </div>
-  <div class="toast" id="toast" role="status"></div>
+  <div class="toast" id="toast"></div>
 
   <script>
-    const DATA_URL = "./curriculum.json";
-    const STORE = "cursor-learn-progress-v1";
-    let data = { paths: [], lessons: [], prompts: [], glossary: [], drills: [] };
-    let progress = { done: {}, drill: {}, updatedAt: 0 };
-    let lessonFilter = "all";
+  (function () {
+    const CATALOG_URL = "./catalog.json";
+    const MINE_KEY = "cursor-learn-mine-v1";
+    const DONE_KEY = "cursor-learn-done-v1";
+    const NOTES_KEY = "cursor-learn-notes-v1";
+    const SPEED_KEY = "cursor-learn-speed-v1";
+    const LAST_KEY = "cursor-learn-last-v1";
+    const CAPTION_KEY = "cursor-learn-caption-v1";
+    const VOICE_EN_KEY = "cursor-learn-voice-en";
+    const VOICE_ZH_KEY = "cursor-learn-voice-zh";
+    const TTS_SPEED_KEY = "cursor-learn-tts-speed";
+
+    let catalog = { clips: [], channels: [], learnerTips: [] };
+    let mine = [], done = {}, notes = {};
+    let levelFilter = "all", searchQ = "", queue = [], qIndex = 0;
+    let player = null, apiReady = false, autoPlay = false, currentId = null;
+    let playSpeed = Number(localStorage.getItem(SPEED_KEY) || "1") || 1;
+    let captionMode = localStorage.getItem(CAPTION_KEY) || "zh";
+    let captionRetryTimer = null;
+    let ttsSpeed = Number(localStorage.getItem(TTS_SPEED_KEY) || "1") || 1;
+    let dubbing = false, wasMutedBeforeDub = false;
+    let translateBusy = false, translateCache = {}, ttsUnlocked = false, ttsSpeakToken = 0;
+    let deferredInstall = null;
 
     const $ = (id) => document.getElementById(id);
+    const FLIP = ["btnTextToEn","btnTextToZh","btnAutoFlip","btnVoiceEn","btnVoiceZh","btnLoadZhSum"];
 
     function toast(msg) {
-      const el = $("toast");
-      el.textContent = msg;
-      el.classList.add("show");
-      clearTimeout(toast._t);
-      toast._t = setTimeout(() => el.classList.remove("show"), 2000);
+      const el = $("toast"); el.textContent = msg; el.classList.add("show");
+      clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove("show"), 2200);
     }
-
-    function loadProgress() {
-      try { progress = Object.assign({ done: {}, drill: {} }, JSON.parse(localStorage.getItem(STORE) || "{}")); }
-      catch (_) { progress = { done: {}, drill: {} }; }
-      if (!progress.done) progress.done = {};
-      if (!progress.drill) progress.drill = {};
-    }
-
-    function saveProgress() {
-      progress.updatedAt = Date.now();
-      localStorage.setItem(STORE, JSON.stringify(progress));
-      renderProgress();
-    }
-
-    function lessonMap() {
-      const m = {};
-      (data.lessons || []).forEach((l) => { m[l.id] = l; });
-      return m;
-    }
-
-    function renderProgress() {
-      const total = (data.lessons || []).length || 1;
-      const done = Object.keys(progress.done).filter((k) => progress.done[k]).length;
-      const pct = Math.round((done / total) * 100);
-      $("progFill").style.width = pct + "%";
-      $("progText").textContent = done + "／" + total + " 課 · " + pct + "%";
-    }
-
     function esc(s) {
-      return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      return String(s || "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+    function setVoiceErr(m){ $("voiceStatus").textContent=m; $("voiceStatus").className="status err"; }
+    function setVoiceOk(m){ $("voiceStatus").textContent=m; $("voiceStatus").className="status ok"; }
+    function setFlipBusy(on,msg){
+      translateBusy=!!on;
+      FLIP.forEach((id)=>{ const el=$(id); if(el){ el.disabled=!!on; }});
+      if(msg){ $("voiceStatus").textContent=msg; $("voiceStatus").className="status"; }
     }
 
-    function renderPaths() {
-      const map = lessonMap();
-      $("tab-paths").innerHTML = (data.paths || []).map((p) => {
-        const lessons = (p.lessons || []).map((id) => map[id]).filter(Boolean);
-        const doneN = lessons.filter((l) => progress.done[l.id]).length;
-        return '<article class="card">' +
-          '<span class="tag">' + esc(p.level) + '</span><span class="tag">約 ' + esc(p.minutes) + ' 分</span>' +
-          '<h2 style="margin-top:0.35rem">' + esc(p.name) + '</h2>' +
-          '<p class="meta">' + esc(p.goal) + '</p>' +
-          '<p class="meta">進度 ' + doneN + '／' + lessons.length + '</p>' +
-          '<ul class="pts">' + lessons.map((l) =>
-            '<li>' + (progress.done[l.id] ? "✓ " : "") + esc(l.title) + "</li>"
-          ).join("") + "</ul>" +
-          '<button type="button" class="act secondary" data-open-path="' + esc(p.id) + '">打開此路徑課程</button>' +
-          "</article>";
-      }).join("") || '<p class="empty">尚無路徑</p>';
-
-      $("tab-paths").querySelectorAll("[data-open-path]").forEach((btn) => {
-        btn.onclick = () => {
-          lessonFilter = btn.getAttribute("data-open-path");
-          document.querySelector('.tabs button[data-tab="lessons"]').click();
-          renderLessons();
-        };
-      });
+    function loadStore(){
+      try{ mine=JSON.parse(localStorage.getItem(MINE_KEY)||"[]")||[]; }catch(_){ mine=[]; }
+      if(!Array.isArray(mine)) mine=[];
+      try{ done=JSON.parse(localStorage.getItem(DONE_KEY)||"{}")||{}; }catch(_){ done={}; }
+      try{ notes=JSON.parse(localStorage.getItem(NOTES_KEY)||"{}")||{}; }catch(_){ notes={}; }
     }
+    function saveMine(){ localStorage.setItem(MINE_KEY, JSON.stringify(mine)); }
+    function saveDone(){ localStorage.setItem(DONE_KEY, JSON.stringify(done)); renderProgress(); }
+    function saveNotes(){ localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }
 
-    function renderLessons() {
-      const map = lessonMap();
-      let list = data.lessons || [];
-      if (lessonFilter !== "all") {
-        const path = (data.paths || []).find((p) => p.id === lessonFilter);
-        if (path) list = (path.lessons || []).map((id) => map[id]).filter(Boolean);
-      }
-      const filterBar = '<div class="card" style="padding:0.65rem">' +
-        '<label class="meta" for="pathFilter">篩選路徑</label>' +
-        '<select id="pathFilter">' +
-        '<option value="all">全部課程</option>' +
-        (data.paths || []).map((p) => '<option value="' + esc(p.id) + '"' + (lessonFilter === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>").join("") +
-        "</select></div>";
-
-      $("tab-lessons").innerHTML = filterBar + list.map((l) => {
-        const done = !!progress.done[l.id];
-        return '<article class="card" id="lesson-' + esc(l.id) + '">' +
-          '<span class="tag">' + esc(l.mins) + " 分</span>" +
-          (done ? '<span class="tag">已完成</span>' : "") +
-          "<h3>" + esc(l.title) + "</h3>" +
-          '<p class="meta">' + esc(l.summary) + "</p>" +
-          '<ul class="pts">' + (l.points || []).map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" +
-          '<div class="do"><strong>動手：</strong>' + esc(l.do) + "</div>" +
-          '<div class="check"><strong>自檢：</strong>' + esc(l.check) + "</div>" +
-          '<button type="button" class="act' + (done ? " done-mark" : "") + '" data-toggle-lesson="' + esc(l.id) + '">' +
-          (done ? "標成未完成" : "標成已完成") + "</button></article>";
-      }).join("");
-
-      const sel = $("pathFilter");
-      if (sel) sel.onchange = () => { lessonFilter = sel.value; renderLessons(); };
-      $("tab-lessons").querySelectorAll("[data-toggle-lesson]").forEach((btn) => {
-        btn.onclick = () => {
-          const id = btn.getAttribute("data-toggle-lesson");
-          progress.done[id] = !progress.done[id];
-          if (!progress.done[id]) delete progress.done[id];
-          saveProgress();
-          renderLessons();
-          renderPaths();
-          toast(progress.done[id] ? "已完成一課" : "已取消完成");
-        };
-      });
+    function clipLevel(c){ const n=Number(c.level); return (n===1||n===2||n===3)?n:2; }
+    function levelLabel(n){ return ({1:"初階",2:"中階",3:"進階"})[n]||""; }
+    function allClips(){
+      return (catalog.clips||[]).map((c)=>Object.assign({},c,{source:c.source||"seed"})).concat(mine);
     }
-
-    function renderPrompts() {
-      $("tab-prompts").innerHTML = (data.prompts || []).map((p) =>
-        '<article class="card"><h2>' + esc(p.title) + "</h2>" +
-        '<div class="prompt-box" id="prompt-' + esc(p.id) + '">' + esc(p.text) + "</div>" +
-        '<button type="button" class="act secondary" data-copy-prompt="' + esc(p.id) + '">複製模板</button></article>'
-      ).join("");
-      $("tab-prompts").querySelectorAll("[data-copy-prompt]").forEach((btn) => {
-        btn.onclick = async () => {
-          const id = btn.getAttribute("data-copy-prompt");
-          const p = (data.prompts || []).find((x) => x.id === id);
-          if (!p) return;
-          try { await navigator.clipboard.writeText(p.text); toast("已複製提示詞模板"); }
-          catch (_) { toast("無法複製"); }
-        };
-      });
+    function matchSearch(c,q){
+      if(!q) return true;
+      const blob=[c.name,c.title,c.creator,c.note,c.zhSummary,c.category,c.url].concat(c.tags||[]).join(" ").toLowerCase();
+      return q.split(/\s+/).every((w)=>!w||blob.includes(w));
     }
-
-    function renderGlossary() {
-      $("tab-glossary").innerHTML =
-        '<div class="card"><input type="search" id="glossQ" placeholder="搜尋詞彙…" /></div>' +
-        '<div id="glossList"></div>';
-      const paint = () => {
-        const q = (($("glossQ").value || "")).trim().toLowerCase();
-        const items = (data.glossary || []).filter((g) =>
-          !q || (g.term + g.def).toLowerCase().includes(q)
-        );
-        $("glossList").innerHTML = items.map((g) =>
-          '<article class="card"><h2>' + esc(g.term) + '</h2><p class="meta">' + esc(g.def) + '</p></article>'
-        ).join("") || '<p class="empty">無符合詞彙</p>';
-      };
-      $("glossQ").oninput = paint;
-      paint();
-    }
-
-    function renderDrills() {
-      $("tab-drills").innerHTML = (data.drills || []).map((d, idx) => {
-        const scored = progress.drill[d.id];
-        return '<article class="card" id="drill-' + esc(d.id) + '">' +
-          "<h2>題 " + (idx + 1) + "</h2>" +
-          '<p class="meta">' + esc(d.q) + "</p>" +
-          (d.choices || []).map((c, i) =>
-            '<button type="button" class="choice" data-drill="' + esc(d.id) + '" data-i="' + i + '">' + esc(c) + "</button>"
-          ).join("") +
-          '<p class="meta" id="why-' + esc(d.id) + '">' + (scored != null ? esc(d.why) : "") + "</p></article>";
-      }).join("");
-
-      $("tab-drills").querySelectorAll(".choice").forEach((btn) => {
-        btn.onclick = () => {
-          const id = btn.getAttribute("data-drill");
-          const i = Number(btn.getAttribute("data-i"));
-          const d = (data.drills || []).find((x) => x.id === id);
-          if (!d) return;
-          const card = document.getElementById("drill-" + id);
-          card.querySelectorAll(".choice").forEach((b) => {
-            b.classList.remove("correct", "wrong");
-            b.disabled = true;
-            const bi = Number(b.getAttribute("data-i"));
-            if (bi === d.answer) b.classList.add("correct");
-            if (bi === i && i !== d.answer) b.classList.add("wrong");
-          });
-          progress.drill[id] = i === d.answer ? 1 : 0;
-          saveProgress();
-          $("why-" + id).textContent = d.why;
-          toast(i === d.answer ? "答對了" : "再看解析");
-        };
-      });
-    }
-
-    function buildLabPrompt() {
-      const goal = ($("labGoal").value || "").trim();
-      const constraint = ($("labConstraint").value || "").trim();
-      const accept = ($("labAccept").value || "").trim();
-      const input = ($("labInput").value || "").trim();
-      const out =
-        "【目標】\n" + (goal || "（未填）") + "\n\n" +
-        "【約束】\n" + (constraint || "（未填）") + "\n\n" +
-        "【驗收】\n" + (accept || "（未填）") + "\n\n" +
-        "【輸入／上下文】\n" + (input || "（未填）") + "\n\n" +
-        "請先確認理解；若資訊不足先問我，再給最小必要變更。";
-      $("labOut").textContent = out;
-      return out;
-    }
-
-    function bindTabs() {
-      document.querySelectorAll(".tabs button").forEach((btn) => {
-        btn.onclick = () => {
-          document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b === btn));
-          document.querySelectorAll(".panel").forEach((p) => p.classList.remove("on"));
-          $("tab-" + btn.dataset.tab).classList.add("on");
-        };
-      });
-      $("btnBuildPrompt").onclick = () => { buildLabPrompt(); toast("已產生提示詞"); };
-      $("btnCopyPrompt").onclick = async () => {
-        const t = buildLabPrompt();
-        try { await navigator.clipboard.writeText(t); toast("已複製"); }
-        catch (_) { toast("無法複製"); }
-      };
-    }
-
-    async function boot() {
-      loadProgress();
-      bindTabs();
-      try {
-        const res = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
-        if (res.ok) data = await res.json();
-      } catch (_) {}
-      renderProgress();
-      renderPaths();
-      renderLessons();
-      renderPrompts();
-      renderGlossary();
-      renderDrills();
-    }
-
-    boot();
-    (function setupInstall() {
-      let deferredInstall = null;
-      const btn = $("btnInstallHome");
-      if (!btn) return;
-      function isIOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      }
-      function standalone() {
-        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-      }
-      window.addEventListener("beforeinstallprompt", (e) => {
-        e.preventDefault();
-        deferredInstall = e;
-        btn.textContent = "安裝到主畫面";
-      });
-      window.addEventListener("appinstalled", () => {
-        deferredInstall = null;
-        btn.textContent = "已加入主畫面";
-        toast("已加入主畫面");
-      });
-      btn.addEventListener("click", async () => {
-        if (standalone()) { toast("你已從主畫面開啟"); return; }
-        if (deferredInstall) {
-          deferredInstall.prompt();
-          try { await deferredInstall.userChoice; } catch (_) {}
-          deferredInstall = null;
-          return;
+    function filteredClips(){
+      const q=(searchQ||"").trim().toLowerCase();
+      const list=allClips().filter((c)=>{
+        if(c.kind==="channel") return false;
+        if(levelFilter==="mine"){ if(c.source!=="mine") return false; }
+        else if(levelFilter!=="all"){
+          if(c.source==="mine") return false;
+          if(String(clipLevel(c))!==String(levelFilter)) return false;
         }
-        toast(isIOS()
-          ? "iPhone：用 Safari 開啟 → 分享 → 加入主畫面"
-          : "請用 Chrome 開啟 → 選單 → 加入主畫面");
-        location.href = "./share.html";
+        return matchSearch(c,q);
       });
-      if (standalone()) btn.textContent = "已從主畫面開啟";
-    })();
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js?v=2").catch(() => {});
+      list.sort((a,b)=>{
+        const la=a.source==="mine"?9:clipLevel(a), lb=b.source==="mine"?9:clipLevel(b);
+        if(la!==lb) return la-lb;
+        return String(a.name||"").localeCompare(String(b.name||""),"zh-Hant");
+      });
+      return list;
     }
+    function syncFilterButtons(){
+      document.querySelectorAll("#levelFilterRow button").forEach((b)=>b.classList.toggle("active", b.dataset.level===String(levelFilter)));
+    }
+    function renderProgress(){
+      const seeds=(catalog.clips||[]).filter((c)=>c.kind!=="channel");
+      const total=seeds.length||1;
+      const n=seeds.filter((c)=>done[c.id]).length;
+      $("progFill").style.width=Math.round(n/total*100)+"%";
+      $("progText").textContent=n+"／"+total+" 則種子 · "+Math.round(n/total*100)+"%";
+    }
+    function renderCreators(){
+      const ch=catalog.channels||[];
+      $("creatorChips").innerHTML=ch.map((c)=>'<a href="'+esc(c.channelUrl||"#")+'" target="_blank" rel="noopener">'+esc(c.creator||c.name)+"</a>").join("")
+        +'<button type="button" id="btnFocusMine">只看我的匯入</button>';
+      const btn=document.getElementById("btnFocusMine");
+      if(btn) btn.onclick=()=>{ levelFilter="mine"; syncFilterButtons(); renderMenu(); };
+    }
+    function renderTips(){
+      const tips=catalog.learnerTips;
+      if(!tips||!tips.length) return;
+      $("tipsList").innerHTML=tips.map((t)=>"<li>"+esc(t)+"</li>").join("");
+    }
+    function renderMenu(){
+      const clips=filteredClips();
+      $("listCount").textContent="共 "+clips.length+" 則（由淺→深）";
+      let html='<option value="">— 請選擇影片 —</option>', last=null;
+      clips.forEach((c)=>{
+        const lv=c.source==="mine"?"我的匯入":levelLabel(clipLevel(c));
+        if(lv!==last){ if(last!==null) html+="</optgroup>"; html+='<optgroup label="'+esc(lv)+'">'; last=lv; }
+        html+='<option value="'+esc(c.id)+'">'+(done[c.id]?"✓ ":"")+esc(c.name||c.title||c.id)+"</option>";
+      });
+      if(last!==null) html+="</optgroup>";
+      $("clipSelect").innerHTML=html;
+      try{ const lastId=localStorage.getItem(LAST_KEY); if(lastId&&clips.some((c)=>c.id===lastId)) $("clipSelect").value=lastId; }catch(_){}
+      queue=clips.slice(); if(qIndex>=queue.length) qIndex=0;
+      $("btnPrev").disabled=queue.length<2;
+    }
+    function findClip(id){ return allClips().find((c)=>c.id===id); }
+    function parseYouTubeId(raw){
+      const s=String(raw||"").trim(); if(!s) return null;
+      let m=s.match(/^[A-Za-z0-9_-]{11}$/); if(m) return m[0];
+      m=s.match(/(?:youtu\.be\/|youtube\.com\/(?:shorts\/|embed\/|live\/|v\/|watch\?(?:.*&)?v=))([A-Za-z0-9_-]{11})/);
+      return m?m[1]:null;
+    }
+    async function fetchOEmbedTitle(videoId){
+      try{
+        const res=await fetch("https://www.youtube.com/oembed?url="+encodeURIComponent("https://www.youtube.com/watch?v="+videoId)+"&format=json");
+        if(!res.ok) return null; const d=await res.json(); return {title:d.title||"",author:d.author_name||""};
+      }catch(_){ return null; }
+    }
+
+    function applySpeedButtons(){
+      document.querySelectorAll("#speedRow button[data-speed]").forEach((b)=>b.classList.toggle("chip-on", Number(b.dataset.speed)===playSpeed));
+    }
+    function applyTtsSpeedButtons(){
+      document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((b)=>b.classList.toggle("chip-on", Number(b.dataset.tts)===ttsSpeed));
+    }
+    function applyCaptionButtons(){
+      document.querySelectorAll("#captionRow button[data-caption]").forEach((b)=>b.classList.toggle("chip-on", b.dataset.caption===captionMode));
+      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"中英字幕"};
+      const overlay=$("subOverlay");
+      if(captionMode==="off"){ overlay.classList.remove("on"); $("captionStatus").textContent="字幕：關"; }
+      else { overlay.classList.add("on"); $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+"（讀取原片字幕並翻中文；中文為放大字）"; }
+      updateSubOverlayHint();
+    }
+    function updateSubOverlayHint(){
+      const en=$("subEn"), zh=$("subZh"), hint=$("subHint");
+      const clip=currentId?findClip(currentId):null;
+      const zhLine=(clip&&(clip.zhSummary||clip.note))||"";
+      if(captionMode==="off"){ en.textContent=""; zh.textContent=""; hint.textContent=""; return; }
+      if(captionMode==="zh"){
+        en.textContent="";
+        zh.textContent=zhLine||"中文字幕（讀取原片字幕並翻成中文）";
+        hint.textContent="已請播放器讀取原片字幕→翻成中文；上方為放大中文輔助";
+      } else if(captionMode==="en"){
+        en.textContent=clip?(clip.title||clip.name||"English captions"):"English captions";
+        zh.textContent="";
+        hint.textContent="已請播放器開啟英文字幕";
+      } else {
+        en.textContent=clip?(clip.title||"English"):"English";
+        zh.textContent=zhLine||"中文對照";
+        hint.textContent="中英對照：原片英文字幕＋放大中文輔助／自動翻譯";
+      }
+    }
+    function applyCaptions(){
+      clearTimeout(captionRetryTimer); updateSubOverlayHint();
+      if(!player||!player.getOptions) return;
+      try{ const mods=player.getOptions()||[]; if(mods.indexOf("captions")===-1&&player.loadModule) try{player.loadModule("captions");}catch(_){} }catch(_){}
+      if(captionMode==="off"){
+        try{ if(player.unloadModule) player.unloadModule("captions"); }catch(_){}
+        try{ player.setOption&&player.setOption("captions","track",{}); }catch(_){}
+        return;
+      }
+      try{ player.loadModule&&player.loadModule("captions"); }catch(_){}
+      const trySet=()=>{
+        try{
+          if(captionMode==="en") player.setOption("captions","track",{languageCode:"en"});
+          else if(captionMode==="zh"){
+            try{ player.setOption("captions","track",{languageCode:"zh-Hant"}); }catch(_){ player.setOption("captions","track",{languageCode:"zh-Hans"}); }
+            try{ player.setOption("captions","track",{languageCode:"en",translationLanguageCode:"zh-Hant"}); }catch(_){}
+          } else {
+            try{ player.setOption("captions","track",{languageCode:"en"}); }catch(_){}
+            try{ player.setOption("captions","track",{languageCode:"en",translationLanguageCode:"zh-Hant"}); }catch(_){}
+          }
+          try{ player.setOption("captions","reload",true); }catch(_){}
+        }catch(_){ $("captionStatus").textContent="此片可能無字幕，請點播放器 CC"; }
+      };
+      trySet(); captionRetryTimer=setTimeout(trySet,800); setTimeout(trySet,1800);
+    }
+    function setPlaybackRate(){ try{ if(player&&player.setPlaybackRate) player.setPlaybackRate(playSpeed); }catch(_){} }
+
+    function looksChinese(text){
+      const s=String(text||""); const cjk=(s.match(/[\u3400-\u9FFF]/g)||[]).length; const latin=(s.match(/[A-Za-z]/g)||[]).length;
+      return cjk>0&&cjk>=latin*0.35;
+    }
+    function defaultVoiceScript(){
+      const clip=currentId?findClip(currentId):null;
+      if(clip&&(clip.zhSummary||clip.note)) return clip.zhSummary||clip.note;
+      if(clip) return clip.title||clip.name||"";
+      return "";
+    }
+    function listVoices(){ try{ return window.speechSynthesis?speechSynthesis.getVoices()||[]:[]; }catch(_){ return []; } }
+    function fillVoiceSelects(){
+      const voices=listVoices();
+      const en=voices.filter((v)=>/^en(-|_)/i.test(v.lang)||/english/i.test(v.name));
+      const zh=voices.filter((v)=>/^(zh|cmn)/i.test(v.lang)||/chinese|taiwan|hong kong|中文|國語/i.test(v.name+" "+v.lang));
+      const enList=en.length?en:voices; const zhList=zh.length?zh:voices;
+      const key=(v)=>v.voiceURI||(v.name+"|"+v.lang);
+      function fill(sel,list,saved,fb){
+        sel.innerHTML=list.map((v)=>'<option value="'+esc(key(v))+'">'+esc(v.name+"（"+v.lang+"）")+"</option>").join("")||'<option value="">（無可用人聲）</option>';
+        const want=saved||sel.value;
+        if(want&&[...sel.options].some((o)=>o.value===want)) sel.value=want;
+        else if(list.length){
+          const pref=list.find((v)=>v.lang.toLowerCase().indexOf(fb)===0)||list.find((v)=>/台灣|Taiwan|zh-TW/i.test(v.name+v.lang))||list[0];
+          sel.value=key(pref);
+        }
+      }
+      fill($("voiceEnSelect"),enList,localStorage.getItem(VOICE_EN_KEY)||"","en");
+      fill($("voiceZhSelect"),zhList,localStorage.getItem(VOICE_ZH_KEY)||"","zh");
+      if(!translateBusy) setVoiceOk("中文人聲 "+zhList.length+" 種 · 英文人聲 "+enList.length+" 種 · 旁白 "+ttsSpeed+"×");
+    }
+    function pickVoice(langTarget){
+      const voices=listVoices();
+      const k=langTarget==="en"?$("voiceEnSelect").value:$("voiceZhSelect").value;
+      let v=voices.find((x)=>(x.voiceURI||(x.name+"|"+x.lang))===k);
+      if(v) return v;
+      return langTarget==="en"?voices.find((x)=>/^en/i.test(x.lang)):voices.find((x)=>/^(zh|cmn)/i.test(x.lang));
+    }
+    async function translateText(text,toLang){
+      const q=String(text||"").trim(); if(!q) throw new Error("沒有可朗讀的文字");
+      if(toLang==="en"&&!looksChinese(q)) return q;
+      if(toLang==="zh"&&looksChinese(q)&&!/[A-Za-z]{4,}/.test(q)) return q;
+      const cacheKey=toLang+"::"+q; if(translateCache[cacheKey]) return translateCache[cacheKey];
+      const pair=toLang==="en"?"zh-TW|en":"en|zh-TW";
+      const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(q.slice(0,450))+"&langpair="+encodeURIComponent(pair);
+      const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+      const timer=ctrl?setTimeout(()=>ctrl.abort(),12000):null;
+      let res;
+      try{ res=await fetch(url, ctrl?{signal:ctrl.signal}:undefined); }
+      catch(e){ if(e&&e.name==="AbortError") throw new Error("翻譯逾時，請重試"); throw new Error("網路錯誤，無法翻譯"); }
+      finally{ if(timer) clearTimeout(timer); }
+      if(!res.ok) throw new Error("翻譯服務暫時無法使用");
+      const data=await res.json();
+      const out=data&&data.responseData&&data.responseData.translatedText;
+      if(!out) throw new Error("翻譯結果空白");
+      const cleaned=String(out).trim();
+      if(/MYMEMORY WARNING/i.test(cleaned)) throw new Error("翻譯配額已用完，請稍後再試");
+      translateCache[cacheKey]=cleaned; return cleaned;
+    }
+    function unlockTts(){
+      if(ttsUnlocked||!window.speechSynthesis) return;
+      try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); speechSynthesis.cancel(); ttsUnlocked=true; }catch(_){}
+    }
+    function stopTts(){ ttsSpeakToken+=1; try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(_){} }
+    function restoreOriginalAudio(){
+      stopTts(); dubbing=false;
+      if(player){ try{ if(!wasMutedBeforeDub&&player.unMute) player.unMute(); else if(wasMutedBeforeDub&&player.mute) player.mute(); }catch(_){} }
+      setVoiceOk("已恢復原片聲音"); toast("恢復原聲");
+    }
+    function chunkText(text,maxLen){
+      const s=String(text||"").trim(); if(s.length<=maxLen) return [s];
+      const parts=[], bits=s.split(/(?<=[。！？.!?；;\n])/); let buf="";
+      bits.forEach((b)=>{ if((buf+b).length>maxLen&&buf){ parts.push(buf.trim()); buf=b; } else buf+=b; });
+      if(buf.trim()) parts.push(buf.trim()); return parts.filter(Boolean);
+    }
+    function speakDub(text,langTarget){
+      if(!window.speechSynthesis){ setVoiceErr("此瀏覽器不支援語音合成"); return; }
+      unlockTts(); stopTts();
+      const myToken=ttsSpeakToken, voice=pickVoice(langTarget), chunks=chunkText(text,160);
+      if(!chunks.length) return;
+      if(player){ try{ wasMutedBeforeDub=!!(player.isMuted&&player.isMuted()); if(player.mute) player.mute(); }catch(_){} }
+      dubbing=true; let i=0;
+      const speakNext=()=>{
+        if(myToken!==ttsSpeakToken) return;
+        if(i>=chunks.length){ setVoiceOk("旁白結束（可按「恢復原片聲音」）"); return; }
+        const u=new SpeechSynthesisUtterance(chunks[i]);
+        u.lang=langTarget==="en"?"en-US":"zh-TW"; if(voice) u.voice=voice;
+        u.rate=Math.max(0.6,Math.min(1.8,ttsSpeed));
+        u.onend=()=>{ i+=1; speakNext(); };
+        u.onerror=(ev)=>{ if(ev&&(ev.error==="canceled"||ev.error==="interrupted")) return; setVoiceErr("旁白失敗"); };
+        try{ speechSynthesis.resume(); }catch(_){}
+        speechSynthesis.speak(u);
+      };
+      speakNext();
+      setVoiceOk((langTarget==="zh"?"中聲":"英聲")+"旁白中 · "+ttsSpeed+"×");
+      toast(langTarget==="zh"?"中聲旁白":"英聲旁白");
+    }
+    async function oneClickVoice(langTarget){
+      if(translateBusy) return;
+      setFlipBusy(true,"翻譯並準備旁白…");
+      try{
+        let src=($("voiceScript").value||"").trim()||defaultVoiceScript();
+        if(!src){ setVoiceErr("沒有文字可轉聲音"); return; }
+        $("voiceScript").value=src;
+        const translated=await translateText(src,langTarget);
+        $("voiceTranslated").value=translated;
+        speakDub(translated,langTarget);
+      }catch(err){ setVoiceErr(String(err.message||err)); toast("對翻失敗"); }
+      finally{ setFlipBusy(false); }
+    }
+    async function speakTranslatedOnly(langTarget){
+      const t=($("voiceTranslated").value||"").trim();
+      if(t){ speakDub(t,langTarget); return; }
+      await oneClickVoice(langTarget);
+    }
+    async function autoFlipSpeak(){
+      const src=($("voiceScript").value||"").trim()||defaultVoiceScript();
+      if(!src){ toast("請先輸入文字或選片"); return; }
+      $("voiceScript").value=src;
+      await oneClickVoice(looksChinese(src)?"en":"zh");
+    }
+
+    function playClip(clip,opts){
+      opts=opts||{}; if(!clip) return;
+      const vid=clip.videoId||parseYouTubeId(clip.url); if(!vid){ toast("無法解析影片"); return; }
+      currentId=clip.id; localStorage.setItem(LAST_KEY,clip.id);
+      const idx=queue.findIndex((c)=>c.id===clip.id); if(idx>=0) qIndex=idx;
+      $("nowTitle").textContent=clip.name||clip.title||vid;
+      $("nowMeta").textContent=(clip.source==="mine"?"我的匯入":levelLabel(clipLevel(clip)))+" · "+(clip.creator||"")+(done[clip.id]?" · 已看完":"");
+      $("zhSum").textContent=clip.zhSummary||clip.note||"（此則尚無中文摘要，可自行對翻標題）";
+      updateSubOverlayHint();
+      $("noteBox").value=notes[clip.id]||"";
+      $("clipSelect").value=clip.id;
+      $("btnMarkDone").textContent=done[clip.id]?"取消已看完":"標記已看完";
+      if(!($("voiceScript").value||"").trim()) $("voiceScript").value=clip.zhSummary||clip.note||clip.title||"";
+      autoPlay=!!opts.auto;
+      if(!apiReady){ window._pendingPlay=clip.id; toast("載入播放器…"); return; }
+      if(!player){
+        player=new YT.Player("player",{
+          videoId:vid, playerVars:{rel:0,modestbranding:1,playsinline:1,cc_load_policy:1},
+          events:{
+            onReady:()=>{ setPlaybackRate(); applyCaptions(); if(autoPlay) try{player.playVideo();}catch(_){} },
+            onStateChange:onPlayerState
+          }
+        });
+      } else {
+        player.loadVideoById(vid); setPlaybackRate(); applyCaptions();
+        if(autoPlay) try{player.playVideo();}catch(_){}
+      }
+      $("btnPlay").textContent="⏸ 暫停連播";
+    }
+    function onPlayerState(e){
+      if(e.data===YT.PlayerState.PLAYING){ $("btnPlay").textContent="⏸ 暫停連播"; autoPlay=true; setPlaybackRate(); applyCaptions(); }
+      else if(e.data===YT.PlayerState.PAUSED){ $("btnPlay").textContent="▶ 繼續連播"; }
+      else if(e.data===YT.PlayerState.ENDED){
+        if(currentId){ done[currentId]=true; saveDone(); renderMenu(); }
+        if(autoPlay&&queue.length) playClip(queue[(qIndex+1)%queue.length],{auto:true});
+        else $("btnPlay").textContent="▶ 開始連播";
+      }
+    }
+    function playSelected(){ const id=$("clipSelect").value; if(id) playClip(findClip(id),{auto:true}); }
+    function playAt(i){ if(!queue.length) return; qIndex=(i+queue.length)%queue.length; playClip(queue[qIndex],{auto:true}); }
+
+    async function importLinks(){
+      const lines=($("importUrl").value||"").split(/\n+/).map((x)=>x.trim()).filter(Boolean);
+      if(!lines.length){ $("importStatus").textContent="請先貼上 YouTube 連結"; return; }
+      let added=0,skipped=0,rejected=0;
+      for(const line of lines){
+        const vid=parseYouTubeId(line); if(!vid){ skipped++; continue; }
+        if(allClips().some((m)=>m.videoId===vid||(m.url||"").includes(vid))){ skipped++; continue; }
+        const meta=await fetchOEmbedTitle(vid);
+        const title=(meta&&meta.title)||("");
+        const author=(meta&&meta.author)||"我的匯入";
+        const blob=(title+" "+author+" "+line).toLowerCase();
+        if(blob.indexOf("cursor")===-1){ rejected++; continue; }
+        const name=title||("Cursor 影片 "+vid);
+        mine.unshift({id:"mine_"+vid,name:name,title:name,creator:author,category:"mine",tags:["Cursor","我的匯入"],platform:"youtube",url:"https://www.youtube.com/watch?v="+vid,videoId:vid,source:"mine",level:2,levelName:"中階",note:"自行匯入（Cursor 相關）",zhSummary:"自行匯入的 Cursor 相關影片（可用對翻／中聲輔助）",importedAt:Date.now()});
+        added++;
+      }
+      saveMine(); $("importUrl").value=""; levelFilter="mine"; syncFilterButtons(); renderMenu();
+      $("importStatus").textContent="匯入完成：新增 "+added+" 則"+(skipped?"，略過重複／無效 "+skipped:"")+(rejected?"，非 Cursor 相關已拒收 "+rejected:"");
+      toast(added?"已匯入 "+added+" 則":(rejected?"只收 Cursor 相關影片":"沒有新增"));
+      if(added&&mine[0]) playClip(mine[0],{auto:true});
+    }
+
+    async function loadCatalog(){
+      $("statusLine").textContent="載入清單…";
+      try{ const res=await fetch(CATALOG_URL+"?t="+Date.now(),{cache:"no-store"}); if(res.ok) catalog=await res.json(); }catch(_){}
+      loadStore(); applySpeedButtons(); applyTtsSpeedButtons(); applyCaptionButtons();
+      fillVoiceSelects(); renderCreators(); renderTips(); renderMenu(); renderProgress();
+      $("statusLine").textContent="種子 "+((catalog.clips||[]).length)+" 則 · 匯入 "+mine.length+" 則 · 由淺入深";
+    }
+
+    // events
+    document.querySelectorAll("#levelFilterRow button").forEach((btn)=>btn.addEventListener("click",()=>{ levelFilter=btn.dataset.level||"all"; syncFilterButtons(); renderMenu(); }));
+    document.querySelectorAll("#speedRow button[data-speed]").forEach((btn)=>btn.addEventListener("click",()=>{ playSpeed=Number(btn.dataset.speed)||1; localStorage.setItem(SPEED_KEY,String(playSpeed)); applySpeedButtons(); setPlaybackRate(); toast("影片語速 "+playSpeed+"×"); }));
+    document.querySelectorAll("#captionRow button[data-caption]").forEach((btn)=>btn.addEventListener("click",()=>{ captionMode=btn.dataset.caption||"off"; localStorage.setItem(CAPTION_KEY,captionMode); applyCaptionButtons(); applyCaptions(); toast(({off:"已關字幕",zh:"中文字幕",en:"英文字幕",dual:"中英字幕"})[captionMode]||"字幕"); }));
+    document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn)=>btn.addEventListener("click",()=>{ ttsSpeed=Number(btn.dataset.tts)||1; localStorage.setItem(TTS_SPEED_KEY,String(ttsSpeed)); applyTtsSpeedButtons(); toast("旁白語速 "+ttsSpeed+"×"); }));
+    $("searchQ").addEventListener("input",()=>{ searchQ=$("searchQ").value||""; renderMenu(); });
+    $("btnImport").onclick=importLinks;
+    $("btnClearMine").onclick=()=>{ mine=[]; saveMine(); renderMenu(); toast("已清除我的匯入"); };
+    $("clipSelect").onchange=playSelected;
+    $("btnPrev").onclick=()=>playAt(qIndex-1);
+    $("btnNext").onclick=()=>playAt(qIndex+1);
+    $("btnPlay").onclick=()=>{
+      if(!player){ if(queue.length) playAt(qIndex); else playSelected(); return; }
+      const st=player.getPlayerState();
+      if(st===YT.PlayerState.PLAYING){ player.pauseVideo(); autoPlay=false; $("btnPlay").textContent="▶ 開始連播"; }
+      else { autoPlay=true; setPlaybackRate(); if(st===YT.PlayerState.PAUSED) player.playVideo(); else if(queue.length) playAt(qIndex); else playSelected(); }
+    };
+    $("btnMarkDone").onclick=()=>{
+      if(!currentId) return toast("請先選影片");
+      if(done[currentId]){ delete done[currentId]; toast("已取消"); } else { done[currentId]=true; toast("已標記看完"); }
+      saveDone(); renderMenu();
+      $("btnMarkDone").textContent=done[currentId]?"取消已看完":"標記已看完";
+    };
+    $("btnOpenYt").onclick=()=>{ const c=findClip(currentId); if(!c) return toast("請先選影片"); window.open(c.url,"_blank","noopener"); };
+    $("btnSaveNote").onclick=()=>{ if(!currentId) return toast("請先選影片"); notes[currentId]=$("noteBox").value||""; saveNotes(); toast("筆記已存"); };
+    $("btnTextToEn").onclick=()=>oneClickVoice("en");
+    $("btnTextToZh").onclick=()=>oneClickVoice("zh");
+    $("btnAutoFlip").onclick=()=>autoFlipSpeak();
+    $("btnVoiceEn").onclick=()=>speakTranslatedOnly("en");
+    $("btnVoiceZh").onclick=()=>speakTranslatedOnly("zh");
+    $("btnVoiceOrig").onclick=restoreOriginalAudio;
+    $("btnLoadZhSum").onclick=async ()=>{
+      const clip=currentId?findClip(currentId):null;
+      const t=(clip&&(clip.zhSummary||clip.note))||defaultVoiceScript();
+      if(!t){ toast("沒有摘要"); return; }
+      $("voiceScript").value=t; $("voiceTranslated").value=t; speakDub(t,"zh");
+    };
+    $("btnCopySrc").onclick=async ()=>{ try{ await navigator.clipboard.writeText($("voiceScript").value||""); toast("已複製原文"); }catch(_){ toast("無法複製"); } };
+    $("btnCopyTgt").onclick=async ()=>{ try{ await navigator.clipboard.writeText($("voiceTranslated").value||""); toast("已複製譯文"); }catch(_){ toast("無法複製"); } };
+    $("btnSwapText").onclick=()=>{ const a=$("voiceScript").value,b=$("voiceTranslated").value; $("voiceScript").value=b; $("voiceTranslated").value=a; toast("已對調"); };
+    $("voiceEnSelect").onchange=()=>localStorage.setItem(VOICE_EN_KEY,$("voiceEnSelect").value||"");
+    $("voiceZhSelect").onchange=()=>localStorage.setItem(VOICE_ZH_KEY,$("voiceZhSelect").value||"");
+    if(window.speechSynthesis){ speechSynthesis.onvoiceschanged=fillVoiceSelects; }
+
+    (function setupInstall(){
+      const btn=$("btnInstallHome");
+      const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+      const standalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+      window.addEventListener("beforeinstallprompt",(e)=>{ e.preventDefault(); deferredInstall=e; btn.textContent="安裝到主畫面"; });
+      window.addEventListener("appinstalled",()=>{ deferredInstall=null; btn.textContent="已加入主畫面"; toast("已加入主畫面"); });
+      btn.onclick=async ()=>{
+        if(standalone()){ toast("你已從主畫面開啟"); return; }
+        if(deferredInstall){ deferredInstall.prompt(); try{ await deferredInstall.userChoice; }catch(_){} deferredInstall=null; return; }
+        toast(isIOS?"iPhone：Safari → 分享 → 加入主畫面":"Chrome → 選單 → 加入主畫面");
+        location.href="./share.html";
+      };
+      if(standalone()) btn.textContent="已從主畫面開啟";
+    })();
+
+    window.onYouTubeIframeAPIReady=function(){
+      apiReady=true;
+      if(window._pendingPlay){ const c=findClip(window._pendingPlay); if(c) playClip(c,{auto:true}); window._pendingPlay=null; }
+    };
+    loadCatalog();
+    if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=5").catch(()=>{});
+  })();
   </script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
 </body>
 </html>
