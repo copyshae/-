@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
   <meta name="description" content="看 Cursor 相關 YouTube 影片學習：縮圖點選即播，由淺入深。" />
-  <link rel="manifest" href="manifest.json?v=12" />
+  <link rel="manifest" href="manifest.json?v=13" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
@@ -37,41 +37,57 @@
     .row-btns button,.act{font:inherit;font-weight:700;font-size:.84rem;padding:.65rem;border-radius:.4rem;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
     .row-btns button.secondary,.act.secondary{background:#fff;color:var(--accent)}
     .row-btns button:disabled{opacity:.45;cursor:not-allowed}
-    .player-shell{margin-top:.55rem;aspect-ratio:16/9;background:#122033;border-radius:.45rem;overflow:hidden;position:relative}
+    .player-shell{margin-top:.55rem;aspect-ratio:16/9;background:#122033;border-radius:.45rem .45rem 0 0;overflow:hidden;position:relative}
     #player{width:100%;height:100%}
-    .sub-overlay{
-      display:none;position:absolute;left:0;right:0;bottom:0;z-index:3;
-      padding:.45rem .7rem .55rem;pointer-events:none;text-align:center;
-      background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.55) 28%,rgba(0,0,0,.82) 100%);
+    .player-stage{margin-top:0;border-radius:.45rem;overflow:hidden;background:#0b1522;border:1px solid rgba(0,0,0,.12)}
+    .player-stage .player-shell{margin:0;border-radius:0;border:0}
+    .player-stage:-webkit-full-screen,.player-stage:fullscreen{
+      width:100%;height:100%;display:flex;flex-direction:column;background:#000;border:0;border-radius:0
     }
-    .sub-overlay.on{display:block}
-    .sub-overlay .cinema-lines{
-      max-width:36rem;margin:0 auto;display:flex;flex-direction:column;gap:.12rem;
-      justify-content:flex-end;min-height:2.7em;
+    .player-stage:-webkit-full-screen .player-shell,
+    .player-stage:fullscreen .player-shell{flex:1 1 auto;aspect-ratio:auto;height:auto;min-height:0}
+    .player-stage:-webkit-full-screen .sub-dock,
+    .player-stage:fullscreen .sub-dock{flex:0 0 auto;padding:.55rem .85rem .7rem}
+    .player-stage:-webkit-full-screen .sub-dock .en,
+    .player-stage:fullscreen .sub-dock .en{font-size:clamp(1rem,2.4vw,1.25rem)}
+    .player-stage:-webkit-full-screen .sub-dock .zh,
+    .player-stage:fullscreen .sub-dock .zh{font-size:clamp(1.1rem,2.8vw,1.4rem)}
+    /* 字幕在影片下方專區，不蓋住畫面 */
+    .sub-dock{
+      display:none;background:#101a28;color:#fff;text-align:center;
+      padding:.4rem .65rem .5rem;min-height:2.85rem;
     }
-    .sub-overlay .en,.sub-overlay .zh{
-      margin:0;padding:0 .15rem;
+    .sub-dock.on{display:block}
+    .sub-dock .cinema-lines{
+      max-width:40rem;margin:0 auto;display:flex;flex-direction:column;gap:.1rem;
+      justify-content:center;
+    }
+    .sub-dock .en,.sub-dock .zh{
+      margin:0;padding:0;
       display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
-      overflow:hidden;text-overflow:ellipsis;
-      text-shadow:0 0 3px #000,0 1px 2px #000,0 2px 6px rgba(0,0,0,.85);
-      letter-spacing:.01em;
+      overflow:hidden;text-overflow:ellipsis;letter-spacing:.01em;
     }
-    /* 中英對照：上列英文、下列中文 */
-    .sub-overlay .en{
-      color:rgba(245,245,245,.92);
-      font-size:clamp(.92rem,2.9vw,1.12rem);
-      font-weight:600;line-height:1.28;
+    .sub-dock .en{
+      color:rgba(235,240,245,.9);
+      font-size:clamp(.82rem,2.5vw,.98rem);
+      font-weight:600;line-height:1.3;
       font-family:"IBM Plex Sans","Noto Sans TC",sans-serif;
     }
-    .sub-overlay .zh{
-      color:#fffde8;
-      font-size:clamp(1.08rem,3.5vw,1.32rem);
+    .sub-dock .zh{
+      color:#fff8d6;
+      font-size:clamp(.92rem,2.9vw,1.12rem);
       font-weight:700;line-height:1.32;
       font-family:"Noto Sans TC","PingFang TC",sans-serif;
     }
-    .sub-overlay.mode-zh .en{display:none}
-    .sub-overlay.mode-en .zh{display:none}
-    .sub-overlay .sub-hint{display:none}
+    .sub-dock.mode-zh .en{display:none}
+    .sub-dock.mode-en .zh{display:none}
+    .sub-dock .sub-hint{display:none}
+    .fs-btn{
+      position:absolute;right:.4rem;top:.4rem;z-index:4;
+      font:inherit;font-size:.72rem;font-weight:700;padding:.28rem .5rem;
+      border:0;border-radius:.3rem;background:rgba(0,0,0,.55);color:#fff;cursor:pointer
+    }
+    .fs-btn:active{opacity:.85}
     .now strong{font-size:1.05rem}
     .meta{font-size:.75rem;color:var(--muted);margin-top:.2rem}
     .zh-sum{margin-top:.35rem;padding:.65rem .7rem;background:rgba(31,111,120,.1);border-radius:.4rem;font-size:clamp(1rem,3.6vw,1.2rem);font-weight:700;line-height:1.45;color:var(--ink)}
@@ -102,7 +118,6 @@
     details.tools{margin-top:.75rem;padding:.65rem .75rem;background:var(--card);border:1px solid var(--line);border-radius:.55rem}
     details.tools>summary{cursor:pointer;font-weight:700;color:var(--accent);font-size:.9rem}
     .player-card{margin-top:.65rem;padding:.65rem;background:var(--card);border:1px solid var(--line);border-radius:.55rem}
-    .player-shell{margin-top:0;aspect-ratio:16/9;background:#122033;border-radius:.45rem;overflow:hidden;position:relative}
     .mode-row{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.5rem}
     .mode-row button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
     .toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);background:rgba(20,32,51,.92);color:#fff;padding:.55rem .9rem;border-radius:999px;font-size:.82rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
@@ -125,9 +140,12 @@
     </section>
 
     <section class="player-card" aria-label="影片播放器">
-      <div class="player-shell">
-        <div id="player"></div>
-        <div class="sub-overlay on mode-dual" id="subOverlay">
+      <div class="player-stage" id="playerStage">
+        <div class="player-shell">
+          <div id="player"></div>
+          <button type="button" class="fs-btn" id="btnFullscreen" title="放大播放（含字幕）">放大</button>
+        </div>
+        <div class="sub-dock on mode-dual" id="subOverlay" aria-live="polite">
           <div class="cinema-lines">
             <div class="en" id="subEn"></div>
             <div class="zh" id="subZh"></div>
@@ -159,7 +177,7 @@
         <button type="button" data-caption="en">英文</button>
         <button type="button" data-caption="dual" class="chip-on">中英對照</button>
       </div>
-      <p class="status" id="captionStatus">預設中英對照：畫面底部上英下中兩列</p>
+      <p class="status" id="captionStatus">中英對照在影片下方兩列，不遮畫面；按「放大」全螢幕仍保留字幕</p>
       <div class="mode-row">
         <button type="button" id="btnContPlay" class="on">影片連播：開</button>
         <button type="button" id="btnContNarrate" class="on">中文旁白連說：開</button>
@@ -257,7 +275,7 @@
       <summary>使用提示</summary>
       <ol class="tips-list" id="tipsList">
         <li><strong>先看影片：</strong>點縮圖即播，清單已由淺入深。</li>
-        <li><strong>中英對照：</strong>預設開啟（畫面底部上英下中兩列）；也可切中文／英文。</li>
+        <li><strong>中英對照：</strong>預設在影片下方兩列（上英下中），不遮畫面；按「放大」全螢幕仍保留字幕。</li>
         <li><strong>聽不懂：</strong>打開「對翻／中聲旁白」。</li>
       </ol>
     </details>
@@ -446,7 +464,7 @@
     }
     function applyCaptionButtons(){
       document.querySelectorAll("#captionRow button[data-caption]").forEach((b)=>b.classList.toggle("chip-on", b.dataset.caption===captionMode));
-      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"中英對照（上英下中）"};
+      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"中英對照（影片下方兩列）"};
       const overlay=$("subOverlay");
       if(overlay){
         overlay.classList.remove("mode-off","mode-zh","mode-en","mode-dual");
@@ -455,7 +473,7 @@
       if(captionMode==="off"){ overlay.classList.remove("on"); $("captionStatus").textContent="字幕：關"; }
       else {
         overlay.classList.add("on");
-        $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+" · 底部兩列對照";
+        $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+" · 在影片下方，不遮畫面";
       }
       updateSubOverlayHint();
     }
@@ -1186,6 +1204,35 @@
     }
 
     // events（皆做空值保護）
+    function togglePlayerFullscreen(){
+      const stage=$("playerStage");
+      if(!stage) return;
+      const doc=document;
+      const active=doc.fullscreenElement||doc.webkitFullscreenElement;
+      const exit=()=>{
+        if(doc.exitFullscreen) return doc.exitFullscreen();
+        if(doc.webkitExitFullscreen) return doc.webkitExitFullscreen();
+      };
+      const enter=()=>{
+        if(stage.requestFullscreen) return stage.requestFullscreen();
+        if(stage.webkitRequestFullscreen) return stage.webkitRequestFullscreen();
+        toast("此瀏覽器不支援放大全螢幕");
+      };
+      try{
+        if(active===stage) exit();
+        else enter();
+      }catch(_){ toast("無法放大，請改用瀏覽器全螢幕"); }
+      setTimeout(syncFsBtn,200);
+    }
+    function syncFsBtn(){
+      const btn=$("btnFullscreen"); if(!btn) return;
+      const doc=document;
+      const active=doc.fullscreenElement||doc.webkitFullscreenElement;
+      const on=active===$("playerStage");
+      btn.textContent=on?"縮小":"放大";
+      btn.title=on?"結束放大":"放大播放（含下方字幕）";
+    }
+
     function bindAll() {
       document.querySelectorAll("#levelFilterRow button").forEach((btn) => {
         btn.onclick = () => { levelFilter = btn.dataset.level || "all"; syncFilterButtons(); renderMenu(); };
@@ -1219,6 +1266,7 @@
       on("clipSelect", "input", playSelected);
       on("btnPrev", "click", () => playAt(qIndex - 1));
       on("btnNext", "click", () => playAt(qIndex + 1));
+      on("btnFullscreen", "click", togglePlayerFullscreen);
       on("btnPlayFirst", "click", () => { if (queue.length) playAt(0); else toast("尚無影片"); });
       on("btnPlay", "click", () => {
         unlockTts();
@@ -1373,7 +1421,9 @@
 
     bindAll();
     loadCatalog();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=12").catch(() => {});
+    document.addEventListener("fullscreenchange", syncFsBtn);
+    document.addEventListener("webkitfullscreenchange", syncFsBtn);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=13").catch(() => {});
   })();
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
