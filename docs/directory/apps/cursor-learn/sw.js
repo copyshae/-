@@ -1,4 +1,4 @@
-const CACHE = "cursor-learn-v11";
+const CACHE = "cursor-learn-v12";
 const ASSETS = [
   "./",
   "./index.html",

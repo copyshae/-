@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Cursor 學習" />
   <meta name="description" content="看 Cursor 相關 YouTube 影片學習：縮圖點選即播，由淺入深。" />
-  <link rel="manifest" href="manifest.json?v=11" />
+  <link rel="manifest" href="manifest.json?v=12" />
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icon-180.png" sizes="180x180" />
   <title>Cursor 學習平台</title>
@@ -39,11 +39,39 @@
     .row-btns button:disabled{opacity:.45;cursor:not-allowed}
     .player-shell{margin-top:.55rem;aspect-ratio:16/9;background:#122033;border-radius:.45rem;overflow:hidden;position:relative}
     #player{width:100%;height:100%}
-    .sub-overlay{display:none;position:absolute;left:0;right:0;bottom:0;z-index:3;padding:.7rem .75rem .85rem;background:linear-gradient(transparent,rgba(0,0,0,.88));pointer-events:none;text-align:center}
+    .sub-overlay{
+      display:none;position:absolute;left:0;right:0;bottom:0;z-index:3;
+      padding:.45rem .7rem .55rem;pointer-events:none;text-align:center;
+      background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.55) 28%,rgba(0,0,0,.82) 100%);
+    }
     .sub-overlay.on{display:block}
-    .sub-overlay .en{color:#fff;font-size:clamp(1.05rem,3.8vw,1.35rem);font-weight:700;text-shadow:0 2px 4px #000;line-height:1.35}
-    .sub-overlay .zh{color:#c6ffe9;font-size:clamp(1.25rem,5.2vw,1.75rem);font-weight:800;margin-top:.25rem;text-shadow:0 2px 5px #000;line-height:1.35}
-    .sub-overlay .sub-hint{color:rgba(255,255,255,.82);font-size:clamp(.78rem,2.8vw,.95rem);margin-top:.28rem;font-weight:600}
+    .sub-overlay .cinema-lines{
+      max-width:36rem;margin:0 auto;display:flex;flex-direction:column;gap:.12rem;
+      justify-content:flex-end;min-height:2.7em;
+    }
+    .sub-overlay .en,.sub-overlay .zh{
+      margin:0;padding:0 .15rem;
+      display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+      overflow:hidden;text-overflow:ellipsis;
+      text-shadow:0 0 3px #000,0 1px 2px #000,0 2px 6px rgba(0,0,0,.85);
+      letter-spacing:.01em;
+    }
+    /* 電影式：上列英文、下列中文，適合閱讀的兩列大小 */
+    .sub-overlay .en{
+      color:#f5f5f5;
+      font-size:clamp(.92rem,2.9vw,1.12rem);
+      font-weight:600;line-height:1.28;
+      font-family:"IBM Plex Sans","Noto Sans TC",sans-serif;
+    }
+    .sub-overlay .zh{
+      color:#fff;
+      font-size:clamp(1.05rem,3.4vw,1.28rem);
+      font-weight:700;line-height:1.32;
+      font-family:"Noto Sans TC","PingFang TC",sans-serif;
+    }
+    .sub-overlay.mode-zh .en{display:none}
+    .sub-overlay.mode-en .zh{display:none}
+    .sub-overlay .sub-hint{display:none}
     .now strong{font-size:1.05rem}
     .meta{font-size:.75rem;color:var(--muted);margin-top:.2rem}
     .zh-sum{margin-top:.35rem;padding:.65rem .7rem;background:rgba(31,111,120,.1);border-radius:.4rem;font-size:clamp(1rem,3.6vw,1.2rem);font-weight:700;line-height:1.45;color:var(--ink)}
@@ -99,9 +127,11 @@
     <section class="player-card" aria-label="影片播放器">
       <div class="player-shell">
         <div id="player"></div>
-        <div class="sub-overlay" id="subOverlay">
-          <div class="en" id="subEn"></div>
-          <div class="zh" id="subZh"></div>
+        <div class="sub-overlay on mode-dual" id="subOverlay">
+          <div class="cinema-lines">
+            <div class="en" id="subEn"></div>
+            <div class="zh" id="subZh"></div>
+          </div>
           <div class="sub-hint" id="subHint"></div>
         </div>
       </div>
@@ -125,11 +155,11 @@
       <div class="opt-row" id="captionRow">
         <span class="lbl">字幕</span>
         <button type="button" data-caption="off">關</button>
-        <button type="button" data-caption="zh" class="chip-on">中文大字</button>
+        <button type="button" data-caption="zh">中文</button>
         <button type="button" data-caption="en">英文</button>
-        <button type="button" data-caption="dual">中英</button>
+        <button type="button" data-caption="dual" class="chip-on">電影雙列</button>
       </div>
-      <p class="status" id="captionStatus">預設中文大字：對時顯示影片內容字幕（非只顯示主題）</p>
+      <p class="status" id="captionStatus">預設電影式底部雙列：上英下中，適合閱讀大小</p>
       <div class="mode-row">
         <button type="button" id="btnContPlay" class="on">影片連播：開</button>
         <button type="button" id="btnContNarrate" class="on">中文旁白連說：開</button>
@@ -227,7 +257,7 @@
       <summary>使用提示</summary>
       <ol class="tips-list" id="tipsList">
         <li><strong>先看影片：</strong>點縮圖即播，清單已由淺入深。</li>
-        <li><strong>中文大字：</strong>預設開啟；也可切中英／英文。</li>
+        <li><strong>電影雙列字幕：</strong>預設開啟（上英下中，底部兩列）；也可切中文／英文。</li>
         <li><strong>聽不懂：</strong>打開「對翻／中聲旁白」。</li>
       </ol>
     </details>
@@ -243,7 +273,7 @@
     const NOTES_KEY = "cursor-learn-notes-v1";
     const SPEED_KEY = "cursor-learn-speed-v1";
     const LAST_KEY = "cursor-learn-last-v1";
-    const CAPTION_KEY = "cursor-learn-caption-v1";
+    const CAPTION_KEY = "cursor-learn-caption-v2";
     const VOICE_EN_KEY = "cursor-learn-voice-en";
     const VOICE_ZH_KEY = "cursor-learn-voice-zh";
     const TTS_SPEED_KEY = "cursor-learn-tts-speed";
@@ -258,7 +288,7 @@
     let contNarrate = localStorage.getItem("cursor-learn-cont-narrate") !== "0";
     let narrateToken = 0;
     let playSpeed = Number(localStorage.getItem(SPEED_KEY) || "1") || 1;
-    let captionMode = localStorage.getItem(CAPTION_KEY) || "zh";
+    let captionMode = localStorage.getItem(CAPTION_KEY) || "dual";
     let captionRetryTimer = null;
     let ttsSpeed = Number(localStorage.getItem(TTS_SPEED_KEY) || "1") || 1;
     let dubbing = false, wasMutedBeforeDub = false, keepMutedForCues = false;
@@ -416,16 +446,22 @@
     }
     function applyCaptionButtons(){
       document.querySelectorAll("#captionRow button[data-caption]").forEach((b)=>b.classList.toggle("chip-on", b.dataset.caption===captionMode));
-      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"中英字幕"};
+      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"電影雙列（上英下中）"};
       const overlay=$("subOverlay");
+      if(overlay){
+        overlay.classList.remove("mode-off","mode-zh","mode-en","mode-dual");
+        overlay.classList.add("mode-"+(captionMode||"dual"));
+      }
       if(captionMode==="off"){ overlay.classList.remove("on"); $("captionStatus").textContent="字幕：關"; }
-      else { overlay.classList.add("on"); $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+"（對時顯示內容分段；中文放大）"; }
+      else {
+        overlay.classList.add("on");
+        $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+" · 畫面底部兩列，閱讀大小";
+      }
       updateSubOverlayHint();
     }
     function updateSubOverlayHint(){
       const en=$("subEn"), zh=$("subZh"), hint=$("subHint");
-      if(captionMode==="off"){ en.textContent=""; zh.textContent=""; hint.textContent=""; return; }
-      // 已有對時內容字幕時，不要用「主題摘要」覆蓋
+      if(captionMode==="off"){ en.textContent=""; zh.textContent=""; if(hint) hint.textContent=""; return; }
       if(cueList && cueList.length){
         lastOverlayKey="";
         let t=0; try{ if(player) t=player.getCurrentTime()||0; }catch(_){}
@@ -433,20 +469,17 @@
         if(hint) hint.textContent="";
         return;
       }
-      const clip=currentId?findClip(currentId):null;
       if(captionMode==="zh"){
         en.textContent="";
         zh.textContent="載入對時中文內容字幕中…";
-        hint.textContent="會依影片進度顯示分段內容（不是只顯示主題）";
       } else if(captionMode==="en"){
         en.textContent="Loading content captions…";
         zh.textContent="";
-        hint.textContent="Timed English content captions";
       } else {
-        en.textContent="Loading…";
-        zh.textContent="載入中英內容對照…";
-        hint.textContent="中英對照：內容分段字幕（放大中文）";
+        en.textContent="Loading English line…";
+        zh.textContent="載入中文列…";
       }
+      if(hint) hint.textContent="";
     }
     function applyCaptions(){
       clearTimeout(captionRetryTimer); updateSubOverlayHint();
@@ -780,25 +813,25 @@
         if(captionMode==="off"){ if($("subEn")) $("subEn").textContent=""; if($("subZh")) $("subZh").textContent=""; }
         return;
       }
-      const en=cue.en||"";
-      const zh=cue.zh||"";
+      const en=String(cue.en||"").trim();
+      const zh=String(cue.zh||"").trim();
       const key=captionMode+"|"+en+"|"+zh;
       if(key===lastOverlayKey) return;
       lastOverlayKey=key;
-      if(captionMode==="off"){
-        if($("subEn")) $("subEn").textContent="";
-        if($("subZh")) $("subZh").textContent="";
-        return;
-      }
+      const enEl=$("subEn"), zhEl=$("subZh");
+      if(!enEl||!zhEl) return;
+      if(captionMode==="off"){ enEl.textContent=""; zhEl.textContent=""; return; }
       if(captionMode==="zh"){
-        if($("subEn")) $("subEn").textContent="";
-        if($("subZh")) $("subZh").textContent=zh||en;
+        enEl.textContent="";
+        zhEl.textContent=zh||en;
       } else if(captionMode==="en"){
-        if($("subEn")) $("subEn").textContent=en||zh;
-        if($("subZh")) $("subZh").textContent="";
+        enEl.textContent=en||zh;
+        zhEl.textContent="";
       } else {
-        if($("subEn")) $("subEn").textContent=en;
-        if($("subZh")) $("subZh").textContent=zh||en;
+        // 電影雙列：上英下中；缺一列時仍撐住兩列版面
+        enEl.textContent=en||(zh?"":"");
+        zhEl.textContent=zh||en;
+        if(!en && zh) enEl.textContent=""; // 只有中文時上列空著，下列顯示中文
       }
       if($("subHint")) $("subHint").textContent="";
     }
@@ -1169,7 +1202,7 @@
           captionMode = btn.dataset.caption || "off";
           localStorage.setItem(CAPTION_KEY, captionMode);
           applyCaptionButtons(); applyCaptions();
-          toast(({ off: "已關字幕", zh: "中文大字", en: "英文字幕", dual: "中英字幕" })[captionMode] || "字幕");
+          toast(({ off: "已關字幕", zh: "中文字幕", en: "英文字幕", dual: "電影雙列字幕" })[captionMode] || "字幕");
         };
       });
       document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn) => {
@@ -1340,7 +1373,7 @@
 
     bindAll();
     loadCatalog();
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=11").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=12").catch(() => {});
   })();
   </script>
   <script src="https://www.youtube.com/iframe_api" async></script>
