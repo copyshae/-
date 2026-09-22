@@ -404,6 +404,7 @@
         (f.macroNote ? "｜" + escapeHtml(f.macroNote) : "") + "</div>" +
         reasons +
         '<div class="fc-actions">' +
+        '<button type="button" class="fbtn primary" data-act="research">自動搜尋</button>' +
         '<button type="button" class="fbtn" data-act="edit">填寫／編輯</button>' +
         '<button type="button" class="fbtn danger" data-act="del">刪除</button></div></article>'
       );
@@ -793,6 +794,348 @@
     refresh();
   }
 
+
+  // —— 自動搜尋網路並整理參考資訊（Gemini + Google 搜尋）——
+  var KEY_GEMINI = "fund-eval-gemini-key";
+  var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  var researchBusy = false;
+
+  function getGeminiKey() {
+    var el = $("geminiKey");
+    var k = (el && el.value ? el.value : "").trim() || localStorage.getItem(KEY_GEMINI) || "";
+    return k.slice(0, 200);
+  }
+
+  function saveGeminiKey() {
+    var k = getGeminiKey();
+    if (k) localStorage.setItem(KEY_GEMINI, k);
+    else localStorage.removeItem(KEY_GEMINI);
+  }
+
+  function extractJson(text) {
+    var s = String(text || "").trim();
+    if (!s) return null;
+    s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    try { return JSON.parse(s); } catch (e1) {}
+    var a = s.indexOf("{");
+    var b = s.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try { return JSON.parse(s.slice(a, b + 1)); } catch (e2) {}
+    }
+    return null;
+  }
+
+  function buildResearchPrompt(fund) {
+    var etf = isEtf(fund);
+    var todayStr = new Date().toISOString().slice(0, 10);
+    if (etf) {
+      return (
+        "你是台股／海外 ETF 研究員。今天約 " + todayStr + "。" +
+        "請用網路最新公開資料，查證代號「" + (fund.bankCode || "") + "」名稱「" + (fund.name || "") + "」。" +
+        "若代號有誤請在 confirmedName／summary 更正。" +
+        "只回一個 JSON，不要 markdown：" +
+        '{"confirmedName":"正式名稱","isin":"或空","navDate":"YYYY-MM-DD或空",' +
+        '"nav":市價或淨值數字或null,"high52":數字或null,"low52":數字或null,"ma250":250日均線數字或null,' +
+        '"premiumPct":折溢價百分點數字或null,"yieldAnn":殖利率%或null,"totalReturn1y":近一年報酬%或null,' +
+        '"macroName":"追蹤指數","macroValue":指數數值或位階或null,' +
+        '"macroNote":"一句技術／指數備註（可用超賣|低檔|過熱|新高追價）",' +
+        '"sources":["來源"],"confidence":"高|中|低","summary":"兩句繁中摘要"}。' +
+        "查不到填 null，禁止捏造。數字用阿拉伯數字。"
+      );
+    }
+    return (
+      "你是境外基金研究員（台灣銀行通路代碼）。今天約 " + todayStr + "。" +
+      "請用網路最新公開資料（基金資訊觀測站、Morningstar、投信、銀行基金頁），查「" +
+      (fund.bankCode || "") + "」「" + (fund.name || "") + "」計價 " + (fund.currency || "") + "。" +
+      "只回一個 JSON，不要 markdown：" +
+      '{"confirmedName":"正式名稱含級別","isin":"或空","navDate":"YYYY-MM-DD或空",' +
+      '"nav":最新淨值或null,"high52":52週高或null,"low52":52週低或null,"ma250":約250日均線或null,' +
+      '"divPerUnit":最近每單位配息或null,"yieldAnn":年化配息率%或null,' +
+      '"principalPct":配息來自本金比例%或null,"totalReturn1y":近一年含息總報酬%或null,' +
+      '"macroName":"建議連動指標","macroValue":指標數值(利差bp或指數)或null,' +
+      '"macroNote":"一句總經備註（利差可寫收斂/回落/過度壓縮）",' +
+      '"goldBreak":是否金價突破阻力true/false,' +
+      '"sources":["來源"],"confidence":"高|中|低","summary":"兩句繁中摘要含進出場參考"}。' +
+      "查不到填 null，禁止捏造。配息本金比若無公開資料填 null。"
+    );
+  }
+
+  function callGeminiResearch(fund) {
+    var apiKey = getGeminiKey();
+    if (!apiKey) return Promise.reject(new Error("請先貼上 Gemini 金鑰（與購物帳相同，來自 Google AI Studio）"));
+
+    var prompt = buildResearchPrompt(fund);
+    var lastErr = null;
+    var idx = 0;
+    var noTool = false;
+
+    function tryNext() {
+      if (idx >= GEMINI_MODELS.length) {
+        return Promise.reject(lastErr || new Error("Gemini 無回應"));
+      }
+      var model = GEMINI_MODELS[idx++];
+      var url =
+        "https://generativelanguage.googleapis.com/v1beta/models/" +
+        encodeURIComponent(model) +
+        ":generateContent?key=" +
+        encodeURIComponent(apiKey);
+
+      var body = {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
+      };
+      if (!noTool) body.tools = [{ google_search: {} }];
+
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) {
+              var rawMsg = (data.error && data.error.message) || ("HTTP " + res.status);
+              lastErr = new Error(rawMsg);
+              if (!noTool && /google_search|Unknown|not supported|INVALID_ARGUMENT/i.test(rawMsg)) {
+                noTool = true;
+                idx--;
+                return tryNext();
+              }
+              return tryNext();
+            }
+            var parts = ((((data.candidates || [])[0] || {}).content || {}).parts) || [];
+            var text = parts.map(function (p) { return p.text || ""; }).join("");
+            var parsed = extractJson(text);
+            if (parsed) return { parsed: parsed, model: model, raw: text };
+            lastErr = new Error("無法解析搜尋結果 JSON");
+            return tryNext();
+          });
+        })
+        .catch(function (e) {
+          lastErr = e;
+          return tryNext();
+        });
+    }
+
+    return tryNext();
+  }
+
+  /** 可選：台股 ETF 先打 Yahoo 圖表（若 CORS 失敗則略過） */
+  function tryYahooTwEtf(code) {
+    var symbol = String(code || "").replace(/[^0-9A-Za-z]/g, "") + ".TW";
+    var url =
+      "https://query1.finance.yahoo.com/v8/finance/chart/" +
+      encodeURIComponent(symbol) +
+      "?range=1y&interval=1d";
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error("yahoo " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var r0 = (((data.chart || {}).result || [])[0]) || {};
+        var meta = r0.meta || {};
+        var q = (r0.indicators || {}).quote || [];
+        var closes = (q[0] && q[0].close) || [];
+        var valid = closes.filter(function (x) { return x != null && Number.isFinite(x); });
+        if (!valid.length) return null;
+        var nav = valid[valid.length - 1];
+        var high52 = Math.max.apply(null, valid);
+        var low52 = Math.min.apply(null, valid);
+        var ma250 = null;
+        if (valid.length >= 60) {
+          var slice = valid.slice(-Math.min(250, valid.length));
+          var sum = 0;
+          for (var i = 0; i < slice.length; i++) sum += slice[i];
+          ma250 = sum / slice.length;
+        }
+        return {
+          nav: nav,
+          high52: high52,
+          low52: low52,
+          ma250: ma250,
+          navDate: meta.regularMarketTime
+            ? new Date(meta.regularMarketTime * 1000).toISOString().slice(0, 10)
+            : "",
+          source: "Yahoo Finance " + symbol
+        };
+      })
+      .catch(function () { return null; });
+  }
+
+  function applyResearchToFund(fund, parsed, yahoo) {
+    var next = Object.assign({}, fund);
+    var p = parsed || {};
+    if (p.confirmedName) next.name = String(p.confirmedName).trim();
+    if (p.isin) next.isin = String(p.isin).trim();
+    if (p.navDate) next.navDate = String(p.navDate).trim();
+
+    function take(field, val) {
+      var n = num(val);
+      if (n !== null) next[field] = n;
+    }
+
+    // Yahoo 先填價位，Gemini 可覆寫較完整欄位
+    if (yahoo) {
+      take("nav", yahoo.nav);
+      take("high52", yahoo.high52);
+      take("low52", yahoo.low52);
+      take("ma250", yahoo.ma250);
+      if (yahoo.navDate) next.navDate = yahoo.navDate;
+    }
+
+    take("nav", p.nav);
+    take("high52", p.high52);
+    take("low52", p.low52);
+    take("ma250", p.ma250);
+    take("premiumPct", p.premiumPct);
+    take("divPerUnit", p.divPerUnit);
+    take("yieldAnn", p.yieldAnn);
+    take("totalReturn1y", p.totalReturn1y);
+
+    if (!isEtf(fund)) {
+      var oldL = num(fund.principalPct);
+      var newL = num(p.principalPct);
+      if (newL !== null) {
+        if (oldL !== null && newL !== oldL) next.prevPrincipalPct = oldL;
+        next.principalPct = newL;
+      }
+      if (typeof p.goldBreak === "boolean") next.goldBreak = p.goldBreak;
+    }
+
+    if (p.macroName) next.macroName = String(p.macroName).trim();
+    take("macroValue", p.macroValue);
+    if (p.macroNote) next.macroNote = String(p.macroNote).trim();
+
+    var bits = [];
+    if (p.summary) bits.push(String(p.summary).trim());
+    if (p.confidence) bits.push("信心：" + p.confidence);
+    if (Array.isArray(p.sources) && p.sources.length) bits.push("來源：" + p.sources.slice(0, 4).join("、"));
+    if (yahoo && yahoo.source) bits.push(yahoo.source);
+    bits.push("自動搜尋：" + new Date().toLocaleString("zh-TW", { hour12: false }));
+    next.note = bits.join("｜");
+    next.updatedAt = Date.now();
+    next._lastResearch = {
+      at: Date.now(),
+      confidence: p.confidence || "",
+      summary: p.summary || ""
+    };
+    return next;
+  }
+
+  function setResearchStatus(msg) {
+    var el = $("researchStatus");
+    if (el) el.textContent = msg || "";
+  }
+
+  function researchOneFund(fund) {
+    var yahooPromise =
+      isEtf(fund) && /^\d{4,5}[A-Za-z]?$/.test(String(fund.bankCode || ""))
+        ? tryYahooTwEtf(fund.bankCode)
+        : Promise.resolve(null);
+
+    return yahooPromise.then(function (yahoo) {
+      return callGeminiResearch(fund).then(function (res) {
+        return applyResearchToFund(fund, res.parsed, yahoo);
+      });
+    });
+  }
+
+  function researchAndSave(id) {
+    if (researchBusy) {
+      alert("正在搜尋中，請稍候");
+      return Promise.resolve();
+    }
+    var fund = state.funds.find(function (f) { return f.id === id; });
+    if (!fund) return Promise.resolve();
+    researchBusy = true;
+    setResearchStatus("搜尋中：" + (fund.bankCode || "") + " " + (fund.name || "") + "…");
+    return researchOneFund(fund)
+      .then(function (next) {
+        state.funds = state.funds.map(function (f) {
+          return f.id === id ? next : f;
+        });
+        saveFunds(state.funds);
+        refresh();
+        var conf = (next._lastResearch && next._lastResearch.confidence) || "";
+        setResearchStatus(
+          "已更新 " + (next.bankCode || "") +
+            (conf ? "（信心 " + conf + "）" : "") +
+            "｜請核對摘要後再決策"
+        );
+      })
+      .catch(function (err) {
+        var msg = String((err && err.message) || err || "失敗");
+        if (/API key|invalid|PERMISSION|401|403/i.test(msg)) {
+          msg = "Gemini 金鑰無效，請到 AI Studio 重建後貼上";
+        } else if (/high demand|429|Resource exhausted|overloaded/i.test(msg)) {
+          msg = "Gemini 忙線，請等 1～2 分鐘再試";
+        } else if (/Failed to fetch|NetworkError/i.test(msg)) {
+          msg = "網路失敗，請確認可連線 Google";
+        }
+        setResearchStatus("失敗：" + msg);
+        alert(msg);
+      })
+      .then(function () {
+        researchBusy = false;
+      });
+  }
+
+  function researchBatch(onlyNeed) {
+    if (researchBusy) {
+      alert("正在搜尋中，請稍候");
+      return;
+    }
+    if (!getGeminiKey()) {
+      alert("請先在上方貼上 Gemini 金鑰");
+      return;
+    }
+    saveGeminiKey();
+    var list = state.funds.filter(function (f) {
+      if (!onlyNeed) return true;
+      return evaluate(f, state.settings).status === "待補資料";
+    });
+    if (!list.length) {
+      alert(onlyNeed ? "沒有「待補資料」的項目" : "清單是空的");
+      return;
+    }
+    if (!confirm("將自動搜尋並填入 " + list.length + " 檔（約需數分鐘，請保持畫面開啟）。確定？")) return;
+
+    researchBusy = true;
+    var i = 0;
+    var ok = 0;
+    var fail = 0;
+
+    function step() {
+      if (i >= list.length) {
+        researchBusy = false;
+        saveFunds(state.funds);
+        refresh();
+        setResearchStatus("批次完成：成功 " + ok + "、失敗 " + fail);
+        alert("自動搜尋完成：成功 " + ok + "、失敗 " + fail + "。請抽查摘要與數字。");
+        return;
+      }
+      var fund = list[i++];
+      setResearchStatus("搜尋 " + i + "/" + list.length + "：" + (fund.bankCode || "") + "…");
+      researchOneFund(fund)
+        .then(function (next) {
+          ok++;
+          state.funds = state.funds.map(function (f) {
+            return f.id === fund.id ? next : f;
+          });
+          saveFunds(state.funds);
+          refresh();
+        })
+        .catch(function () {
+          fail++;
+        })
+        .then(function () {
+          setTimeout(step, 1600);
+        });
+    }
+    step();
+  }
+
   function toggleFormMode() {
     var etf = $("f_instrumentType") && $("f_instrumentType").value === "etf";
     var fundBox = $("fundOnlyFields");
@@ -833,6 +1176,17 @@
     on("btnSettingsSave", "click", saveSettingsForm);
     on("btnSyncWatch", "click", doSyncWatchlist);
     on("btnResetWatch", "click", resetToWatchlist);
+    on("btnResearchNeed", "click", function () { researchBatch(true); });
+    on("btnResearchAll", "click", function () { researchBatch(false); });
+    on("btnSaveKey", "click", function () {
+      saveGeminiKey();
+      setResearchStatus(getGeminiKey() ? "金鑰已存本機" : "已清除金鑰");
+    });
+    on("f_instrumentType", "change", function () { toggleFormMode(); updateLivePreview(); });
+    try {
+      var savedKey = localStorage.getItem(KEY_GEMINI);
+      if (savedKey && $("geminiKey")) $("geminiKey").value = savedKey;
+    } catch (eKey) {}
     on("btnTestAlert", "click", function () {
       var statusEl = $("alertStatus");
       if (statusEl) statusEl.textContent = "寄送中…";
@@ -867,6 +1221,7 @@
       var id = card.getAttribute("data-id");
       var fund = state.funds.find(function (f) { return f.id === id; });
       if (!fund) return;
+      if (btn.getAttribute("data-act") === "research") researchAndSave(id);
       if (btn.getAttribute("data-act") === "edit") openForm(fund);
       if (btn.getAttribute("data-act") === "del") deleteFund(id);
     });
