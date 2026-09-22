@@ -797,7 +797,7 @@
 
   // —— 自動搜尋網路並整理參考資訊（Gemini + Google 搜尋）——
   var KEY_GEMINI = "fund-eval-gemini-key";
-  var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
   var researchBusy = false;
 
   function getGeminiKey() {
@@ -862,29 +862,39 @@
 
   function callGeminiResearch(fund) {
     var apiKey = getGeminiKey();
-    if (!apiKey) return Promise.reject(new Error("請先貼上 Gemini 金鑰（與購物帳相同，來自 Google AI Studio）"));
+    if (!apiKey) return Promise.reject(new Error("請先貼上 Gemini 金鑰（AI Studio 最上面「API Key」那一欄）"));
 
     var prompt = buildResearchPrompt(fund);
     var lastErr = null;
+    var attempts = [];
+    // 多種組合：有搜尋／無搜尋＋JSON、不同模型
+    GEMINI_MODELS.forEach(function (model) {
+      attempts.push({ model: model, tool: "google_search" });
+      attempts.push({ model: model, tool: "none_json" });
+      attempts.push({ model: model, tool: "none" });
+    });
     var idx = 0;
-    var noTool = false;
 
     function tryNext() {
-      if (idx >= GEMINI_MODELS.length) {
+      if (idx >= attempts.length) {
         return Promise.reject(lastErr || new Error("Gemini 無回應"));
       }
-      var model = GEMINI_MODELS[idx++];
+      var att = attempts[idx++];
       var url =
         "https://generativelanguage.googleapis.com/v1beta/models/" +
-        encodeURIComponent(model) +
+        encodeURIComponent(att.model) +
         ":generateContent?key=" +
         encodeURIComponent(apiKey);
 
       var body = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
+        generationConfig: { temperature: 0.15, maxOutputTokens: 8192 }
       };
-      if (!noTool) body.tools = [{ google_search: {} }];
+      if (att.tool === "google_search") {
+        body.tools = [{ google_search: {} }];
+      } else if (att.tool === "none_json") {
+        body.generationConfig.responseMimeType = "application/json";
+      }
 
       return fetch(url, {
         method: "POST",
@@ -895,19 +905,24 @@
           return res.json().then(function (data) {
             if (!res.ok) {
               var rawMsg = (data.error && data.error.message) || ("HTTP " + res.status);
-              lastErr = new Error(rawMsg);
-              if (!noTool && /google_search|Unknown|not supported|INVALID_ARGUMENT/i.test(rawMsg)) {
-                noTool = true;
-                idx--;
-                return tryNext();
-              }
+              lastErr = new Error(rawMsg + "（" + att.model + "/" + att.tool + "）");
               return tryNext();
             }
-            var parts = ((((data.candidates || [])[0] || {}).content || {}).parts) || [];
+            var cand = (data.candidates || [])[0];
+            if (!cand) {
+              var block = (data.promptFeedback && data.promptFeedback.blockReason) || "無 candidates";
+              lastErr = new Error("被擋或無內容：" + block);
+              return tryNext();
+            }
+            var parts = ((cand.content || {}).parts) || [];
             var text = parts.map(function (p) { return p.text || ""; }).join("");
+            if (!text && cand.finishReason) {
+              lastErr = new Error("結束原因：" + cand.finishReason);
+              return tryNext();
+            }
             var parsed = extractJson(text);
-            if (parsed) return { parsed: parsed, model: model, raw: text };
-            lastErr = new Error("無法解析搜尋結果 JSON");
+            if (parsed) return { parsed: parsed, model: att.model, raw: text };
+            lastErr = new Error("無法解析 JSON（" + att.model + "）");
             return tryNext();
           });
         })
@@ -923,10 +938,11 @@
   /** 可選：台股 ETF 先打 Yahoo 圖表（若 CORS 失敗則略過） */
   function tryYahooTwEtf(code) {
     var symbol = String(code || "").replace(/[^0-9A-Za-z]/g, "") + ".TW";
-    var url =
+    var rawUrl =
       "https://query1.finance.yahoo.com/v8/finance/chart/" +
       encodeURIComponent(symbol) +
       "?range=1y&interval=1d";
+    var url = "https://api.allorigins.win/raw?url=" + encodeURIComponent(rawUrl);
     return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error("yahoo " + r.status);
@@ -1035,9 +1051,25 @@
         : Promise.resolve(null);
 
     return yahooPromise.then(function (yahoo) {
-      return callGeminiResearch(fund).then(function (res) {
-        return applyResearchToFund(fund, res.parsed, yahoo);
-      });
+      return callGeminiResearch(fund)
+        .then(function (res) {
+          return applyResearchToFund(fund, res.parsed, yahoo);
+        })
+        .catch(function (err) {
+          // Gemini 失敗但有 Yahoo 價位 → 仍算成功（至少補齊進出場核心）
+          if (yahoo && yahoo.nav != null) {
+            return applyResearchToFund(
+              fund,
+              {
+                summary: "Gemini 失敗，已先用市價資料補齊（請稍後再搜尋補全）。錯誤：" +
+                  String((err && err.message) || err).slice(0, 120),
+                confidence: "低"
+              },
+              yahoo
+            );
+          }
+          throw err;
+        });
     });
   }
 
@@ -1105,14 +1137,19 @@
     var i = 0;
     var ok = 0;
     var fail = 0;
+    var firstErr = "";
 
     function step() {
       if (i >= list.length) {
         researchBusy = false;
         saveFunds(state.funds);
         refresh();
-        setResearchStatus("批次完成：成功 " + ok + "、失敗 " + fail);
-        alert("自動搜尋完成：成功 " + ok + "、失敗 " + fail + "。請抽查摘要與數字。");
+        setResearchStatus("批次完成：成功 " + ok + "、失敗 " + fail + (firstErr ? "｜原因：" + firstErr : ""));
+        alert(
+          "自動搜尋完成：成功 " + ok + "、失敗 " + fail + "。" +
+          (firstErr ? "\n\n失敗原因例：" + firstErr : "") +
+          "\n\n請確認金鑰是 AI Studio「API Key」整段；失敗時可先按「測試金鑰」。"
+        );
         return;
       }
       var fund = list[i++];
@@ -1126,11 +1163,12 @@
           saveFunds(state.funds);
           refresh();
         })
-        .catch(function () {
+        .catch(function (err) {
           fail++;
+          if (!firstErr) firstErr = String((err && err.message) || err).slice(0, 180);
         })
         .then(function () {
-          setTimeout(step, 1600);
+          setTimeout(step, 1200);
         });
     }
     step();
@@ -1181,6 +1219,42 @@
     on("btnSaveKey", "click", function () {
       saveGeminiKey();
       setResearchStatus(getGeminiKey() ? "金鑰已存本機" : "已清除金鑰");
+    });
+    on("btnTestKey", "click", function () {
+      var apiKey = getGeminiKey();
+      if (!apiKey) {
+        alert("請先貼上 API Key");
+        return;
+      }
+      saveGeminiKey();
+      setResearchStatus("測試金鑰中…");
+      var url =
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+        encodeURIComponent(apiKey);
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: "只回：OK" }] }],
+          generationConfig: { maxOutputTokens: 16 }
+        })
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) {
+              var msg = (data.error && data.error.message) || ("HTTP " + res.status);
+              setResearchStatus("金鑰測試失敗：" + msg);
+              alert("金鑰測試失敗：\n" + msg + "\n\n請確認複製的是「API Key」整段。");
+              return;
+            }
+            setResearchStatus("金鑰可用，可按「自動搜尋：待補資料」");
+            alert("金鑰可用。請再按「自動搜尋：待補資料」。");
+          });
+        })
+        .catch(function (e) {
+          setResearchStatus("金鑰測試網路失敗");
+          alert("網路失敗：" + String((e && e.message) || e));
+        });
     });
     on("f_instrumentType", "change", function () { toggleFormMode(); updateLivePreview(); });
     try {
