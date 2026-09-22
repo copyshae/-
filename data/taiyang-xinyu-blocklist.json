@@ -1,0 +1,31 @@
+{
+  "ids": [
+    "yt-7466342fee",
+    "yt-a6aa1ca0fb",
+    "yt-d8f2fac2f3",
+    "yt-1945dedf9c",
+    "web-49e1f016a8",
+    "web-d0b0e60420",
+    "web-c22992eb2d",
+    "web-636a2fb5b0",
+    "web-5118725322",
+    "web-a1e0565e52",
+    "art-452abcb423"
+  ],
+  "patterns": [
+    "專訪",
+    "摄影",
+    "攝影",
+    "第一集",
+    "菁英會",
+    "結緣品下載",
+    "lookaside\\.fbsbx",
+    "photo\\.aiku",
+    "Photographer",
+    "廣獲好評價",
+    "解開人生的真相",
+    "超級生命密碼系統的核心",
+    "影音縮圖",
+    "Facebook.*photo"
+  ]
+}
