@@ -56,16 +56,16 @@
       text-shadow:0 0 3px #000,0 1px 2px #000,0 2px 6px rgba(0,0,0,.85);
       letter-spacing:.01em;
     }
-    /* 電影式：上列英文、下列中文，適合閱讀的兩列大小 */
+    /* 中英對照：上列英文、下列中文 */
     .sub-overlay .en{
-      color:#f5f5f5;
+      color:rgba(245,245,245,.92);
       font-size:clamp(.92rem,2.9vw,1.12rem);
       font-weight:600;line-height:1.28;
       font-family:"IBM Plex Sans","Noto Sans TC",sans-serif;
     }
     .sub-overlay .zh{
-      color:#fff;
-      font-size:clamp(1.05rem,3.4vw,1.28rem);
+      color:#fffde8;
+      font-size:clamp(1.08rem,3.5vw,1.32rem);
       font-weight:700;line-height:1.32;
       font-family:"Noto Sans TC","PingFang TC",sans-serif;
     }
@@ -157,9 +157,9 @@
         <button type="button" data-caption="off">關</button>
         <button type="button" data-caption="zh">中文</button>
         <button type="button" data-caption="en">英文</button>
-        <button type="button" data-caption="dual" class="chip-on">電影雙列</button>
+        <button type="button" data-caption="dual" class="chip-on">中英對照</button>
       </div>
-      <p class="status" id="captionStatus">預設電影式底部雙列：上英下中，適合閱讀大小</p>
+      <p class="status" id="captionStatus">預設中英對照：畫面底部上英下中兩列</p>
       <div class="mode-row">
         <button type="button" id="btnContPlay" class="on">影片連播：開</button>
         <button type="button" id="btnContNarrate" class="on">中文旁白連說：開</button>
@@ -257,7 +257,7 @@
       <summary>使用提示</summary>
       <ol class="tips-list" id="tipsList">
         <li><strong>先看影片：</strong>點縮圖即播，清單已由淺入深。</li>
-        <li><strong>電影雙列字幕：</strong>預設開啟（上英下中，底部兩列）；也可切中文／英文。</li>
+        <li><strong>中英對照：</strong>預設開啟（畫面底部上英下中兩列）；也可切中文／英文。</li>
         <li><strong>聽不懂：</strong>打開「對翻／中聲旁白」。</li>
       </ol>
     </details>
@@ -446,7 +446,7 @@
     }
     function applyCaptionButtons(){
       document.querySelectorAll("#captionRow button[data-caption]").forEach((b)=>b.classList.toggle("chip-on", b.dataset.caption===captionMode));
-      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"電影雙列（上英下中）"};
+      const labels={off:"關",zh:"中文字幕",en:"英文字幕",dual:"中英對照（上英下中）"};
       const overlay=$("subOverlay");
       if(overlay){
         overlay.classList.remove("mode-off","mode-zh","mode-en","mode-dual");
@@ -455,7 +455,7 @@
       if(captionMode==="off"){ overlay.classList.remove("on"); $("captionStatus").textContent="字幕：關"; }
       else {
         overlay.classList.add("on");
-        $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+" · 畫面底部兩列，閱讀大小";
+        $("captionStatus").textContent="字幕："+(labels[captionMode]||"")+" · 底部兩列對照";
       }
       updateSubOverlayHint();
     }
@@ -476,8 +476,8 @@
         en.textContent="Loading content captions…";
         zh.textContent="";
       } else {
-        en.textContent="Loading English line…";
-        zh.textContent="載入中文列…";
+        en.textContent="English line";
+        zh.textContent="中文對照列";
       }
       if(hint) hint.textContent="";
     }
@@ -828,10 +828,10 @@
         enEl.textContent=en||zh;
         zhEl.textContent="";
       } else {
-        // 電影雙列：上英下中；缺一列時仍撐住兩列版面
-        enEl.textContent=en||(zh?"":"");
-        zhEl.textContent=zh||en;
-        if(!en && zh) enEl.textContent=""; // 只有中文時上列空著，下列顯示中文
+        // 中英對照：上英下中，兩列都盡量顯示
+        enEl.textContent=en || "—";
+        zhEl.textContent=zh || en || "—";
+        if(!en && !zh){ enEl.textContent=""; zhEl.textContent=""; }
       }
       if($("subHint")) $("subHint").textContent="";
     }
@@ -1202,7 +1202,7 @@
           captionMode = btn.dataset.caption || "off";
           localStorage.setItem(CAPTION_KEY, captionMode);
           applyCaptionButtons(); applyCaptions();
-          toast(({ off: "已關字幕", zh: "中文字幕", en: "英文字幕", dual: "電影雙列字幕" })[captionMode] || "字幕");
+          toast(({ off: "已關字幕", zh: "中文字幕", en: "英文字幕", dual: "中英對照" })[captionMode] || "字幕");
         };
       });
       document.querySelectorAll("#ttsSpeedRow button[data-tts]").forEach((btn) => {
