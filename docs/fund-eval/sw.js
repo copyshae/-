@@ -1,8 +1,8 @@
 /* 基金評估台｜network-first 文件與腳本 */
-var CACHE = "fund-eval-v4";
+var CACHE = "fund-eval-v5";
 var ASSETS = [
   "./index.html",
-  "./app.js?v=4",
+  "./app.js?v=5",
   "./app.js",
   "./manifest.json",
   "./watchlist.json",

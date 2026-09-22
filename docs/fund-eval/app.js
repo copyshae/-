@@ -21,7 +21,7 @@
     alertCooldownHours: 12
   };
 
-  var ASSET_OPTIONS = ["高收益債","投資級債","新興債","股票型","平衡型","黃金／貴金屬","REITs","貨幣市場","其他"];
+  var ASSET_OPTIONS = ["台股ETF","海外股票ETF","債券ETF","高收益債","投資級債","新興債","股票型","平衡型","黃金／貴金屬","REITs","貨幣市場","其他"];
   var MACRO_KIND = [
     { id: "hy_spread", label: "非投等債信用利差（bp）" },
     { id: "ig_spread", label: "投資級債信用利差（bp）" },
@@ -30,7 +30,7 @@
     { id: "other", label: "其他指標" }
   ];
 
-  var WATCHLIST = [{"id":"wl-B09463","bankCode":"B09463","name":"貝萊德世界黃金A10 美元總報酬穩定配息","currency":"USD","assetClass":"黃金／貴金屬","divPolicy":"總報酬穩定配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"gold","macroName":"現貨金價 XAUUSD","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、最新淨值、52週高低、250日均線、配息組成（本金比）、一年含息報酬、金價關鍵阻力","note":"","updatedAt":0},{"id":"wl-B09086","bankCode":"B09086","name":"貝萊德世界黃金A2歐元","currency":"EUR","assetClass":"黃金／貴金屬","divPolicy":"累積／成長級別（確認）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"gold","macroName":"現貨金價 XAUUSD","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、歐元計價淨值、52週位階、年線乖離、與美元級別折溢價／匯率影響","note":"","updatedAt":0},{"id":"wl-B09460","bankCode":"B09460","name":"貝萊德世界科技A10 美元總報酬穩定配息","currency":"USD","assetClass":"股票型","divPolicy":"總報酬穩定配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"Nasdaq-100 / MSCI World IT","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、淨值與52週、250MA、配息本金比、科技指數位階與本益比","note":"","updatedAt":0},{"id":"wl-B38075","bankCode":"B38075","name":"百達-機器人科技-R 美元","currency":"USD","assetClass":"股票型","divPolicy":"累積（確認）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"機器人／自動化主題指數","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、淨值歷史、52週位階、年線、主題評價（PE／成長）","note":"","updatedAt":0},{"id":"wl-B15343","bankCode":"B15343","name":"富蘭克林坦伯頓-全球氣候變遷美元避險A(acc)H1","currency":"USD","assetClass":"股票型","divPolicy":"累積 acc／美元避險 H1","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"MSCI World / 氣候主題指數","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、避險級別淨值、52週、年線、避險成本影響","note":"","updatedAt":0},{"id":"wl-B03629","bankCode":"B03629","name":"聯博-全球多元收益基金AD月配美元","currency":"USD","assetClass":"平衡型","divPolicy":"AD 月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"ig_spread","macroName":"全球股債風險偏好／IG 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、月配金額、本金配息比、一年含息報酬、股債配置比重","note":"","updatedAt":0},{"id":"wl-B09325","bankCode":"B09325","name":"貝萊德全球智慧數據股票入息A6 美元穩定配息","currency":"USD","assetClass":"股票型","divPolicy":"A6 穩定配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"MSCI World High Dividend","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、穩定配息本金比、淨值位階、全球高股息指數","note":"","updatedAt":0},{"id":"wl-B20073","bankCode":"B20073","name":"安聯收益成長AM穩定月收美元","currency":"USD","assetClass":"平衡型","divPolicy":"AM 穩定月收","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"美高收利差＋可轉債／股票波動","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、月配、本金比趨勢、HY OAS、基金可轉債比重","note":"","updatedAt":0},{"id":"wl-A03088","bankCode":"A03088","name":"第一金全球水電瓦斯及基礎建設收益基金-台幣配息","currency":"TWD","assetClass":"股票型","divPolicy":"台幣配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"全球基礎建設／公用事業指數","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、台幣淨值、配息本金比、利率敏感度、一年含息報酬","note":"","updatedAt":0},{"id":"wl-B33197","bankCode":"B33197","name":"高盛III邊境市場債券基金X股對沖級別澳幣(月配息)","currency":"AUD","assetClass":"新興債","divPolicy":"X 股對沖澳幣月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"邊境／EM 主權利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、澳幣避險淨值、月配本金比、EMBI／邊境債利差、避險成本","note":"","updatedAt":0},{"id":"wl-B20186","bankCode":"B20186","name":"安聯收益成長AMg7月收總收益美元","currency":"USD","assetClass":"平衡型","divPolicy":"AMg7 月收總收益","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"美高收利差＋權益波動","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、總收益配息組成、本金比、一年含息、HY OAS","note":"","updatedAt":0},{"id":"wl-A35062","bankCode":"A35062","name":"東方匯理新興市場非投資等級債券基金-AD月配台幣","currency":"TWD","assetClass":"高收益債","divPolicy":"AD 月配台幣","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"EM HY／CEMBI 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、台幣淨值、月配本金比、EM 非投等利差收斂／壓縮","note":"","updatedAt":0},{"id":"wl-B03563","bankCode":"B03563","name":"聯博-房貸收益基金AA穩定月配美元","currency":"USD","assetClass":"投資級債","divPolicy":"AA 穩定月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"ig_spread","macroName":"MBS／房貸信用利差＋美債殖利率","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、月配本金比、MBS 利差、存續期間、一年含息","note":"","updatedAt":0},{"id":"wl-A27035","bankCode":"A27035","name":"宏利新興市場非投資等級債券基金C(台幣)","currency":"TWD","assetClass":"高收益債","divPolicy":"C 台幣（確認配息或累積）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"EM HY 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、淨值、配息政策確認、本金比、EM 利差","note":"","updatedAt":0},{"id":"wl-B23599","bankCode":"B23599","name":"施羅德環球-環球非投資等級債券美元A月配固定","currency":"USD","assetClass":"高收益債","divPolicy":"A 月配固定","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"Bloomberg HY OAS / ICE BofA HY","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、固定月配本金侵蝕、利差位階、一年含息 vs 配息率落差","note":"","updatedAt":0},{"id":"wl-B33145","bankCode":"B33145","name":"高盛III新興市場債券基金X股對沖級別澳幣(月配息)","currency":"AUD","assetClass":"新興債","divPolicy":"X 股對沖澳幣月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"EMBI／EM 主權利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、澳幣避險淨值、月配本金比、EM 利差、美元指數","note":"","updatedAt":0},{"id":"wl-A15015","bankCode":"A15015","name":"瑞銀全方位非投資等級債券基金(台幣)B月配","currency":"TWD","assetClass":"高收益債","divPolicy":"B 月配台幣","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"全球 HY OAS","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、台幣淨值、月配本金比、HY 利差收斂／過度壓縮","note":"","updatedAt":0},{"id":"wl-B33173","bankCode":"B33173","name":"高盛III環球非投資等級債券基金X股對沖級別美元(月配息)","currency":"USD","assetClass":"高收益債","divPolicy":"X 股對沖美元月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"Bloomberg Global HY OAS","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、美元對沖淨值、月配本金比、全球 HY 利差","note":"","updatedAt":0},{"id":"wl-B33060","bankCode":"B33060","name":"高盛III環球非投資等級債券基金X股對沖級別歐元(月配息)","currency":"EUR","assetClass":"高收益債","divPolicy":"X 股對沖歐元月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"歐洲／全球 HY 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、歐元對沖淨值、月配本金比、歐元區 HY 利差、避險成本","note":"","updatedAt":0}];
+  var WATCHLIST = [{"id":"wl-B09463","bankCode":"B09463","name":"貝萊德世界黃金A10 美元總報酬穩定配息","currency":"USD","assetClass":"黃金／貴金屬","instrumentType":"fund","divPolicy":"總報酬穩定配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"gold","macroName":"現貨金價 XAUUSD","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、最新淨值、52週高低、250日均線、配息組成（本金比）、一年含息報酬、金價關鍵阻力","note":"","updatedAt":0},{"id":"wl-B09086","bankCode":"B09086","name":"貝萊德世界黃金A2歐元","currency":"EUR","assetClass":"黃金／貴金屬","instrumentType":"fund","divPolicy":"累積／成長級別（確認）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"gold","macroName":"現貨金價 XAUUSD","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、歐元計價淨值、52週位階、年線乖離、與美元級別折溢價／匯率影響","note":"","updatedAt":0},{"id":"wl-B09460","bankCode":"B09460","name":"貝萊德世界科技A10 美元總報酬穩定配息","currency":"USD","assetClass":"股票型","instrumentType":"fund","divPolicy":"總報酬穩定配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"Nasdaq-100 / MSCI World IT","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、淨值與52週、250MA、配息本金比、科技指數位階與本益比","note":"","updatedAt":0},{"id":"wl-B38075","bankCode":"B38075","name":"百達-機器人科技-R 美元","currency":"USD","assetClass":"股票型","instrumentType":"fund","divPolicy":"累積（確認）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"機器人／自動化主題指數","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、淨值歷史、52週位階、年線、主題評價（PE／成長）","note":"","updatedAt":0},{"id":"wl-B15343","bankCode":"B15343","name":"富蘭克林坦伯頓-全球氣候變遷美元避險A(acc)H1","currency":"USD","assetClass":"股票型","instrumentType":"fund","divPolicy":"累積 acc／美元避險 H1","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"MSCI World / 氣候主題指數","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、避險級別淨值、52週、年線、避險成本影響","note":"","updatedAt":0},{"id":"wl-B03629","bankCode":"B03629","name":"聯博-全球多元收益基金AD月配美元","currency":"USD","assetClass":"平衡型","instrumentType":"fund","divPolicy":"AD 月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"ig_spread","macroName":"全球股債風險偏好／IG 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、月配金額、本金配息比、一年含息報酬、股債配置比重","note":"","updatedAt":0},{"id":"wl-B09325","bankCode":"B09325","name":"貝萊德全球智慧數據股票入息A6 美元穩定配息","currency":"USD","assetClass":"股票型","instrumentType":"fund","divPolicy":"A6 穩定配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"MSCI World High Dividend","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、穩定配息本金比、淨值位階、全球高股息指數","note":"","updatedAt":0},{"id":"wl-B20073","bankCode":"B20073","name":"安聯收益成長AM穩定月收美元","currency":"USD","assetClass":"平衡型","instrumentType":"fund","divPolicy":"AM 穩定月收","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"美高收利差＋可轉債／股票波動","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、月配、本金比趨勢、HY OAS、基金可轉債比重","note":"","updatedAt":0},{"id":"wl-A03088","bankCode":"A03088","name":"第一金全球水電瓦斯及基礎建設收益基金-台幣配息","currency":"TWD","assetClass":"股票型","instrumentType":"fund","divPolicy":"台幣配息","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"全球基礎建設／公用事業指數","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、台幣淨值、配息本金比、利率敏感度、一年含息報酬","note":"","updatedAt":0},{"id":"wl-B33197","bankCode":"B33197","name":"高盛III邊境市場債券基金X股對沖級別澳幣(月配息)","currency":"AUD","assetClass":"新興債","instrumentType":"fund","divPolicy":"X 股對沖澳幣月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"邊境／EM 主權利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、澳幣避險淨值、月配本金比、EMBI／邊境債利差、避險成本","note":"","updatedAt":0},{"id":"wl-B20186","bankCode":"B20186","name":"安聯收益成長AMg7月收總收益美元","currency":"USD","assetClass":"平衡型","instrumentType":"fund","divPolicy":"AMg7 月收總收益","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"美高收利差＋權益波動","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、總收益配息組成、本金比、一年含息、HY OAS","note":"","updatedAt":0},{"id":"wl-A35062","bankCode":"A35062","name":"東方匯理新興市場非投資等級債券基金-AD月配台幣","currency":"TWD","assetClass":"高收益債","instrumentType":"fund","divPolicy":"AD 月配台幣","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"EM HY／CEMBI 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、台幣淨值、月配本金比、EM 非投等利差收斂／壓縮","note":"","updatedAt":0},{"id":"wl-B03563","bankCode":"B03563","name":"聯博-房貸收益基金AA穩定月配美元","currency":"USD","assetClass":"投資級債","instrumentType":"fund","divPolicy":"AA 穩定月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"ig_spread","macroName":"MBS／房貸信用利差＋美債殖利率","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、月配本金比、MBS 利差、存續期間、一年含息","note":"","updatedAt":0},{"id":"wl-A27035","bankCode":"A27035","name":"宏利新興市場非投資等級債券基金C(台幣)","currency":"TWD","assetClass":"高收益債","instrumentType":"fund","divPolicy":"C 台幣（確認配息或累積）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"EM HY 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、淨值、配息政策確認、本金比、EM 利差","note":"","updatedAt":0},{"id":"wl-B23599","bankCode":"B23599","name":"施羅德環球-環球非投資等級債券美元A月配固定","currency":"USD","assetClass":"高收益債","instrumentType":"fund","divPolicy":"A 月配固定","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"Bloomberg HY OAS / ICE BofA HY","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、固定月配本金侵蝕、利差位階、一年含息 vs 配息率落差","note":"","updatedAt":0},{"id":"wl-B33145","bankCode":"B33145","name":"高盛III新興市場債券基金X股對沖級別澳幣(月配息)","currency":"AUD","assetClass":"新興債","instrumentType":"fund","divPolicy":"X 股對沖澳幣月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"EMBI／EM 主權利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、澳幣避險淨值、月配本金比、EM 利差、美元指數","note":"","updatedAt":0},{"id":"wl-A15015","bankCode":"A15015","name":"瑞銀全方位非投資等級債券基金(台幣)B月配","currency":"TWD","assetClass":"高收益債","instrumentType":"fund","divPolicy":"B 月配台幣","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"全球 HY OAS","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、台幣淨值、月配本金比、HY 利差收斂／過度壓縮","note":"","updatedAt":0},{"id":"wl-B33173","bankCode":"B33173","name":"高盛III環球非投資等級債券基金X股對沖級別美元(月配息)","currency":"USD","assetClass":"高收益債","instrumentType":"fund","divPolicy":"X 股對沖美元月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"Bloomberg Global HY OAS","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、美元對沖淨值、月配本金比、全球 HY 利差","note":"","updatedAt":0},{"id":"wl-B33060","bankCode":"B33060","name":"高盛III環球非投資等級債券基金X股對沖級別歐元(月配息)","currency":"EUR","assetClass":"高收益債","instrumentType":"fund","divPolicy":"X 股對沖歐元月配","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"hy_spread","macroName":"歐洲／全球 HY 利差","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"ISIN、歐元對沖淨值、月配本金比、歐元區 HY 利差、避險成本","note":"","updatedAt":0},{"id":"wl-0052","bankCode":"0052","name":"富邦科技（台股ETF｜臺灣資訊科技指數）","currency":"TWD","assetClass":"台股ETF","instrumentType":"etf","divPolicy":"ETF 收益分配（非境外基金穩定配息）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"臺灣資訊科技指數／台股電子","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"市價、淨值、折溢價%、52週高低、250日均線、追蹤誤差、成交量、殖利率；對照台積電／電子指數位階","note":"","updatedAt":0},{"id":"wl-00747","bankCode":"00747","name":"00747（你指定之美股相關ETF｜請核對代號；若為00747B則是FH中國政策債）","currency":"TWD","assetClass":"海外股票ETF","instrumentType":"etf","divPolicy":"ETF 收益分配（請確認）","isin":"","navDate":"","nav":null,"high52":null,"low52":null,"ma250":null,"premiumPct":null,"divPerUnit":null,"yieldAnn":null,"principalPct":null,"prevPrincipalPct":null,"totalReturn1y":null,"macroKind":"equity_idx","macroName":"Nasdaq-100／S&P 500（美股）","macroValue":null,"macroNote":"","goldBreak":false,"searchHints":"請先確認證交所代號與追蹤指數；市價、淨值、折溢價、52週位階、250MA、成交量、追蹤誤差","note":"","updatedAt":0}];
 
   function blankFromWatch(w) {
     return Object.assign({}, w);
@@ -109,12 +109,32 @@
     return ((e - ma) / ma) * 100;
   }
 
+  /** 僅 0052／00747（或手動標 etf）走 ETF 邏輯；其餘基金照舊 */
+  function isEtf(fund) {
+    if (!fund) return false;
+    if (fund.instrumentType === "etf") return true;
+    var c = String(fund.bankCode || "").toUpperCase().replace(/\s/g, "");
+    return c === "0052" || c === "00747" || c === "00747B";
+  }
+
   function dataCompleteness(fund) {
     var need = [];
-    if (num(fund.nav) === null) need.push("最新淨值");
+    if (num(fund.nav) === null) need.push(isEtf(fund) ? "最新市價／淨值" : "最新淨值");
     if (num(fund.high52) === null) need.push("52週高");
     if (num(fund.low52) === null) need.push("52週低");
     if (num(fund.ma250) === null) need.push("250MA");
+
+    if (isEtf(fund)) {
+      // ETF：不看境外基金「本金配息」；改看折溢價與指數位階
+      if (num(fund.premiumPct) === null) need.push("折溢價%");
+      if (num(fund.macroValue) === null) need.push("追蹤指數數值／位階");
+      if (num(fund.totalReturn1y) === null) need.push("近一年報酬%");
+      var total = 7;
+      var filled = total - need.length;
+      if (filled < 0) filled = 0;
+      return { need: need, filled: filled, total: total, ready: need.length === 0, mode: "etf" };
+    }
+
     var isDist = /配息|月配|月收|穩定配/.test(String(fund.divPolicy || fund.name || ""));
     if (isDist) {
       if (num(fund.principalPct) === null) need.push("本金配息比");
@@ -122,10 +142,10 @@
       if (num(fund.totalReturn1y) === null) need.push("一年含息報酬");
     }
     if (num(fund.macroValue) === null && !fund.goldBreak) need.push("總經指標數值");
-    var total = isDist ? 8 : 5;
-    var filled = total - need.length;
-    if (filled < 0) filled = 0;
-    return { need: need, filled: filled, total: total, ready: need.length === 0 };
+    var totalF = isDist ? 8 : 5;
+    var filledF = totalF - need.length;
+    if (filledF < 0) filledF = 0;
+    return { need: need, filled: filledF, total: totalF, ready: need.length === 0, mode: "fund" };
   }
 
   function evaluate(fund, settings) {
@@ -135,8 +155,10 @@
     var L = num(fund.principalPct);
     var prevL = num(fund.prevPrincipalPct);
     var macroVal = num(fund.macroValue);
+    var premium = num(fund.premiumPct);
     var buyReasons = [], sellReasons = [];
     var comp = dataCompleteness(fund);
+    var etf = isEtf(fund);
 
     if (H !== null && H <= s.buyHMax) {
       buyReasons.push("52 週位階 " + fmt1(H) + "%（後 " + s.buyHMax + "% 買區）");
@@ -144,46 +166,67 @@
     if (I !== null && I <= s.buyMaDevMax) {
       buyReasons.push("年線負乖離 " + fmt1(I) + "%（≤ " + s.buyMaDevMax + "%）");
     }
-    if (fund.goldBreak) buyReasons.push("金價突破關鍵阻力");
-    if (fund.macroKind === "hy_spread" && macroVal !== null) {
-      if (macroVal >= s.hySpreadTight && macroVal <= s.hySpreadWide + 80 && fund.macroNote) {
-        if (/收斂|收窄|回落|下降|收緊/.test(String(fund.macroNote))) {
-          buyReasons.push("信用利差開始收斂（目前 " + Math.round(macroVal) + " bp）");
+
+    if (etf) {
+      // ETF 專用：折溢價（不套用本金配息／HY 利差基金規則）
+      if (premium !== null && premium <= -1) {
+        buyReasons.push("相對淨值折價 " + fmt1(premium) + "%（較具進場空間）");
+      }
+      if (premium !== null && premium >= 1.5) {
+        sellReasons.push("相對淨值溢價 " + fmt1(premium) + "%（追價風險偏高）");
+      }
+      if (I !== null && I >= s.sellMaDevMin) {
+        sellReasons.push("年線正乖離 " + fmt1(I) + "%（≥ " + s.sellMaDevMin + "%）");
+      }
+      // 指數位階備註關鍵字
+      if (fund.macroNote && /超賣|低檔|回測支撐|突破整理/.test(String(fund.macroNote))) {
+        buyReasons.push("指數面：" + String(fund.macroNote).slice(0, 40));
+      }
+      if (fund.macroNote && /過熱|新高追價|乖離過大/.test(String(fund.macroNote))) {
+        sellReasons.push("指數面：" + String(fund.macroNote).slice(0, 40));
+      }
+    } else {
+      if (fund.goldBreak) buyReasons.push("金價突破關鍵阻力");
+      if (fund.macroKind === "hy_spread" && macroVal !== null) {
+        if (macroVal >= s.hySpreadTight && macroVal <= s.hySpreadWide + 80 && fund.macroNote) {
+          if (/收斂|收窄|回落|下降|收緊/.test(String(fund.macroNote))) {
+            buyReasons.push("信用利差開始收斂（目前 " + Math.round(macroVal) + " bp）");
+          }
+        }
+        if (macroVal < s.hySpreadTight) {
+          sellReasons.push("非投等債利差過度壓縮（" + Math.round(macroVal) + " bp ＜ " + s.hySpreadTight + "）");
         }
       }
-      if (macroVal < s.hySpreadTight) {
-        sellReasons.push("非投等債利差過度壓縮（" + Math.round(macroVal) + " bp ＜ " + s.hySpreadTight + "）");
+      if (fund.macroKind === "ig_spread" && macroVal !== null && macroVal < 80) {
+        sellReasons.push("投資級利差偏緊（" + Math.round(macroVal) + " bp），風險溢酬不足");
       }
-    }
-    if (fund.macroKind === "ig_spread" && macroVal !== null && macroVal < 80) {
-      sellReasons.push("投資級利差偏緊（" + Math.round(macroVal) + " bp），風險溢酬不足");
-    }
-    if (I !== null && I >= s.sellMaDevMin) {
-      sellReasons.push("年線正乖離 " + fmt1(I) + "%（≥ " + s.sellMaDevMin + "%）");
-    }
-    if (L !== null && L >= s.sellPrincipalMin) {
-      sellReasons.push("配息來自本金 " + fmt1(L) + "%（≥ " + s.sellPrincipalMin + "%）");
-    }
-    if (L !== null && prevL !== null && L - prevL >= s.sellPrincipalRise) {
-      sellReasons.push("本金配息比例較上次再升 " + fmt1(L - prevL) + " 百分點（持續攀升）");
+      if (I !== null && I >= s.sellMaDevMin) {
+        sellReasons.push("年線正乖離 " + fmt1(I) + "%（≥ " + s.sellMaDevMin + "%）");
+      }
+      if (L !== null && L >= s.sellPrincipalMin) {
+        sellReasons.push("配息來自本金 " + fmt1(L) + "%（≥ " + s.sellPrincipalMin + "%）");
+      }
+      if (L !== null && prevL !== null && L - prevL >= s.sellPrincipalRise) {
+        sellReasons.push("本金配息比例較上次再升 " + fmt1(L - prevL) + " 百分點（持續攀升）");
+      }
     }
 
     var status;
     if (!comp.ready && !buyReasons.length && !sellReasons.length) status = "待補資料";
     else if (sellReasons.length) status = "減碼警戒";
     else if (buyReasons.length) status = "加碼";
-    else status = "續抱領息";
+    else status = etf ? "續抱觀察" : "續抱領息";
 
     var score = investScore({
-      H: H, I: I, L: L, prevL: prevL, macroVal: macroVal,
+      H: H, I: I, L: L, prevL: prevL, macroVal: macroVal, premium: premium,
       buyReasons: buyReasons, sellReasons: sellReasons,
-      status: status, comp: comp, fund: fund, settings: s
+      status: status, comp: comp, fund: fund, settings: s, etf: etf
     });
 
     return {
       H: H, I: I, status: status,
       buyReasons: buyReasons, sellReasons: sellReasons,
-      comp: comp, score: score
+      comp: comp, score: score, etf: etf, premium: premium
     };
   }
 
@@ -195,54 +238,61 @@
     var score = 50;
     var f = x.fund;
     var s = x.settings;
+    var etf = !!x.etf;
 
     if (x.status === "加碼") score += 35;
-    else if (x.status === "續抱領息") score += 12;
+    else if (x.status === "續抱領息" || x.status === "續抱觀察") score += 12;
     else if (x.status === "待補資料") score -= 8;
     else if (x.status === "減碼警戒") score -= 40;
 
     score += x.buyReasons.length * 10;
     score -= x.sellReasons.length * 14;
 
-    // 位階越低越值得進場（有資料才計）
     if (x.H !== null) {
       score += (50 - x.H) * 0.35;
       if (x.H <= s.buyHMax) score += 8;
     }
-    // 負乖離加分、正乖離扣分
     if (x.I !== null) {
       score += (-x.I) * 0.55;
       if (x.I <= s.buyMaDevMax) score += 6;
       if (x.I >= s.sellMaDevMin) score -= 10;
     }
-    // 配息品質：本金比越低越好；含息報酬相對配息率
-    if (x.L !== null) {
-      score += (40 - x.L) * 0.25;
-      if (x.L >= s.sellPrincipalMin) score -= 12;
+
+    if (etf) {
+      // ETF：折溢價取代本金配息品質
+      if (x.premium !== null) {
+        score += (-x.premium) * 4; // 折價加分、溢價扣分
+        if (x.premium >= 1.5) score -= 10;
+        if (x.premium <= -1) score += 6;
+      }
+      var tr = num(f.totalReturn1y);
+      if (tr !== null) score += Math.max(-8, Math.min(8, tr * 0.15));
+    } else {
+      if (x.L !== null) {
+        score += (40 - x.L) * 0.25;
+        if (x.L >= s.sellPrincipalMin) score -= 12;
+      }
+      if (x.L !== null && x.prevL !== null && x.L > x.prevL) {
+        score -= Math.min(15, (x.L - x.prevL) * 1.2);
+      }
+      var yld = num(f.yieldAnn);
+      var tr2 = num(f.totalReturn1y);
+      if (yld !== null && tr2 !== null) {
+        score += Math.max(-10, Math.min(10, (tr2 - yld * 0.5) * 0.4));
+      } else if (yld !== null && yld > 0 && x.L !== null && x.L < 25) {
+        score += 3;
+      }
+      if (f.macroKind === "hy_spread" && x.macroVal !== null) {
+        if (x.macroVal < s.hySpreadTight) score -= 18;
+        else if (x.macroVal >= s.hySpreadWide) score += 6;
+        else score += 3;
+        if (f.macroNote && /收斂|收窄|回落|下降|收緊/.test(String(f.macroNote))) score += 5;
+      }
+      if (f.goldBreak) score += 8;
     }
-    if (x.L !== null && x.prevL !== null && x.L > x.prevL) {
-      score -= Math.min(15, (x.L - x.prevL) * 1.2);
-    }
-    var yld = num(f.yieldAnn);
-    var tr = num(f.totalReturn1y);
-    if (yld !== null && tr !== null) {
-      // 含息報酬接近或高於配息率 → 配息較健康
-      score += Math.max(-10, Math.min(10, (tr - yld * 0.5) * 0.4));
-    } else if (yld !== null && yld > 0 && x.L !== null && x.L < 25) {
-      score += 3;
-    }
-    // 總經：HY 利差在「偏寬且未過緊」區間加分；過緊扣分
-    if (f.macroKind === "hy_spread" && x.macroVal !== null) {
-      if (x.macroVal < s.hySpreadTight) score -= 18;
-      else if (x.macroVal >= s.hySpreadWide) score += 6;
-      else score += 3;
-      if (f.macroNote && /收斂|收窄|回落|下降|收緊/.test(String(f.macroNote))) score += 5;
-    }
-    if (f.goldBreak) score += 8;
-    // 資料越齊，排序可信度越高
+
     score += x.comp.filled * 1.5;
     if (!x.comp.ready) score -= 5;
-
     return Math.round(score * 10) / 10;
   }
 
@@ -289,7 +339,7 @@
     }).filter(function (row) {
       if (state.filter === "buy") return row.ev.status === "加碼";
       if (state.filter === "sell") return row.ev.status === "減碼警戒";
-      if (state.filter === "hold") return row.ev.status === "續抱領息";
+      if (state.filter === "hold") return row.ev.status === "續抱領息" || row.ev.status === "續抱觀察";
       if (state.filter === "need") return row.ev.status === "待補資料";
       return true;
     }).sort(function (a, b) {
@@ -335,7 +385,7 @@
         '<span class="bank">' + escapeHtml(f.bankCode || "—") + "</span> " +
         '<strong class="fname">' + escapeHtml(f.name || "未命名") + "</strong>" +
         '<div class="meta">' + escapeHtml(f.currency || "") + " · " + escapeHtml(f.assetClass || "") +
-        (f.divPolicy ? " · " + escapeHtml(f.divPolicy) : "") +
+        (ev.etf ? " · ETF分析" : "") + (f.divPolicy ? " · " + escapeHtml(f.divPolicy) : "") +
         " · 資料 " + ev.comp.filled + "/" + ev.comp.total +
         " · 投資分數 " + (ev.score != null ? ev.score : "—") + "</div></div>" +
         '<span class="badge ' + statusClass(ev.status) + '">' + escapeHtml(ev.status) + "</span></header>" +
@@ -343,7 +393,8 @@
         '<div><span class="k">淨值</span><span class="v">' + fmt2(num(f.nav)) + "</span></div>" +
         '<div><span class="k">52週位階</span><span class="v">' + fmt1(ev.H) + "%</span></div>" +
         '<div><span class="k">年線偏離</span><span class="v">' + fmt1(ev.I) + "%</span></div>" +
-        '<div><span class="k">本金配息</span><span class="v">' + fmt1(num(f.principalPct)) + "%</span></div>" +
+        '<div><span class="k">' + (ev.etf ? "折溢價" : "本金配息") + '</span><span class="v">' +
+        (ev.etf ? fmt1(num(f.premiumPct)) : fmt1(num(f.principalPct))) + "%</span></div>" +
         '<div><span class="k">年化配息</span><span class="v">' + fmt1(num(f.yieldAnn)) + "%</span></div>" +
         '<div><span class="k">一年含息</span><span class="v">' + fmt1(num(f.totalReturn1y)) + "%</span></div>" +
         "</div>" +
@@ -549,6 +600,9 @@
     $("f_currency").value = fund ? fund.currency || "TWD" : "TWD";
     $("f_assetClass").value = fund ? fund.assetClass || "高收益債" : "高收益債";
     $("f_divPolicy").value = fund ? fund.divPolicy || "" : "";
+    if ($("f_instrumentType")) $("f_instrumentType").value = fund ? (fund.instrumentType || (isEtf(fund) ? "etf" : "fund")) : "fund";
+    if ($("f_premiumPct")) $("f_premiumPct").value = fund && fund.premiumPct != null ? fund.premiumPct : "";
+    toggleFormMode();
     $("f_isin").value = fund ? fund.isin || "" : "";
     $("f_navDate").value = fund ? fund.navDate || "" : "";
     $("f_nav").value = fund && fund.nav != null ? fund.nav : "";
@@ -583,7 +637,9 @@
       name: $("f_name").value.trim(),
       currency: $("f_currency").value.trim() || "TWD",
       assetClass: $("f_assetClass").value,
+      instrumentType: $("f_instrumentType") ? $("f_instrumentType").value : "fund",
       divPolicy: $("f_divPolicy").value.trim(),
+      premiumPct: $("f_premiumPct") ? num($("f_premiumPct").value) : null,
       isin: $("f_isin").value.trim(),
       navDate: $("f_navDate").value.trim(),
       nav: num($("f_nav").value),
@@ -737,6 +793,16 @@
     refresh();
   }
 
+  function toggleFormMode() {
+    var etf = $("f_instrumentType") && $("f_instrumentType").value === "etf";
+    var fundBox = $("fundOnlyFields");
+    var etfBox = $("etfOnlyFields");
+    if (fundBox) fundBox.style.display = etf ? "none" : "block";
+    if (etfBox) etfBox.style.display = etf ? "block" : "none";
+    var lab = $("labelNav");
+    if (lab) lab.textContent = etf ? "E 最新市價／淨值" : "E 最新淨值";
+  }
+
   function on(id, ev, fn) {
     var el = $(id);
     if (el) el.addEventListener(ev, fn);
@@ -788,7 +854,7 @@
         alert(p === "granted" ? "已開啟系統通知（買／賣點會同時跳出）" : "未授權系統通知，仍會嘗試寄信");
       });
     });
-    ["f_nav","f_high52","f_low52","f_ma250","f_principalPct","f_prevPrincipalPct","f_macroKind","f_macroValue","f_macroNote","f_goldBreak","f_divPolicy","f_yieldAnn","f_totalReturn1y"].forEach(function (id) {
+    ["f_nav","f_high52","f_low52","f_ma250","f_principalPct","f_prevPrincipalPct","f_premiumPct","f_macroKind","f_macroValue","f_macroNote","f_goldBreak","f_divPolicy","f_yieldAnn","f_totalReturn1y","f_instrumentType"].forEach(function (id) {
       var el = $(id); if (!el) return;
       el.addEventListener("input", updateLivePreview);
       el.addEventListener("change", updateLivePreview);
