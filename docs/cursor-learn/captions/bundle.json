@@ -1,0 +1,1166 @@
+{
+  "GAe1IQtHqVU": {
+    "videoId": "GAe1IQtHqVU",
+    "durationSec": 1200.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Welcome. Today we walk through Cursor Composer and the Agent in about twenty minutes.",
+        "zh": "歡迎。接下來大約二十分鐘，帶你走一遍 Cursor 的 Composer 與 Agent。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Open a project folder first so the Agent can see your files.",
+        "zh": "先開啟專案資料夾，讓 Agent 看得到你的檔案。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Composer lets you describe a change in natural language.",
+        "zh": "Composer 讓你用自然語言描述要改什麼。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Start with one small clear task, not the whole app.",
+        "zh": "先給一個小而清楚的任務，不要一次丟整個應用。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Watch the Agent propose a plan and list files to touch.",
+        "zh": "看 Agent 提出計畫，並列出要動的檔案。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Review the diff carefully before you accept.",
+        "zh": "接受前仔細看 diff。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "You own the final decision on every change.",
+        "zh": "每一段修改的最終決策權都在你。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "Reject hunks that look wrong and ask for a narrower edit.",
+        "zh": "看起來不對的段落就拒絕，並要求更窄的修改。"
+      },
+      {
+        "start": 177.5,
+        "end": 199.1,
+        "en": "Ask in chat why a change was made when the diff is hard.",
+        "zh": "diff 難讀時，用對話問它為什麼這樣改。"
+      },
+      {
+        "start": 199.5,
+        "end": 221.1,
+        "en": "Paste terminal errors back so the Agent can fix forward.",
+        "zh": "把終端機錯誤貼回去，讓 Agent 接著修。"
+      },
+      {
+        "start": 221.5,
+        "end": 243.1,
+        "en": "Run the app, verify behavior, then give the next instruction.",
+        "zh": "跑起來、驗行為，再給下一個指令。"
+      },
+      {
+        "start": 243.5,
+        "end": 265.1,
+        "en": "Edit one module at a time so review stays manageable.",
+        "zh": "一次只改一個模組，方便檢查。"
+      },
+      {
+        "start": 265.5,
+        "end": 287.1,
+        "en": "Reference files with @ to focus the model on the right context.",
+        "zh": "用 @ 引用檔案，讓模型聚焦正確上下文。"
+      },
+      {
+        "start": 287.5,
+        "end": 309.1,
+        "en": "Composer handles multi-file refactors when scope is constrained.",
+        "zh": "範圍有限制時，Composer 很適合跨檔重構。"
+      },
+      {
+        "start": 309.5,
+        "end": 331.1,
+        "en": "Keep tests or a checklist as your acceptance gate.",
+        "zh": "用測試或檢查清單當驗收門檻。"
+      },
+      {
+        "start": 331.5,
+        "end": 353.1,
+        "en": "Small tasks, review diffs, verify, continue—that is the loop.",
+        "zh": "小任務、看 diff、驗證、再繼續——這就是主循環。"
+      },
+      {
+        "start": 353.5,
+        "end": 375.1,
+        "en": "If the Agent expands scope, interrupt and restate the goal.",
+        "zh": "Agent 範圍膨脹時，立刻打斷並重述目標。"
+      },
+      {
+        "start": 375.5,
+        "end": 397.1,
+        "en": "Prefer reversible steps you can undo quickly.",
+        "zh": "優先做可快速復原的步驟。"
+      },
+      {
+        "start": 397.5,
+        "end": 419.1,
+        "en": "Save good prompts you reused into project notes or rules.",
+        "zh": "把常用的好提示存進專案筆記或規則。"
+      },
+      {
+        "start": 419.5,
+        "end": 441.1,
+        "en": "Wrap up by repeating one full loop on your own project.",
+        "zh": "最後在自己專案完整重做一次這個循環。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 441.5
+  },
+  "4IskO3BKwNY": {
+    "videoId": "4IskO3BKwNY",
+    "durationSec": 480.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "This is Cursor 101 from the official channel.",
+        "zh": "這是 Cursor 官方頻道的 101 入門。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "You will see files, the main buffer, and the Agent panel.",
+        "zh": "你會看到檔案樹、主編輯區，以及 Agent 面板。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Think of Cursor as VS Code with an AI teammate built in.",
+        "zh": "可以把 Cursor 想成內建 AI 隊友的 VS Code。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "You set the goal and constraints; the Agent drafts code.",
+        "zh": "你負責目標與限制；Agent 負責起草程式。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Accept and reject are first-class—never auto-trust every change.",
+        "zh": "接受與拒絕是一等動作——不要自動相信每次修改。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Describe one outcome in a single sentence before asking for code.",
+        "zh": "請 AI 寫碼前，先用一句話描述要達成的結果。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Also say what must not change, like public APIs.",
+        "zh": "也要說清楚哪些不能動，例如公開 API。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "Open a tiny project and complete one safe edit end to end.",
+        "zh": "開一個小專案，從頭到尾完成一次安全的小修改。"
+      },
+      {
+        "start": 177.5,
+        "end": 199.1,
+        "en": "Build the habit of reading every suggested edit.",
+        "zh": "養成閱讀每一段建議修改的習慣。"
+      },
+      {
+        "start": 199.5,
+        "end": 221.1,
+        "en": "After orientation, practice daily with one small task.",
+        "zh": "認識環境後，每天用一個小任務練習。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 221.5
+  },
+  "l30Eb76Tk5s": {
+    "videoId": "l30Eb76Tk5s",
+    "durationSec": 1800.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "This beginner tutorial covers Cursor 2.0 foundations still useful later.",
+        "zh": "這支新手教學講 Cursor 2.0 基礎；之後版本仍用得上。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Install Cursor, sign in, and open a folder as workspace.",
+        "zh": "安裝 Cursor、登入，並開啟資料夾當工作區。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Explore chat and Agent views attached to the current file.",
+        "zh": "認識聊天與 Agent 視圖如何對應目前檔案。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Ask for explanations of selected code before requesting edits.",
+        "zh": "先對選取程式碼提問說明，再要求修改。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Generate a function, then read the diff line by line.",
+        "zh": "產生一個函式，再逐行看 diff。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Use follow-ups to tighten naming, types, and edge cases.",
+        "zh": "用後續提示收斂命名、型別與邊界情況。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "When the model drifts, restate the goal and point at the file.",
+        "zh": "模型跑題時，重述目標並指向正確檔案。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "Run the project yourself—do not skip verification.",
+        "zh": "一定要自己跑專案驗證，不要略過。"
+      },
+      {
+        "start": 177.5,
+        "end": 199.1,
+        "en": "Compare suggestions against your style guide.",
+        "zh": "把建議對照你的風格規範。"
+      },
+      {
+        "start": 199.5,
+        "end": 221.1,
+        "en": "Save a personal checklist of prompts that worked.",
+        "zh": "把有效提示存成個人檢查清單。"
+      },
+      {
+        "start": 221.5,
+        "end": 243.1,
+        "en": "Practice undo and reject until they feel natural.",
+        "zh": "反覆練習復原與拒絕，直到變自然。"
+      },
+      {
+        "start": 243.5,
+        "end": 265.1,
+        "en": "Finish by shipping one tiny verified change.",
+        "zh": "最後交付一個已驗證的小修改。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 265.5
+  },
+  "5DnOOa-5dTU": {
+    "videoId": "5DnOOa-5dTU",
+    "durationSec": 3600.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "This long guide maps Cursor 3.0 from beginner to stronger workflows.",
+        "zh": "這支長教學把 Cursor 3.0 從入門講到較強工作流。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Treat it as a map: skim once, then rewatch needed chapters.",
+        "zh": "先當地圖掃一遍，再重播需要的章節。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Early sections cover interface, models, and context gathering.",
+        "zh": "前段講介面、模型，以及上下文怎麼被收集。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Learn how the Agent indexes your project.",
+        "zh": "了解 Agent 如何索引你的專案。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Middle sections show multi-step tasks and large diff review.",
+        "zh": "中段示範多步驟任務與大範圍 diff 審核。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Break big goals into checkable steps.",
+        "zh": "把大目標拆成可檢查的步驟。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Later parts discuss rules, conventions, and safer automation.",
+        "zh": "後段談 Rules、慣例與較安全的自動化。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "Pause and reproduce each demo in your own repo.",
+        "zh": "常按暫停，在自己倉庫重做示範。"
+      },
+      {
+        "start": 177.5,
+        "end": 199.1,
+        "en": "Write a personal checklist: goal, context, small edit, verify.",
+        "zh": "寫個人清單：目標、上下文、小修改、驗證。"
+      },
+      {
+        "start": 199.5,
+        "end": 221.1,
+        "en": "Revisit advanced chapters after a week of daily use.",
+        "zh": "每天用一週後再回看進階章節。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 221.5
+  },
+  "Tv8mLrLtyxo": {
+    "videoId": "Tv8mLrLtyxo",
+    "durationSec": 2700.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "A full beginner course for Cursor 3.0 interface and habits.",
+        "zh": "Cursor 3.0 新手完整課程：介面與使用習慣。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Create or open a project and confirm the Agent can index it.",
+        "zh": "建立或開啟專案，確認 Agent 能索引。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Learn quick inline help versus longer Agent sessions.",
+        "zh": "弄清快速行內協助與較長 Agent 工作階段。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Write prompts that include acceptance criteria.",
+        "zh": "寫包含驗收條件的提示詞。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Scaffold, implement, test, then polish—in that order.",
+        "zh": "搭骨架、實作、測試、再打磨——照這個順序。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "When UI differs from older videos, keep the same review discipline.",
+        "zh": "介面與舊片不同時，審核紀律仍相同。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Track what you accepted and what you rejected.",
+        "zh": "記錄你接受與拒絕了什麼。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "End by shipping one tiny feature with full review.",
+        "zh": "最後用完整審核交付一個小功能。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 177.5
+  },
+  "ocMOZpuAMw4": {
+    "videoId": "ocMOZpuAMw4",
+    "durationSec": 1500.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "A practical beginner tour of Cursor as an AI code editor.",
+        "zh": "實用入門：把 Cursor 當 AI 程式編輯器。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Install, open a folder, and ask about an unfamiliar file.",
+        "zh": "安裝、開資料夾，試著對陌生檔案提問。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Generate a small change, accept carefully, undo if needed.",
+        "zh": "產生小修改、謹慎接受，必要時復原。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Read every suggested edit before saving.",
+        "zh": "儲存前讀完每一段建議修改。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Combine chat explanations with Composer edits to learn, not only speed.",
+        "zh": "對話說明搭配 Composer，為了學會而不只為了快。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Repeat one workflow until it feels natural.",
+        "zh": "重複同一個工作流直到變自然。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Keep a short do-and-don't list for your prompts.",
+        "zh": "為提示詞保留簡短的可做／不可做清單。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 155.5
+  },
+  "IsXrCBlAshg": {
+    "videoId": "IsXrCBlAshg",
+    "durationSec": 600.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "This video shows how to set up Rules in Cursor step by step.",
+        "zh": "一步步示範如何在 Cursor 設定 Rules。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Rules are durable instructions across chats.",
+        "zh": "Rules 是跨對話都應遵守的長期指示。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Open settings or the rules file and add a short testable rule.",
+        "zh": "開啟設定或規則檔，加入一條短且可驗證的規則。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Name the stack, forbid risky edits, describe style.",
+        "zh": "寫明技術棧、禁止高風險亂改、描述風格。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Avoid vague slogans; write concrete do and don't examples.",
+        "zh": "避免空泛口號；寫具體可做與不可做例子。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Start a new chat and check whether the rule is obeyed.",
+        "zh": "開新對話，檢查規則是否生效。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "If ignored, shorten the rule and sharpen the constraint.",
+        "zh": "若被忽略，縮短規則並把限制寫得更銳利。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "Keep rules living—update them when real mistakes happen.",
+        "zh": "規則要活著維護：真實踩雷就更新。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 177.5
+  },
+  "6vtBq6TBGyo": {
+    "videoId": "6vtBq6TBGyo",
+    "durationSec": 720.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "A 2026-oriented walkthrough for adding Rules to Cursor AI.",
+        "zh": "偏 2026 流程：如何把 Rules 加進 Cursor AI。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Create a project rule that matches how your team works.",
+        "zh": "建立符合團隊真實做法的專案規則。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Include language, framework, and folders that must stay untouched.",
+        "zh": "寫明語言、框架，以及不可動的資料夾。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Add a prompt test that would violate the rule.",
+        "zh": "加一個會違反規則的提示測試。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Confirm the Agent refuses or stays within bounds.",
+        "zh": "確認 Agent 拒絕或仍守在界線內。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Update the living rules file when real mistakes happen.",
+        "zh": "真實踩雷時更新活的規則檔。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Prefer fewer sharp rules over many soft ones.",
+        "zh": "寧可少而銳利，也不要多而模糊。"
+      },
+      {
+        "start": 155.5,
+        "end": 177.1,
+        "en": "Share the rule set with teammates and revise together.",
+        "zh": "與隊友共用規則集並一起修訂。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 177.5
+  },
+  "AFgKFdMkVk0": {
+    "videoId": "AFgKFdMkVk0",
+    "durationSec": 1560.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "In about twenty-six minutes we cover the full Cursor Agent main path.",
+        "zh": "約二十六分鐘把 Cursor Agent 主流程走完。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "See how the Agent plans, edits, and reports back.",
+        "zh": "看 Agent 如何規劃、改檔、再回報。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Feed a realistic task with files already in the repo.",
+        "zh": "給貼近真實、倉庫已有檔案的任務。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Interrupt when scope expands; pull back to the checklist.",
+        "zh": "範圍膨脹時打斷，拉回檢查清單。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Use terminal output and browser checks as ground truth.",
+        "zh": "用終端機與瀏覽器檢查當真相。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Replay the hardest segment until you can do it alone.",
+        "zh": "卡關段落重播到你可以獨立完成。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Log what worked so you can reuse the prompt pattern.",
+        "zh": "記下有效做法，方便重用提示模式。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 155.5
+  },
+  "nIK2UxECBi0": {
+    "videoId": "nIK2UxECBi0",
+    "durationSec": 2400.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "A complete Cursor AI tutorial for building usage habits from scratch.",
+        "zh": "完整 Cursor AI 教學，從頭建立使用習慣。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Cover install, first project, chat, Composer, and review habits.",
+        "zh": "涵蓋安裝、第一個專案、聊天、Composer 與審核習慣。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Practice the same operation in your own codebase while watching.",
+        "zh": "邊看邊在自己程式庫做同樣操作。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Learn when to use autocomplete versus a longer Agent run.",
+        "zh": "學會何時用自動完成、何時開較長 Agent。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Document personal rules as you discover pain points.",
+        "zh": "發現痛點時立刻寫進個人規則。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Finish with a checklist you will reuse tomorrow.",
+        "zh": "留下明天還會再用的檢查清單。"
+      },
+      {
+        "start": 133.5,
+        "end": 155.1,
+        "en": "Revisit weak spots after a few days of practice.",
+        "zh": "練習幾天後再回看弱點。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 155.5
+  },
+  "z4xruISaBfc": {
+    "videoId": "z4xruISaBfc",
+    "durationSec": 900.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Cursor 201 is the official advanced-rhythm demo after the basics.",
+        "zh": "Cursor 201 是官方進階節奏示範。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Turn a fuzzy request into executable tasks before calling the Agent.",
+        "zh": "呼叫 Agent 前先把模糊需求拆成可執行任務。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Add missing context: files, APIs, and constraints.",
+        "zh": "補上缺少的上下文：檔案、API、限制。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Ship in small diffs and verify immediately after each step.",
+        "zh": "用小 diff 交付，每步後立刻驗收。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "This rhythm prevents large unreviewed rewrites.",
+        "zh": "這個節奏可避免無法審核的大重寫。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Practice stating constraints before any code generation.",
+        "zh": "任何產生程式前先練習說清楚限制。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 133.5
+  },
+  "8Yf9IoXkROM": {
+    "videoId": "8Yf9IoXkROM",
+    "durationSec": 780.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "An update on newer Cursor capabilities and what to enable.",
+        "zh": "介紹較新 Cursor 能力，以及該開哪些。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Separate marketing claims from what helps daily repo work.",
+        "zh": "把行銷說法與日常有用的部分分開。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Note limits: security, secrets, and hand-review areas.",
+        "zh": "記下限制：安全性、機密、需人工審的區塊。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Try one new capability this week with a rollback plan.",
+        "zh": "本週只試一項新能力，並準備回滾。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Write down what improved and what added noise.",
+        "zh": "記下什麼變好、什麼只增加雜訊。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 111.5
+  },
+  "eN69OLhOz2Q": {
+    "videoId": "eN69OLhOz2Q",
+    "durationSec": 1200.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Demo of using Cursor for data science workflows.",
+        "zh": "示範用 Cursor 做資料科學工作流。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "See notebook editing, model choices, and debugging help.",
+        "zh": "會看到 Notebook 編輯、模型選擇與除錯協助。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "AI speeds typing and fixes; you still own analysis judgment.",
+        "zh": "AI 加速打字與修錯；分析判斷仍是你的。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Run cells yourself and check plots, shapes, and metrics.",
+        "zh": "自己執行單元格，檢查圖表、形狀與指標。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Keep data paths and secrets out of prompts when possible.",
+        "zh": "盡量不要把資料路徑與機密放進提示詞。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Prefer reproducible notebook steps over one-off answers.",
+        "zh": "寧可要可重現步驟，也不要一次性答案。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 133.5
+  },
+  "nWcEjZYeeVo": {
+    "videoId": "nWcEjZYeeVo",
+    "durationSec": 240.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Four quick productivity tips for Cursor—pick one or two today.",
+        "zh": "四個 Cursor 生產力小技巧——今天先挑一兩個。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Sharper prompts and better file references speed review loops.",
+        "zh": "更銳利的提示與更好的檔案引用，能加快審核循環。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Apply one tip on a real task right after this short ends.",
+        "zh": "短片結束後立刻把一個技巧用在真實任務上。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Write the tip into your rules if it prevents repeat mistakes.",
+        "zh": "若能避免重犯，就把技巧寫進規則。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 89.5
+  },
+  "elEf91zKa5c": {
+    "videoId": "elEf91zKa5c",
+    "durationSec": 900.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "A workflow combining Cursor with Jupyter for AI-assisted analysis.",
+        "zh": "Cursor 搭配 Jupyter 做 AI 輔助資料分析。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Watch how it structures notebooks, fixes errors, and drafts charts.",
+        "zh": "看它如何整理 Notebook、修錯、起草圖表程式。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "You still execute cells and validate results personally.",
+        "zh": "你仍要自己執行單元格並檢查結果。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Prefer reproducible steps over magic one-off answers.",
+        "zh": "寧可要可重現步驟，也不要魔法答案。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Keep analysis notes next to the code the Agent generated.",
+        "zh": "把分析筆記放在 Agent 產生的程式旁邊。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 111.5
+  },
+  "gw8otRr2zpw": {
+    "videoId": "gw8otRr2zpw",
+    "durationSec": 1500.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "A deep guide to Cursor Rules levels: always, auto, agent, manual.",
+        "zh": "深入說明 Rules 層級：always、auto、agent、manual。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Different rule types should fire at different moments.",
+        "zh": "不同規則類型要在對的時機生效。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Put global safety in always; put task hints in narrower scopes.",
+        "zh": "全域安全放 always；任務提示放較窄範圍。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Conflict usually means too many overlapping rules—trim them.",
+        "zh": "衝突通常代表規則重疊太多——要精簡。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Write one hard forbid rule for your riskiest folder.",
+        "zh": "為最高風險資料夾寫一條硬性禁止規則。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Test each rule with a prompt that tries to violate it.",
+        "zh": "用會違反規則的提示測試每一條。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 133.5
+  },
+  "pmS67mn5Y44": {
+    "videoId": "pmS67mn5Y44",
+    "durationSec": 720.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Why Cursor moved some guidance from Rules toward Skills.",
+        "zh": "為何部分指引從 Rules 轉向 Skills。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Rules are constraints; skills describe how to perform a capability.",
+        "zh": "Rules 是限制；Skills 描述如何執行能力。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Keep short hard constraints as rules; move long procedures to skills.",
+        "zh": "短硬限制留規則；長流程改放到 skills。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Audit your project: what stays a rule, what becomes a skill.",
+        "zh": "盤點：哪些留規則、哪些改成技能。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Migrate one long rule essay into a skill this week.",
+        "zh": "本週把一篇長規則改寫成技能。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 111.5
+  },
+  "vjyAba8-QA8": {
+    "videoId": "vjyAba8-QA8",
+    "durationSec": 840.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Four newer rule types and smarter auto-generation of project rules.",
+        "zh": "四種較新規則類型，以及更聰明的規則自動產生。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Let Cursor draft rules, then edit them down to something checkable.",
+        "zh": "讓 Cursor 起草規則，再收斂成可檢查條文。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Good generated rules are short, specific, and testable.",
+        "zh": "好的產生規則要短、具體、可測試。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Delete anything the team cannot enforce consistently.",
+        "zh": "團隊無法一致執行的就刪掉。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Re-generate after major stack changes, then prune again.",
+        "zh": "技術棧大改後重新產生，再精簡一次。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 111.5
+  },
+  "442OlyuqeX4": {
+    "videoId": "442OlyuqeX4",
+    "durationSec": 1100.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Build a simple AI agent workflow in Cursor using rules and templates.",
+        "zh": "用 Rules 與範本在 Cursor 組出簡單 Agent 工作流。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Start with a skeleton: goal, tools, and guardrails.",
+        "zh": "先搭骨架：目標、工具、護欄。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Add capabilities one at a time and test after each addition.",
+        "zh": "一次只加一種能力，加完就測。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Validate with a real small demand from your own work.",
+        "zh": "用自己工作中的真實小需求驗收。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Prefer boring reliability over clever autonomy.",
+        "zh": "寧可可靠無聊，也不要聰明但不穩。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Document the happy path and the stop conditions.",
+        "zh": "寫下成功路徑與停止條件。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 133.5
+  },
+  "7wN24cc4YHQ": {
+    "videoId": "7wN24cc4YHQ",
+    "durationSec": 600.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Why many people delete oversized Cursor rule sets.",
+        "zh": "為什麼很多人刪掉過於龐大的 Rules。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Too many rules conflict and confuse the model.",
+        "zh": "規則太多會互相衝突，也會讓模型混亂。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Keep a minimal set that prevents real damage.",
+        "zh": "只保留能防止真實損害的最小集合。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Replace long essays with a few sharp constraints.",
+        "zh": "把長篇說明換成少數銳利限制。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "After deleting, re-test your most common prompts.",
+        "zh": "刪減後，用最常用提示再測一次。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 111.5
+  },
+  "0JsmvKps9po": {
+    "videoId": "0JsmvKps9po",
+    "durationSec": 900.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Introduction to Cursor Cloud Agents for longer cloud-side tasks.",
+        "zh": "介紹 Cloud Agents：適合較長的雲端任務。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Compare local versus cloud when the job is long or parallelizable.",
+        "zh": "工作很長或可平行時，比較本機與雲端。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Understand permissions, secrets, and what cloud can reach.",
+        "zh": "搞懂權限、機密，以及雲端碰得到什麼。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Try one small cloud task with clear success criteria.",
+        "zh": "用清楚成功條件試一個小雲端任務。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Bring results back and review diffs the same as local work.",
+        "zh": "取回結果後，用與本機相同方式審 diff。"
+      },
+      {
+        "start": 111.5,
+        "end": 133.1,
+        "en": "Only scale up after one successful small cloud run.",
+        "zh": "小任務成功後再放大規模。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 133.5
+  },
+  "-ikaeesLSqc": {
+    "videoId": "-ikaeesLSqc",
+    "durationSec": 480.0,
+    "source": "seed-content",
+    "cues": [
+      {
+        "start": 1.5,
+        "end": 23.1,
+        "en": "Advanced Cursor Rules techniques for agentic coding.",
+        "zh": "進階 Rules 與 Agent 編碼技巧。"
+      },
+      {
+        "start": 23.5,
+        "end": 45.1,
+        "en": "Write rules that protect high-risk zones from casual edits.",
+        "zh": "寫能保護高風險區、避免隨意亂改的規則。"
+      },
+      {
+        "start": 45.5,
+        "end": 67.1,
+        "en": "Encode review expectations so the Agent proposes smaller patches.",
+        "zh": "把審核期望寫進規則，讓它提出較小補丁。"
+      },
+      {
+        "start": 67.5,
+        "end": 89.1,
+        "en": "Add two forbid rules to your real project today.",
+        "zh": "今天就為真實專案補兩條禁止規則。"
+      },
+      {
+        "start": 89.5,
+        "end": 111.1,
+        "en": "Re-check those rules after your next Agent session.",
+        "zh": "下次 Agent 工作後再檢查這些規則是否生效。"
+      }
+    ],
+    "timing": "dense-22s",
+    "narrationSpanSec": 111.5
+  }
+}
