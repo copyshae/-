@@ -212,8 +212,8 @@
 
     <aside class="rules">
       <h2>怎麼用</h2>
-      <p>按<strong>＋ 新增基金</strong>加入一檔；每張卡片可<strong>填寫／編輯</strong>或<strong>刪除</strong>。清單依<strong>投資分數</strong>由高到低（#1 最值得優先考慮）。</p>
-      <p style="margin-top:0.35rem"><span class="buy-t">買進</span>：位階後 20%、負乖離大、利差收斂、金價突破。　<span class="sell-t">減碼</span>：正乖離過高、本金配息攀升、HY 利差過緊（會排到後面）。</p>
+      <p>按<strong>＋ 新增</strong>可增刪。清單依<strong>投資分數</strong>排序。<strong>0052／00747</strong>用 ETF 邏輯（折溢價／指數）；其餘基金仍用本金配息／利差。</p>
+      <p style="margin-top:0.35rem"><span class="buy-t">買進</span>：位階後 20%、負乖離大（ETF 另看折價）。　<span class="sell-t">減碼</span>：正乖離過高（基金另看本金配息／利差；ETF 另看溢價過高）。</p>
     </aside>
 
     <div class="url-box">
@@ -230,11 +230,17 @@
         <label class="field"><span>A 基金代碼</span><input id="f_bankCode" placeholder="例：B09463" /></label>
         <label class="field"><span>C 計價幣別</span><input id="f_currency" placeholder="TWD / USD / EUR / AUD" /></label>
       </div>
-      <label class="field"><span>B 基金名稱</span><input id="f_name" placeholder="必填" /></label>
+      <label class="field"><span>B 基金／ETF 名稱</span><input id="f_name" placeholder="必填" /></label>
       <div class="grid2">
+        <label class="field"><span>分析模式</span>
+          <select id="f_instrumentType">
+            <option value="fund">基金（本金配息／利差）</option>
+            <option value="etf">ETF（折溢價／指數位階）</option>
+          </select>
+        </label>
         <label class="field"><span>D 資產類別</span><select id="f_assetClass"></select></label>
-        <label class="field"><span>配息政策</span><input id="f_divPolicy" placeholder="月配／穩定配息／累積" /></label>
       </div>
+      <label class="field"><span>配息／收益政策</span><input id="f_divPolicy" placeholder="月配／穩定配息／ETF收益分配" /></label>
       <div class="grid2">
         <label class="field"><span>ISIN（網路搜尋用）</span><input id="f_isin" placeholder="選填" /></label>
         <label class="field"><span>淨值日期</span><input id="f_navDate" placeholder="YYYY-MM-DD" /></label>
@@ -242,20 +248,28 @@
 
       <p class="sec-label">價格與位階（E–I）</p>
       <div class="grid3">
-        <label class="field"><span>E 最新淨值</span><input id="f_nav" type="number" step="any" /></label>
+        <label class="field"><span id="labelNav">E 最新淨值</span><input id="f_nav" type="number" step="any" /></label>
         <label class="field"><span>F 52週高</span><input id="f_high52" type="number" step="any" /></label>
         <label class="field"><span>G 52週低</span><input id="f_low52" type="number" step="any" /></label>
       </div>
       <label class="field"><span>年線 250MA（算 I 偏離度）</span><input id="f_ma250" type="number" step="any" /></label>
 
-      <p class="sec-label">配息監控（J–M）</p>
+      <div id="etfOnlyFields" style="display:none">
+        <p class="sec-label">ETF 專用（僅 0052／00747 等 ETF 模式）</p>
+        <p style="font-size:0.8rem;color:var(--muted);margin:0.35rem 0">不使用「配息來自本金」。改看折溢價、追蹤指數位階與一年報酬。</p>
+        <label class="field"><span>折溢價 %(市價相對淨值；折價填負)</span><input id="f_premiumPct" type="number" step="any" placeholder="例：-0.8 或 1.2" /></label>
+      </div>
+
+      <div id="fundOnlyFields">
+      <p class="sec-label">配息監控（J–M｜基金照舊）</p>
       <div class="grid2">
         <label class="field"><span>J 每單位配息</span><input id="f_divPerUnit" type="number" step="any" /></label>
         <label class="field"><span>K 年化配息率(%)</span><input id="f_yieldAnn" type="number" step="any" /></label>
         <label class="field"><span>L 配息來自本金(%)</span><input id="f_principalPct" type="number" step="any" /></label>
         <label class="field"><span>上次本金比(%)</span><input id="f_prevPrincipalPct" type="number" step="any" /></label>
       </div>
-      <label class="field"><span>M 近一年含息總報酬(%)</span><input id="f_totalReturn1y" type="number" step="any" /></label>
+      </div>
+      <label class="field"><span>近一年報酬／含息總報酬(%)</span><input id="f_totalReturn1y" type="number" step="any" /></label>
 
       <p class="sec-label">總經先導（N–P）</p>
       <label class="field"><span>指標類型</span><select id="f_macroKind"></select></label>
@@ -314,6 +328,6 @@
       · <a href="../">回習作工具首頁</a>
     </footer>
   </div>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

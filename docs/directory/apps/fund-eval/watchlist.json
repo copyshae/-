@@ -8,7 +8,8 @@
     "divPolicy": "總報酬穩定配息",
     "macroKind": "gold",
     "macroName": "現貨金價 XAUUSD",
-    "searchHints": "ISIN、最新淨值、52週高低、250日均線、配息組成（本金比）、一年含息報酬、金價關鍵阻力"
+    "searchHints": "ISIN、最新淨值、52週高低、250日均線、配息組成（本金比）、一年含息報酬、金價關鍵阻力",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B09086",
@@ -19,7 +20,8 @@
     "divPolicy": "累積／成長級別（確認）",
     "macroKind": "gold",
     "macroName": "現貨金價 XAUUSD",
-    "searchHints": "ISIN、歐元計價淨值、52週位階、年線乖離、與美元級別折溢價／匯率影響"
+    "searchHints": "ISIN、歐元計價淨值、52週位階、年線乖離、與美元級別折溢價／匯率影響",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B09460",
@@ -30,7 +32,8 @@
     "divPolicy": "總報酬穩定配息",
     "macroKind": "equity_idx",
     "macroName": "Nasdaq-100 / MSCI World IT",
-    "searchHints": "ISIN、淨值與52週、250MA、配息本金比、科技指數位階與本益比"
+    "searchHints": "ISIN、淨值與52週、250MA、配息本金比、科技指數位階與本益比",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B38075",
@@ -41,7 +44,8 @@
     "divPolicy": "累積（確認）",
     "macroKind": "equity_idx",
     "macroName": "機器人／自動化主題指數",
-    "searchHints": "ISIN、淨值歷史、52週位階、年線、主題評價（PE／成長）"
+    "searchHints": "ISIN、淨值歷史、52週位階、年線、主題評價（PE／成長）",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B15343",
@@ -52,7 +56,8 @@
     "divPolicy": "累積 acc／美元避險 H1",
     "macroKind": "equity_idx",
     "macroName": "MSCI World / 氣候主題指數",
-    "searchHints": "ISIN、避險級別淨值、52週、年線、避險成本影響"
+    "searchHints": "ISIN、避險級別淨值、52週、年線、避險成本影響",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B03629",
@@ -63,7 +68,8 @@
     "divPolicy": "AD 月配",
     "macroKind": "ig_spread",
     "macroName": "全球股債風險偏好／IG 利差",
-    "searchHints": "ISIN、月配金額、本金配息比、一年含息報酬、股債配置比重"
+    "searchHints": "ISIN、月配金額、本金配息比、一年含息報酬、股債配置比重",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B09325",
@@ -74,7 +80,8 @@
     "divPolicy": "A6 穩定配息",
     "macroKind": "equity_idx",
     "macroName": "MSCI World High Dividend",
-    "searchHints": "ISIN、穩定配息本金比、淨值位階、全球高股息指數"
+    "searchHints": "ISIN、穩定配息本金比、淨值位階、全球高股息指數",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B20073",
@@ -85,7 +92,8 @@
     "divPolicy": "AM 穩定月收",
     "macroKind": "hy_spread",
     "macroName": "美高收利差＋可轉債／股票波動",
-    "searchHints": "ISIN、月配、本金比趨勢、HY OAS、基金可轉債比重"
+    "searchHints": "ISIN、月配、本金比趨勢、HY OAS、基金可轉債比重",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-A03088",
@@ -96,7 +104,8 @@
     "divPolicy": "台幣配息",
     "macroKind": "equity_idx",
     "macroName": "全球基礎建設／公用事業指數",
-    "searchHints": "ISIN、台幣淨值、配息本金比、利率敏感度、一年含息報酬"
+    "searchHints": "ISIN、台幣淨值、配息本金比、利率敏感度、一年含息報酬",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B33197",
@@ -107,7 +116,8 @@
     "divPolicy": "X 股對沖澳幣月配",
     "macroKind": "hy_spread",
     "macroName": "邊境／EM 主權利差",
-    "searchHints": "ISIN、澳幣避險淨值、月配本金比、EMBI／邊境債利差、避險成本"
+    "searchHints": "ISIN、澳幣避險淨值、月配本金比、EMBI／邊境債利差、避險成本",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B20186",
@@ -118,7 +128,8 @@
     "divPolicy": "AMg7 月收總收益",
     "macroKind": "hy_spread",
     "macroName": "美高收利差＋權益波動",
-    "searchHints": "ISIN、總收益配息組成、本金比、一年含息、HY OAS"
+    "searchHints": "ISIN、總收益配息組成、本金比、一年含息、HY OAS",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-A35062",
@@ -129,7 +140,8 @@
     "divPolicy": "AD 月配台幣",
     "macroKind": "hy_spread",
     "macroName": "EM HY／CEMBI 利差",
-    "searchHints": "ISIN、台幣淨值、月配本金比、EM 非投等利差收斂／壓縮"
+    "searchHints": "ISIN、台幣淨值、月配本金比、EM 非投等利差收斂／壓縮",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B03563",
@@ -140,7 +152,8 @@
     "divPolicy": "AA 穩定月配",
     "macroKind": "ig_spread",
     "macroName": "MBS／房貸信用利差＋美債殖利率",
-    "searchHints": "ISIN、月配本金比、MBS 利差、存續期間、一年含息"
+    "searchHints": "ISIN、月配本金比、MBS 利差、存續期間、一年含息",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-A27035",
@@ -151,7 +164,8 @@
     "divPolicy": "C 台幣（確認配息或累積）",
     "macroKind": "hy_spread",
     "macroName": "EM HY 利差",
-    "searchHints": "ISIN、淨值、配息政策確認、本金比、EM 利差"
+    "searchHints": "ISIN、淨值、配息政策確認、本金比、EM 利差",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B23599",
@@ -162,7 +176,8 @@
     "divPolicy": "A 月配固定",
     "macroKind": "hy_spread",
     "macroName": "Bloomberg HY OAS / ICE BofA HY",
-    "searchHints": "ISIN、固定月配本金侵蝕、利差位階、一年含息 vs 配息率落差"
+    "searchHints": "ISIN、固定月配本金侵蝕、利差位階、一年含息 vs 配息率落差",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B33145",
@@ -173,7 +188,8 @@
     "divPolicy": "X 股對沖澳幣月配",
     "macroKind": "hy_spread",
     "macroName": "EMBI／EM 主權利差",
-    "searchHints": "ISIN、澳幣避險淨值、月配本金比、EM 利差、美元指數"
+    "searchHints": "ISIN、澳幣避險淨值、月配本金比、EM 利差、美元指數",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-A15015",
@@ -184,7 +200,8 @@
     "divPolicy": "B 月配台幣",
     "macroKind": "hy_spread",
     "macroName": "全球 HY OAS",
-    "searchHints": "ISIN、台幣淨值、月配本金比、HY 利差收斂／過度壓縮"
+    "searchHints": "ISIN、台幣淨值、月配本金比、HY 利差收斂／過度壓縮",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B33173",
@@ -195,7 +212,8 @@
     "divPolicy": "X 股對沖美元月配",
     "macroKind": "hy_spread",
     "macroName": "Bloomberg Global HY OAS",
-    "searchHints": "ISIN、美元對沖淨值、月配本金比、全球 HY 利差"
+    "searchHints": "ISIN、美元對沖淨值、月配本金比、全球 HY 利差",
+    "instrumentType": "fund"
   },
   {
     "id": "wl-B33060",
@@ -206,6 +224,31 @@
     "divPolicy": "X 股對沖歐元月配",
     "macroKind": "hy_spread",
     "macroName": "歐洲／全球 HY 利差",
-    "searchHints": "ISIN、歐元對沖淨值、月配本金比、歐元區 HY 利差、避險成本"
+    "searchHints": "ISIN、歐元對沖淨值、月配本金比、歐元區 HY 利差、避險成本",
+    "instrumentType": "fund"
+  },
+  {
+    "id": "wl-0052",
+    "bankCode": "0052",
+    "name": "富邦科技（台股ETF｜臺灣資訊科技指數）",
+    "currency": "TWD",
+    "assetClass": "台股ETF",
+    "instrumentType": "etf",
+    "divPolicy": "ETF 收益分配（非境外基金穩定配息）",
+    "macroKind": "equity_idx",
+    "macroName": "臺灣資訊科技指數／台股電子",
+    "searchHints": "市價、淨值、折溢價%、52週高低、250日均線、追蹤誤差、成交量、殖利率；對照台積電／電子指數位階"
+  },
+  {
+    "id": "wl-00747",
+    "bankCode": "00747",
+    "name": "00747（你指定之美股相關ETF｜請核對代號；若為00747B則是FH中國政策債）",
+    "currency": "TWD",
+    "assetClass": "海外股票ETF",
+    "instrumentType": "etf",
+    "divPolicy": "ETF 收益分配（請確認）",
+    "macroKind": "equity_idx",
+    "macroName": "Nasdaq-100／S&P 500（美股）",
+    "searchHints": "請先確認證交所代號與追蹤指數；市價、淨值、折溢價、52週位階、250MA、成交量、追蹤誤差"
   }
 ]
