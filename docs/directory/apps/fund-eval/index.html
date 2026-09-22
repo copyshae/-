@@ -281,7 +281,7 @@
     </div>
 
     <div id="settingsPanel" class="panel">
-      <h2>訊號門檻</h2>
+      <h2>門檻與郵件通知</h2>
       <div class="grid2">
         <label class="field"><span>買：52週位階 ≤ (%)</span><input id="s_buyHMax" type="number" step="any" /></label>
         <label class="field"><span>買：年線乖離 ≤ (%)</span><input id="s_buyMaDevMax" type="number" step="any" /></label>
@@ -290,10 +290,20 @@
         <label class="field"><span>HY 利差偏寬 (bp)</span><input id="s_hySpreadWide" type="number" step="any" /></label>
         <label class="field"><span>HY 利差過緊 (bp)</span><input id="s_hySpreadTight" type="number" step="any" /></label>
       </div>
+      <p class="sec-label">買點／賣點郵件</p>
+      <label class="check"><input type="checkbox" id="s_alertEnabled" checked /> 出現加碼（買點）或減碼警戒（賣點）時寄信</label>
+      <label class="field"><span>收件信箱</span><input id="s_alertEmail" type="email" value="shaejanben@gmail.com" /></label>
+      <label class="field"><span>同一檔同一狀態冷卻（小時）</span><input id="s_alertCooldownHours" type="number" step="any" value="12" /></label>
+      <p style="font-size:0.8rem;color:var(--muted);margin-top:0.45rem">
+        預設寄到 <strong>shaejanben@gmail.com</strong>。第一次寄信請到信箱點 FormSubmit 確認連結；之後會自動寄。需在 App 開啟時才會檢查（儲存資料或重新整理後）。
+      </p>
       <div class="row">
-        <button type="button" class="primary" id="btnSettingsSave">套用門檻</button>
+        <button type="button" class="primary" id="btnSettingsSave">套用設定</button>
+        <button type="button" class="ghost" id="btnTestAlert">測試寄信／立即檢查</button>
+        <button type="button" class="ghost" id="btnEnableNotify">開啟系統通知</button>
         <button type="button" class="ghost" id="btnSettingsCancel">關閉</button>
       </div>
+      <p id="alertStatus" style="font-size:0.82rem;color:var(--accent);margin-top:0.5rem;font-weight:700;"></p>
     </div>
 
     <div id="list"></div>
@@ -304,6 +314,6 @@
       · <a href="../">回習作工具首頁</a>
     </footer>
   </div>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

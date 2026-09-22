@@ -6,6 +6,7 @@
 
   var STORAGE_KEY = "fund-eval-v2";
   var SETTINGS_KEY = "fund-eval-settings-v1";
+  var ALERT_LOG_KEY = "fund-eval-alert-log-v1";
 
   var DEFAULT_SETTINGS = {
     buyHMax: 20,
@@ -14,7 +15,10 @@
     sellPrincipalMin: 40,
     sellPrincipalRise: 5,
     hySpreadWide: 550,
-    hySpreadTight: 300
+    hySpreadTight: 300,
+    alertEnabled: true,
+    alertEmail: "shaejanben@gmail.com",
+    alertCooldownHours: 12
   };
 
   var ASSET_OPTIONS = ["高收益債","投資級債","新興債","股票型","平衡型","黃金／貴金屬","REITs","貨幣市場","其他"];
@@ -362,7 +366,180 @@
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
-  function refresh() { renderSummary(); renderList(); }
+  function refresh() {
+    renderSummary();
+    renderList();
+    scheduleSignalAlerts();
+  }
+
+  var alertTimer = null;
+  function scheduleSignalAlerts() {
+    if (alertTimer) clearTimeout(alertTimer);
+    alertTimer = setTimeout(function () {
+      checkAndNotifySignals(false);
+    }, 600);
+  }
+
+  function loadAlertLog() {
+    try {
+      var raw = localStorage.getItem(ALERT_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveAlertLog(log) {
+    localStorage.setItem(ALERT_LOG_KEY, JSON.stringify(log));
+  }
+
+  function buildAlertMessage(fund, ev) {
+    var kind = ev.status === "加碼" ? "買點（加碼）" : "賣點／減碼警戒";
+    var lines = [
+      "【基金評估台】" + kind,
+      "",
+      "代碼：" + (fund.bankCode || "—"),
+      "名稱：" + (fund.name || "—"),
+      "幣別／類別：" + (fund.currency || "") + " / " + (fund.assetClass || ""),
+      "評估狀態：" + ev.status,
+      "投資分數：" + (ev.score != null ? ev.score : "—"),
+      "52週位階：" + fmt1(ev.H) + "%",
+      "年線偏離：" + fmt1(ev.I) + "%",
+      "本金配息：" + fmt1(num(fund.principalPct)) + "%",
+      "淨值：" + fmt2(num(fund.nav)),
+      ""
+    ];
+    if (ev.buyReasons.length) {
+      lines.push("買訊：");
+      ev.buyReasons.forEach(function (r) { lines.push("- " + r); });
+    }
+    if (ev.sellReasons.length) {
+      lines.push("賣訊：");
+      ev.sellReasons.forEach(function (r) { lines.push("- " + r); });
+    }
+    lines.push("");
+    lines.push("時間：" + new Date().toLocaleString("zh-TW", { hour12: false }));
+    lines.push("開啟：https://copyshae.github.io/-/fund-eval/");
+    return lines.join("\n");
+  }
+
+  function sendEmailAlert(subject, message, email) {
+    var to = (email || "").trim() || DEFAULT_SETTINGS.alertEmail;
+    // FormSubmit：瀏覽器直接寄出；首次使用該信箱需點確認信
+    return fetch("https://formsubmit.co/ajax/" + encodeURIComponent(to), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        _subject: subject,
+        _template: "box",
+        _captcha: "false",
+        name: "基金評估台",
+        email: to,
+        message: message
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json().catch(function () { return { ok: true }; });
+    });
+  }
+
+  function maybeBrowserNotify(title, body) {
+    try {
+      if (!("Notification" in window)) return;
+      if (Notification.permission === "granted") {
+        new Notification(title, { body: body, icon: "./icon-192.png" });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(function (p) {
+          if (p === "granted") new Notification(title, { body: body, icon: "./icon-192.png" });
+        });
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * 掃清單：出現買點（加碼）或賣點（減碼警戒）就寄信
+   * @param {boolean} force 測試／手動：忽略冷卻並可寄摘要
+   */
+  function checkAndNotifySignals(force) {
+    var s = state.settings;
+    if (!s.alertEnabled && !force) return Promise.resolve({ sent: 0, skipped: 0 });
+
+    var email = (s.alertEmail || DEFAULT_SETTINGS.alertEmail).trim();
+    var cooldownMs = (num(s.alertCooldownHours) != null ? num(s.alertCooldownHours) : 12) * 3600 * 1000;
+    var log = loadAlertLog();
+    var now = Date.now();
+    var jobs = [];
+    var sent = 0;
+    var skipped = 0;
+
+    state.funds.forEach(function (f) {
+      var ev = evaluate(f, s);
+      if (ev.status !== "加碼" && ev.status !== "減碼警戒") return;
+
+      var key = f.id || f.bankCode;
+      var prev = log[key];
+      if (!force && prev && prev.status === ev.status && now - (prev.at || 0) < cooldownMs) {
+        skipped++;
+        return;
+      }
+
+      var kind = ev.status === "加碼" ? "買點" : "賣點";
+      var subject = "【基金評估台】" + kind + "｜" + (f.bankCode || "") + " " + (f.name || "");
+      var message = buildAlertMessage(f, ev);
+      jobs.push(
+        sendEmailAlert(subject, message, email)
+          .then(function () {
+            sent++;
+            log[key] = { status: ev.status, at: now, score: ev.score };
+            maybeBrowserNotify(subject, (f.name || "") + "｜分數 " + (ev.score != null ? ev.score : "—"));
+          })
+          .catch(function (err) {
+            console.warn("寄信失敗", f.bankCode, err);
+            // 失敗時改開 mailto 備援（使用者可手動傳送）
+            if (force) {
+              var mailto =
+                "mailto:" +
+                encodeURIComponent(email) +
+                "?subject=" +
+                encodeURIComponent(subject) +
+                "&body=" +
+                encodeURIComponent(message);
+              window.open(mailto, "_blank");
+            }
+          })
+      );
+    });
+
+    if (!jobs.length && force) {
+      // 手動測試：目前無買賣點也寄一封狀態摘要
+      var summaryLines = ["【基金評估台】訊號檢查（目前無新的買／賣點）", "", "全部：" + state.funds.length + " 檔"];
+      state.funds.slice(0, 8).forEach(function (f) {
+        var ev = evaluate(f, s);
+        summaryLines.push((f.bankCode || "") + "｜" + ev.status + "｜分數 " + (ev.score != null ? ev.score : "—"));
+      });
+      summaryLines.push("", "時間：" + new Date().toLocaleString("zh-TW", { hour12: false }));
+      jobs.push(
+        sendEmailAlert("【基金評估台】測試寄信／無新訊號", summaryLines.join("\n"), email)
+          .then(function () { sent++; })
+          .catch(function () {
+            window.open(
+              "mailto:" + encodeURIComponent(email) +
+              "?subject=" + encodeURIComponent("【基金評估台】測試寄信") +
+              "&body=" + encodeURIComponent(summaryLines.join("\n")),
+              "_blank"
+            );
+          })
+      );
+    }
+
+    return Promise.all(jobs).then(function () {
+      saveAlertLog(log);
+      return { sent: sent, skipped: skipped };
+    });
+  }
 
   function openForm(fund) {
     state.editingId = fund ? fund.id : null;
@@ -514,6 +691,12 @@
     $("s_sellPrincipalMin").value = s.sellPrincipalMin;
     $("s_hySpreadTight").value = s.hySpreadTight;
     $("s_hySpreadWide").value = s.hySpreadWide;
+    if ($("s_alertEnabled")) $("s_alertEnabled").checked = s.alertEnabled !== false;
+    if ($("s_alertEmail")) $("s_alertEmail").value = s.alertEmail || DEFAULT_SETTINGS.alertEmail;
+    if ($("s_alertCooldownHours")) {
+      $("s_alertCooldownHours").value =
+        s.alertCooldownHours != null ? s.alertCooldownHours : DEFAULT_SETTINGS.alertCooldownHours;
+    }
   }
   function saveSettingsForm() {
     state.settings = {
@@ -523,12 +706,20 @@
       sellPrincipalMin: num($("s_sellPrincipalMin").value) != null ? num($("s_sellPrincipalMin").value) : DEFAULT_SETTINGS.sellPrincipalMin,
       sellPrincipalRise: DEFAULT_SETTINGS.sellPrincipalRise,
       hySpreadWide: num($("s_hySpreadWide").value) != null ? num($("s_hySpreadWide").value) : DEFAULT_SETTINGS.hySpreadWide,
-      hySpreadTight: num($("s_hySpreadTight").value) != null ? num($("s_hySpreadTight").value) : DEFAULT_SETTINGS.hySpreadTight
+      hySpreadTight: num($("s_hySpreadTight").value) != null ? num($("s_hySpreadTight").value) : DEFAULT_SETTINGS.hySpreadTight,
+      alertEnabled: $("s_alertEnabled") ? $("s_alertEnabled").checked : true,
+      alertEmail: $("s_alertEmail")
+        ? ($("s_alertEmail").value.trim() || DEFAULT_SETTINGS.alertEmail)
+        : DEFAULT_SETTINGS.alertEmail,
+      alertCooldownHours:
+        num($("s_alertCooldownHours") && $("s_alertCooldownHours").value) != null
+          ? num($("s_alertCooldownHours").value)
+          : DEFAULT_SETTINGS.alertCooldownHours
     };
     saveSettings(state.settings);
     $("settingsPanel").classList.remove("on");
     refresh();
-    alert("門檻已更新。");
+    alert("設定已更新（含郵件通知）。");
   }
 
   function doSyncWatchlist() {
@@ -576,6 +767,27 @@
     on("btnSettingsSave", "click", saveSettingsForm);
     on("btnSyncWatch", "click", doSyncWatchlist);
     on("btnResetWatch", "click", resetToWatchlist);
+    on("btnTestAlert", "click", function () {
+      var statusEl = $("alertStatus");
+      if (statusEl) statusEl.textContent = "寄送中…";
+      checkAndNotifySignals(true).then(function (r) {
+        if (statusEl) {
+          statusEl.textContent =
+            "已處理：寄出 " + r.sent + " 封（冷卻略過 " + r.skipped + "）。請查收 " +
+            (state.settings.alertEmail || DEFAULT_SETTINGS.alertEmail) +
+            "；若是第一次，請先點 FormSubmit 確認信。";
+        }
+      });
+    });
+    on("btnEnableNotify", "click", function () {
+      if (!("Notification" in window)) {
+        alert("此瀏覽器不支援系統通知");
+        return;
+      }
+      Notification.requestPermission().then(function (p) {
+        alert(p === "granted" ? "已開啟系統通知（買／賣點會同時跳出）" : "未授權系統通知，仍會嘗試寄信");
+      });
+    });
     ["f_nav","f_high52","f_low52","f_ma250","f_principalPct","f_prevPrincipalPct","f_macroKind","f_macroValue","f_macroNote","f_goldBreak","f_divPolicy","f_yieldAnn","f_totalReturn1y"].forEach(function (id) {
       var el = $(id); if (!el) return;
       el.addEventListener("input", updateLivePreview);
