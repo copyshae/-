@@ -124,7 +124,19 @@
     .reasons.buy { color: var(--buy); } .reasons.sell { color: var(--sell); }
     .muted-line { margin-top: 0.45rem; font-size: 0.82rem; color: var(--muted); }
     .fc-actions { margin-top: 0.65rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
-    .fbtn.danger { color: var(--sell); border-color: rgba(180,35,24,0.35); background: #fff; }
+    .fbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .gemini-bar {
+      margin-top: 0.75rem; padding: 0.75rem 0.85rem;
+      background: rgba(255,255,255,0.75); border: 1px solid var(--line);
+      animation: rise 0.7s ease-out 0.08s both;
+    }
+    .gemini-bar label { font-size: 0.78rem; font-weight: 700; color: var(--muted); display: block; }
+    .gemini-bar input {
+      width: 100%; margin-top: 0.25rem; font: inherit; padding: 0.5rem 0.55rem;
+      border: 1px solid var(--line); background: #fff;
+    }
+    .gemini-bar .row { margin-top: 0.45rem; }
+    #researchStatus { margin-top: 0.4rem; font-size: 0.82rem; color: var(--accent); font-weight: 700; min-height: 1.2em; }
 
     .panel {
       display: none; margin-top: 1rem; padding: 1rem 0.9rem;
@@ -194,12 +206,26 @@
       <div class="cell"><div class="n n-all" id="sumTotal">0</div><div class="l">全部</div></div>
     </section>
 
+    <div class="gemini-bar">
+      <label for="geminiKey">Gemini 金鑰（自動搜尋網路並整理欄位；存在本機）</label>
+      <input type="password" id="geminiKey" autocomplete="off" placeholder="貼上 Google AI Studio 金鑰" />
+      <div class="row">
+        <button type="button" class="primary" id="btnResearchNeed">自動搜尋：待補資料</button>
+        <button type="button" class="ghost" id="btnResearchAll">自動搜尋：全部</button>
+        <button type="button" class="ghost" id="btnSaveKey">記住金鑰</button>
+      </div>
+      <p id="researchStatus"></p>
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:0.35rem">
+        會用 AI 上網查淨值／52週／配息或 ETF 折溢價，整理成參考數字。請人工核對後再進出場。0052／00747 走 ETF 欄位，其餘基金照舊。
+      </p>
+    </div>
+
     <div class="toolbar">
       <button type="button" class="primary" id="btnAdd">＋ 新增基金</button>
       <button type="button" class="ghost" id="btnSyncWatch">補齊追蹤名單</button>
       <button type="button" class="ghost" id="btnExport">匯出 CSV</button>
       <button type="button" class="ghost" id="btnSettings">門檻設定</button>
-      <button type="button" class="ghost danger-outline" id="btnResetWatch">重置為 19 檔</button>
+      <button type="button" class="ghost danger-outline" id="btnResetWatch">重置名單</button>
     </div>
 
     <div class="filters" role="tablist" aria-label="篩選">
@@ -328,6 +354,6 @@
       · <a href="../">回習作工具首頁</a>
     </footer>
   </div>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
