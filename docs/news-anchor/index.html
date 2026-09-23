@@ -1586,17 +1586,84 @@
       return res.json();
     }
 
-    async function fetchLiveRss(opts) {
-      opts = opts || {};
-      var rssUrl = opts.keyword
-        ? buildSearchRssUrl(opts.keyword)
-        : buildCategoryRssUrl(opts.category || "headlines");
+    async function fetchViaRss2Json(rssUrl) {
       var apiUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl);
       var res = await fetch(apiUrl);
-      if (!res.ok) throw new Error("即時抓取失敗（" + res.status + "）");
+      var data = null;
+      try { data = await res.json(); } catch (e) { data = null; }
+      if (!res.ok) {
+        var msg = (data && data.message) ? data.message : ("HTTP " + res.status);
+        throw new Error("rss2json：" + msg);
+      }
+      if (!data || data.status !== "ok") {
+        throw new Error((data && data.message) || "rss2json 無法轉換此 RSS");
+      }
+      var items = normalizeItems(data.items || []);
+      if (!items.length) throw new Error("rss2json 回傳空資料");
+      return items;
+    }
+
+    async function fetchViaAllOrigins(rssUrl) {
+      var apiUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(rssUrl);
+      var res = await fetch(apiUrl);
+      if (!res.ok) throw new Error("備援通道失敗（" + res.status + "）");
       var data = await res.json();
-      if (data.status !== "ok") throw new Error(data.message || "rss2json 錯誤");
-      return normalizeItems(data.items || []);
+      var xml = data && data.contents;
+      if (!xml || !String(xml).trim()) throw new Error("備援通道沒有內容");
+      // allorigins 偶發把內容包成 data URI
+      if (/^data:.*?,/.test(xml)) {
+        xml = decodeURIComponent(String(xml).replace(/^data:.*?,/, ""));
+      }
+      var items = parseRssXml(xml);
+      if (!items.length) throw new Error("備援解析後沒有新聞");
+      return items;
+    }
+
+    async function fetchViaIsomorphicGitCors(rssUrl) {
+      var apiUrl = "https://cors.isomorphic-git.org/" + rssUrl;
+      var res = await fetch(apiUrl);
+      if (!res.ok) throw new Error("CORS 備援失敗（" + res.status + "）");
+      var xml = await res.text();
+      var items = parseRssXml(xml);
+      if (!items.length) throw new Error("CORS 備援沒有新聞");
+      return items;
+    }
+
+    async function fetchLiveRss(opts) {
+      opts = opts || {};
+      var cat = opts.category || "headlines";
+      var rssUrl = opts.keyword
+        ? buildSearchRssUrl(opts.keyword)
+        : buildCategoryRssUrl(cat);
+
+      var errors = [];
+      var pipelines = [];
+
+      // 頭條：rss2json 常回 422（無法轉換 Google 主 RSS），優先走 XML 備援
+      if (!opts.keyword && cat === "headlines") {
+        pipelines.push(
+          { name: "allorigins", run: function () { return fetchViaAllOrigins(rssUrl); } },
+          { name: "rss2json", run: function () { return fetchViaRss2Json(rssUrl); } },
+          { name: "allorigins-nation", run: function () { return fetchViaAllOrigins(buildCategoryRssUrl("nation")); } },
+          { name: "rss2json-nation", run: function () { return fetchViaRss2Json(buildCategoryRssUrl("nation")); } }
+        );
+      } else {
+        pipelines.push(
+          { name: "rss2json", run: function () { return fetchViaRss2Json(rssUrl); } },
+          { name: "allorigins", run: function () { return fetchViaAllOrigins(rssUrl); } }
+        );
+      }
+
+      for (var i = 0; i < pipelines.length; i++) {
+        try {
+          var items = await pipelines[i].run();
+          if (items && items.length) return items;
+          errors.push(pipelines[i].name + "：空資料");
+        } catch (e) {
+          errors.push(pipelines[i].name + "：" + ((e && e.message) || e));
+        }
+      }
+      throw new Error("即時抓取失敗（" + errors.slice(0, 2).join("；") + "）");
     }
 
     function showFetchError(e) {
