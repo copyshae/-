@@ -640,10 +640,10 @@
         }
         var model = models[idx++];
         var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-          encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+          encodeURIComponent(model) + ":generateContent";
         return fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({
             contents: [{ role: "user", parts: parts }],
             generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }

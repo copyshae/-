@@ -25,9 +25,9 @@ Write-Host "Saved $dest"
 $settingsPath = Join-Path $work "settings.json"
 if (Test-Path -LiteralPath $settingsPath) {
   $raw = [System.IO.File]::ReadAllText($settingsPath)
-  $raw2 = $raw.Replace("gemini-2.0-flash", "gemini-2.5-flash").Replace("gemini-1.5-flash", "gemini-2.5-flash")
+  $raw2 = $raw.Replace("gemini-2.0-flash", "gemini-3.6-flash").Replace("gemini-2.5-flash", "gemini-3.6-flash").Replace("gemini-1.5-flash", "gemini-3.6-flash")
   [System.IO.File]::WriteAllText($settingsPath, $raw2, $utf8Bom)
-  Write-Host "Updated settings.json model to gemini-2.5-flash"
+  Write-Host "Updated settings.json model to gemini-3.6-flash"
 }
 
 $vbs = @"
