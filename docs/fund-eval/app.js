@@ -797,7 +797,7 @@
 
   // —— 自動搜尋網路並整理參考資訊（Gemini + Google 搜尋）——
   var KEY_GEMINI = "fund-eval-gemini-key";
-  var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  var GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
   var researchBusy = false;
 
   function getGeminiKey() {
@@ -1100,6 +1100,8 @@
         var msg = String((err && err.message) || err || "失敗");
         if (/API key|invalid|PERMISSION|401|403/i.test(msg)) {
           msg = "Gemini 金鑰無效，請到 AI Studio 重建後貼上";
+        } else if (/no longer available|update your code|gemini-2\.5/i.test(msg)) {
+          msg = "模型已更新，請強制重新整理此頁（清快取）後再試自動搜尋";
         } else if (/high demand|429|Resource exhausted|overloaded/i.test(msg)) {
           msg = "Gemini 忙線，請等 1～2 分鐘再試";
         } else if (/Failed to fetch|NetworkError/i.test(msg)) {
