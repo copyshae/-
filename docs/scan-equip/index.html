@@ -554,7 +554,7 @@
         <p class="tips" style="margin-bottom:0.5rem">有金鑰可嘗試辨識手寫；<strong>無金鑰或辨識失敗時請改手動輸入</strong>（手動貼文字／手動新增請領）。</p>
         <div class="row">
           <label for="geminiKey">Gemini 金鑰</label>
-          <input id="geminiKey" type="password" autocomplete="off" placeholder="選填" />
+          <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（AQ. 或 AIza）（選填）" />
         </div>
         <div class="btn-row">
           <button class="btn secondary" type="button" id="btnSaveGemini">儲存金鑰</button>
@@ -725,7 +725,7 @@
   }
 
   var GEMINI_KEY_STORAGE = "scan-equip-gemini-key";
-  var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  var GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
   var INBOX_DB = "scan-equip-inbox";
   var INBOX_STORE = "photos";
 
@@ -3343,11 +3343,11 @@
     for (var i = 0; i < GEMINI_MODELS.length; i++) {
       var model = GEMINI_MODELS[i];
       var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-        encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
+        encodeURIComponent(model) + ":generateContent";
       try {
         var res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-goog-api-key": (typeof apiKey !== "undefined" ? apiKey : (typeof key !== "undefined" ? key : "")) },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }, part] }],
             generationConfig: { temperature: 0.1, maxOutputTokens: 1024 }

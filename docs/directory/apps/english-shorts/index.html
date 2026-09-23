@@ -273,7 +273,7 @@
       <input type="file" id="mediaFile" accept="video/*,audio/*" />
       <video id="localMedia" controls playsinline style="display:none;width:100%;margin-top:0.45rem;border-radius:0.4rem;background:#000;max-height:12rem"></video>
       <label class="picker-label" for="geminiKeyVoice">Gemini 金鑰（影片辨識用，選填；可沿用其他工具已存金鑰）</label>
-      <input type="password" id="geminiKeyVoice" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+      <input type="password" id="geminiKeyVoice" autocomplete="off" placeholder="貼上 AI Studio 金鑰（AQ. 或 AIza）" />
       <div class="row-btns">
         <button type="button" id="btnMediaFlip" class="primary">影片／音訊對翻</button>
         <button type="button" id="btnSaveGeminiKey">儲存金鑰</button>
@@ -907,12 +907,12 @@
       if (!key) throw new Error("請先貼上並儲存 Gemini 金鑰（影片／音訊辨識需要）");
       const b64 = await fileToBase64(file);
       const mime = file.type || "video/mp4";
-      const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+      const models = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
       const prompt = "請聽這段影音內容，先完整轉錄原文，再翻譯成另一種語言（中文↔英文互譯）。用這個格式回覆，不要其他說明：\nSOURCE: <原文>\nTARGET: <譯文>\nDIR: <zh2en 或 en2zh>";
       let lastErr = null;
       for (const model of models) {
         try {
-          const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key);
+          const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
           const body = {
             contents: [{
               role: "user",
@@ -924,7 +924,7 @@
           };
           const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-goog-api-key": (typeof apiKey !== "undefined" ? apiKey : (typeof key !== "undefined" ? key : "")) },
             body: JSON.stringify(body)
           });
           const data = await res.json();

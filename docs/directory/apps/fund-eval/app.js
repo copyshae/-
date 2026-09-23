@@ -883,8 +883,7 @@
       var url =
         "https://generativelanguage.googleapis.com/v1beta/models/" +
         encodeURIComponent(att.model) +
-        ":generateContent?key=" +
-        encodeURIComponent(apiKey);
+        ":generateContent";
 
       var body = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -898,7 +897,7 @@
 
       return fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify(body)
       })
         .then(function (res) {
@@ -1231,11 +1230,10 @@
       saveGeminiKey();
       setResearchStatus("測試金鑰中…");
       var url =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-        encodeURIComponent(apiKey);
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
       fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: "只回：OK" }] }],
           generationConfig: { maxOutputTokens: 16 }

@@ -500,18 +500,23 @@ function Test-GeminiApiKey([string]$ApiKey) {
   $k = Normalize-GeminiApiKey $ApiKey
   if ([string]::IsNullOrWhiteSpace($k)) { throw '金鑰空白' }
   if ($k.Length -lt 20) { throw '金鑰太短，可能貼不完整。請重新從 aistudio.google.com/apikey 複製整串。' }
-  if ($k -notmatch '^AIza') {
-    throw '這不像 Google AI Studio 的 API 金鑰（通常以 AIza 開頭）。請勿貼 Gemini 網頁／訂閱相關文字。'
+  if ($k -match '訂閱|gemini\.google\.com|ChatGPT|網頁版 Pro|Gemini Advanced') {
+    throw '請勿貼 Gemini 網頁／訂閱相關文字。請到 aistudio.google.com/apikey 複製 API Key。'
+  }
+  # 新版 AI Studio 金鑰為 AQ. 開頭（Auth key）；舊版為 AIza
+  if ($k -notmatch '^(AIza|AQ\.)') {
+    throw '這不像 Google AI Studio 的 API 金鑰（應為 AQ. 或 AIza 開頭）。請勿貼無關文字。'
   }
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-  $uri = "https://generativelanguage.googleapis.com/v1beta/models?key=$k&pageSize=5"
+  $uri = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=5"
+  $headers = @{ 'x-goog-api-key' = $k }
   try {
-    $resp = Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 30
+    $resp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -TimeoutSec 30
   } catch {
     $msg = [string]$_.Exception.Message
     try { if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message } } catch {}
-    if ($msg -match '401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key|金鑰') {
-      throw ("金鑰無效或未開通。請到 aistudio.google.com/apikey 新建一把，整串複製後再貼。`n原始：$msg")
+    if ($msg -match '401|403|PERMISSION|API[_ ]?key|UNAUTHENTICATED|INVALID.*key|金鑰|ACCESS_TOKEN') {
+      throw ("金鑰無效或未開通。請到 aistudio.google.com/apikey 新建一把（AQ. 開頭亦可），整串複製後再貼。`n原始：$msg")
     }
     if ($msg -match '503|429|Unavailable|無法使用') {
       throw ("Google 暫時忙碌（503／429）。金鑰格式可接受，請等 1～2 分鐘再測。`n原始：$msg")
@@ -582,7 +587,7 @@ function Invoke-GeminiGenerateContent {
   if ([string]::IsNullOrWhiteSpace($ApiKey)) { throw '尚未設定 Gemini API 金鑰' }
   # 預設務必用仍上線的模型（2.0-flash 已於 2026-06-01 下線 → 404）
   if ([string]::IsNullOrWhiteSpace($Model) -or $Model -match 'gemini-2\.0|gemini-1\.5') {
-    $Model = 'gemini-2.5-flash'
+    $Model = 'gemini-3.6-flash'
   }
 
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -615,22 +620,23 @@ function Invoke-GeminiGenerateContent {
   # 依序嘗試；跳過已下線／404 的模型
   $models = @(
     $Model,
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-flash-latest',
-    'gemini-2.5-pro'
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-latest'
   ) | Where-Object { $_ -and $_ -notmatch 'gemini-2\.0' } | Select-Object -Unique
   $tried = New-Object System.Collections.ArrayList
   $lastErr = $null
   foreach ($m in $models) {
     [void]$tried.Add($m)
-    $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=$ApiKey"
+    $uri = "https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent"
+    $headers = @{ 'x-goog-api-key' = $ApiKey }
     $attempt = 0
     $maxAttempt = 3
     while ($attempt -lt $maxAttempt) {
       $attempt++
       try {
-        $resp = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec 180
+        $resp = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec 180
         $text = ''
         try {
           foreach ($c in $resp.candidates) {
@@ -650,8 +656,8 @@ function Invoke-GeminiGenerateContent {
           if ($_.Exception.InnerException) { $msg += ' | ' + $_.Exception.InnerException.Message }
         } catch {}
         if ($msg -match '404|not found|NOT_FOUND|找不到|is not found|not supported|was not found') { break }
-        if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰') {
-          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建。`n原始：" + $msg)
+        if ($msg -match 'API[_ ]?key|PERMISSION|401|403|INVALID_ARGUMENT.*key|金鑰|ACCESS_TOKEN') {
+          throw ("Gemini 金鑰無效或未開通。請按「Gemini金鑰」到 aistudio.google.com/apikey 重建（AQ. 或 AIza 皆可）。`n原始：" + $msg)
         }
         # 503／429／忙碌：同模型重試，再換下一個模型
         if ($msg -match '503|429|Unavailable|無法使用|RESOURCE_EXHAUSTED|quota|rate|過載|暫時') {
@@ -666,7 +672,7 @@ function Invoke-GeminiGenerateContent {
       }
     }
   }
-  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-2.5-flash（2.0-flash 已下線會 404）。"
+  $hint = "已嘗試模型：$([string]::Join(', ', $tried.ToArray()))`n若出現 503，多半是 Google 暫時忙碌，等 1～2 分鐘再按「Gemini自動批」。`n請用 gemini-3.6-flash（2.0-flash 已下線會 404）。"
   if ($lastErr) { throw (($lastErr.Exception.Message) + "`n`n" + $hint) }
   throw $hint
 }
@@ -712,7 +718,7 @@ function Show-GeminiKeyDialog {
   $lbl = New-Object System.Windows.Forms.Label
   $lbl.Location = New-Object System.Drawing.Point(12, 12)
   $lbl.Size = New-Object System.Drawing.Size(520, 88)
-  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（通常以 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n換過金鑰後若批失敗：先按「測試金鑰」確認。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
+  $lbl.Text = "請到 https://aistudio.google.com/apikey 建立 API key（≠ Gemini 網頁訂閱）。`n整串複製後貼上（可為 AQ. 或 AIza 開頭）。存於本機 MathGrading\gemini-api-key.txt，不上傳 GitHub。`n換過金鑰後若批失敗：先按「測試金鑰」確認。`n目前：" + $(if ($has) { '已有金鑰（可覆蓋）' } else { '尚未設定' })
   $dlg.Controls.Add($lbl)
   $tb = New-Object System.Windows.Forms.TextBox
   $tb.Location = New-Object System.Drawing.Point(12, 108)
@@ -759,7 +765,7 @@ function Show-GeminiKeyDialog {
         if ($ask -ne [System.Windows.Forms.DialogResult]::Yes) { return }
       }
       Save-GeminiApiKey $script:WorkDir $k
-      $script:settings | Add-Member -NotePropertyName geminiModel -NotePropertyValue 'gemini-2.5-flash' -Force
+      $script:settings | Add-Member -NotePropertyName geminiModel -NotePropertyValue 'gemini-3.6-flash' -Force
       Save-Settings $script:WorkDir $script:settings
       [void][System.Windows.Forms.MessageBox]::Show('已儲存 Gemini API 金鑰。可再按「Gemini自動批」。', '完成')
       $dlg.DialogResult = 'OK'
@@ -790,7 +796,7 @@ function Load-Settings([string]$root) {
     preferredSend = '未指定（日後再選）'
     preferredReturn = '未指定（日後再選）'
     tabletImportDir = ''
-    geminiModel = 'gemini-2.5-flash'
+    geminiModel = 'gemini-3.6-flash'
     tools = [pscustomobject]@{
       line_group = $true
       line_dm    = $true
@@ -2045,7 +2051,7 @@ function Start-GradeCurrent {
       $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
       [System.Windows.Forms.Application]::DoEvents()
       try {
-        $model = 'gemini-2.5-flash'
+        $model = 'gemini-3.6-flash'
         try {
           if ($script:settings.geminiModel) {
             $cand = [string]$script:settings.geminiModel

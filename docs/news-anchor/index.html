@@ -496,7 +496,7 @@
     <section class="card">
       <h2>✨ Gemini 播報稿（選填）</h2>
       <label for="geminiKey">Gemini 金鑰</label>
-      <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰，可生成更口語的播報稿" />
+      <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（AQ. 或 AIza），可生成更口語的播報稿" />
       <div class="actions">
         <button type="button" id="btnSaveKey">儲存金鑰</button>
         <button type="button" id="btnClearKey">清除</button>
@@ -524,7 +524,7 @@
     var KEY_TTS_STYLE = "news-anchor-tts-style-v1";
     var KEY_VISUAL_MODE = "news-anchor-visual-mode-v1";
     var KEY_TTS_ENGINE = "news-anchor-tts-engine-v1";
-    var GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+    var GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
 
     var LIVE_TRANSITIONS = [
       "首先帶您關心，",
@@ -1861,10 +1861,10 @@
       for (var i = 0; i < GEMINI_MODELS.length; i++) {
         var model = GEMINI_MODELS[i];
         try {
-          var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key);
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
           var res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-goog-api-key": (typeof apiKey !== "undefined" ? apiKey : (typeof key !== "undefined" ? key : "")) },
             body: JSON.stringify(body)
           });
           if (!res.ok) {

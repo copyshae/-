@@ -153,7 +153,7 @@
       <p class="tips">快速批：精簡輸出＋較快模型＋一次批 2 份。完整批：含診斷與練習建議。</p>
       <div class="row">
         <label for="geminiKey">Gemini金鑰</label>
-        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+        <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（AQ. 或 AIza）" />
       </div>
       <div class="actions" style="margin-top:0.35rem">
         <button type="button" class="btn" id="btnSaveKey">儲存金鑰</button>
@@ -319,8 +319,8 @@
       var filter = "all";
       var grading = false;
       var wakeLock = null;
-      var MODELS_FAST = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
-      var MODELS_FULL = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-pro"];
+      var MODELS_FAST = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+      var MODELS_FULL = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
       var STATUSES = ["未批", "批改中", "已批", "待認知", "待重謄"];
       var LEVELS = ["未標", "跟上", "略落後", "明顯落後", "需補先備", "待判定"];
 
@@ -944,11 +944,11 @@
           var model = list[i];
           tried.push(model);
           var uri = "https://generativelanguage.googleapis.com/v1beta/models/" +
-            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+            encodeURIComponent(model) + ":generateContent";
           try {
             var res = await fetch(uri, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
               body: body
             });
             var raw = await res.text();

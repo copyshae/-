@@ -423,7 +423,7 @@
         <div class="inner">
           <p class="hint">有金鑰可解析圖片／影片並潤飾成完整心得；若此裝置曾在「習作批改」存過金鑰會自動帶入。純文字也可用本機模板生成。</p>
           <label for="geminiKey">Gemini 金鑰</label>
-          <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（選填）" />
+          <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰（AQ. 或 AIza）（選填）" />
           <div class="row">
             <button type="button" id="btnSaveKey">儲存金鑰</button>
             <button type="button" id="btnClearKey">清除</button>
@@ -565,8 +565,8 @@
       header: "敬愛的導師好\n超碼家人大家好",
       footer: "感恩宇宙，感恩天地\n感恩太陽盛德導師\n感恩蔡禮旭老師\n感恩一切有了交代"
     };
-    var MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
-    var IMAGE_MODEL = "gemini-2.5-flash-image";
+    var MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
+    var IMAGE_MODEL = "gemini-3.1-flash-image";
     var MAX_VIDEO_MB = 50;
     var MAX_ATTACH_MB = 8;
     var recognition = null;
@@ -1563,12 +1563,12 @@
         var model = MODELS[i];
         try {
           var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+            encodeURIComponent(model) + ":generateContent";
           var body = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
           if (opts.googleSearch) body.tools = [{ google_search: {} }];
           var res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-goog-api-key": (typeof apiKey !== "undefined" ? apiKey : (typeof key !== "undefined" ? key : "")) },
             body: JSON.stringify(body)
           });
           var data = await res.json();
@@ -1601,10 +1601,10 @@
         var model = MODELS[i];
         try {
           var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-            encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey);
+            encodeURIComponent(model) + ":generateContent";
           var res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-goog-api-key": (typeof apiKey !== "undefined" ? apiKey : (typeof key !== "undefined" ? key : "")) },
             body: JSON.stringify({ contents: [{ role: "user", parts: parts }] })
           });
           var data = await res.json();
@@ -1679,12 +1679,12 @@
 
     async function callGeminiImage(promptEn, apiKey) {
       var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-        encodeURIComponent(IMAGE_MODEL) + ":generateContent?key=" + encodeURIComponent(apiKey);
+        encodeURIComponent(IMAGE_MODEL) + ":generateContent";
       var fullPrompt = String(promptEn || "") +
         ". Style: warm, peaceful, soft natural lighting, suitable for spiritual reflection essay illustration. No text, no watermark, no close-up faces.";
       var res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": (typeof apiKey !== "undefined" ? apiKey : (typeof key !== "undefined" ? key : "")) },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
           generationConfig: {
