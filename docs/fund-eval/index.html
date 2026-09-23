@@ -224,7 +224,7 @@
     <div class="toolbar">
       <button type="button" class="primary" id="btnAdd">＋ 新增基金</button>
       <button type="button" class="ghost" id="btnSyncWatch">補齊追蹤名單</button>
-      <button type="button" class="ghost" id="btnExport">匯出 CSV</button>
+      <button type="button" class="ghost" id="btnIo">匯出／匯入</button>
       <button type="button" class="ghost" id="btnSettings">門檻設定</button>
       <button type="button" class="ghost danger-outline" id="btnResetWatch">重置名單</button>
     </div>
@@ -239,7 +239,7 @@
 
     <aside class="rules">
       <h2>怎麼用</h2>
-      <p>按<strong>＋ 新增</strong>可增刪。清單依<strong>投資分數</strong>排序。<strong>0052／00747</strong>用 ETF 邏輯（折溢價／指數）；其餘基金仍用本金配息／利差。</p>
+      <p>按<strong>＋ 新增</strong>可增刪。清單依<strong>投資分數</strong>排序。<strong>0052／00747</strong>用 ETF 邏輯（折溢價／指數）；其餘基金仍用本金配息／利差。換機請用<strong>匯出／匯入</strong>（CSV 或 Excel）。</p>
       <p style="margin-top:0.35rem"><span class="buy-t">買進</span>：位階後 20%、負乖離大（ETF 另看折價）。　<span class="sell-t">減碼</span>：正乖離過高（基金另看本金配息／利差；ETF 另看溢價過高）。</p>
     </aside>
 
@@ -347,14 +347,39 @@
       <p id="alertStatus" style="font-size:0.82rem;color:var(--accent);margin-top:0.5rem;font-weight:700;"></p>
     </div>
 
+    <div id="ioPanel" class="panel">
+      <h2>匯出／匯入</h2>
+      <p style="font-size:0.84rem;color:var(--muted);margin-bottom:0.55rem">
+        可匯出 <strong>CSV</strong>（Excel／試算表可直接開）或 <strong>Excel（.xls）</strong>；亦可匯出 JSON 完整備份。匯入支援同一格式，並可選合併或整批取代。
+      </p>
+      <p class="sec-label">匯出</p>
+      <div class="row">
+        <button type="button" class="primary" id="btnExportCsv">匯出 CSV</button>
+        <button type="button" class="ghost" id="btnExportXls">匯出 Excel</button>
+        <button type="button" class="ghost" id="btnExportJson">匯出 JSON</button>
+      </div>
+      <p class="sec-label">匯入</p>
+      <div class="row">
+        <button type="button" class="fbtn" id="btnPickImport" aria-controls="importFile">選擇 CSV／Excel／JSON</button>
+        <input type="file" id="importFile" accept=".csv,.xls,.xlsx,.json,text/csv,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden" />
+      </div>
+      <p id="importHint" style="font-size:0.82rem;color:var(--muted);margin-top:0.45rem;min-height:1.2em"></p>
+      <div class="row" style="margin-top:0.45rem">
+        <button type="button" class="primary" id="btnImportMerge" disabled>合併匯入</button>
+        <button type="button" class="ghost" id="btnImportReplace" disabled>整批取代</button>
+        <button type="button" class="ghost" id="btnIoClose">關閉</button>
+      </div>
+      <p id="ioStatus" style="font-size:0.82rem;color:var(--accent);margin-top:0.5rem;font-weight:700;"></p>
+    </div>
+
     <div id="list"></div>
 
     <footer class="note">
-      資料存在本機（可新增、刪除、編輯），不上傳。<br />
+      資料存在本機（可新增、刪除、編輯；可用 CSV／Excel 匯出匯入），不上傳。<br />
       <a href="./share.html">加入主畫面</a>
       · <a href="../">回習作工具首頁</a>
     </footer>
   </div>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
