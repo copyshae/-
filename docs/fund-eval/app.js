@@ -704,30 +704,536 @@
     refresh();
   }
 
-  function exportCsv() {
-    var header = ["銀行代碼","基金名稱","ISIN","計價幣別","資產類別","配息政策","淨值日期","最新淨值","52週高","52週低","52週位階(%)","年線偏離(%)","每單位配息","年化配息率(%)","配息來自本金(%)","近一年含息總報酬(%)","連動指標","指標數值","評估狀態","待補欄位"];
-    var lines = [header.join(",")];
-    state.funds.forEach(function (f) {
-      var ev = evaluate(f, state.settings);
-      lines.push([
-        csv(f.bankCode), csv(f.name), csv(f.isin), csv(f.currency), csv(f.assetClass), csv(f.divPolicy),
-        csv(f.navDate), f.nav, f.high52, f.low52, fmt1(ev.H), fmt1(ev.I),
-        f.divPerUnit, f.yieldAnn, f.principalPct, f.totalReturn1y,
-        csv((f.macroName || "") + "/" + (f.macroKind || "")), f.macroValue, csv(ev.status), csv(ev.comp.need.join("|"))
-      ].join(","));
-    });
-    var blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "fund-eval-" + new Date().toISOString().slice(0, 10) + ".csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
+  /** 匯出／匯入欄位（含可回寫的本體欄；計算欄僅匯出） */
+  var IO_FIELDS = [
+    { key: "id", label: "內部ID" },
+    { key: "bankCode", label: "銀行代碼" },
+    { key: "name", label: "基金名稱" },
+    { key: "isin", label: "ISIN" },
+    { key: "currency", label: "計價幣別" },
+    { key: "assetClass", label: "資產類別" },
+    { key: "instrumentType", label: "分析模式" },
+    { key: "divPolicy", label: "配息政策" },
+    { key: "navDate", label: "淨值日期" },
+    { key: "nav", label: "最新淨值", num: true },
+    { key: "high52", label: "52週高", num: true },
+    { key: "low52", label: "52週低", num: true },
+    { key: "ma250", label: "250日均線", num: true },
+    { key: "premiumPct", label: "折溢價%", num: true },
+    { key: "divPerUnit", label: "每單位配息", num: true },
+    { key: "yieldAnn", label: "年化配息率%", num: true },
+    { key: "principalPct", label: "配息來自本金%", num: true },
+    { key: "prevPrincipalPct", label: "上次本金比%", num: true },
+    { key: "totalReturn1y", label: "近一年含息總報酬%", num: true },
+    { key: "macroKind", label: "總經指標種類" },
+    { key: "macroName", label: "連動指標" },
+    { key: "macroValue", label: "指標數值", num: true },
+    { key: "macroNote", label: "總經備註" },
+    { key: "goldBreak", label: "金價突破" },
+    { key: "searchHints", label: "搜尋提示" },
+    { key: "note", label: "備註" },
+    { key: "updatedAt", label: "更新時間" }
+  ];
+  var IO_COMPUTED = [
+    { key: "_pos52", label: "52週位階%" },
+    { key: "_maDev", label: "年線偏離%" },
+    { key: "_status", label: "評估狀態" },
+    { key: "_score", label: "投資分數" },
+    { key: "_need", label: "待補欄位" }
+  ];
+
+  var pendingImport = [];
+
+  function csvEscape(v) {
+    var s = v == null ? "" : String(v);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
   }
 
-  function csv(v) {
-    var s = v == null ? "" : String(v);
-    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-    return s;
+  function xmlEscape(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function isIosLike() {
+    var ua = navigator.userAgent || "";
+    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function downloadBlob(blob, filename) {
+    if (isIosLike() && typeof navigator.share === "function") {
+      try {
+        var file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], title: filename }).catch(function () {
+            openBlobFallback(blob, filename);
+          });
+        }
+      } catch (eShare) { /* fall through */ }
+    }
+    if (isIosLike()) {
+      openBlobFallback(blob, filename);
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  function openBlobFallback(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var w = window.open(url, "_blank");
+    if (!w) {
+      var a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  function setIoStatus(msg) {
+    var el = $("ioStatus");
+    if (el) el.textContent = msg || "";
+  }
+
+  function fundExportRow(f) {
+    var ev = evaluate(f, state.settings);
+    var row = {};
+    IO_FIELDS.forEach(function (col) {
+      var v = f[col.key];
+      if (col.key === "goldBreak") row[col.label] = v ? "是" : "否";
+      else if (col.key === "updatedAt" && v) {
+        try { row[col.label] = new Date(v).toISOString(); }
+        catch (eU) { row[col.label] = v; }
+      } else if (v == null) row[col.label] = "";
+      else row[col.label] = v;
+    });
+    row["52週位階%"] = ev.H == null ? "" : Number(ev.H.toFixed(2));
+    row["年線偏離%"] = ev.I == null ? "" : Number(ev.I.toFixed(2));
+    row["評估狀態"] = ev.status || "";
+    row["投資分數"] = ev.score != null ? ev.score : "";
+    row["待補欄位"] = (ev.comp && ev.comp.need) ? ev.comp.need.join("|") : "";
+    return row;
+  }
+
+  function exportHeaders() {
+    return IO_FIELDS.map(function (c) { return c.label; }).concat(IO_COMPUTED.map(function (c) { return c.label; }));
+  }
+
+  function exportStamp() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function exportCsv() {
+    if (!state.funds.length) {
+      setIoStatus("目前沒有資料可匯出");
+      alert("目前沒有資料可匯出");
+      return;
+    }
+    var headers = exportHeaders();
+    var lines = ["\ufeff" + headers.map(csvEscape).join(",")];
+    state.funds.forEach(function (f) {
+      var row = fundExportRow(f);
+      lines.push(headers.map(function (h) { return csvEscape(row[h]); }).join(","));
+    });
+    downloadBlob(
+      new Blob([lines.join("\r\n")], { type: "text/csv;charset=utf-8" }),
+      "基金評估台-" + exportStamp() + ".csv"
+    );
+    setIoStatus("已匯出 CSV（" + state.funds.length + " 檔；Excel／試算表可開）");
+  }
+
+  function exportXls() {
+    if (!state.funds.length) {
+      setIoStatus("目前沒有資料可匯出");
+      alert("目前沒有資料可匯出");
+      return;
+    }
+    var headers = exportHeaders();
+    var rowsXml = [];
+    rowsXml.push("<Row>" + headers.map(function (h) {
+      return '<Cell><Data ss:Type="String">' + xmlEscape(h) + "</Data></Cell>";
+    }).join("") + "</Row>");
+    state.funds.forEach(function (f) {
+      var row = fundExportRow(f);
+      rowsXml.push("<Row>" + headers.map(function (h) {
+        var v = row[h];
+        var isNum = typeof v === "number" && Number.isFinite(v);
+        if (isNum) {
+          return '<Cell><Data ss:Type="Number">' + v + "</Data></Cell>";
+        }
+        return '<Cell><Data ss:Type="String">' + xmlEscape(v) + "</Data></Cell>";
+      }).join("") + "</Row>");
+    });
+    var xml =
+      '<?xml version="1.0"?>\r\n' +
+      '<?mso-application progid="Excel.Sheet"?>\r\n' +
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\r\n' +
+      ' xmlns:o="urn:schemas-microsoft-com:office:office"\r\n' +
+      ' xmlns:x="urn:schemas-microsoft-com:office:excel"\r\n' +
+      ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\r\n' +
+      ' xmlns:html="http://www.w3.org/TR/REC-html40">\r\n' +
+      '<Worksheet ss:Name="基金評估台">\r\n' +
+      "<Table>\r\n" + rowsXml.join("\r\n") + "\r\n</Table>\r\n" +
+      "</Worksheet>\r\n</Workbook>";
+    downloadBlob(
+      new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8" }),
+      "基金評估台-" + exportStamp() + ".xls"
+    );
+    setIoStatus("已匯出 Excel（" + state.funds.length + " 檔）");
+  }
+
+  function exportJson() {
+    if (!state.funds.length) {
+      setIoStatus("目前沒有資料可匯出");
+      alert("目前沒有資料可匯出");
+      return;
+    }
+    var payload = {
+      app: "fund-eval",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings: state.settings,
+      funds: state.funds
+    };
+    downloadBlob(
+      new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" }),
+      "基金評估台-" + exportStamp() + ".json"
+    );
+    setIoStatus("已匯出 JSON 備份（" + state.funds.length + " 檔）");
+  }
+
+  function parseCsvText(text) {
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+    var rows = [];
+    var i = 0;
+    var field = "";
+    var row = [];
+    var inQuotes = false;
+    while (i < text.length) {
+      var ch = text.charAt(i);
+      if (inQuotes) {
+        if (ch === '"') {
+          if (text.charAt(i + 1) === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += ch; i++; continue;
+      }
+      if (ch === '"') { inQuotes = true; i++; continue; }
+      if (ch === ",") { row.push(field); field = ""; i++; continue; }
+      if (ch === "\n") {
+        row.push(field); field = "";
+        if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
+        row = []; i++; continue;
+      }
+      if (ch === "\r") { i++; continue; }
+      field += ch; i++;
+    }
+    row.push(field);
+    if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
+    if (!rows.length) return [];
+    var headers = rows[0].map(function (h) { return String(h || "").trim(); });
+    var out = [];
+    for (var r = 1; r < rows.length; r++) {
+      var cells = rows[r];
+      if (!cells || !cells.length) continue;
+      var obj = {};
+      var empty = true;
+      headers.forEach(function (h, idx) {
+        var v = cells[idx] != null ? String(cells[idx]).trim() : "";
+        obj[h] = v;
+        if (v) empty = false;
+      });
+      if (!empty) out.push(obj);
+    }
+    return out;
+  }
+
+  function parseSpreadsheetMl(text) {
+    var doc = new DOMParser().parseFromString(text, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length) {
+      throw new Error("無法解析 Excel 檔");
+    }
+    var sheetRows = doc.getElementsByTagName("Row");
+    if (!sheetRows.length) throw new Error("Excel 沒有資料列");
+    function cellText(cell) {
+      var data = cell.getElementsByTagName("Data")[0];
+      return data ? String(data.textContent || "").trim() : "";
+    }
+    var headers = [];
+    var first = sheetRows[0].getElementsByTagName("Cell");
+    for (var c = 0; c < first.length; c++) headers.push(cellText(first[c]));
+    var out = [];
+    for (var r = 1; r < sheetRows.length; r++) {
+      var cells = sheetRows[r].getElementsByTagName("Cell");
+      var obj = {};
+      var empty = true;
+      for (var j = 0; j < headers.length; j++) {
+        var v = cells[j] ? cellText(cells[j]) : "";
+        obj[headers[j]] = v;
+        if (v) empty = false;
+      }
+      if (!empty) out.push(obj);
+    }
+    return out;
+  }
+
+  var HEADER_ALIASES = {
+    "內部ID": "id", "id": "id", "ID": "id",
+    "銀行代碼": "bankCode", "基金代碼": "bankCode", "代碼": "bankCode", "bankCode": "bankCode",
+    "基金名稱": "name", "名稱": "name", "name": "name",
+    "ISIN": "isin", "isin": "isin",
+    "計價幣別": "currency", "幣別": "currency", "currency": "currency",
+    "資產類別": "assetClass", "assetClass": "assetClass",
+    "分析模式": "instrumentType", "instrumentType": "instrumentType", "類型": "instrumentType",
+    "配息政策": "divPolicy", "divPolicy": "divPolicy",
+    "淨值日期": "navDate", "navDate": "navDate",
+    "最新淨值": "nav", "最新市價／淨值": "nav", "市價": "nav", "nav": "nav",
+    "52週高": "high52", "high52": "high52",
+    "52週低": "low52", "low52": "low52",
+    "250日均線": "ma250", "250MA": "ma250", "ma250": "ma250",
+    "折溢價%": "premiumPct", "折溢價": "premiumPct", "premiumPct": "premiumPct",
+    "每單位配息": "divPerUnit", "divPerUnit": "divPerUnit",
+    "年化配息率%": "yieldAnn", "年化配息率": "yieldAnn", "yieldAnn": "yieldAnn",
+    "配息來自本金%": "principalPct", "本金配息比": "principalPct", "principalPct": "principalPct",
+    "上次本金比%": "prevPrincipalPct", "上次本金比": "prevPrincipalPct", "prevPrincipalPct": "prevPrincipalPct",
+    "近一年含息總報酬%": "totalReturn1y", "近一年含息總報酬": "totalReturn1y", "totalReturn1y": "totalReturn1y",
+    "總經指標種類": "macroKind", "macroKind": "macroKind",
+    "連動指標": "macroName", "連動指標／指數": "macroName", "macroName": "macroName",
+    "指標數值": "macroValue", "macroValue": "macroValue",
+    "總經備註": "macroNote", "指標備註": "macroNote", "macroNote": "macroNote",
+    "金價突破": "goldBreak", "goldBreak": "goldBreak",
+    "搜尋提示": "searchHints", "網路搜尋重點": "searchHints", "searchHints": "searchHints",
+    "備註": "note", "note": "note",
+    "更新時間": "updatedAt", "updatedAt": "updatedAt"
+  };
+
+  function parseBool(v) {
+    var s = String(v == null ? "" : v).trim().toLowerCase();
+    if (!s) return false;
+    return s === "1" || s === "true" || s === "yes" || s === "y" || s === "是" || s === "有";
+  }
+
+  function rowToFund(obj) {
+    var mapped = {};
+    Object.keys(obj || {}).forEach(function (h) {
+      var key = HEADER_ALIASES[h] || HEADER_ALIASES[String(h).trim()];
+      if (!key) return;
+      mapped[key] = obj[h];
+    });
+    var name = String(mapped.name || "").trim();
+    var bankCode = String(mapped.bankCode || "").trim();
+    if (!name && !bankCode) return null;
+
+    var instrumentType = String(mapped.instrumentType || "").trim().toLowerCase();
+    if (instrumentType === "etf" || instrumentType.indexOf("etf") >= 0) instrumentType = "etf";
+    else if (instrumentType === "fund" || instrumentType.indexOf("基金") >= 0) instrumentType = "fund";
+    else instrumentType = (bankCode === "0052" || bankCode === "00747" || bankCode === "00747B") ? "etf" : "fund";
+
+    var updatedAt = Date.now();
+    if (mapped.updatedAt) {
+      var t = Date.parse(mapped.updatedAt);
+      if (!Number.isNaN(t)) updatedAt = t;
+      else if (num(mapped.updatedAt) != null) updatedAt = num(mapped.updatedAt);
+    }
+
+    return {
+      id: String(mapped.id || "").trim() || uid(),
+      bankCode: bankCode,
+      name: name || bankCode || "未命名",
+      isin: String(mapped.isin || "").trim(),
+      currency: String(mapped.currency || "TWD").trim() || "TWD",
+      assetClass: String(mapped.assetClass || "其他").trim() || "其他",
+      instrumentType: instrumentType,
+      divPolicy: String(mapped.divPolicy || "").trim(),
+      navDate: String(mapped.navDate || "").trim(),
+      nav: num(mapped.nav),
+      high52: num(mapped.high52),
+      low52: num(mapped.low52),
+      ma250: num(mapped.ma250),
+      premiumPct: num(mapped.premiumPct),
+      divPerUnit: num(mapped.divPerUnit),
+      yieldAnn: num(mapped.yieldAnn),
+      principalPct: num(mapped.principalPct),
+      prevPrincipalPct: num(mapped.prevPrincipalPct),
+      totalReturn1y: num(mapped.totalReturn1y),
+      macroKind: String(mapped.macroKind || "other").trim() || "other",
+      macroName: String(mapped.macroName || "").trim(),
+      macroValue: num(mapped.macroValue),
+      macroNote: String(mapped.macroNote || "").trim(),
+      goldBreak: parseBool(mapped.goldBreak),
+      searchHints: String(mapped.searchHints || "").trim(),
+      note: String(mapped.note || "").trim(),
+      updatedAt: updatedAt
+    };
+  }
+
+  function normalizeImportRows(rows) {
+    var list = [];
+    (rows || []).forEach(function (row) {
+      var fund = rowToFund(row);
+      if (fund) list.push(fund);
+    });
+    return list;
+  }
+
+  function setImportReady(list, label) {
+    pendingImport = list || [];
+    var mergeBtn = $("btnImportMerge");
+    var replaceBtn = $("btnImportReplace");
+    if (mergeBtn) mergeBtn.disabled = !pendingImport.length;
+    if (replaceBtn) replaceBtn.disabled = !pendingImport.length;
+    var hint = $("importHint");
+    if (hint) {
+      hint.textContent = pendingImport.length
+        ? ("已讀取 " + pendingImport.length + " 檔（" + label + "），請選合併或整批取代。")
+        : "";
+    }
+  }
+
+  function applyImport(mode) {
+    if (!pendingImport.length) {
+      alert("請先選擇要匯入的檔案");
+      return;
+    }
+    if (mode === "replace") {
+      if (!confirm("確定要以匯入檔「整批取代」目前全部 " + state.funds.length + " 檔？建議先匯出備份。")) return;
+      state.funds = pendingImport.map(function (f) { return Object.assign({}, f); });
+    } else {
+      var byId = {};
+      var byCode = {};
+      state.funds.forEach(function (f, idx) {
+        if (f.id) byId[f.id] = idx;
+        if (f.bankCode) byCode[String(f.bankCode).toUpperCase()] = idx;
+      });
+      var added = 0, updated = 0;
+      pendingImport.forEach(function (inc) {
+        var idx = -1;
+        if (inc.id && byId[inc.id] != null) idx = byId[inc.id];
+        else if (inc.bankCode && byCode[String(inc.bankCode).toUpperCase()] != null) {
+          idx = byCode[String(inc.bankCode).toUpperCase()];
+        }
+        if (idx >= 0) {
+          var keepId = state.funds[idx].id;
+          state.funds[idx] = Object.assign({}, state.funds[idx], inc, { id: keepId });
+          updated++;
+        } else {
+          var next = Object.assign({}, inc, { id: uid() });
+          state.funds.push(next);
+          if (next.id) byId[next.id] = state.funds.length - 1;
+          if (next.bankCode) byCode[String(next.bankCode).toUpperCase()] = state.funds.length - 1;
+          added++;
+        }
+      });
+      setIoStatus("合併完成：新增 " + added + "、更新 " + updated + "（目前共 " + state.funds.length + " 檔）");
+    }
+    saveFunds(state.funds);
+    if (mode === "replace") setIoStatus("已整批取代為 " + state.funds.length + " 檔");
+    setImportReady([], "");
+    if ($("importFile")) $("importFile").value = "";
+    refresh();
+  }
+
+  function handleImportFile(file) {
+    if (!file) return;
+    var name = file.name || "";
+    var lower = name.toLowerCase();
+    setIoStatus("讀取中…");
+
+    function fail(msg) {
+      setImportReady([], "");
+      setIoStatus(msg);
+      alert(msg);
+    }
+
+    if (/\.xlsx$/i.test(lower)) {
+      fail("目前無法直接讀取 .xlsx。請用 Excel「另存新檔」成 CSV（UTF-8）或 .xls，或先用本 App「匯出 Excel／CSV」再匯入。");
+      if ($("importFile")) $("importFile").value = "";
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onerror = function () { fail("讀檔失敗"); };
+    reader.onload = function () {
+      try {
+        var text = String(reader.result || "");
+        var rows;
+        var label = "CSV";
+        if (/\.json$/i.test(lower) || text.trim().charAt(0) === "{") {
+          var data = JSON.parse(text);
+          var funds = Array.isArray(data) ? data : (data.funds || data.items || []);
+          if (!Array.isArray(funds)) throw new Error("JSON 格式不正確（需要 funds 陣列）");
+          pendingImport = funds.map(function (f) {
+            if (!f || typeof f !== "object") return null;
+            return rowToFund({
+              "內部ID": f.id,
+              "銀行代碼": f.bankCode,
+              "基金名稱": f.name,
+              "ISIN": f.isin,
+              "計價幣別": f.currency,
+              "資產類別": f.assetClass,
+              "分析模式": f.instrumentType,
+              "配息政策": f.divPolicy,
+              "淨值日期": f.navDate,
+              "最新淨值": f.nav,
+              "52週高": f.high52,
+              "52週低": f.low52,
+              "250日均線": f.ma250,
+              "折溢價%": f.premiumPct,
+              "每單位配息": f.divPerUnit,
+              "年化配息率%": f.yieldAnn,
+              "配息來自本金%": f.principalPct,
+              "上次本金比%": f.prevPrincipalPct,
+              "近一年含息總報酬%": f.totalReturn1y,
+              "總經指標種類": f.macroKind,
+              "連動指標": f.macroName,
+              "指標數值": f.macroValue,
+              "總經備註": f.macroNote,
+              "金價突破": f.goldBreak ? "是" : "否",
+              "搜尋提示": f.searchHints,
+              "備註": f.note,
+              "更新時間": f.updatedAt
+            });
+          }).filter(Boolean);
+          if (data.settings && typeof data.settings === "object" && confirm("檔案含門檻設定，要一併套用嗎？")) {
+            state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+            saveSettings(state.settings);
+            loadSettingsForm();
+          }
+          setImportReady(pendingImport, "JSON");
+          setIoStatus(pendingImport.length ? "JSON 就緒" : "JSON 沒有可匯入資料");
+          return;
+        }
+        if (/\.xls$/i.test(lower) || text.indexOf("spreadsheet") >= 0 || text.indexOf("Workbook") >= 0) {
+          rows = parseSpreadsheetMl(text);
+          label = "Excel";
+        } else {
+          rows = parseCsvText(text);
+          label = "CSV";
+        }
+        var list = normalizeImportRows(rows);
+        if (!list.length) throw new Error("沒有可匯入的資料列（請確認有「基金名稱」或「銀行代碼」欄）");
+        setImportReady(list, label);
+        setIoStatus(label + " 就緒");
+      } catch (err) {
+        fail("匯入失敗：" + String((err && err.message) || err));
+      }
+    };
+    reader.readAsText(file, "UTF-8");
   }
 
   function fillAssetSelect() {
@@ -1206,7 +1712,25 @@
     on("btnAdd", "click", function () { openForm(null); });
     on("btnCancel", "click", closeForm);
     on("btnSave", "click", saveForm);
-    on("btnExport", "click", exportCsv);
+    on("btnIo", "click", function () {
+      setIoStatus("");
+      $("ioPanel").classList.add("on");
+      $("ioPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    on("btnIoClose", "click", function () { $("ioPanel").classList.remove("on"); });
+    on("btnExportCsv", "click", exportCsv);
+    on("btnExportXls", "click", exportXls);
+    on("btnExportJson", "click", exportJson);
+    on("btnPickImport", "click", function () {
+      var inp = $("importFile");
+      if (inp) inp.click();
+    });
+    on("importFile", "change", function () {
+      var file = $("importFile").files && $("importFile").files[0];
+      if (file) handleImportFile(file);
+    });
+    on("btnImportMerge", "click", function () { applyImport("merge"); });
+    on("btnImportReplace", "click", function () { applyImport("replace"); });
     on("btnSettings", "click", function () {
       loadSettingsForm();
       $("settingsPanel").classList.add("on");
