@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-# Sync learning logs 0820-0829 to Desktop\hello-world and push GitHub Pages (master).
+# Sync learning logs 0901-0914 to Desktop\hello-world and push GitHub Pages (master).
 # ASCII-safe for Windows PowerShell 5.1 (save as UTF-8 with BOM).
 $ErrorActionPreference = "Stop"
 $branch = "main"
@@ -29,17 +29,15 @@ $files = @(
   "directory/index.html",
   "directory/learning-log.html",
   "directory/202608/index.html",
-  "directory/202608/20260820-learning-log.html",
-  "directory/202608/20260821-learning-log.html",
-  "directory/202608/20260822-learning-log.html",
-  "directory/202608/20260823-learning-log.html",
-  "directory/202608/20260824-learning-log.html",
-  "directory/202608/20260825-learning-log.html",
-  "directory/202608/20260826-learning-log.html",
-  "directory/202608/20260827-learning-log.html",
-  "directory/202608/20260828-learning-log.html",
-  "directory/202608/20260829-learning-log.html"
+  "directory/202609/index.html"
 )
+# 0820-0831 + 0901-0914
+for ($d = 20; $d -le 31; $d++) {
+  $files += ("directory/202608/202608{0:D2}-learning-log.html" -f $d)
+}
+for ($d = 1; $d -le 14; $d++) {
+  $files += ("directory/202609/202609{0:D2}-learning-log.html" -f $d)
+}
 
 foreach ($f in $files) { Save-RemoteFile $f }
 
@@ -55,7 +53,7 @@ if ($cur -ne $pagesBranch) {
 git pull origin $pagesBranch 2>$null
 
 Write-Host ""
-Write-Host "=== git status (expect 0820-0829 logs) ==="
+Write-Host "=== git status (expect 0901-0914 logs) ==="
 git add directory/index.html directory/learning-log.html directory/202608/
 git status --short
 
@@ -67,7 +65,7 @@ if (-not $pending) {
   exit 1
 }
 
-$msg = "learning log 0820-0829 remapped (0829 unchanged, env-edu moved to 0828)"
+$msg = "learning log 0901-0914 remapped (0829 unchanged, env-edu moved to 0828)"
 git commit -m $msg
 Write-Host ""
 Write-Host "=== git push origin master ==="
@@ -84,4 +82,4 @@ git log -1 --oneline
 Write-Host ""
 Write-Host "Wait 1-2 min, then open:"
 Write-Host "  https://copyshae.github.io/hello-world/directory/202608/index.html"
-Write-Host "  Top entry should be 20260829; 0820=daily-14; 0828=env-edu"
+Write-Host "  Top entry should be 20260914; 0820=daily-14; 0828=env-edu"
