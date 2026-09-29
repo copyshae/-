@@ -251,6 +251,36 @@
     .ktv-panel.singing .ktv-line,
     .ktv-panel.singing .ktv-next,
     .ktv-panel.singing .ktv-hint { opacity: 0.35; }
+
+    .dir-strip {
+      margin-top: 0.85rem;
+      display: flex;
+      gap: 0.55rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+      padding: 0.15rem 0.1rem 0.35rem;
+    }
+    .dir-cell {
+      flex: 0 0 min(78%, 16.5rem);
+      scroll-snap-align: start;
+      text-align: left;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+      background: var(--card);
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .dir-cell small { display: block; margin-top: 0.2rem; font-size: 0.72rem; font-weight: 400; color: var(--muted); }
+    .dir-cell.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .dir-cell.active small { color: rgba(255,255,255,0.85); }
+    .channel-panel {
+      margin-top: 0.85rem; padding: 0.85rem; background: var(--card);
+      border: 1px solid var(--line); border-radius: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -273,7 +303,25 @@
       </div>
     </section>
 
-    <section class="song-picker-top" aria-label="歌曲選單">
+    <div class="dir-strip normal-only" id="dirStrip" role="tablist" aria-label="曲庫目錄（可左右滑動點選）">
+      <button type="button" class="dir-cell active" role="tab" aria-selected="true" data-dir="search" id="dirSearch">
+        搜尋曲庫
+        <small>先前網路搜尋 · 連播／KTV</small>
+      </button>
+      <button type="button" class="dir-cell" role="tab" aria-selected="false" data-dir="channel" id="dirChannel">
+        天圓音樂
+        <small>官方 YouTube 頻道</small>
+      </button>
+    </div>
+
+    <section class="channel-panel normal-only" id="channelPanel" hidden aria-label="天圓音樂頻道">
+      <h2 id="channelTitle" style="font-size:0.95rem;color:var(--accent)">天圓音樂</h2>
+      <p id="channelNote" style="margin-top:0.35rem;font-size:0.8rem;color:var(--muted)">官方 YouTube 頻道目錄（與搜尋曲庫分開）</p>
+      <p id="channelHandle" style="margin-top:0.25rem;font-size:0.8rem;color:var(--muted)">@supertianyuan168</p>
+      <a id="channelOpen" href="https://www.youtube.com/@supertianyuan168" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:0.65rem;text-align:center;text-decoration:none;padding:0.65rem;border-radius:0.35rem;background:var(--accent);color:#fff;font-weight:700;">▶ 開啟天圓音樂頻道</a>
+    </section>
+
+    <section class="song-picker-top search-panel" id="searchPanel" aria-label="歌曲選單">
       <h2 class="section" style="margin-top:0">歌曲選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
       <div class="filter-row" role="tablist" aria-label="歌曲分類">
         <button type="button" class="active" data-filter="all" role="tab">全部</button>
@@ -381,6 +429,52 @@
   <script>
     const PRIORITY_IDS = { "hTEv2f-9WIM": 3, "tkYxdmQlhtQ": 3 };
     const CATALOG_URL = "./catalog.json";
+
+    const CHANNEL_DIR_URL = "./channel-directory.json";
+    let channelDir = {
+      name: "天圓音樂",
+      url: "https://www.youtube.com/@supertianyuan168",
+      handle: "@supertianyuan168",
+      note: "官方 YouTube 頻道目錄（與關鍵字搜尋曲庫分開）"
+    };
+    let activeDir = localStorage.getItem("taiyang-active-dir") || "search";
+
+    function selectDir(dirId, scrollIntoView) {
+      activeDir = dirId === "channel" ? "channel" : "search";
+      try { localStorage.setItem("taiyang-active-dir", activeDir); } catch (_) {}
+      const isSearch = activeDir === "search";
+      document.querySelectorAll(".dir-cell").forEach((el) => {
+        const on = el.dataset.dir === activeDir;
+        el.classList.toggle("active", on);
+        el.setAttribute("aria-selected", on ? "true" : "false");
+        if (on && scrollIntoView) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      });
+      const sp = document.getElementById("searchPanel");
+      const ch = document.getElementById("channelPanel");
+      if (sp) { if (isSearch) sp.removeAttribute("hidden"); else sp.setAttribute("hidden", ""); }
+      if (ch) { if (isSearch) ch.setAttribute("hidden", ""); else ch.removeAttribute("hidden"); }
+      if ($("statusLine")) $("statusLine").textContent = isSearch ? "搜尋曲庫：可連播、選歌、KTV" : "天圓音樂頻道目錄";
+    }
+
+    function applyChannelPanel() {
+      if ($("channelTitle")) $("channelTitle").textContent = channelDir.name || "天圓音樂";
+      if ($("channelNote")) $("channelNote").textContent = channelDir.note || "";
+      if ($("channelHandle")) $("channelHandle").textContent = channelDir.handle || "";
+      if ($("channelOpen")) {
+        $("channelOpen").href = channelDir.url || "https://www.youtube.com/@supertianyuan168";
+        $("channelOpen").textContent = "▶ 開啟" + (channelDir.name || "天圓音樂") + "頻道";
+      }
+    }
+
+    async function loadDirectories() {
+      try {
+        const res = await fetch(CHANNEL_DIR_URL + "?t=" + Date.now(), { cache: "no-store" });
+        if (res.ok) channelDir = await res.json();
+      } catch (_) {}
+      applyChannelPanel();
+      selectDir(activeDir, false);
+    }
+
     const PRACTICE_KEY = "taiyang-practice-log";
     const LYRICS_CACHE_KEY = "taiyang-lyrics-cache";
     const MAX_HISTORY = 30;
@@ -1571,6 +1665,9 @@
     $("btnNext").addEventListener("click", () => jumpTo(qIndex + 1, true));
     $("btnRestart").addEventListener("click", () => jumpTo(0, true));
     $("btnRefresh").addEventListener("click", () => loadCatalog(true));
+    document.querySelectorAll(".dir-cell").forEach((btn) => {
+      btn.addEventListener("click", () => selectDir(btn.dataset.dir, true));
+    });
     $("btnKtv").addEventListener("click", () => setKtvMode(!ktvMode));
     $("btnKaraoke").addEventListener("click", toggleKaraoke);
     $("btnScoreRetry").addEventListener("click", () => proceedAfterScore(true));

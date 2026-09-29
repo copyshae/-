@@ -11,6 +11,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "taiyang-music" / "catalog.json"
+# 官方頻道自成一格目錄（不併入搜尋曲庫）
+OUT_CHANNEL = ROOT / "docs" / "taiyang-music" / "channel-directory.json"
+CHANNEL_URL = "https://www.youtube.com/@supertianyuan168"
+CHANNEL_NAME = "天圓音樂"
+CHANNEL_HANDLE = "@supertianyuan168"
 
 PRIORITY = [
     {
@@ -329,6 +334,47 @@ def build_catalog() -> dict:
     }
 
 
+def write_channel_directory() -> None:
+    """頻道連結自成目錄檔，供程式讀取；不併入搜尋曲庫。"""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    data = {
+        "id": "tianyuan-music",
+        "name": CHANNEL_NAME,
+        "type": "youtube-channel",
+        "url": CHANNEL_URL,
+        "handle": CHANNEL_HANDLE,
+        "note": "官方 YouTube 頻道目錄（與關鍵字搜尋曲庫分開）",
+        "updatedAt": now,
+    }
+    OUT_CHANNEL.parent.mkdir(parents=True, exist_ok=True)
+    OUT_CHANNEL.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    dirs = {
+        "updatedAt": now,
+        "directories": [
+            {
+                "id": "search",
+                "name": "搜尋曲庫",
+                "type": "catalog",
+                "source": "./catalog.json",
+                "note": "先前網路關鍵字搜尋的歌曲目錄",
+            },
+            {
+                "id": "tianyuan-music",
+                "name": CHANNEL_NAME,
+                "type": "youtube-channel",
+                "source": "./channel-directory.json",
+                "url": CHANNEL_URL,
+                "handle": CHANNEL_HANDLE,
+                "note": "官方 YouTube 頻道目錄",
+            },
+        ],
+    }
+    out_dirs = OUT.parent / "directories.json"
+    out_dirs.write_text(json.dumps(dirs, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote channel directory -> {OUT_CHANNEL}")
+    print(f"Wrote directories index -> {out_dirs}")
+
+
 def main() -> int:
     if subprocess.run(["which", "yt-dlp"], capture_output=True).returncode != 0:
         print("yt-dlp not found", file=sys.stderr)
@@ -336,6 +382,7 @@ def main() -> int:
     catalog = build_catalog()
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_channel_directory()
     c = catalog["counts"]
     print(f"Wrote {c['total']} songs (master {c['master']}, other {c['other']}) -> {OUT}")
     return 0
