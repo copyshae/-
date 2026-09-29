@@ -87,6 +87,16 @@
     .hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--muted); padding: 0.65rem; background: rgba(255,255,255,0.5); border: 1px dashed var(--line); border-radius: 0.35rem; }
     .section { margin-top: 0; font-size: 0.9rem; font-weight: 700; color: var(--accent); }
     .status { margin-top: 0.45rem; font-size: 0.75rem; color: var(--muted); }
+    .channel-row {
+      margin-top: 0.65rem; text-align: center;
+      font-size: 0.82rem;
+    }
+    .channel-row a {
+      display: inline-block; color: var(--accent); font-weight: 600;
+      text-decoration: none; border: 1px solid var(--line); background: var(--card);
+      padding: 0.4rem 0.75rem; border-radius: 0.35rem;
+    }
+    .channel-row a:hover { background: #fff; }
   </style>
 </head>
 <body>
@@ -108,6 +118,10 @@
         <p>Safari／Chrome → <a href="./share.html" style="color:var(--accent);">加入主畫面說明</a></p>
       </div>
     </section>
+
+    <p class="channel-row">
+      <a id="channelLink" href="https://www.youtube.com/@supertianyuan168" target="_blank" rel="noopener noreferrer">▶ YouTube 官方頻道：天圓音樂</a>
+    </p>
 
     <section class="song-picker-top" aria-label="歌曲選單">
       <h2 class="section">歌曲選單 <span id="listCount" style="font-weight:400;font-size:0.78rem;color:var(--muted)"></span></h2>
@@ -148,6 +162,7 @@
 
     <p class="hint">
       <strong>播放順序：</strong>① 注入彩虹×3 → ② 富有×3 → ③ 導師親唱 → ④ 其他演唱者。選單可篩選分類；播放中改選其他歌曲會<strong>立即切換</strong>。有伴奏版時可按「伴唱」切換。
+      <br />曲庫來源含 <a id="channelHint" href="https://www.youtube.com/@supertianyuan168" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">天圓音樂 YouTube 頻道（@supertianyuan168）</a>。
       <br /><a href="./simple/" style="color:var(--accent);">→ 分享給朋友？試試簡易版</a>（僅選歌＋播放，介面更精簡）
     </p>
 
@@ -304,9 +319,26 @@
       const mc = c.master || catalog.songs.filter((s) => s.performer === "master").length;
       const oc = c.other || catalog.songs.filter((s) => s.performer === "other").length;
       $("catalogMeta").textContent = "導師 " + mc + " · 其他 " + oc + " · " + (catalog.updatedAt || "").slice(0, 10);
+      applyChannelLinks();
       $("statusLine").textContent = remote
         ? "曲庫已更新（導師 " + mc + " 首、其他演唱 " + oc + " 首）"
         : "使用快取曲庫（導師 " + mc + "、其他 " + oc + "）";
+    }
+
+    function applyChannelLinks() {
+      const url = catalog.channelUrl || "https://www.youtube.com/@supertianyuan168";
+      const name = catalog.channelName || "天圓音樂";
+      const handle = catalog.channelHandle || "@supertianyuan168";
+      const main = $("channelLink");
+      if (main) {
+        main.href = url;
+        main.textContent = "▶ YouTube 官方頻道：" + name;
+      }
+      const hint = $("channelHint");
+      if (hint) {
+        hint.href = url;
+        hint.textContent = name + " YouTube 頻道（" + handle + "）";
+      }
     }
 
     function renderSongMenu() {
