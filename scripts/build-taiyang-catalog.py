@@ -11,8 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "taiyang-music" / "catalog.json"
-
-# 天圓音樂官方頻道（優先收錄來源）
+# 官方頻道自成一格目錄（不併入搜尋曲庫）
+OUT_CHANNEL = ROOT / "docs" / "taiyang-music" / "channel-directory.json"
 CHANNEL_URL = "https://www.youtube.com/@supertianyuan168"
 CHANNEL_NAME = "天圓音樂"
 CHANNEL_HANDLE = "@supertianyuan168"
@@ -76,7 +76,8 @@ SKIP = [
 MASTER_NAMES = frozenset({"太陽盛德導師", "太阳盛德导师", "太陽盛德", "太阳盛德"})
 
 
-def yt_dump_json(cmd: list[str]) -> list[dict]:
+def yt_search(query: str, limit: int = 35) -> list[dict]:
+    cmd = ["yt-dlp", "--flat-playlist", "--dump-json", f"ytsearch{limit}:{query}"]
     r = subprocess.run(cmd, capture_output=True, text=True)
     items = []
     for line in r.stdout.splitlines():
@@ -88,24 +89,6 @@ def yt_dump_json(cmd: list[str]) -> list[dict]:
         except json.JSONDecodeError:
             pass
     return items
-
-
-def yt_search(query: str, limit: int = 35) -> list[dict]:
-    return yt_dump_json(["yt-dlp", "--flat-playlist", "--dump-json", f"ytsearch{limit}:{query}"])
-
-
-def yt_channel(url: str, limit: int = 200) -> list[dict]:
-    """扁平列出頻道／播放清單影片（優先官方頻道）。"""
-    return yt_dump_json(
-        [
-            "yt-dlp",
-            "--flat-playlist",
-            "--dump-json",
-            "--playlist-end",
-            str(limit),
-            f"{url.rstrip('/')}/videos",
-        ]
-    )
 
 
 def song_name(title: str) -> str:
@@ -306,49 +289,28 @@ def song_entry(vid: str, title: str, repeat: int = 1) -> dict:
     }
 
 
-def ingest_item(
-    d: dict,
-    *,
-    seen_ids: set[str],
-    pool: dict[tuple[str, str, str], dict],
-    from_channel: bool = False,
-) -> None:
-    vid = d.get("id")
-    title = d.get("title") or ""
-    if not vid or vid in seen_ids:
-        return
-    entry = song_entry(vid, title, 1)
-    if should_skip(title, entry["name"]):
-        return
-    # 跳過與優先曲同名的非導師版（仍可在 other 搜尋中收錄）
-    if entry["name"] in ("注入彩虹", "富有") and entry["performer"] == "master":
-        return
-    if from_channel:
-        entry["source"] = "channel"
-    seen_ids.add(vid)
-    key = (entry["name"], entry["performer"], entry["performerLabel"])
-    prev = pool.get(key)
-    # 官方頻道版本優先於一般搜尋結果
-    bonus = 25 if from_channel else 0
-    new_score = score(title, entry["performer"]) + bonus
-    old_score = score(prev["title"], prev["performer"]) + (25 if prev and prev.get("source") == "channel" else 0) if prev else -999
-    if not prev or new_score > old_score:
-        pool[key] = entry
-
-
 def build_catalog() -> dict:
     seen_ids: set[str] = {p["id"] for p in PRIORITY}
     # key: (name, performer, performerLabel) for dedup
     pool: dict[tuple[str, str, str], dict] = {}
 
-    # 1) 先收錄官方頻道影片
-    for d in yt_channel(CHANNEL_URL):
-        ingest_item(d, seen_ids=seen_ids, pool=pool, from_channel=True)
-
-    # 2) 再以關鍵字搜尋補齊
     for q in QUERIES:
         for d in yt_search(q):
-            ingest_item(d, seen_ids=seen_ids, pool=pool, from_channel=False)
+            vid = d.get("id")
+            title = d.get("title") or ""
+            if not vid or vid in seen_ids:
+                continue
+            entry = song_entry(vid, title, 1)
+            if should_skip(title, entry["name"]):
+                continue
+            # 跳過與優先曲同名的非導師版（仍可在 other 搜尋中收錄）
+            if entry["name"] in ("注入彩虹", "富有") and entry["performer"] == "master":
+                continue
+            seen_ids.add(vid)
+            key = (entry["name"], entry["performer"], entry["performerLabel"])
+            prev = pool.get(key)
+            if not prev or score(title, entry["performer"]) > score(prev["title"], prev["performer"]):
+                pool[key] = entry
 
     masters = sorted(
         [s for s in pool.values() if s["performer"] == "master"],
@@ -366,13 +328,51 @@ def build_catalog() -> dict:
     return {
         "updatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "artist": "太陽盛德導師",
-        "channelUrl": CHANNEL_URL,
-        "channelName": CHANNEL_NAME,
-        "channelHandle": CHANNEL_HANDLE,
         "songs": songs,
         "counts": {"master": mc, "other": oc, "total": len(songs)},
         "queueNote": "注入彩虹、富有各×3 → 導師親唱各×1 → 其他演唱者各×1",
     }
+
+
+def write_channel_directory() -> None:
+    """頻道連結自成目錄檔，供程式讀取；不併入搜尋曲庫。"""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    data = {
+        "id": "tianyuan-music",
+        "name": CHANNEL_NAME,
+        "type": "youtube-channel",
+        "url": CHANNEL_URL,
+        "handle": CHANNEL_HANDLE,
+        "note": "官方 YouTube 頻道目錄（與關鍵字搜尋曲庫分開）",
+        "updatedAt": now,
+    }
+    OUT_CHANNEL.parent.mkdir(parents=True, exist_ok=True)
+    OUT_CHANNEL.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    dirs = {
+        "updatedAt": now,
+        "directories": [
+            {
+                "id": "search",
+                "name": "搜尋曲庫",
+                "type": "catalog",
+                "source": "./catalog.json",
+                "note": "先前網路關鍵字搜尋的歌曲目錄",
+            },
+            {
+                "id": "tianyuan-music",
+                "name": CHANNEL_NAME,
+                "type": "youtube-channel",
+                "source": "./channel-directory.json",
+                "url": CHANNEL_URL,
+                "handle": CHANNEL_HANDLE,
+                "note": "官方 YouTube 頻道目錄",
+            },
+        ],
+    }
+    out_dirs = OUT.parent / "directories.json"
+    out_dirs.write_text(json.dumps(dirs, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote channel directory -> {OUT_CHANNEL}")
+    print(f"Wrote directories index -> {out_dirs}")
 
 
 def main() -> int:
@@ -382,6 +382,7 @@ def main() -> int:
     catalog = build_catalog()
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_channel_directory()
     c = catalog["counts"]
     print(f"Wrote {c['total']} songs (master {c['master']}, other {c['other']}) -> {OUT}")
     return 0
