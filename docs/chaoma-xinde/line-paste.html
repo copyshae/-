@@ -75,32 +75,37 @@
   <div class="wrap">
     <header>
       <h1>貼 LINE 救援</h1>
-      <p class="sub">Word 複製只剩頭尾時，改走這裡轉成純文字</p>
+      <p class="sub">不要從 Word 複製。請直接選檔案，中段才會出來</p>
     </header>
 
     <section class="card warn-card">
-      <h2>請先做這兩件事</h2>
+      <h2>為什麼記事本、LINE 都會缺中段？</h2>
+      <p class="hint" style="margin-top:0;">問題出在 <strong>Word 的複製</strong>，不是 LINE。剪貼簿裡本來就沒有中間段落，所以貼到記事本、輸入框、哪裡都一樣只剩頭尾。</p>
       <ol class="steps">
-        <li><strong>完全結束 LINE</strong>：工作列右下角圖示 → 右鍵「結束」；若工作管理員還有 LINE，一併結束後再重開。上次貼太長的篇文，輸入框會壞掉，之後字數再少也貼不全。</li>
-        <li>若電腦開著 <strong>CCleaner</strong>，先關掉它的剪貼簿清理（會把複製內容截斷）。</li>
+        <li>Word 畫面上看得到的中段，常是<strong>文字方塊／註解／修訂</strong>。全選複製帶不走；左下角字數（例如只有 235 字）也沒把中段算進去。</li>
+        <li><strong>正確做法</strong>：不要 Ctrl+C。用下面「選 Word 檔」讓本頁讀檔，核對中段都在，再複製純文字。</li>
+        <li>若電腦開著 <strong>CCleaner</strong>，先關掉剪貼簿清理。</li>
       </ol>
-      <p class="hint">不要再從 Word 直接貼進 LINE。Word 帶的是網頁格式，LINE 常只留下開頭與結尾。</p>
     </section>
 
     <section class="card">
-      <h2>1. 讀取文章</h2>
-      <p class="hint">優先「選 Word 檔」：連文字方塊、註解裡畫面上看得到、複製卻會漏的中段都會抓出來。</p>
+      <h2>1. 選 Word 檔（不要複製）</h2>
+      <p class="hint">把 <code>11510010.docx</code> 這類檔案選進來或拖進來。連文字方塊、註解裡「看得到卻複製不到」的中段都會抓出。</p>
       <div class="row">
         <label class="file-btn primary">📂 選 Word 檔（.docx）
           <input id="docxFile" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
         </label>
-        <button type="button" id="btnReadClip">從剪貼簿貼上</button>
         <button type="button" id="btnClear">清空</button>
       </div>
       <p class="status" id="loadStatus"></p>
-      <label for="bodyText" class="hint" style="display:block;margin-top:0.55rem;font-weight:700;color:var(--muted);">全文（可再改）</label>
-      <textarea id="bodyText" placeholder="把 Word 檔拖進來，或在這裡貼上。貼上時會自動改成純文字。"></textarea>
+      <label for="bodyText" class="hint" style="display:block;margin-top:0.55rem;font-weight:700;color:var(--muted);">全文（請核對中段是否都在）</label>
+      <textarea id="bodyText" placeholder="請選 Word 檔或把檔案拖進這一頁。不要從 Word 複製貼上（貼上的會缺中段）。"></textarea>
       <p class="meta" id="charMeta">0 字</p>
+      <details style="margin-top:0.55rem;">
+        <summary style="cursor:pointer;font-size:0.82rem;font-weight:700;color:var(--muted);">仍要從剪貼簿貼上（通常會缺中段）</summary>
+        <p class="hint">只有在「不是從 Word 複製」時才用。從 Word 複製過來的內容，記事本也會缺中段。</p>
+        <button type="button" id="btnReadClip">從剪貼簿貼上</button>
+      </details>
     </section>
 
     <section class="card ok-card">
@@ -254,7 +259,7 @@
       el.value = el.value.slice(0, start) + richer + el.value.slice(end);
       el.selectionStart = el.selectionEnd = start + richer.length;
       refreshMeta();
-      setStatus($("loadStatus"), "已貼上純文字（" + richer.length + " 字）。請核對中段是否都在，再複製給 LINE。", "");
+      setStatus($("loadStatus"), "已貼上 " + richer.length + " 字。若中段仍缺，請改選 Word 檔（從 Word 複製到記事本也會缺中段）。", "warn");
     });
 
     $("bodyText").addEventListener("input", refreshMeta);
@@ -270,7 +275,7 @@
           setStatus($("loadStatus"), "剪貼簿沒有文字。請先在 Word 全選複製，或改選 Word 檔。", "warn");
           return;
         }
-        setBody(t, "已從剪貼簿讀入 " + t.length + " 字。若中段仍缺，請改選 Word 檔。", "");
+        setBody(t, "已從剪貼簿讀入 " + t.length + " 字。從 Word 複製的內容通常會缺中段，請改選 Word 檔。", "warn");
       }).catch(function () {
         setStatus($("loadStatus"), "瀏覽器不允許讀取剪貼簿，請改用 Ctrl+V 貼進方框，或選 Word 檔", "warn");
         $("bodyText").focus();
