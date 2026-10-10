@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1b4332" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="空間清理" />
-  <meta name="description" content="清理習作工具網站快取、掃描圖、購物帳收據照片，並附 iPhone 檔案／照片手動步驟。" />
+  <meta name="description" content="清理習作工具網站快取、掃描圖、購物帳收據照片，並附 Facebook 快取與 iPhone 檔案／照片手動步驟。" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icon-180.png" sizes="180x180" />
   <link rel="icon" href="./icon-192.png" sizes="192x192" />
@@ -158,12 +158,22 @@
   <div class="wrap">
     <a class="back" href="../">← 回習作工具首頁</a>
     <h1>手機空間清理</h1>
-    <p class="lead">先按下方「一鍵安全清理」釋放本站占用；再依步驟清「檔案／照片」裡的錄音與截圖。不會動到 GitHub 上的程式。</p>
+    <p class="lead">先清 Facebook 與本站快取；再依步驟清「檔案／照片」餘檔。網頁無法直接刪手機 App 內的檔，請照下方按鈕對應的系統步驟操作。</p>
 
     <div class="flash" id="flash" role="status"></div>
 
     <section class="hero-clean">
-      <h2>一｜立刻釋放（建議）</h2>
+      <h2>一｜移除 Facebook 快取</h2>
+      <p>Facebook／Messenger App 的快取只能在手機系統設定裡清；清完可釋放大量空間，不會刪你的貼文或帳號。</p>
+      <button type="button" class="btn primary" id="btnFbIos">顯示 iPhone 步驟</button>
+      <button type="button" class="btn secondary" id="btnFbAndroid">顯示 Android 步驟</button>
+      <button type="button" class="btn secondary" id="btnFbSafari">顯示 Safari／Chrome 網站快取步驟</button>
+      <div id="fbSteps" class="hint" style="margin-top:0.75rem;display:none"></div>
+      <p class="hint">清完請到「最近刪除／垃圾桶」再確認一次，空間才會真正回來。</p>
+    </section>
+
+    <section class="hero-clean">
+      <h2>二｜立刻釋放本站（建議）</h2>
       <p>一次完成：網站快取、Service Worker、曲庫快取、購物帳收據照片、掃描圖 IndexedDB（習作／掃具暫存圖）。</p>
       <ul class="checklist">
         <li>✓ 保留：勾選紀錄、掃具庫存、購物帳品名金額、批改進度、API 金鑰</li>
@@ -174,7 +184,7 @@
     </section>
 
     <section>
-      <h2>二｜目前用量</h2>
+      <h2>三｜目前用量</h2>
       <p class="hint">數字來自瀏覽器回報（Safari／Chrome 可能略有誤差）。</p>
       <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
       <p class="stats" id="usageText">讀取中…</p>
@@ -182,20 +192,20 @@
     </section>
 
     <section>
-      <h2>三｜網站快取</h2>
+      <h2>四｜網站快取</h2>
       <div class="list" id="cacheList"><div>讀取中…</div></div>
       <button type="button" class="btn secondary" id="btnClearCaches">只清網站快取</button>
     </section>
 
     <section>
-      <h2>四｜掃描圖資料庫（IndexedDB）</h2>
+      <h2>五｜掃描圖資料庫（IndexedDB）</h2>
       <p>習作批改／習作台／掃具台暫存圖常占最多。清掉後進度仍在，下次掃描會重建。</p>
       <div class="list" id="idbList"><div>讀取中…</div></div>
       <button type="button" class="btn warn" id="btnClearIdb">清除掃描圖資料庫</button>
     </section>
 
     <section>
-      <h2>五｜本機鍵值（localStorage）</h2>
+      <h2>六｜本機鍵值（localStorage）</h2>
       <div class="list" id="lsList"><div>讀取中…</div></div>
       <button type="button" class="btn warn" id="btnStripPhotos">只刪購物帳收據照片</button>
       <button type="button" class="btn secondary" id="btnClearCatalogs">清除曲庫／節目表快取</button>
@@ -205,7 +215,7 @@
 
     <section>
       <details open>
-        <summary>六｜iPhone「檔案」餘檔（手動）</summary>
+        <summary>七｜iPhone「檔案」餘檔（手動）</summary>
         <ol>
           <li>打開 <strong>檔案</strong> App →「最近項目」或「瀏覽」。</li>
           <li>搜尋：<code>Recorder</code>、<code>錄音</code>、<code>掃具</code>、<code>庫存</code>、<code>請領</code>、<code>scan</code>。</li>
@@ -218,7 +228,7 @@
 
     <section>
       <details>
-        <summary>七｜照片 App 截圖（手動）</summary>
+        <summary>八｜照片 App 截圖（手動）</summary>
         <ol>
           <li>打開 <strong>照片</strong> → 搜尋 <code>螢幕截圖</code> 或 <code>Screenshot</code>。</li>
           <li>也可搜尋 <code>Cursor</code>、<code>github</code>、<code>copyshae</code> 找相關畫面。</li>
@@ -230,13 +240,13 @@
 
     <section>
       <details>
-        <summary>八｜Safari 網站資料（仍不足時）</summary>
+        <summary>九｜Safari 網站資料（仍不足時）</summary>
         <ol>
           <li>設定 → Safari → 進階 → <strong>網站資料</strong>。</li>
-          <li>搜尋並刪除 <code>copyshae.github.io</code>（必要時也清 <code>github.io</code>）。</li>
-          <li>關閉相關分頁後，用 Safari 重新開啟本頁或各工具。</li>
+          <li>搜尋並刪除 <code>facebook.com</code>、<code>fb.com</code>、<code>instagram.com</code>、<code>copyshae.github.io</code>。</li>
+          <li>關閉相關分頁後，用 Safari 重新開啟。</li>
         </ol>
-        <p class="hint">這一步等於重置此站本機資料，請先匯出購物帳／掃具／批改進度。</p>
+        <p class="hint">清 <code>copyshae.github.io</code> 等於重置本站資料，請先匯出購物帳／掃具／批改進度。</p>
       </details>
     </section>
 
@@ -646,6 +656,46 @@
     flash("安全清理完成：" + parts.join("、") + freed + "。請再清「檔案／照片」餘檔。", "ok");
     await refreshUsage();
   }
+
+  var fbSteps = document.getElementById("fbSteps");
+  function showFbSteps(kind) {
+    var html = "";
+    if (kind === "ios") {
+      html =
+        "<ol>" +
+        "<li>打開 iPhone <strong>設定</strong> → 向下滑到 <strong>Facebook</strong>（或 Messenger）。</li>" +
+        "<li>若有「清除快取／Clear Cache」直接按。</li>" +
+        "<li>多數 iOS 沒有單獨清快取：改用 <strong>卸除 App</strong>（保留文件與資料）→ 到 App Store 再安裝；快取會清掉、登入狀態常仍在。</li>" +
+        "<li>若要更徹底：長按 App → 刪除 App → 再安裝（會需重新登入）。</li>" +
+        "<li>也可：設定 → 一般 → iPhone 儲存空間 → 點 Facebook → <strong>卸除 App</strong> 後重裝。</li>" +
+        "</ol>";
+      flash("已顯示 iPhone 移除 Facebook 快取步驟", "ok");
+    } else if (kind === "android") {
+      html =
+        "<ol>" +
+        "<li>打開 <strong>設定</strong> → <strong>應用程式</strong>（或 App）→ 找到 <strong>Facebook</strong>。</li>" +
+        "<li>點 <strong>儲存空間</strong> → <strong>清除快取</strong>（不要按「清除資料」，否則會登出）。</li>" +
+        "<li>Messenger、Instagram 可同樣清快取。</li>" +
+        "<li>若沒有「清除快取」：長按圖示 → App 資訊 → 儲存空間 → 清除快取。</li>" +
+        "</ol>";
+      flash("已顯示 Android 移除 Facebook 快取步驟", "ok");
+    } else {
+      html =
+        "<ol>" +
+        "<li><strong>iPhone Safari</strong>：設定 → Safari → 進階 → 網站資料 → 搜尋並刪除 <code>facebook.com</code>、<code>fb.com</code>、<code>instagram.com</code>。</li>" +
+        "<li><strong>iPhone Chrome</strong>：Chrome → ⋮ → 瀏覽紀錄 → 清除瀏覽資料 → 勾選「Cookie 與網站資料／快取圖像」→ 時間範圍選全部 → 清除。</li>" +
+        "<li><strong>Android Chrome</strong>：Chrome → ⋮ → 瀏覽紀錄 → 清除瀏覽資料 → 勾選 Cookie 與快取圖像 → 清除。</li>" +
+        "<li>這只清「用瀏覽器開的 Facebook 網頁」，不會清 Facebook App 本體快取。</li>" +
+        "</ol>";
+      flash("已顯示瀏覽器 Facebook 網站快取步驟", "ok");
+    }
+    fbSteps.style.display = "block";
+    fbSteps.innerHTML = html;
+    try { fbSteps.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+  }
+  document.getElementById("btnFbIos").onclick = function () { showFbSteps("ios"); };
+  document.getElementById("btnFbAndroid").onclick = function () { showFbSteps("android"); };
+  document.getElementById("btnFbSafari").onclick = function () { showFbSteps("web"); };
 
   document.getElementById("btnRefresh").onclick = function () {
     refreshUsage().then(function () { flash("已重新測量", "ok"); });

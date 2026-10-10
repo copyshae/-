@@ -1,4 +1,4 @@
-const CACHE = "phone-clean-v1";
+const CACHE = "phone-clean-v2";
 const ASSETS = [
   "./",
   "./index.html",
