@@ -1,0 +1,10 @@
+---
+description: 超碼修煉心得（chaoma-xinde）與 LINE 貼文
+globs: docs/chaoma-xinde/**
+---
+
+# 超碼修煉心得
+
+- 正式網址：https://copyshae.github.io/-/chaoma-xinde/
+- Word 直接複製到 LINE／記事本都會只剩頭尾：問題在 Word 複製（中段常在文字方塊／註解，狀態列字數不含中段），不是整台電腦壞掉。救援頁：`docs/chaoma-xinde/line-paste.html`（**選檔讀取**，不要從 Word 複製）。
+- 改心得格式／分享／快取時，記得提高 `sw.js` 的 `CACHE` 版號，並把新頁面列入 `ASSETS`。
