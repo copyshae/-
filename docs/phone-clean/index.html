@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b4332" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="空間清理" />
+  <meta name="description" content="清理習作工具網站快取、掃描圖、購物帳收據照片，並附 iPhone 檔案／照片手動步驟。" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-180.png" sizes="180x180" />
+  <link rel="icon" href="./icon-192.png" sizes="192x192" />
+  <title>手機空間清理｜習作工具</title>
+  <style>
+    :root {
+      --accent: #1b4332;
+      --muted: #4a5c52;
+      --paper: #e8efe6;
+      --warn: #8a4b08;
+      --danger: #8b1e1e;
+      --ok: #0e6b3c;
+      --card: rgba(255, 255, 255, 0.78);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "PingFang TC", "Noto Sans TC", sans-serif;
+      color: #1a1f1c;
+      line-height: 1.55;
+      background: linear-gradient(160deg, #f4faf6 0%, var(--paper) 55%, #d8e8dc 100%);
+      padding: 1.5rem 1.1rem 3rem;
+    }
+    .wrap { max-width: 26rem; margin: 0 auto; }
+    .back {
+      display: inline-block; margin-bottom: 1rem;
+      color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.95rem;
+    }
+    h1 {
+      font-size: 1.75rem; font-weight: 700; color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+    .lead { margin-top: 0.55rem; color: var(--muted); font-size: 0.95rem; }
+    section {
+      margin-top: 1.25rem;
+      padding: 1rem 1.05rem;
+      background: var(--card);
+      border: 1px solid rgba(27, 67, 50, 0.18);
+    }
+    section.hero-clean {
+      border-color: rgba(27, 67, 50, 0.35);
+      background: rgba(255, 255, 255, 0.9);
+    }
+    h2 {
+      font-size: 1.05rem; color: var(--accent); margin-bottom: 0.55rem;
+    }
+    p, li { font-size: 0.92rem; color: var(--muted); }
+    ol, ul { padding-left: 1.2rem; }
+    li + li { margin-top: 0.35rem; }
+    .meter {
+      margin-top: 0.7rem;
+      background: rgba(27, 67, 50, 0.1);
+      height: 0.55rem;
+      overflow: hidden;
+    }
+    .meter > span {
+      display: block; height: 100%; width: 0;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+    .stats {
+      margin-top: 0.65rem;
+      font-size: 0.9rem;
+      color: #1a1f1c;
+      font-weight: 600;
+    }
+    .list {
+      margin-top: 0.65rem;
+      max-height: 11rem;
+      overflow: auto;
+      font-size: 0.82rem;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(27, 67, 50, 0.12);
+      padding: 0.45rem 0.55rem;
+    }
+    .list div {
+      display: flex; justify-content: space-between; gap: 0.5rem;
+      padding: 0.28rem 0;
+      border-bottom: 1px solid rgba(27, 67, 50, 0.08);
+      word-break: break-all;
+    }
+    .list div:last-child { border-bottom: none; }
+    .list .sz { flex-shrink: 0; color: var(--accent); font-weight: 600; }
+    .list .big { color: var(--warn); }
+    button.btn {
+      display: block; width: 100%; margin-top: 0.65rem;
+      background: var(--accent); color: #fff; border: none;
+      font: inherit; font-weight: 700; font-size: 1rem;
+      padding: 0.95rem 1rem; cursor: pointer;
+    }
+    button.btn.primary {
+      font-size: 1.12rem;
+      padding: 1.1rem 1rem;
+      letter-spacing: 0.02em;
+    }
+    button.btn.secondary {
+      background: #fff; color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    button.btn.warn {
+      background: #fff; color: var(--warn);
+      border: 1px solid var(--warn);
+    }
+    button.btn.danger {
+      background: #fff; color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .flash {
+      margin-top: 0.7rem; padding: 0.65rem 0.75rem;
+      font-size: 0.9rem; font-weight: 600;
+      display: none;
+    }
+    .flash.show { display: block; }
+    .flash.ok { background: #d8f3e4; color: var(--ok); }
+    .flash.err { background: #f8e0e0; color: var(--danger); }
+    .flash.warn { background: #f7ead6; color: var(--warn); }
+    .hint { margin-top: 0.55rem; font-size: 0.84rem; }
+    a.inline { color: var(--accent); font-weight: 600; }
+    code {
+      font-size: 0.82em;
+      background: rgba(27, 67, 50, 0.08);
+      padding: 0.05em 0.3em;
+    }
+    .checklist {
+      margin-top: 0.55rem;
+      font-size: 0.88rem;
+      color: #1a1f1c;
+    }
+    .checklist li { color: #1a1f1c; }
+    details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1.05rem;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details[open] summary { margin-bottom: 0.55rem; }
+    details summary::after {
+      content: " ▾";
+      font-weight: 400;
+      color: var(--muted);
+    }
+    details:not([open]) summary::after { content: " ▸"; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="../">← 回習作工具首頁</a>
+    <h1>手機空間清理</h1>
+    <p class="lead">先按下方「一鍵安全清理」釋放本站占用；再依步驟清「檔案／照片」裡的錄音與截圖。不會動到 GitHub 上的程式。</p>
+
+    <div class="flash" id="flash" role="status"></div>
+
+    <section class="hero-clean">
+      <h2>一｜立刻釋放（建議）</h2>
+      <p>一次完成：網站快取、Service Worker、曲庫快取、購物帳收據照片、掃描圖 IndexedDB（習作／掃具暫存圖）。</p>
+      <ul class="checklist">
+        <li>✓ 保留：勾選紀錄、掃具庫存、購物帳品名金額、批改進度、API 金鑰</li>
+        <li>✗ 會刪：離線快取、收據照片、掃描暫存圖、曲庫目錄快取</li>
+      </ul>
+      <button type="button" class="btn primary" id="btnSafeClean">一鍵安全清理</button>
+      <p class="hint">清完各 App 下次開啟會重新下載；購物帳若還要圖，請先到 <a class="inline" href="../home-shop/">購物帳</a> 匯出 JSON。</p>
+    </section>
+
+    <section>
+      <h2>二｜目前用量</h2>
+      <p class="hint">數字來自瀏覽器回報（Safari／Chrome 可能略有誤差）。</p>
+      <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+      <p class="stats" id="usageText">讀取中…</p>
+      <button type="button" class="btn secondary" id="btnRefresh">重新測量</button>
+    </section>
+
+    <section>
+      <h2>三｜網站快取</h2>
+      <div class="list" id="cacheList"><div>讀取中…</div></div>
+      <button type="button" class="btn secondary" id="btnClearCaches">只清網站快取</button>
+    </section>
+
+    <section>
+      <h2>四｜掃描圖資料庫（IndexedDB）</h2>
+      <p>習作批改／習作台／掃具台暫存圖常占最多。清掉後進度仍在，下次掃描會重建。</p>
+      <div class="list" id="idbList"><div>讀取中…</div></div>
+      <button type="button" class="btn warn" id="btnClearIdb">清除掃描圖資料庫</button>
+    </section>
+
+    <section>
+      <h2>五｜本機鍵值（localStorage）</h2>
+      <div class="list" id="lsList"><div>讀取中…</div></div>
+      <button type="button" class="btn warn" id="btnStripPhotos">只刪購物帳收據照片</button>
+      <button type="button" class="btn secondary" id="btnClearCatalogs">清除曲庫／節目表快取</button>
+      <button type="button" class="btn danger" id="btnClearAllLs">清除此站全部本機資料</button>
+      <p class="hint">最後一項會刪購物帳、掃具、批改進度、金鑰等，請先匯出備份。</p>
+    </section>
+
+    <section>
+      <details open>
+        <summary>六｜iPhone「檔案」餘檔（手動）</summary>
+        <ol>
+          <li>打開 <strong>檔案</strong> App →「最近項目」或「瀏覽」。</li>
+          <li>搜尋：<code>Recorder</code>、<code>錄音</code>、<code>掃具</code>、<code>庫存</code>、<code>請領</code>、<code>scan</code>。</li>
+          <li>長按不需要的檔 → 刪除。已刪 App Recorder 後，餘檔常仍留在「檔案」。</li>
+          <li>到「最近刪除」再清一次，空間才真正釋放。</li>
+          <li><strong>留下</strong>：試題、fund 備份、已匯出的 JSON／Excel。</li>
+        </ol>
+      </details>
+    </section>
+
+    <section>
+      <details>
+        <summary>七｜照片 App 截圖（手動）</summary>
+        <ol>
+          <li>打開 <strong>照片</strong> → 搜尋 <code>螢幕截圖</code> 或 <code>Screenshot</code>。</li>
+          <li>也可搜尋 <code>Cursor</code>、<code>github</code>、<code>copyshae</code> 找相關畫面。</li>
+          <li>選取後刪除 → 再到「最近刪除」清空。</li>
+          <li>Android：Google 相片／檔案 → 螢幕截圖相簿，刪完再清垃圾桶。</li>
+        </ol>
+      </details>
+    </section>
+
+    <section>
+      <details>
+        <summary>八｜Safari 網站資料（仍不足時）</summary>
+        <ol>
+          <li>設定 → Safari → 進階 → <strong>網站資料</strong>。</li>
+          <li>搜尋並刪除 <code>copyshae.github.io</code>（必要時也清 <code>github.io</code>）。</li>
+          <li>關閉相關分頁後，用 Safari 重新開啟本頁或各工具。</li>
+        </ol>
+        <p class="hint">這一步等於重置此站本機資料，請先匯出購物帳／掃具／批改進度。</p>
+      </details>
+    </section>
+
+    <p class="hint" style="margin-top:1.2rem">
+      可 <a class="inline" href="./share.html">加入主畫面</a> 方便下次一鍵清理。
+      正式網址：https://copyshae.github.io/-/phone-clean/
+    </p>
+  </div>
+
+  <script>
+(function () {
+  var flashEl = document.getElementById("flash");
+  var meterFill = document.getElementById("meterFill");
+  var usageText = document.getElementById("usageText");
+  var cacheList = document.getElementById("cacheList");
+  var lsList = document.getElementById("lsList");
+  var idbList = document.getElementById("idbList");
+
+  var CATALOG_KEYS = [
+    "taiyang-catalog",
+    "fu-dao-catalog",
+    "taiyang-lyrics",
+    "doc-reader-word-cache-v1"
+  ];
+  var HOME_SHOP_STORE = "home-shop-v1";
+  var KNOWN_IDB = [
+    "math-grader-scans",
+    "teacher-desk-scans",
+    "scan-equip-inbox"
+  ];
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  }
+
+  function flash(msg, kind) {
+    flashEl.textContent = msg;
+    flashEl.className = "flash show " + (kind || "ok");
+    try { flashEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+  }
+
+  function fmtBytes(n) {
+    if (n == null || isNaN(n)) return "—";
+    var u = ["B", "KB", "MB", "GB"];
+    var i = 0;
+    var v = Number(n);
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return (i === 0 ? String(Math.round(v)) : v.toFixed(v >= 10 ? 1 : 2)) + " " + u[i];
+  }
+
+  function estimateLsBytes(str) {
+    if (!str) return 0;
+    try {
+      return new Blob([str]).size;
+    } catch (e) {
+      return str.length * 2;
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function readLocalStorageEntries() {
+    var items = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var key = localStorage.key(i);
+      var val = "";
+      try { val = localStorage.getItem(key) || ""; } catch (e) { val = ""; }
+      items.push({ key: key, bytes: estimateLsBytes(val), val: val });
+    }
+    items.sort(function (a, b) { return b.bytes - a.bytes; });
+    return items;
+  }
+
+  function renderLs(items) {
+    if (!items.length) {
+      lsList.innerHTML = "<div>目前沒有本機資料</div>";
+      return;
+    }
+    lsList.innerHTML = items.slice(0, 40).map(function (it) {
+      var big = it.bytes >= 50000 ? " big" : "";
+      return "<div><span>" + escapeHtml(it.key) + "</span><span class=\"sz" + big + "\">" + fmtBytes(it.bytes) + "</span></div>";
+    }).join("");
+  }
+
+  async function estimateCacheBytes(cacheName) {
+    try {
+      var cache = await caches.open(cacheName);
+      var keys = await cache.keys();
+      var total = 0;
+      for (var i = 0; i < keys.length; i++) {
+        try {
+          var res = await cache.match(keys[i]);
+          if (!res) continue;
+          var buf = await res.clone().arrayBuffer();
+          total += buf.byteLength;
+        } catch (eItem) {}
+      }
+      return { name: cacheName, bytes: total, entries: keys.length };
+    } catch (e) {
+      return { name: cacheName, bytes: 0, entries: 0 };
+    }
+  }
+
+  async function listCaches() {
+    if (!("caches" in window)) {
+      cacheList.innerHTML = "<div>此瀏覽器不支援 Cache API</div>";
+      return [];
+    }
+    var names = await caches.keys();
+    var rows = [];
+    for (var i = 0; i < names.length; i++) {
+      rows.push(await estimateCacheBytes(names[i]));
+    }
+    rows.sort(function (a, b) { return b.bytes - a.bytes; });
+    if (!rows.length) {
+      cacheList.innerHTML = "<div>目前沒有網站快取</div>";
+    } else {
+      cacheList.innerHTML = rows.map(function (r) {
+        return "<div><span>" + escapeHtml(r.name) + "（" + r.entries + "）</span><span class=\"sz\">" + fmtBytes(r.bytes) + "</span></div>";
+      }).join("");
+    }
+    return rows;
+  }
+
+  function estimateIdbDb(name) {
+    return new Promise(function (resolve) {
+      var total = 0;
+      var stores = 0;
+      var req;
+      try {
+        req = indexedDB.open(name);
+      } catch (e) {
+        resolve({ name: name, bytes: 0, stores: 0, exists: false });
+        return;
+      }
+      req.onerror = function () {
+        resolve({ name: name, bytes: 0, stores: 0, exists: false });
+      };
+      req.onsuccess = function () {
+        var db = req.result;
+        if (!db) {
+          resolve({ name: name, bytes: 0, stores: 0, exists: false });
+          return;
+        }
+        var names = Array.prototype.slice.call(db.objectStoreNames || []);
+        stores = names.length;
+        if (!names.length) {
+          db.close();
+          resolve({ name: name, bytes: 0, stores: 0, exists: true });
+          return;
+        }
+        var pending = names.length;
+        names.forEach(function (storeName) {
+          try {
+            var tx = db.transaction(storeName, "readonly");
+            var store = tx.objectStore(storeName);
+            var getAll = store.getAll ? store.getAll() : null;
+            if (!getAll) {
+              pending--;
+              if (!pending) { db.close(); resolve({ name: name, bytes: total, stores: stores, exists: true }); }
+              return;
+            }
+            getAll.onsuccess = function () {
+              var rows = getAll.result || [];
+              for (var i = 0; i < rows.length; i++) {
+                try {
+                  total += new Blob([JSON.stringify(rows[i])]).size;
+                } catch (e2) {
+                  try { total += String(rows[i]).length * 2; } catch (e3) {}
+                }
+              }
+              pending--;
+              if (!pending) { db.close(); resolve({ name: name, bytes: total, stores: stores, exists: true }); }
+            };
+            getAll.onerror = function () {
+              pending--;
+              if (!pending) { db.close(); resolve({ name: name, bytes: total, stores: stores, exists: true }); }
+            };
+          } catch (e4) {
+            pending--;
+            if (!pending) { db.close(); resolve({ name: name, bytes: total, stores: stores, exists: true }); }
+          }
+        });
+      };
+    });
+  }
+
+  async function discoverIdbNames() {
+    var names = KNOWN_IDB.slice();
+    if (indexedDB.databases) {
+      try {
+        var dbs = await indexedDB.databases();
+        for (var i = 0; i < dbs.length; i++) {
+          var n = dbs[i] && dbs[i].name;
+          if (n && names.indexOf(n) < 0) names.push(n);
+        }
+      } catch (e) {}
+    }
+    return names;
+  }
+
+  async function listIdb() {
+    if (!window.indexedDB) {
+      idbList.innerHTML = "<div>此瀏覽器不支援 IndexedDB</div>";
+      return [];
+    }
+    var names = await discoverIdbNames();
+    var rows = [];
+    for (var i = 0; i < names.length; i++) {
+      rows.push(await estimateIdbDb(names[i]));
+    }
+    rows = rows.filter(function (r) { return r.exists || r.bytes > 0; });
+    rows.sort(function (a, b) { return b.bytes - a.bytes; });
+    if (!rows.length) {
+      idbList.innerHTML = "<div>目前沒有掃描圖資料庫</div>";
+    } else {
+      idbList.innerHTML = rows.map(function (r) {
+        var big = r.bytes >= 50000 ? " big" : "";
+        return "<div><span>" + escapeHtml(r.name) + "（" + r.stores + " 庫）</span><span class=\"sz" + big + "\">" + fmtBytes(r.bytes) + "</span></div>";
+      }).join("");
+    }
+    return rows;
+  }
+
+  async function refreshUsage() {
+    usageText.textContent = "讀取中…";
+    var lsItems = readLocalStorageEntries();
+    renderLs(lsItems);
+    var cacheRows = await listCaches();
+    var idbRows = await listIdb();
+    var lsBytes = lsItems.reduce(function (s, it) { return s + it.bytes; }, 0);
+    var cacheBytes = cacheRows.reduce(function (s, it) { return s + it.bytes; }, 0);
+    var idbBytes = idbRows.reduce(function (s, it) { return s + it.bytes; }, 0);
+
+    var used = null;
+    var quota = null;
+    if (navigator.storage && navigator.storage.estimate) {
+      try {
+        var est = await navigator.storage.estimate();
+        used = est.usage || 0;
+        quota = est.quota || 0;
+      } catch (e) {}
+    }
+
+    var parts = [];
+    if (used != null) {
+      parts.push("瀏覽器回報已用 " + fmtBytes(used) + (quota ? "／配額 " + fmtBytes(quota) : ""));
+      var pct = quota ? Math.min(100, Math.round((used / quota) * 1000) / 10) : 0;
+      meterFill.style.width = pct + "%";
+      meterFill.style.background = pct >= 85 ? "var(--danger)" : pct >= 60 ? "var(--warn)" : "var(--accent)";
+    } else {
+      meterFill.style.width = "0%";
+    }
+    parts.push("本機鍵值約 " + fmtBytes(lsBytes));
+    parts.push("快取約 " + fmtBytes(cacheBytes));
+    parts.push("掃描圖庫約 " + fmtBytes(idbBytes));
+    usageText.textContent = parts.join(" · ");
+    return { used: used, lsBytes: lsBytes, cacheBytes: cacheBytes, idbBytes: idbBytes };
+  }
+
+  async function clearCaches(keepSelfSw) {
+    var cleared = 0;
+    if ("caches" in window) {
+      var names = await caches.keys();
+      for (var i = 0; i < names.length; i++) {
+        if (await caches.delete(names[i])) cleared++;
+      }
+    }
+    var swCount = 0;
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      var regs = await navigator.serviceWorker.getRegistrations();
+      for (var j = 0; j < regs.length; j++) {
+        try {
+          var scope = (regs[j].scope || "");
+          if (keepSelfSw && /phone-clean\//.test(scope)) continue;
+          if (await regs[j].unregister()) swCount++;
+        } catch (e) {}
+      }
+    }
+    return { cleared: cleared, swCount: swCount };
+  }
+
+  function deleteIdb(name) {
+    return new Promise(function (resolve) {
+      try {
+        var req = indexedDB.deleteDatabase(name);
+        req.onsuccess = function () { resolve(true); };
+        req.onerror = function () { resolve(false); };
+        req.onblocked = function () { resolve(true); };
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  async function clearScanIdb() {
+    var names = await discoverIdbNames();
+    var n = 0;
+    for (var i = 0; i < names.length; i++) {
+      if (await deleteIdb(names[i])) n++;
+    }
+    return n;
+  }
+
+  function stripHomeShopPhotos() {
+    var raw = localStorage.getItem(HOME_SHOP_STORE);
+    if (!raw) return { ok: false, n: 0, reason: "missing" };
+    var data;
+    try { data = JSON.parse(raw); } catch (e) {
+      return { ok: false, n: 0, reason: "bad" };
+    }
+    var items = (data && data.items) || [];
+    var n = 0;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it) continue;
+      if (it.photo) { it.photo = ""; n++; }
+      if (it.thumb) { it.thumb = ""; n++; }
+      if (it.image) { it.image = ""; n++; }
+      if (it.receipt) { it.receipt = ""; n++; }
+    }
+    try {
+      localStorage.setItem(HOME_SHOP_STORE, JSON.stringify(data));
+      return { ok: true, n: n };
+    } catch (e2) {
+      return { ok: false, n: n, reason: "quota" };
+    }
+  }
+
+  function clearCatalogCaches() {
+    var removed = 0;
+    for (var i = 0; i < CATALOG_KEYS.length; i++) {
+      try {
+        if (localStorage.getItem(CATALOG_KEYS[i]) != null) {
+          localStorage.removeItem(CATALOG_KEYS[i]);
+          removed++;
+        }
+      } catch (e) {}
+    }
+    var extra = [];
+    for (var j = 0; j < localStorage.length; j++) {
+      var k = localStorage.key(j);
+      if (!k) continue;
+      if (/lyrics|catalog-cache|word-cache|live-cue-cache/i.test(k) && CATALOG_KEYS.indexOf(k) < 0) {
+        extra.push(k);
+      }
+    }
+    for (var x = 0; x < extra.length; x++) {
+      try { localStorage.removeItem(extra[x]); removed++; } catch (e3) {}
+    }
+    return removed;
+  }
+
+  function clearAllLocalStorage() {
+    if (!confirm("確定清除此站全部本機資料？購物帳、掃具、批改進度、API 金鑰都會消失。請確認已匯出備份。")) return false;
+    if (!confirm("再確認一次：無法復原。仍要清除？")) return false;
+    try {
+      localStorage.clear();
+      return true;
+    } catch (e) {
+      flash("清除失敗：" + (e && e.message ? e.message : "未知錯誤"), "err");
+      return false;
+    }
+  }
+
+  async function safeCleanAll() {
+    if (!confirm("執行一鍵安全清理？\n會清快取、掃描圖、曲庫快取、購物帳收據照片。\n勾選紀錄／庫存／品名金額／金鑰會保留。")) return;
+    var before = null;
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        before = (await navigator.storage.estimate()).usage || 0;
+      }
+    } catch (e) {}
+
+    var cacheRes = await clearCaches(true);
+    var idbN = await clearScanIdb();
+    var catN = clearCatalogCaches();
+    var photoRes = stripHomeShopPhotos();
+
+    var after = null;
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        after = (await navigator.storage.estimate()).usage || 0;
+      }
+    } catch (e2) {}
+
+    var parts = [];
+    parts.push("快取 " + cacheRes.cleared + " 組");
+    if (cacheRes.swCount) parts.push("SW " + cacheRes.swCount);
+    parts.push("掃描庫 " + idbN);
+    parts.push("曲庫鍵 " + catN);
+    if (photoRes.ok) parts.push("收據圖欄位 " + photoRes.n);
+    else if (photoRes.reason === "missing") parts.push("無購物帳照片");
+    else if (photoRes.reason === "quota") parts.push("收據圖寫回失敗");
+    else if (photoRes.reason === "bad") parts.push("購物帳格式異常");
+
+    var freed = "";
+    if (before != null && after != null && before >= after) {
+      freed = "；約釋放 " + fmtBytes(before - after);
+    }
+    flash("安全清理完成：" + parts.join("、") + freed + "。請再清「檔案／照片」餘檔。", "ok");
+    await refreshUsage();
+  }
+
+  document.getElementById("btnRefresh").onclick = function () {
+    refreshUsage().then(function () { flash("已重新測量", "ok"); });
+  };
+  document.getElementById("btnSafeClean").onclick = function () {
+    var btn = document.getElementById("btnSafeClean");
+    btn.disabled = true;
+    safeCleanAll()
+      .catch(function (e) {
+        flash("清理失敗：" + (e && e.message ? e.message : "未知錯誤"), "err");
+      })
+      .then(function () { btn.disabled = false; });
+  };
+  document.getElementById("btnClearCaches").onclick = function () {
+    clearCaches(true).then(function (r) {
+      flash("已清除 " + r.cleared + " 組快取" + (r.swCount ? "、解除 " + r.swCount + " 個 Service Worker" : "") + "。", "ok");
+      return refreshUsage();
+    }).catch(function (e) {
+      flash("清除快取失敗：" + (e && e.message ? e.message : "未知錯誤"), "err");
+    });
+  };
+  document.getElementById("btnClearIdb").onclick = function () {
+    if (!confirm("清除掃描圖資料庫？（批改／掃具進度保留，暫存圖會刪）")) return;
+    clearScanIdb().then(function (n) {
+      flash(n ? ("已清除 " + n + " 個掃描圖資料庫") : "沒有可清的掃描圖庫", n ? "ok" : "warn");
+      return refreshUsage();
+    });
+  };
+  document.getElementById("btnStripPhotos").onclick = function () {
+    if (!confirm("只刪購物帳收據照片，保留品名與金額？")) return;
+    var r = stripHomeShopPhotos();
+    if (r.ok) flash(r.n ? ("已清除 " + r.n + " 處收據圖欄位") : "購物帳沒有可刪的照片欄位", r.n ? "ok" : "warn");
+    else if (r.reason === "missing") flash("找不到購物帳資料（可能已清過或尚未使用）", "warn");
+    else if (r.reason === "bad") flash("購物帳資料格式異常，請改到購物帳頁匯出後再清", "err");
+    else flash("寫回失敗：空間可能仍不足。請到設定清除網站資料，或先匯出 JSON。", "err");
+    refreshUsage();
+  };
+  document.getElementById("btnClearCatalogs").onclick = function () {
+    if (!confirm("清除曲庫／節目表快取？（進度保留）")) return;
+    var removed = clearCatalogCaches();
+    flash(removed ? ("已清除 " + removed + " 筆曲庫／快取鍵") : "沒有可清的曲庫快取", removed ? "ok" : "warn");
+    refreshUsage();
+  };
+  document.getElementById("btnClearAllLs").onclick = function () {
+    if (clearAllLocalStorage()) {
+      flash("已清除全部本機資料", "warn");
+      refreshUsage();
+    }
+  };
+
+  refreshUsage().catch(function () {
+    usageText.textContent = "無法完整讀取用量，仍可按下方按鈕清理";
+  });
+})();
+  </script>
+</body>
+</html>
