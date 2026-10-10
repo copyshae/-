@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#b8860b" />
+  <meta name="description" content="Word 貼 LINE 中間消失救援：讀取 Word 全文、轉成純文字再複製，避免只出現頭尾。" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>貼 LINE 救援｜超碼修煉心得</title>
+  <style>
+    :root {
+      --ink: #3a2214; --muted: #7a5640; --paper: #fff6e6;
+      --accent: #b8860b; --heart: #c45c26; --line: rgba(184, 134, 11, 0.25);
+      --ok: #2f6b3a; --warn: #b54708; --danger: #b42318;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--ink); line-height: 1.55;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -10%, rgba(255, 232, 163, 0.95), transparent 60%),
+        linear-gradient(180deg, #fff9eb 0%, #f7e4c0 48%, #efd2a0 100%);
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    .wrap { max-width: 26rem; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    header { text-align: center; margin-bottom: 0.85rem; }
+    header h1 {
+      font-size: clamp(1.3rem, 6vw, 1.65rem); color: var(--heart);
+      font-weight: 800; letter-spacing: 0.04em;
+    }
+    header .sub { font-size: 0.88rem; color: var(--muted); margin-top: 0.25rem; }
+    .card {
+      background: rgba(255, 252, 245, 0.82); border: 1px solid var(--line);
+      padding: 0.85rem; margin: 0.65rem 0;
+    }
+    .card h2 { font-size: 1rem; color: var(--accent); margin-bottom: 0.4rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
+    .warn-card { border-color: rgba(180, 35, 24, 0.45); background: rgba(255, 236, 230, 0.9); }
+    .ok-card { border-color: rgba(47, 107, 58, 0.45); background: rgba(232, 245, 233, 0.75); }
+    ol.steps { margin: 0.35rem 0 0 1.15rem; font-size: 0.86rem; color: var(--ink); }
+    ol.steps li { margin: 0.28rem 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+    button, .file-btn {
+      font: inherit; cursor: pointer; border: 1px solid var(--line);
+      background: #fff; color: var(--accent); padding: 0.55rem 0.75rem;
+      font-weight: 700; min-height: 2.75rem; touch-action: manipulation;
+      text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    }
+    button.primary, .file-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    input[type="file"] { display: none; }
+    textarea {
+      width: 100%; font: inherit; font-size: 16px; padding: 0.55rem 0.6rem;
+      border: 1px solid var(--line); background: #fff; line-height: 1.75;
+      min-height: 14rem; resize: vertical; white-space: pre-wrap;
+    }
+    .status { font-size: 0.84rem; font-weight: 700; min-height: 1.2rem; margin-top: 0.35rem; color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .status.err { color: var(--danger); }
+    .meta { font-size: 0.82rem; color: var(--muted); margin-top: 0.35rem; }
+    .chunk {
+      margin-top: 0.55rem; padding: 0.55rem; background: #fff; border: 1px solid var(--line);
+    }
+    .chunk pre {
+      white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 0.82rem;
+      max-height: 8rem; overflow: auto; margin-top: 0.35rem;
+    }
+    footer { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>貼 LINE 救援</h1>
+      <p class="sub">Word 複製只剩頭尾時，改走這裡轉成純文字</p>
+    </header>
+
+    <section class="card warn-card">
+      <h2>請先做這兩件事</h2>
+      <ol class="steps">
+        <li><strong>完全結束 LINE</strong>：工作列右下角圖示 → 右鍵「結束」；若工作管理員還有 LINE，一併結束後再重開。上次貼太長的篇文，輸入框會壞掉，之後字數再少也貼不全。</li>
+        <li>若電腦開著 <strong>CCleaner</strong>，先關掉它的剪貼簿清理（會把複製內容截斷）。</li>
+      </ol>
+      <p class="hint">不要再從 Word 直接貼進 LINE。Word 帶的是網頁格式，LINE 常只留下開頭與結尾。</p>
+    </section>
+
+    <section class="card">
+      <h2>1. 讀取文章</h2>
+      <p class="hint">優先「選 Word 檔」：連文字方塊、註解裡畫面上看得到、複製卻會漏的中段都會抓出來。</p>
+      <div class="row">
+        <label class="file-btn primary">📂 選 Word 檔（.docx）
+          <input id="docxFile" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+        </label>
+        <button type="button" id="btnReadClip">從剪貼簿貼上</button>
+        <button type="button" id="btnClear">清空</button>
+      </div>
+      <p class="status" id="loadStatus"></p>
+      <label for="bodyText" class="hint" style="display:block;margin-top:0.55rem;font-weight:700;color:var(--muted);">全文（可再改）</label>
+      <textarea id="bodyText" placeholder="把 Word 檔拖進來，或在這裡貼上。貼上時會自動改成純文字。"></textarea>
+      <p class="meta" id="charMeta">0 字</p>
+    </section>
+
+    <section class="card ok-card">
+      <h2>2. 複製給 LINE</h2>
+      <p class="hint">只複製<strong>純文字</strong>（不含 Word 格式）。超過約 4800 字會自動切成多則，一則一則複製。</p>
+      <div class="row">
+        <button type="button" id="btnCopyAll" class="primary">📋 複製全文（純文字）</button>
+      </div>
+      <p class="status" id="copyStatus"></p>
+      <div id="chunks"></div>
+    </section>
+
+    <p class="hint" style="text-align:center;">
+      <a href="./">← 回修煉心得</a>
+      ｜
+      <a href="./share.html">加入主畫面</a>
+    </p>
+    <footer>超碼修煉心得｜貼 LINE 救援</footer>
+  </div>
+  <script src="./line-paste.js"></script>
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    var JSZIP_SRC = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+
+    function setStatus(el, msg, kind) {
+      el.textContent = msg || "";
+      el.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        if (document.querySelector('script[src="' + src + '"]')) {
+          resolve();
+          return;
+        }
+        var s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = function () { reject(new Error("無法載入解壓縮元件")); };
+        document.head.appendChild(s);
+      });
+    }
+
+    function copyPlain(text) {
+      text = String(text || "");
+      if (!text) return Promise.reject(new Error("沒有可複製的文字"));
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise(function (resolve, reject) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "readonly");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) {}
+        ta.remove();
+        if (ok) resolve();
+        else reject(new Error("此瀏覽器無法自動複製，請改手動全選"));
+      });
+    }
+
+    function refreshMeta() {
+      var text = $("bodyText").value;
+      var n = text.length;
+      var chunks = LinePasteRescue.splitLineChunks(text);
+      $("charMeta").textContent = n + " 字" + (chunks.length > 1 ? "（需分成 " + chunks.length + " 則貼 LINE）" : "");
+      renderChunks(chunks);
+    }
+
+    function renderChunks(chunks) {
+      var box = $("chunks");
+      box.innerHTML = "";
+      if (!chunks.length) return;
+      if (chunks.length === 1) return;
+      chunks.forEach(function (c, i) {
+        var div = document.createElement("div");
+        div.className = "chunk";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "primary";
+        btn.textContent = "📋 複製第 " + (i + 1) + "／" + chunks.length + " 則（" + c.length + " 字）";
+        btn.onclick = function () {
+          copyPlain(c).then(function () {
+            setStatus($("copyStatus"), "已複製第 " + (i + 1) + " 則，請到 LINE 貼上後再複製下一則", "");
+          }).catch(function (e) {
+            setStatus($("copyStatus"), e.message || String(e), "err");
+          });
+        };
+        var pre = document.createElement("pre");
+        pre.textContent = c.length > 240 ? c.slice(0, 240) + "…" : c;
+        div.appendChild(btn);
+        div.appendChild(pre);
+        box.appendChild(div);
+      });
+    }
+
+    function setBody(text, note, kind) {
+      $("bodyText").value = LinePasteRescue.normalizeBlank(text);
+      refreshMeta();
+      setStatus($("loadStatus"), note || "已讀入", kind || "");
+    }
+
+    async function readDocx(file) {
+      var name = (file && file.name || "").toLowerCase();
+      if (name.endsWith(".doc") && !name.endsWith(".docx")) {
+        throw new Error("這是舊版 .doc，請在 Word 另存成 .docx 再開一次");
+      }
+      await loadScript(JSZIP_SRC);
+      if (!window.JSZip) throw new Error("解壓縮元件尚未就緒");
+      var zip = await window.JSZip.loadAsync(file);
+      if (!zip.file("word/document.xml")) {
+        throw new Error("不是有效的 Word 檔（.docx）");
+      }
+      var files = {};
+      var jobs = [];
+      zip.forEach(function (path, entry) {
+        if (!/^word\/.+\.xml$/i.test(path) || entry.dir) return;
+        jobs.push(entry.async("string").then(function (xml) { files[path] = xml; }));
+      });
+      await Promise.all(jobs);
+      var got = LinePasteRescue.extractDocxXmlMap(files);
+      if (!got.combined) throw new Error("這個 Word 檔沒有抓到文字");
+      var note = "已從 Word 讀出 " + got.charCount + " 字";
+      if (got.extraCount) note += "（含註解／頁首頁尾等畫面上看得到、直接複製會漏的文字）";
+      setBody(got.combined, note, "");
+    }
+
+    $("docxFile").addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      setStatus($("loadStatus"), "正在讀取 " + file.name + "…", "warn");
+      readDocx(file).catch(function (err) {
+        setStatus($("loadStatus"), err.message || String(err), "err");
+      });
+    });
+
+    $("bodyText").addEventListener("paste", function (e) {
+      var cd = e.clipboardData;
+      if (!cd) return;
+      var richer = LinePasteRescue.pickRicherText(cd.getData("text/plain"), cd.getData("text/html"));
+      if (!richer) return;
+      e.preventDefault();
+      var el = $("bodyText");
+      var start = el.selectionStart || 0;
+      var end = el.selectionEnd || 0;
+      el.value = el.value.slice(0, start) + richer + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + richer.length;
+      refreshMeta();
+      setStatus($("loadStatus"), "已貼上純文字（" + richer.length + " 字）。請核對中段是否都在，再複製給 LINE。", "");
+    });
+
+    $("bodyText").addEventListener("input", refreshMeta);
+
+    $("btnReadClip").onclick = function () {
+      if (!navigator.clipboard || !navigator.clipboard.readText) {
+        setStatus($("loadStatus"), "請改用 Ctrl+V 直接貼進上方方框", "warn");
+        $("bodyText").focus();
+        return;
+      }
+      navigator.clipboard.readText().then(function (t) {
+        if (!String(t || "").trim()) {
+          setStatus($("loadStatus"), "剪貼簿沒有文字。請先在 Word 全選複製，或改選 Word 檔。", "warn");
+          return;
+        }
+        setBody(t, "已從剪貼簿讀入 " + t.length + " 字。若中段仍缺，請改選 Word 檔。", "");
+      }).catch(function () {
+        setStatus($("loadStatus"), "瀏覽器不允許讀取剪貼簿，請改用 Ctrl+V 貼進方框，或選 Word 檔", "warn");
+        $("bodyText").focus();
+      });
+    };
+
+    $("btnClear").onclick = function () {
+      $("bodyText").value = "";
+      refreshMeta();
+      setStatus($("loadStatus"), "已清空", "");
+      setStatus($("copyStatus"), "", "");
+    };
+
+    $("btnCopyAll").onclick = function () {
+      var text = $("bodyText").value;
+      var chunks = LinePasteRescue.splitLineChunks(text);
+      if (!chunks.length) {
+        setStatus($("copyStatus"), "請先讀取 Word 檔或貼上文章", "err");
+        return;
+      }
+      if (chunks.length > 1) {
+        copyPlain(chunks[0]).then(function () {
+          setStatus($("copyStatus"), "全文超過 LINE 一則上限，已先複製第 1／" + chunks.length + " 則。貼上後再按下方按鈕複製下一則。", "warn");
+          renderChunks(chunks);
+        }).catch(function (e) {
+          setStatus($("copyStatus"), e.message || String(e), "err");
+        });
+        return;
+      }
+      copyPlain(chunks[0]).then(function () {
+        setStatus($("copyStatus"), "已複製 " + chunks[0].length + " 字純文字，請到 LINE 貼上（不要再從 Word 複製）", "");
+      }).catch(function (e) {
+        setStatus($("copyStatus"), e.message || String(e), "err");
+      });
+    };
+
+    document.body.addEventListener("dragover", function (e) {
+      e.preventDefault();
+    });
+    document.body.addEventListener("drop", function (e) {
+      e.preventDefault();
+      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      setStatus($("loadStatus"), "正在讀取 " + file.name + "…", "warn");
+      readDocx(file).catch(function (err) {
+        setStatus($("loadStatus"), err.message || String(err), "err");
+      });
+    });
+
+    refreshMeta();
+  </script>
+</body>
+</html>

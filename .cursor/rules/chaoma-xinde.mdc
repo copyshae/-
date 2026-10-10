@@ -1,0 +1,10 @@
+---
+description: 超碼修煉心得（chaoma-xinde）與 LINE 貼文
+globs: docs/chaoma-xinde/**
+---
+
+# 超碼修煉心得
+
+- 正式網址：https://copyshae.github.io/-/chaoma-xinde/
+- Word 直接複製到 LINE 會只剩頭尾（Word 網頁格式、文字方塊／註解、或 LINE 輸入框被長文撐壞）。救援頁：`docs/chaoma-xinde/line-paste.html`（讀 .docx 轉純文字再複製）。
+- 改心得格式／分享／快取時，記得提高 `sw.js` 的 `CACHE` 版號，並把新頁面列入 `ASSETS`。
