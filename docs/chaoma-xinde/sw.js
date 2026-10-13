@@ -1,10 +1,12 @@
 /* 超碼修煉心得｜離線快取 */
-const CACHE = "chaoma-xinde-v28";
+const CACHE = "chaoma-xinde-v29";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./share.html",
+  "./line-paste.html",
+  "./line-paste.js",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png"
