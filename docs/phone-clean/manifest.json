@@ -1,0 +1,26 @@
+{
+  "name": "手機空間清理",
+  "short_name": "空間清理",
+  "description": "清理習作工具網站快取、掃描圖與購物帳收據照片，並附 iPhone 檔案／照片手動步驟。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e8efe6",
+  "theme_color": "#1b4332",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
