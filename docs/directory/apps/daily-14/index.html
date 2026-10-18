@@ -401,30 +401,23 @@
   <script src="./tts-voices.js?v=21"></script>
   <script>
     const TASKS = [
-      { id: 1, title: "每天聆聽「富有」歌曲 3 次", habit: 7, habitName: "不斷更新", quad: 1 },
-      { id: 2, title: "每天聆聽「注入彩虹」3 次", habit: 7, habitName: "不斷更新", quad: 1 },
-      { id: 3, title: "每天看蔡禮旭老師講解的弟子規", habit: 2, habitName: "以終為始", quad: 1 },
-      { id: 4, title: "懺悔發願（心法步驟一二三）", habit: 1, habitName: "主動積極", quad: 1 },
-      { id: 5, title: "每天寫心得", habit: 7, habitName: "不斷更新", quad: 1 },
-      { id: 6, title: "練習秒秒感恩", habit: 1, habitName: "主動積極", quad: 1 },
-      { id: 7, title: "做到去我", habit: 5, habitName: "知彼解己", quad: 1 },
-      { id: 8, title: "做太陽心法，每天做 15 分鐘以上", habit: 7, habitName: "不斷更新", quad: 1 },
-      { id: 9, title: "每天照鏡子", habit: 1, habitName: "主動積極", quad: 1 },
-      { id: 10, title: "秒秒轉念", habit: 1, habitName: "主動積極", quad: 1 },
-      { id: 11, title: "秒秒參悟空", habit: 2, habitName: "以終為始", quad: 1 },
-      { id: 12, title: "每天「營造」生活", habit: 3, habitName: "要事第一", quad: 1 },
-      { id: 13, title: "參加網絡共修課程", note: "每週一項；今日若已參加可勾選", habit: 6, habitName: "統合綜效", quad: 1 },
-      {
-        id: 14,
-        title: "渡人",
-        note: "增添德資糧，與人分享，分發結緣書，接引他人一起來學習《超級生命密碼》",
-        habit: 4,
-        habitName: "雙贏思維",
-        quad: 1
-      }
+      { id: 1, title: "基本潛修步驟一：懺悔心法 加 發願 加 行願", note: "心法練習懺悔加發願，建議每次 15 分鐘以上，固定時段尤佳，並隨時落實行願。", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 2, title: "基本潛修步驟二：愛與感恩心法 加 秒秒感恩", note: "練習心法，並秒秒落實愛與感恩。", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 3, title: "基本潛修步驟三：太陽心法", note: "練習心法，建議每次 15 分鐘以上。", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 4, title: "看弟子規影片 1 集或以上", note: "重複看，修正習氣，直至成聖成賢。", habit: 2, habitName: "以終為始", quad: 1 },
+      { id: 5, title: "聆聽超碼歌曲 3 次以上", note: "跟著唱 3 次尤佳。", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 6, title: "照鏡子", note: "隨時觀看鏡中自己，覺察心靈狀態並調整。", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 7, title: "閱讀超碼書籍、聆聽網路學習音檔", note: "細品書籍和音檔內容。", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 8, title: "寫心得", note: "寫下當日生活中的領悟，並發布至社群。", habit: 7, habitName: "不斷更新", quad: 1 },
+      { id: 9, title: "參加每週網路共修", note: "每週一次與導師連線上課。", habit: 6, habitName: "統合綜效", quad: 1 },
+      { id: 10, title: "隨時度人", note: "隨時與善良有緣人分享超級生命密碼。", habit: 4, habitName: "雙贏思維", quad: 1 },
+      { id: 11, title: "做到去我", note: "放下自我執著，虛心接受，客觀待事。", habit: 5, habitName: "知彼解己", quad: 1 },
+      { id: 12, title: "積極營造生活", note: "積極營造並帶動幸福圓滿的氛圍。", habit: 3, habitName: "要事第一", quad: 1 },
+      { id: 13, title: "秒秒 GPS、秒秒轉念", note: "隨時覺察自身狀態，遇事立即轉換正面思維。", habit: 1, habitName: "主動積極", quad: 1 },
+      { id: 14, title: "從生活中隨機參悟空", note: "對週邊的人事物進行細膩思考，了悟並放下進而提升智慧。", habit: 2, habitName: "以終為始", quad: 1 }
     ];
 
-    const STORAGE_KEY = "daily14-v1";
+    const STORAGE_KEY = "daily14-v2";
     const TZ = "Asia/Taipei";
 
     function todayKey() {
