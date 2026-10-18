@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a4568" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="錯題成因" />
+  <meta name="description" content="依座號分析數學錯題成因（概念／計算／粗心），產出明日 3 題補強。" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>錯題成因台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #142433;
+      --paper: #eef3f8;
+      --accent: #1a4568;
+      --muted: #4a6174;
+      --line: rgba(26, 69, 104, 0.22);
+      --concept: #7a2f8a;
+      --calc: #b45309;
+      --careless: #0f766e;
+      --ok: #dbeafe;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "DM Sans", "PingFang TC", "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        radial-gradient(ellipse 80% 45% at 12% 0%, rgba(56, 120, 180, 0.22), transparent 55%),
+        linear-gradient(160deg, #f7fafc 0%, var(--paper) 50%, #d9e4ef 100%);
+    }
+    .wrap { max-width: 28rem; margin: 0 auto; padding: 1rem 1rem 3.5rem; }
+    .brand {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(2rem, 9vw, 2.5rem);
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+    .lead { margin-top: 0.35rem; color: var(--muted); font-size: 0.92rem; }
+    .links { margin-top: 0.55rem; font-size: 0.85rem; }
+    .links a { color: var(--accent); }
+    section { margin-top: 1.15rem; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.2rem; font-weight: 400; color: var(--accent); margin-bottom: 0.45rem;
+    }
+    .panel {
+      background: rgba(255,255,255,0.78);
+      border: 1px solid var(--line);
+      padding: 0.85rem;
+    }
+    .tips { font-size: 0.82rem; color: var(--muted); margin: 0.35rem 0 0.55rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.45rem; align-items: center; }
+    label { font-size: 0.84rem; color: var(--muted); min-width: 4.2rem; }
+    input, select, textarea, button {
+      font: inherit; border: 1px solid var(--line);
+      background: rgba(255,255,255,0.95); color: var(--ink);
+      padding: 0.55rem 0.65rem;
+    }
+    input, select { min-height: 2.45rem; flex: 1; min-width: 7rem; }
+    textarea { width: 100%; min-height: 7rem; resize: vertical; line-height: 1.45; font-size: 0.9rem; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--accent); color: #fff; border-color: var(--accent);
+      font-weight: 650; cursor: pointer; padding: 0.65rem 0.85rem; min-height: 2.55rem;
+    }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn.secondary { background: transparent; color: var(--accent); }
+    .btn.warn { background: #9a3412; border-color: #9a3412; }
+    .btn.block { width: 100%; margin-top: 0.4rem; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.55rem; }
+    .tab {
+      border: 1px solid var(--line); background: rgba(255,255,255,0.65);
+      padding: 0.35rem 0.55rem; font-size: 0.78rem; color: var(--muted); cursor: pointer;
+    }
+    .tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .key-ok { color: #166534; font-size: 0.82rem; }
+    .key-bad { color: #9a3412; font-size: 0.82rem; }
+    .seat-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.3rem; margin-top: 0.4rem;
+    }
+    .seat {
+      border: 1px solid var(--line); background: rgba(255,255,255,0.8);
+      padding: 0.4rem 0.15rem; font-size: 0.78rem; cursor: pointer; text-align: center;
+    }
+    .seat.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .seat.has { box-shadow: inset 0 -2px 0 var(--calc); }
+    .seat.done { box-shadow: inset 0 -2px 0 #166534; }
+    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+    .tag {
+      font-size: 0.78rem; font-weight: 650; padding: 0.25rem 0.5rem; color: #fff;
+    }
+    .tag.concept { background: var(--concept); }
+    .tag.calc { background: var(--calc); }
+    .tag.careless { background: var(--careless); }
+    .result-block { margin-top: 0.65rem; white-space: pre-wrap; font-size: 0.9rem; }
+    .result-block h3 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.05rem; color: var(--accent); font-weight: 400; margin: 0.7rem 0 0.3rem;
+    }
+    .stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin-top: 0.5rem;
+    }
+    .stat {
+      background: rgba(255,255,255,0.85); border: 1px solid var(--line); padding: 0.55rem;
+      text-align: center;
+    }
+    .stat .n { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+    .stat .l { font-size: 0.72rem; color: var(--muted); }
+    #toast {
+      position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%) translateY(120%);
+      background: #142433; color: #fff; padding: 0.65rem 1rem; font-size: 0.88rem;
+      opacity: 0; transition: 0.25s ease; z-index: 40; max-width: 90vw;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #busy {
+      display: none; position: fixed; inset: 0; background: rgba(20,36,51,0.45);
+      z-index: 30; align-items: center; justify-content: center; padding: 1.2rem;
+    }
+    #busy.show { display: flex; }
+    #busy .box {
+      background: #fff; padding: 1.1rem 1.2rem; max-width: 18rem; width: 100%;
+      border: 1px solid var(--line);
+    }
+    .hidden { display: none !important; }
+    .class-list { font-size: 0.88rem; margin-top: 0.4rem; }
+    .class-list li { margin: 0.35rem 0; padding-bottom: 0.35rem; border-bottom: 1px dashed var(--line); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="brand">錯題成因台</h1>
+      <p class="lead">拍卷或匯入批改紀錄 → 分「概念／計算／粗心」→ 明日 3 題補強。只用座號，不存姓名。</p>
+      <p class="links">
+        <a href="../math-grader/">習作批改</a> ·
+        <a href="./share.html">加入主畫面</a> ·
+        <a href="../">習作工具首頁</a>
+      </p>
+    </header>
+
+    <section>
+      <h2>Gemini 金鑰</h2>
+      <div class="panel">
+        <p class="tips">與「習作批改」共用本機金鑰（AQ. 或 AIza）。不上傳 GitHub。</p>
+        <div class="row">
+          <label for="geminiKey">金鑰</label>
+          <input id="geminiKey" type="password" autocomplete="off" placeholder="貼上 AI Studio 金鑰" />
+        </div>
+        <button type="button" class="btn block" id="btnSaveKey">儲存金鑰</button>
+        <p id="keyStatus" class="key-bad" style="margin-top:0.45rem">尚未設定金鑰</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>資料來源</h2>
+      <div class="panel">
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-src="import">從習作批改</button>
+          <button type="button" class="tab" data-src="paste">貼上文字</button>
+          <button type="button" class="tab" data-src="photo">拍照／上傳</button>
+        </div>
+
+        <div id="srcImport">
+          <p class="tips">讀取本機「習作批改」已批座號的批改紀錄（note／lastReply）。</p>
+          <div class="row">
+            <label for="unitHint">單元提示</label>
+            <input id="unitHint" type="text" placeholder="例：分數加減、二元一次方程式" />
+          </div>
+          <button type="button" class="btn block secondary" id="btnLoadGrader">重新載入批改進度</button>
+          <p class="tips" id="importMeta">尚未載入</p>
+          <div class="seat-grid" id="seatGrid" aria-label="座號"></div>
+        </div>
+
+        <div id="srcPaste" class="hidden">
+          <p class="tips">可貼批改回覆、錯題摘錄或學生解題過程（可含座號）。</p>
+          <div class="row">
+            <label for="pasteSeat">座號</label>
+            <input id="pasteSeat" type="text" inputmode="numeric" placeholder="01" maxlength="2" />
+          </div>
+          <textarea id="pasteText" placeholder="貼上錯題內容或批改紀錄…"></textarea>
+        </div>
+
+        <div id="srcPhoto" class="hidden">
+          <p class="tips">掃描王／相機拍錯題頁；檔名用座號開頭較佳（如 05.jpg）。</p>
+          <div class="row">
+            <label for="photoSeat">座號</label>
+            <input id="photoSeat" type="text" inputmode="numeric" placeholder="01" maxlength="2" />
+          </div>
+          <input id="photoFile" type="file" accept="image/*,application/pdf,.pdf,.heic,.heif" capture="environment" />
+          <p class="tips" id="photoMeta">尚未選檔</p>
+        </div>
+
+        <button type="button" class="btn block" id="btnAnalyze" style="margin-top:0.65rem">分析此座號成因</button>
+        <button type="button" class="btn block secondary" id="btnAnalyzeClass">整班摘要（有批改紀錄者）</button>
+      </div>
+    </section>
+
+    <section id="resultSection" class="hidden">
+      <h2>分析結果</h2>
+      <div class="panel">
+        <p id="resultSeat" style="font-weight:650"></p>
+        <div class="tags" id="resultTags"></div>
+        <div class="stats" id="resultStats"></div>
+        <div class="result-block" id="resultBody"></div>
+        <button type="button" class="btn block" id="btnCopyResult">複製給班級群組／教室</button>
+        <button type="button" class="btn block secondary" id="btnSaveSeat">儲存此座號分析</button>
+      </div>
+    </section>
+
+    <section id="classSection" class="hidden">
+      <h2>整班摘要</h2>
+      <div class="panel">
+        <div class="stats" id="classStats"></div>
+        <ol class="class-list" id="classList"></ol>
+        <div class="result-block" id="classAdvice"></div>
+        <button type="button" class="btn block" id="btnCopyClass">複製整班摘要</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>已存分析</h2>
+      <div class="panel">
+        <p class="tips">存在此裝置；可匯出 JSON 備份。</p>
+        <div id="savedList" class="class-list"></div>
+        <button type="button" class="btn block secondary" id="btnExport">匯出分析 JSON</button>
+        <button type="button" class="btn block secondary" id="btnImport">匯入分析 JSON</button>
+        <input id="importFile" type="file" accept="application/json,.json" class="hidden" />
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" role="status"></div>
+  <div id="busy" aria-live="polite">
+    <div class="box">
+      <strong id="busyTitle">分析中</strong>
+      <p id="busyMsg" class="tips" style="margin-top:0.4rem">請稍候，不要關頁。</p>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  var KEY_API = "math-grader-gemini-key";
+  var KEY_STORE = "error-cause-v1";
+  var KEY_GRADER = "math-grader-v1";
+  var MODELS = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+  var CAUSES = ["概念錯", "計算錯", "粗心"];
+
+  var source = "import";
+  var grader = null;
+  var selectedSeat = null;
+  var lastResult = null;
+  var lastClass = null;
+  var photoRec = null;
+  var store = loadStore();
+
+  function $(id) { return document.getElementById(id); }
+
+  function toast(msg) {
+    var el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove("show"); }, 2600);
+  }
+
+  function setBusy(on, title, msg) {
+    $("busyTitle").textContent = title || "分析中";
+    $("busyMsg").textContent = msg || "請稍候，不要關頁。";
+    $("busy").classList.toggle("show", !!on);
+    $("btnAnalyze").disabled = !!on;
+    $("btnAnalyzeClass").disabled = !!on;
+  }
+
+  function getApiKey() {
+    try { return (localStorage.getItem(KEY_API) || "").trim(); } catch (e) { return ""; }
+  }
+  function setApiKey(k) {
+    k = (k || "").trim();
+    try {
+      if (k) localStorage.setItem(KEY_API, k);
+      else localStorage.removeItem(KEY_API);
+    } catch (e) {}
+    refreshKey();
+  }
+  function refreshKey() {
+    var has = !!getApiKey();
+    var el = $("keyStatus");
+    el.textContent = has ? "已儲存金鑰（僅此裝置）。可開始分析。" : "尚未設定金鑰（網頁 Gemini Pro 訂閱不能用）";
+    el.className = has ? "key-ok" : "key-bad";
+    var inp = $("geminiKey");
+    if (has && !inp.value) inp.placeholder = "••••••••（已儲存，要換再貼）";
+  }
+
+  function loadStore() {
+    try {
+      var raw = localStorage.getItem(KEY_STORE);
+      if (raw) return Object.assign({ seats: {}, updatedAt: 0 }, JSON.parse(raw));
+    } catch (e) {}
+    return { seats: {}, updatedAt: 0 };
+  }
+  function saveStore() {
+    store.updatedAt = Date.now();
+    try { localStorage.setItem(KEY_STORE, JSON.stringify(store)); } catch (e) { toast("儲存空間不足"); }
+    renderSaved();
+  }
+
+  function padSeat(v) {
+    var n = parseInt(String(v || "").replace(/\D/g, ""), 10);
+    if (!n && String(v) !== "0" && String(v) !== "00") return "";
+    if (String(v).trim() === "00" || n === 0) return "00";
+    if (!n || n < 1 || n > 60) return "";
+    return String(n).padStart(2, "0");
+  }
+
+  function loadGrader() {
+    try {
+      var raw = localStorage.getItem(KEY_GRADER);
+      if (!raw) { grader = null; return; }
+      grader = JSON.parse(raw);
+    } catch (e) { grader = null; }
+  }
+
+  function seatHasText(id) {
+    if (!grader || !grader.seats || !grader.seats[id]) return false;
+    var s = grader.seats[id];
+    var t = ((s.note || "") + "\n" + (s.lastReply || "")).trim();
+    return t.length >= 8;
+  }
+
+  function renderSeats() {
+    var grid = $("seatGrid");
+    grid.innerHTML = "";
+    if (!grader || !grader.seats) {
+      $("importMeta").textContent = "本機尚無習作批改進度。可改用「貼上文字」或「拍照／上傳」。";
+      return;
+    }
+    var ids = Object.keys(grader.seats).sort();
+    var withText = 0;
+    ids.forEach(function (id) {
+      if (seatHasText(id)) withText++;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "seat" + (selectedSeat === id ? " on" : "") + (seatHasText(id) ? " has" : "") + (store.seats[id] ? " done" : "");
+      b.textContent = id;
+      b.addEventListener("click", function () {
+        selectedSeat = id;
+        renderSeats();
+        if (store.seats[id]) showResult(store.seats[id]);
+      });
+      grid.appendChild(b);
+    });
+    $("importMeta").textContent =
+      (grader.classLabel || "本班數學") + "｜" + ids.length + " 座｜有批改文字 " + withText +
+      "（底線橘＝有資料；底線綠＝已分析）";
+  }
+
+  function setSource(src) {
+    source = src;
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.classList.toggle("on", t.getAttribute("data-src") === src);
+    });
+    $("srcImport").classList.toggle("hidden", src !== "import");
+    $("srcPaste").classList.toggle("hidden", src !== "paste");
+    $("srcPhoto").classList.toggle("hidden", src !== "photo");
+  }
+
+  function esc(s) {
+    return String(s || "").replace(/[&<>]/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c];
+    });
+  }
+
+  function buildPrompt(seat, material, unit) {
+    return (
+      "你是國中數學老師助教。只用座號，禁止寫學生姓名。\n" +
+      "班級單元提示：" + (unit || "（未指定，請從內容推斷）") + "\n" +
+      "座號：" + seat + "\n\n" +
+      "請依下列批改／錯題材料，分析錯題成因，並產出明日補強。\n" +
+      "成因只能歸在三類：概念錯、計算錯、粗心。一題可多類，但每類要寫一句依據。\n\n" +
+      "請嚴格用以下繁體中文格式輸出（不要 markdown 標題符號以外的雜訊）：\n" +
+      "【座號】" + seat + "\n" +
+      "【單元】…\n" +
+      "【成因統計】概念錯:n；計算錯:n；粗心:n\n" +
+      "【主要成因】概念錯／計算錯／粗心（擇一最核心）\n" +
+      "【依據】\n" +
+      "- 概念錯：…\n" +
+      "- 計算錯：…\n" +
+      "- 粗心：…\n" +
+      "【明日講解一句話】…\n" +
+      "【明日 3 題補強】\n" +
+      "1. （對應主要成因）…\n" +
+      "2. …\n" +
+      "3. …\n" +
+      "【解答】\n" +
+      "1. …\n" +
+      "2. …\n" +
+      "3. …\n" +
+      "【對學生短訊】（不含姓名，可貼通訊軟體／Google 教室）…\n\n" +
+      "——材料開始——\n" + material + "\n——材料結束——"
+    );
+  }
+
+  function buildClassPrompt(rows, unit) {
+    var blob = rows.map(function (r) {
+      return "座號 " + r.seat + "：\n" + r.text.slice(0, 1200);
+    }).join("\n\n---\n\n");
+    return (
+      "你是國中數學老師。以下是各座號的批改／錯題摘錄（只用座號）。\n" +
+      "單元提示：" + (unit || "未指定") + "\n\n" +
+      "請輸出繁體中文：\n" +
+      "【整班成因占比】概念錯:%；計算錯:%；粗心:%\n" +
+      "【明日課堂重點】三點以內\n" +
+      "【分組建議】\n" +
+      "- 概念補強組（座號）：…\n" +
+      "- 計算練習組（座號）：…\n" +
+      "- 粗心提醒組（座號）：…\n" +
+      "【共用 3 題暖身】（適合全班開頭）\n" +
+      "1. …\n2. …\n3. …\n" +
+      "【解答】\n1. …\n2. …\n3. …\n\n" +
+      blob
+    );
+  }
+
+  function parseCounts(text) {
+    var out = { 概念錯: 0, 計算錯: 0, 粗心: 0 };
+    var m = String(text || "").match(/【成因統計】\s*概念錯\s*[:：]?\s*(\d+)\s*[；;]\s*計算錯\s*[:：]?\s*(\d+)\s*[；;]\s*粗心\s*[:：]?\s*(\d+)/);
+    if (m) {
+      out.概念錯 = +m[1]; out.計算錯 = +m[2]; out.粗心 = +m[3];
+      return out;
+    }
+    CAUSES.forEach(function (c) {
+      var re = new RegExp(c + "\\s*[:：]?\\s*(\\d+)");
+      var mm = String(text || "").match(re);
+      if (mm) out[c] = +mm[1];
+    });
+    return out;
+  }
+
+  function parseMain(text) {
+    var m = String(text || "").match(/【主要成因】\s*([^\n]+)/);
+    if (!m) return "";
+    var t = m[1];
+    if (/概念/.test(t)) return "概念錯";
+    if (/計算/.test(t)) return "計算錯";
+    if (/粗心/.test(t)) return "粗心";
+    return t.trim();
+  }
+
+  async function callGemini(apiKey, prompt, inlineParts) {
+    var parts = [{ text: prompt }].concat(inlineParts || []);
+    var payload = {
+      contents: [{ role: "user", parts: parts }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2500 }
+    };
+    var body = JSON.stringify(payload);
+    var lastErr = null;
+    for (var i = 0; i < MODELS.length; i++) {
+      var model = MODELS[i];
+      var uri = "https://generativelanguage.googleapis.com/v1beta/models/" +
+        encodeURIComponent(model) + ":generateContent";
+      try {
+        var res = await fetch(uri, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: body
+        });
+        var raw = await res.text();
+        var data = null;
+        try { data = JSON.parse(raw); } catch (e) {}
+        if (!res.ok) {
+          var msg = (data && data.error && data.error.message) || raw || ("HTTP " + res.status);
+          if (/404|NOT_FOUND|not found|was not found/i.test(msg)) { lastErr = new Error(msg); continue; }
+          throw new Error(msg);
+        }
+        var text = "";
+        var cands = (data && data.candidates) || [];
+        if (cands[0] && cands[0].content && cands[0].content.parts) {
+          text = cands[0].content.parts.map(function (p) { return p.text || ""; }).join("");
+        }
+        if (!text.trim()) throw new Error("Gemini 回傳空白");
+        return { text: text.trim(), model: model };
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("Gemini 呼叫失敗");
+  }
+
+  function fileToInline(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var dataUrl = String(fr.result || "");
+        var m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+        if (!m) return reject(new Error("無法讀取檔案"));
+        resolve({ inlineData: { mimeType: m[1], data: m[2] } });
+      };
+      fr.onerror = reject;
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function getMaterialForSeat(seat) {
+    if (source === "paste") {
+      return { seat: padSeat($("pasteSeat").value) || seat, text: ($("pasteText").value || "").trim(), parts: [] };
+    }
+    if (source === "photo") {
+      if (!photoRec) throw new Error("請先選取照片或 PDF");
+      return {
+        seat: padSeat($("photoSeat").value) || seat || photoRec.guessSeat || "",
+        text: "（見附件卷面：" + photoRec.name + "）",
+        parts: [photoRec.part]
+      };
+    }
+    if (!grader || !grader.seats || !grader.seats[seat]) throw new Error("請先選座號");
+    var s = grader.seats[seat];
+    var text = ((s.lastReply || "") + "\n" + (s.note || "")).trim();
+    if (text.length < 8) throw new Error("此座號尚無足夠批改文字，請改貼上或拍照");
+    return { seat: seat, text: text, parts: [] };
+  }
+
+  function showResult(rec) {
+    lastResult = rec;
+    $("resultSection").classList.remove("hidden");
+    $("resultSeat").textContent = "座號 " + rec.seat + (rec.unit ? "｜" + rec.unit : "") +
+      (rec.model ? "｜模型 " + rec.model : "");
+    var tags = $("resultTags");
+    tags.innerHTML = "";
+    var main = rec.main || parseMain(rec.text);
+    var map = { "概念錯": "concept", "計算錯": "calc", "粗心": "careless" };
+    if (main && map[main]) {
+      var span = document.createElement("span");
+      span.className = "tag " + map[main];
+      span.textContent = "主要：" + main;
+      tags.appendChild(span);
+    }
+    var counts = rec.counts || parseCounts(rec.text);
+    $("resultStats").innerHTML =
+      '<div class="stat"><div class="n">' + counts.概念錯 + '</div><div class="l">概念錯</div></div>' +
+      '<div class="stat"><div class="n">' + counts.計算錯 + '</div><div class="l">計算錯</div></div>' +
+      '<div class="stat"><div class="n">' + counts.粗心 + '</div><div class="l">粗心</div></div>';
+    $("resultBody").textContent = rec.text;
+  }
+
+  async function analyzeOne() {
+    var key = getApiKey();
+    if (!key) { toast("請先儲存 Gemini 金鑰"); return; }
+    var seat = selectedSeat;
+    if (source === "paste") seat = padSeat($("pasteSeat").value);
+    if (source === "photo") seat = padSeat($("photoSeat").value) || (photoRec && photoRec.guessSeat) || "";
+    if (!seat) { toast("請指定座號"); return; }
+    var unit = ($("unitHint").value || "").trim();
+    var mat;
+    try { mat = getMaterialForSeat(seat); } catch (e) { toast(e.message || String(e)); return; }
+    if (!mat.seat) { toast("請指定座號"); return; }
+    setBusy(true, "分析座號 " + mat.seat, "Gemini 分類成因與補強題…");
+    try {
+      var result = await callGemini(key, buildPrompt(mat.seat, mat.text, unit), mat.parts);
+      var rec = {
+        seat: mat.seat,
+        unit: unit,
+        text: result.text,
+        model: result.model,
+        main: parseMain(result.text),
+        counts: parseCounts(result.text),
+        at: Date.now()
+      };
+      showResult(rec);
+      toast("座號 " + mat.seat + " 分析完成");
+    } catch (e) {
+      toast("分析失敗：" + (e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function analyzeClass() {
+    var key = getApiKey();
+    if (!key) { toast("請先儲存 Gemini 金鑰"); return; }
+    loadGrader();
+    if (!grader || !grader.seats) { toast("本機沒有習作批改進度"); return; }
+    var rows = [];
+    Object.keys(grader.seats).sort().forEach(function (id) {
+      if (!seatHasText(id)) return;
+      var s = grader.seats[id];
+      rows.push({ seat: id, text: ((s.lastReply || "") + "\n" + (s.note || "")).trim() });
+    });
+    if (!rows.length) { toast("沒有含批改文字的座號"); return; }
+    if (rows.length > 20) rows = rows.slice(0, 20);
+    var unit = ($("unitHint").value || "").trim();
+    setBusy(true, "整班摘要", "分析 " + rows.length + " 位座號…");
+    try {
+      var result = await callGemini(key, buildClassPrompt(rows, unit), []);
+      lastClass = { text: result.text, model: result.model, n: rows.length, at: Date.now() };
+      $("classSection").classList.remove("hidden");
+      $("classStats").innerHTML =
+        '<div class="stat"><div class="n">' + rows.length + '</div><div class="l">納入座號</div></div>' +
+        '<div class="stat"><div class="n">3</div><div class="l">成因類別</div></div>' +
+        '<div class="stat"><div class="n">✓</div><div class="l">已產出</div></div>';
+      $("classList").innerHTML = rows.map(function (r) {
+        return "<li>座號 " + esc(r.seat) + "（已納入）</li>";
+      }).join("");
+      $("classAdvice").textContent = result.text;
+      toast("整班摘要完成");
+    } catch (e) {
+      toast("整班分析失敗：" + (e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function renderSaved() {
+    var el = $("savedList");
+    var ids = Object.keys(store.seats || {}).sort();
+    if (!ids.length) {
+      el.innerHTML = "<p class=\"tips\">尚無已存分析。</p>";
+      return;
+    }
+    el.innerHTML = ids.map(function (id) {
+      var r = store.seats[id];
+      return "<li><button type=\"button\" class=\"btn secondary\" data-open=\"" + id + "\" style=\"width:100%;justify-content:flex-start\">" +
+        "座號 " + id + "｜" + esc(r.main || "已分析") + "</button></li>";
+    }).join("");
+    el.querySelectorAll("[data-open]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-open");
+        selectedSeat = id;
+        showResult(store.seats[id]);
+        renderSeats();
+      });
+    });
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("已複製");
+    } catch (e) {
+      window.prompt("請手動複製：", text);
+    }
+  }
+
+  // events
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.addEventListener("click", function () { setSource(t.getAttribute("data-src")); });
+  });
+  $("btnSaveKey").addEventListener("click", function () {
+    var v = ($("geminiKey").value || "").trim();
+    if (v) setApiKey(v);
+    else toast("請貼上金鑰再儲存");
+    if (getApiKey()) toast("金鑰已儲存");
+  });
+  $("btnLoadGrader").addEventListener("click", function () {
+    loadGrader();
+    renderSeats();
+    toast(grader ? "已載入批改進度" : "找不到批改進度");
+  });
+  $("btnAnalyze").addEventListener("click", analyzeOne);
+  $("btnAnalyzeClass").addEventListener("click", analyzeClass);
+  $("btnCopyResult").addEventListener("click", function () {
+    if (!lastResult) return toast("尚無結果");
+    copyText(lastResult.text);
+  });
+  $("btnSaveSeat").addEventListener("click", function () {
+    if (!lastResult) return toast("尚無結果");
+    store.seats[lastResult.seat] = lastResult;
+    saveStore();
+    renderSeats();
+    toast("已儲存座號 " + lastResult.seat);
+  });
+  $("btnCopyClass").addEventListener("click", function () {
+    if (!lastClass) return toast("尚無整班摘要");
+    copyText(lastClass.text);
+  });
+  $("photoFile").addEventListener("change", async function () {
+    var f = $("photoFile").files && $("photoFile").files[0];
+    if (!f) { photoRec = null; $("photoMeta").textContent = "尚未選檔"; return; }
+    try {
+      setBusy(true, "讀取檔案", f.name);
+      var part = await fileToInline(f);
+      var guess = "";
+      var m = /^(\d{1,2})(?!\d)/.exec(f.name || "");
+      if (m) guess = String(parseInt(m[1], 10)).padStart(2, "0");
+      photoRec = { name: f.name, part: part, guessSeat: guess };
+      if (guess && !$("photoSeat").value) $("photoSeat").value = guess;
+      $("photoMeta").textContent = "已選：" + f.name + (guess ? "（推測座號 " + guess + "）" : "");
+    } catch (e) {
+      toast("讀檔失敗：" + (e.message || e));
+      photoRec = null;
+    } finally {
+      setBusy(false);
+    }
+  });
+  $("btnExport").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "錯題成因-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
+  });
+  $("btnImport").addEventListener("click", function () { $("importFile").click(); });
+  $("importFile").addEventListener("change", function () {
+    var f = $("importFile").files && $("importFile").files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var obj = JSON.parse(String(fr.result || ""));
+        if (!obj.seats) throw new Error("格式不對");
+        store = Object.assign({ seats: {}, updatedAt: 0 }, obj);
+        saveStore();
+        toast("已匯入");
+      } catch (e) {
+        toast("匯入失敗：" + (e.message || e));
+      }
+    };
+    fr.readAsText(f);
+  });
+
+  refreshKey();
+  loadGrader();
+  renderSeats();
+  renderSaved();
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  }
+})();
+  </script>
+</body>
+</html>
