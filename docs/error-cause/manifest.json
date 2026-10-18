@@ -1,0 +1,16 @@
+{
+  "name": "錯題成因台",
+  "short_name": "錯題成因",
+  "description": "依座號分析數學錯題成因（概念／計算／粗心），產出明日 3 題補強。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3f8",
+  "theme_color": "#1a4568",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
