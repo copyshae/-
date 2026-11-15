@@ -237,11 +237,12 @@
 
     <section>
       <details>
-        <summary>九｜iPhone「檔案」餘檔（手動）</summary>
+        <summary>九｜iPhone「檔案」／掃描王餘檔（手動）</summary>
         <ol>
           <li>打開 <strong>檔案</strong> App →「最近項目」或「瀏覽」。</li>
-          <li>搜尋：<code>Recorder</code>、<code>錄音</code>、<code>掃具</code>、<code>庫存</code>、<code>請領</code>、<code>scan</code>。</li>
-          <li>長按不需要的檔 → 刪除。已刪 App Recorder 後，餘檔常仍留在「檔案」。</li>
+          <li>搜尋：<code>Recorder</code>、<code>錄音</code>、<code>掃具</code>、<code>庫存</code>、<code>請領</code>、<code>scan</code>、<code>SKM_</code>（掃描王）。</li>
+          <li>掃描王 PDF 若還在 Internal Storage：先在掃描王匯出到「檔案」，確認備份後再刪本機。</li>
+          <li>長按不需要的檔 → 刪除。已刪 App 後，餘檔常仍留在「檔案」。</li>
           <li>到「最近刪除」再清一次，空間才真正釋放。</li>
           <li><strong>留下</strong>：試題、重要備份、已匯出的 JSON／Excel。</li>
         </ol>
@@ -252,11 +253,12 @@
       <details>
         <summary>十｜非私密照片／截圖（手動）</summary>
         <ol>
-          <li>優先用上方「Google 相簿」備份後再「釋放裝置空間」。</li>
-          <li>本機 <strong>照片</strong> → 搜尋 <code>螢幕截圖</code>／<code>Screenshot</code>，刪掉不需要的。</li>
-          <li>也可搜尋 <code>Cursor</code>、<code>github</code>、<code>copyshae</code> 找相關畫面後刪除。</li>
-          <li>私密／敏感照片請留在上鎖相簿，不要進「釋放裝置空間」前的整理誤刪。</li>
-          <li>刪完一定要清「最近刪除／垃圾桶」，空間才會回來。</li>
+          <li>優先用上方「Google 相簿」備份相機膠卷後再「釋放裝置空間」。</li>
+          <li><strong>電腦接線那批 Internal Storage 年月夾</strong>（如 <code>202205_a</code>／<code>202501_b</code>）<strong>不會</strong>被 App 備份自動收進雲端。</li>
+          <li>上傳方式：先把資料夾<strong>複製到電腦</strong>（勿直接從 iPhone 路徑邊選邊上）→ 自行移出私密／敏感 → 開 <code>photos.google.com</code> → <strong>＋ → 上傳 → 電腦</strong>。</li>
+          <li>上傳中保持手機連線、電腦不睡眠；完成後再刪本機複本並清「最近刪除」。</li>
+          <li>本機 <strong>照片</strong> → 搜尋 <code>螢幕截圖</code>／<code>Screenshot</code>／<code>Cursor</code>／<code>github</code>，刪掉不需要的。</li>
+          <li>年月夾名沒有「私密」標籤時，請自己挑夾／單張，避免誤刪。</li>
         </ol>
       </details>
     </section>
@@ -689,10 +691,12 @@
         "<li>到 App Store 安裝／開啟 <strong>Google 相簿</strong>（Google Photos），用你的 Google 帳號登入。</li>" +
         "<li>第一次若跳出「允許取用照片」：選 <strong>允許取用所有照片</strong>（或「完整取用」）。只選「選取的照片」就無法整庫上傳。</li>" +
         "<li>若已拒絕：iPhone <strong>設定</strong> → 向下找 <strong>照片</strong>（或直接搜尋 Google 相簿）→ <strong>Google 相簿</strong> → 照片 → 改為 <strong>所有照片</strong>。</li>" +
+        "<li><strong>先清雲端空間</strong>（否則上傳會卡住）：用電腦開 <code>one.google.com/storage</code> 或相簿 → 資料庫 → <strong>垃圾桶</strong> → 清空；刪大影片／重複／不要的截圖。</li>" +
         "<li>在 Google 相簿：右下角 <strong>資料庫</strong> → 右上角頭像／雲朵 → <strong>相片備份</strong> → 打開備份開關。</li>" +
-        "<li>建議用 <strong>Wi‑Fi</strong>；可選「備份品質」（儲存空間節省／原始品質）。</li>" +
+        "<li>建議用 <strong>Wi‑Fi</strong>；空間緊時選「儲存空間節省／高畫質」，原始品質較占 Google 雲端。</li>" +
         "<li>等狀態變成「備份完成」後：回到 <strong>資料庫</strong> → 工具（或公用程式）→ <strong>釋放裝置空間</strong> → 確認釋放。</li>" +
         "<li>也可：設定 → 一般 → iPhone 儲存空間 → 照片 → 開啟「最佳化 iPhone 儲存空間」（與 iCloud 搭配時）。</li>" +
+        "<li><strong>注意</strong>：App 備份主要收「相機膠卷／照片 App」；電腦接線看到的 Internal Storage 年月夾（如 <code>202205_a</code>）不會自動上傳，請用下方「非私密照片」步驟。</li>" +
         "</ol>";
       flash("已顯示 iPhone：Google 相簿上傳雲端步驟", "ok");
     } else if (kind === "android") {
@@ -701,9 +705,10 @@
         "<li>開啟 <strong>Google 相簿</strong>，確認已登入 Google 帳號。</li>" +
         "<li>若跳出權限：允許「照片與影片」／「檔案與媒體」→ 選 <strong>允許取用所有</strong>（不要只選部分）。</li>" +
         "<li>權限被拒：手機 <strong>設定</strong> → <strong>應用程式</strong> → Google 相簿 → <strong>權限</strong> → 照片與影片 → <strong>允許</strong>。</li>" +
-        "<li>Google 相簿右上角頭像 → <strong>相片備份</strong> → 打開備份；建議僅 Wi‑Fi 上傳。</li>" +
+        "<li><strong>先清雲端</strong>：資料庫 → 垃圾桶清空；或開 <code>one.google.com/storage</code> 看剩多少空間。</li>" +
+        "<li>Google 相簿右上角頭像 → <strong>相片備份</strong> → 打開備份；建議僅 Wi‑Fi；空間緊選「儲存空間節省」。</li>" +
         "<li>等備份完成：資料庫 → 工具 → <strong>釋放裝置空間</strong>（或「釋出裝置空間」）→ 釋放。</li>" +
-        "<li>也可：設定 → 儲存空間 → 其他 Google 相簿／清理建議，刪重複與模糊照片。</li>" +
+        "<li>也可：設定 → 儲存空間 → Google 相簿清理建議，刪重複與模糊照片。</li>" +
         "</ol>";
       flash("已顯示 Android：Google 相簿上傳雲端步驟", "ok");
     } else {
@@ -713,7 +718,7 @@
         "<li><strong>Android</strong>：設定 → 應用程式 → Google 相簿 → 權限 → 照片與影片／儲存空間 → 允許。</li>" +
         "<li>改完後回到 Google 相簿，下拉重新整理，確認「相片備份」已開啟且開始上傳。</li>" +
         "<li>若仍顯示「需要權限」：強制關閉 Google 相簿後重開，或卸除 App 重裝再允許一次。</li>" +
-        "<li>雲端空間不足時：photos.google.com 清垃圾桶，或升級 Google One；本機「釋放裝置空間」在備份完成前不會出現／不會生效。</li>" +
+        "<li>雲端空間不足：先到 photos.google.com／one.google.com/storage 清垃圾桶與大檔，或升級 Google One；備份未完成前「釋放裝置空間」不會生效。</li>" +
         "</ol>";
       flash("已顯示權限被拒時的修復步驟", "warn");
     }
