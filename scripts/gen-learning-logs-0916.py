@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Generate 1128 learning log. Continues after 0915 (one theme per day)."""
+"""Generate 0916 learning log. Continues after 0915 (one theme per day)."""
 from __future__ import annotations
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPORT_611 = ROOT / "_export/hello-world/directory/202611"
-DOCS_611 = ROOT / "docs/directory/202611"
 EXPORT_609 = ROOT / "_export/hello-world/directory/202609"
 DOCS_609 = ROOT / "docs/directory/202609"
 EXPORT_DIR = ROOT / "_export/hello-world/directory"
 DOCS_DIR = ROOT / "docs/directory"
+EXPORT_611 = ROOT / "_export/hello-world/directory/202611"
+DOCS_611 = ROOT / "docs/directory/202611"
 
 STYLE = """    :root {
       --ink: #1a1f1c; --paper: #e8efe6; --accent: #2d6a4f; --muted: #4a5c52; --line: rgba(45, 106, 79, 0.2);
@@ -53,13 +53,13 @@ STYLE = """    :root {
     }"""
 
 LOG = {
-    "date": "20261128",
-    "num": "1128",
-    "prev": ("0915", "雙目錄可滑動點選", "../202609/20260915-learning-log.html"),
+    "date": "20260916",
+    "num": "0916",
+    "prev": ("0915", "雙目錄可滑動點選"),
     "next": None,
     "title": "公開資料分析：二林選情、核電利弊與戰時核安",
     "nav_app": ("../index.html", "學習日誌首頁"),
-    "lead": "接日誌 <a class=\"inline\" href=\"../202609/20260915-learning-log.html\">0915 雙目錄可滑動點選</a>。本日用 Cursor 雲端 Agent 搜尋公開資料，整理<strong>二林鎮長／第8選區縣議員</strong>政治貢獻評分，以及<strong>核電 vs 非核家園</strong>、<strong>台海若攻擊核電廠</strong>的風險層級（非投票建議）。",
+    "lead": "接日誌 <a class=\"inline\" href=\"./20260915-learning-log.html\">0915 雙目錄可滑動點選</a>。本日用 Cursor 雲端 Agent 搜尋公開資料，整理<strong>二林鎮長／第8選區縣議員</strong>政治貢獻評分，以及<strong>核電 vs 非核家園</strong>、<strong>台海若攻擊核電廠</strong>的風險層級（非投票建議）。",
     "sections": [
         (
             "一｜二林鎮長三人（政治貢獻綜合）",
@@ -96,7 +96,7 @@ LOG = {
             "五｜注意",
             [
                 "以上為公開報導與官方文件之結構化整理，屬分析框架，<strong>非投票建議、非情報預測</strong>。",
-                "詳細對照已寫入本倉 <code>工作日誌.md</code>（2026-11-28）。",
+                "詳細對照已寫入本倉 <code>工作日誌.md</code>（接續 0916）。",
             ],
         ),
     ],
@@ -106,22 +106,22 @@ LOG = {
 CHAIN_IDS = [
     ("0830", "../202608/20260830-learning-log.html"),
     ("0831", "../202608/20260831-learning-log.html"),
-    ("0901", "../202609/20260901-learning-log.html"),
-    ("0902", "../202609/20260902-learning-log.html"),
-    ("0903", "../202609/20260903-learning-log.html"),
-    ("0904", "../202609/20260904-learning-log.html"),
-    ("0905", "../202609/20260905-learning-log.html"),
-    ("0906", "../202609/20260906-learning-log.html"),
-    ("0907", "../202609/20260907-learning-log.html"),
-    ("0908", "../202609/20260908-learning-log.html"),
-    ("0909", "../202609/20260909-learning-log.html"),
-    ("0910", "../202609/20260910-learning-log.html"),
-    ("0911", "../202609/20260911-learning-log.html"),
-    ("0912", "../202609/20260912-learning-log.html"),
-    ("0913", "../202609/20260913-learning-log.html"),
-    ("0914", "../202609/20260914-learning-log.html"),
-    ("0915", "../202609/20260915-learning-log.html"),
-    ("1128", "./20261128-learning-log.html"),
+    ("0901", "./20260901-learning-log.html"),
+    ("0902", "./20260902-learning-log.html"),
+    ("0903", "./20260903-learning-log.html"),
+    ("0904", "./20260904-learning-log.html"),
+    ("0905", "./20260905-learning-log.html"),
+    ("0906", "./20260906-learning-log.html"),
+    ("0907", "./20260907-learning-log.html"),
+    ("0908", "./20260908-learning-log.html"),
+    ("0909", "./20260909-learning-log.html"),
+    ("0910", "./20260910-learning-log.html"),
+    ("0911", "./20260911-learning-log.html"),
+    ("0912", "./20260912-learning-log.html"),
+    ("0913", "./20260913-learning-log.html"),
+    ("0914", "./20260914-learning-log.html"),
+    ("0915", "./20260915-learning-log.html"),
+    ("0916", "./20260916-learning-log.html"),
 ]
 
 
@@ -136,18 +136,19 @@ def chain_html(upto: str) -> str:
 
 def render(log: dict) -> str:
     date, num = log["date"], log["num"]
-    prev_num, prev_title, prev_href = log["prev"]
+    prev_num, prev_title = log["prev"]
+    prev_href = f"./202609{prev_num[2:]}-learning-log.html"
     next_html = ""
     if log["next"]:
-        nn, nt, nh = log["next"]
-        next_html = f'｜下一則：<a class="inline" href="{nh}">{nn} {nt}</a>'
+        nn, nt = log["next"]
+        next_html = f'｜下一則：<a class="inline" href="./202609{nn[2:]}-learning-log.html">{nn} {nt}</a>'
     nav_href, nav_label = log["nav_app"]
     body_sections = []
     for title, items in log["sections"]:
         lis = "\n".join(f"        <li>{x}</li>" for x in items)
         body_sections.append(f"      <h2>{title}</h2>\n      <ul>\n{lis}\n      </ul>")
     sections_html = "\n\n".join(body_sections)
-    url = f"https://copyshae.github.io/-/directory/202611/{date}-learning-log.html"
+    url = f"https://copyshae.github.io/-/directory/202609/{date}-learning-log.html"
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -197,110 +198,87 @@ def render(log: dict) -> str:
 """
 
 
-MONTH_INDEX = """<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>202611｜學習日誌</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
-  <style>
-    :root { --ink: #1a1f1c; --paper: #e8efe6; --accent: #2d6a4f; --muted: #4a5c52; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh; font-family: "DM Sans", sans-serif; color: var(--ink);
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(149, 213, 178, 0.45), transparent 55%),
-        radial-gradient(ellipse 70% 50% at 90% 80%, rgba(45, 106, 79, 0.18), transparent 50%),
-        linear-gradient(160deg, #f4faf6 0%, var(--paper) 45%, #d8e8dc 100%);
-    }
-    .wrap { max-width: 40rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
-    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
-    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; font-size: 0.95rem; }
-    .nav a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
-    h1 {
-      font-family: "Instrument Serif", Georgia, serif; font-size: clamp(1.6rem, 5vw, 2.2rem);
-      font-weight: 400; color: var(--accent); letter-spacing: 0.04em; line-height: 1.3;
-    }
-    .lead { margin-top: 0.75rem; color: var(--muted); font-size: 1.05rem; line-height: 1.6; }
-    .dir-list { list-style: none; margin-top: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; }
-    .dir-list a {
-      display: block; padding: 1.15rem 1.35rem; background: rgba(255, 255, 255, 0.55);
-      border: 1px solid rgba(45, 106, 79, 0.22); color: var(--ink); text-decoration: none;
-      font-weight: 600; font-size: 1.15rem;
-    }
-    .dir-list a:hover { background: rgba(255, 255, 255, 0.9); border-color: var(--accent); }
-    .dir-list a span { display: block; margin-top: 0.35rem; font-weight: 400; font-size: 0.9rem; color: var(--muted); }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <nav class="nav">
-      <a href="../../">← 回到首頁</a>
-      <a href="../">← 學習日誌</a>
-      <a href="../202609/">← 202609</a>
-    </nav>
-    <h1>202611</h1>
-    <p class="lead">接 0915，本日主題至 <strong>1128</strong>（最新）。由新到舊排列。</p>
-    <ul class="dir-list">
-      <li>
-        <a href="20261128-learning-log.html">
-          20261128 公開資料分析：二林選情、核電利弊與戰時核安
-          <span>鎮長／議員評分｜核電 vs 非核｜攻擊核電廠風險</span>
-        </a>
-      </li>
-    </ul>
-  </div>
-</body>
-</html>
-"""
-
-
 def write_log() -> None:
     html = render(LOG)
     name = f"{LOG['date']}-learning-log.html"
-    for base in (DOCS_611, EXPORT_611):
+    for base in (DOCS_609, EXPORT_609):
         base.mkdir(parents=True, exist_ok=True)
         (base / name).write_text(html, encoding="utf-8")
-        (base / "index.html").write_text(MONTH_INDEX, encoding="utf-8")
         print("wrote", base / name)
 
 
-def patch_0915_next() -> None:
+def patch_0915() -> None:
     for base in (DOCS_609, EXPORT_609):
         path = base / "20260915-learning-log.html"
         if not path.exists():
             continue
         t = path.read_text(encoding="utf-8")
-        if "20261128-learning-log.html" not in t:
+        # remove any 1128 links, ensure 0916
+        t = t.replace(
+            '<a class="inline" href="../202611/20261128-learning-log.html">1128</a>',
+            '<a class="inline" href="./20260916-learning-log.html">0916</a>',
+        )
+        t = t.replace(
+            '｜下一則：<a class="inline" href="../202611/20261128-learning-log.html">1128 二林選情與核電／戰時核安</a>',
+            '｜下一則：<a class="inline" href="./20260916-learning-log.html">0916 二林選情與核電／戰時核安</a>',
+        )
+        if 'href="./20260916-learning-log.html">0916</a>' not in t:
             t = t.replace(
                 '<a class="inline" href="./20260915-learning-log.html">0915</a>\n'
                 "        ｜<a class=\"inline\" href=\"../index.html\">學習日誌首頁</a>",
                 '<a class="inline" href="./20260915-learning-log.html">0915</a> →\n'
-                '        <a class="inline" href="../202611/20261128-learning-log.html">1128</a>\n'
+                '        <a class="inline" href="./20260916-learning-log.html">0916</a>\n'
                 "        ｜<a class=\"inline\" href=\"../index.html\">學習日誌首頁</a>",
             )
-        if '下一則：<a class="inline" href="../202611/20261128-learning-log.html">' not in t:
-            for old in (
+        if '下一則：<a class="inline" href="./20260916-learning-log.html">' not in t:
+            t = t.replace(
+                "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
+                "        ｜App：",
+                "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
+                "        ｜下一則：<a class=\"inline\" href=\"./20260916-learning-log.html\">0916 二林選情與核電／戰時核安</a>\n"
+                "        ｜App：",
+            )
+            # blank line variant
+            t = t.replace(
                 "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
                 "        \n"
                 "        ｜App：",
                 "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
+                "        ｜下一則：<a class=\"inline\" href=\"./20260916-learning-log.html\">0916 二林選情與核電／戰時核安</a>\n"
                 "        ｜App：",
-            ):
-                new = (
-                    "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
-                    "        ｜下一則：<a class=\"inline\" href=\"../202611/20261128-learning-log.html\">1128 二林選情與核電／戰時核安</a>\n"
-                    "        ｜App："
-                )
-                if old in t:
-                    t = t.replace(old, new)
-                    break
-
+            )
         path.write_text(t, encoding="utf-8")
         print("patched", path)
+
+
+def write_month_index() -> None:
+    for base in (DOCS_609, EXPORT_609):
+        path = base / "index.html"
+        if not path.exists():
+            continue
+        t = path.read_text(encoding="utf-8")
+        t = t.replace(
+            "連續一天一主題至 <strong>0915</strong>（最新）",
+            "連續一天一主題至 <strong>0916</strong>（最新）",
+        )
+        t = t.replace(
+            "連續一天一主題至 <strong>0914</strong>（最新）",
+            "連續一天一主題至 <strong>0916</strong>（最新）",
+        )
+        item = """      <li>
+        <a href="20260916-learning-log.html">
+          20260916 公開資料分析：二林選情、核電利弊與戰時核安
+          <span>鎮長／議員評分｜核電 vs 非核｜攻擊核電廠風險</span>
+        </a>
+      </li>
+"""
+        if "20260916-learning-log.html" not in t:
+            t = t.replace(
+                '    <ul class="dir-list">\n      <li>\n        <a href="20260915-learning-log.html">',
+                f'    <ul class="dir-list">\n{item}      <li>\n        <a href="20260915-learning-log.html">',
+            )
+        path.write_text(t, encoding="utf-8")
+        print("index", path)
 
 
 def patch_directory_index() -> None:
@@ -309,44 +287,62 @@ def patch_directory_index() -> None:
         if not path.exists():
             continue
         t = path.read_text(encoding="utf-8")
-        if "202611/" not in t:
-            t = t.replace(
-                '      <li>\n        <a href="202609/">202609（0901–0915 連續主題｜最新 0915）</a>\n      </li>',
-                '      <li>\n        <a href="202611/">202611（1128｜最新）</a>\n      </li>\n'
-                '      <li>\n        <a href="202609/">202609（0901–0915 連續主題｜最新 0915）</a>\n      </li>',
-            )
+        # remove 202611 entry if added
+        t = t.replace(
+            '      <li>\n        <a href="202611/">202611（1128｜最新）</a>\n      </li>\n',
+            "",
+        )
+        t = t.replace(
+            "202609（0901–0915 連續主題｜最新 0915）",
+            "202609（0901–0916 連續主題｜最新 0916）",
+        )
+        t = t.replace(
+            "202609（0901–0914 連續主題｜最新 0914）",
+            "202609（0901–0916 連續主題｜最新 0916）",
+        )
         path.write_text(t, encoding="utf-8")
         print("dir index", path)
 
 
 def patch_learning_log_redirect() -> None:
-    """Point learning-log.html shortcut to latest entry when present."""
     for base in (DOCS_DIR, EXPORT_DIR):
         path = base / "learning-log.html"
         if not path.exists():
             continue
-        # Keep file but update any stale "latest" mention if simple refresh exists
         t = path.read_text(encoding="utf-8")
-        # Prefer updating refresh to 1128 if it still points at 0829
-        if 'url=./202608/20260829-learning-log.html' in t:
-            t = t.replace(
-                'url=./202608/20260829-learning-log.html',
-                'url=./202611/20261128-learning-log.html',
-            )
-            t = t.replace(
-                './202608/20260829-learning-log.html',
-                './202611/20261128-learning-log.html',
-            )
-            path.write_text(t, encoding="utf-8")
-            print("redirect", path)
+        t = t.replace(
+            "./202611/20261128-learning-log.html",
+            "./202609/20260916-learning-log.html",
+        )
+        t = t.replace(
+            "./202608/20260829-learning-log.html",
+            "./202609/20260916-learning-log.html",
+        )
+        path.write_text(t, encoding="utf-8")
+        print("redirect", path)
+
+
+def remove_nov_artifacts() -> None:
+    import shutil
+
+    for d in (DOCS_611, EXPORT_611):
+        if d.exists():
+            shutil.rmtree(d)
+            print("removed", d)
+    old_script = ROOT / "scripts/gen-learning-logs-1128.py"
+    if old_script.exists():
+        old_script.unlink()
+        print("removed", old_script)
 
 
 def main() -> None:
+    remove_nov_artifacts()
     write_log()
-    patch_0915_next()
+    patch_0915()
+    write_month_index()
     patch_directory_index()
     patch_learning_log_redirect()
-    print("done 1128")
+    print("done 0916")
 
 
 if __name__ == "__main__":
