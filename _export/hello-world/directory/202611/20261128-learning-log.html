@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>20261128 學習日誌・公開資料分析：二林選情、核電利弊與戰時核安</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1f1c; --paper: #e8efe6; --accent: #2d6a4f; --muted: #4a5c52; --line: rgba(45, 106, 79, 0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; font-family: "DM Sans", sans-serif; color: var(--ink); line-height: 1.7;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(149, 213, 178, 0.35), transparent 55%),
+        linear-gradient(160deg, #f4faf6 0%, var(--paper) 50%, #d8e8dc 100%);
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; padding: 2rem 1.35rem 4rem; }
+    .nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; font-size: 0.95rem; }
+    .nav a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .nav a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+    article {
+      background: rgba(255,255,255,0.55); border: 1px solid var(--line); padding: 1.75rem 1.5rem 2.5rem;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif; font-size: clamp(1.45rem, 4.5vw, 2rem);
+      font-weight: 400; color: var(--accent); line-height: 1.35; margin-bottom: 0.75rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 1.5rem; }
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif; font-size: 1.3rem; font-weight: 400;
+      color: var(--accent); margin: 1.75rem 0 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--line);
+    }
+    ul, ol { margin: 0.5rem 0 0.85rem 1.35rem; }
+    li { margin: 0.3rem 0; }
+    code { font-size: 0.9em; background: rgba(45,106,79,0.1); padding: 0.1em 0.35em; }
+    a.inline { color: var(--accent); word-break: break-all; }
+    .callout {
+      margin: 1rem 0; padding: 0.85rem 1rem; border-left: 3px solid var(--accent);
+      background: rgba(45,106,79,0.08); font-size: 0.95rem;
+    }
+    .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+    .chain {
+      margin: 1rem 0 0; padding: 0.85rem 1rem; background: rgba(255,255,255,0.65);
+      border: 1px dashed var(--line); font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a href="../../index.html">← 習作工具首頁</a>
+      <a href="../index.html">← 學習日誌首頁</a>
+      <a href="./index.html">← 本月列表</a>
+      <a href="../index.html">學習日誌首頁</a>
+    </nav>
+    <article>
+      <h1>20261128 公開資料分析：二林選情、核電利弊與戰時核安</h1>
+      <p class="lead">接日誌 <a class="inline" href="../202609/20260915-learning-log.html">0915 雙目錄可滑動點選</a>。本日用 Cursor 雲端 Agent 搜尋公開資料，整理<strong>二林鎮長／第8選區縣議員</strong>政治貢獻評分，以及<strong>核電 vs 非核家園</strong>、<strong>台海若攻擊核電廠</strong>的風險層級（非投票建議）。</p>
+      <div class="callout"><strong>手機立刻可開（免開電腦；網址須有 <code>co</code>：copyshae）：</strong><br />
+        本篇：<a class="inline" href="https://copyshae.github.io/-/directory/202611/20261128-learning-log.html">https://copyshae.github.io/-/directory/202611/20261128-learning-log.html</a><br />
+        日誌首頁：<a class="inline" href="https://copyshae.github.io/-/directory/">https://copyshae.github.io/-/directory/</a>
+      </div>
+
+      <h2>一｜二林鎮長三人（政治貢獻綜合）</h2>
+      <ul>
+        <li>候選人：1 許杰霖（無黨）、2 吳聰明（民進黨）、3 陳一惇（國民黨）。</li>
+        <li>綜合排序（含誠信構面）：<strong>陳一惇 90</strong> → 吳聰明 69 → 許杰霖 66。</li>
+        <li>陳一惇：縣議員四連霸、台76／中科／漁養等紀錄最完整；許杰霖曾任鎮代會主席但有賄選交保案（未定讞）；吳聰明鎮代三連霸、村里建設扎實。</li>
+      </ul>
+
+      <h2>二｜彰化縣議員第8選區（二林／大城／芳苑／竹塘）</h2>
+      <ul>
+        <li>應選5席、9人參選。終身貢獻領先：<strong>吳淑娟、張國棟</strong>；近一年公開積極度較突出：<strong>洪子超、洪騰明</strong>。</li>
+        <li>挑戰者中近一年聲量較高：洪雅婷（長照／青農）；曾温泉接棒陳一惇系統；謝淑如、黃淑儀、洪健興公開可查作為較少。</li>
+      </ul>
+
+      <h2>三｜核電 vs 非核家園</h2>
+      <ul>
+        <li>平衡加權約核電 63／非核 61；若只問<strong>經濟命脈</strong>（半導體／AI、供電、氣電曝險）則核電選項約 <strong>76 vs 53</strong>。</li>
+        <li>最貼經濟命脈的答案是<strong>核綠共存</strong>：核／氣先吃飽，綠電滿足 RE100；不是廢綠只靠核。</li>
+        <li>2025/05 後商用核電占比為零；再生能源約 13%；燃氣約近半。</li>
+      </ul>
+
+      <h2>四｜台海若「攻擊核電廠」</h2>
+      <ul>
+        <li><strong>被波及／打外電／致癱</strong>：風險高；<strong>蓄意打成核災</strong>：低～中，但不是零。</li>
+        <li>攻擊 ≠ 核爆。關鍵脆弱點多為<strong>用過燃料池冷卻</strong>與廠區火災／失電；機組已停仍非「廠區無放射性物質」。</li>
+        <li>烏克蘭札波羅熱顯示：占領與干擾常見，全國性輻射異常並非常態，但長期處在懸崖邊。</li>
+      </ul>
+
+      <h2>五｜注意</h2>
+      <ul>
+        <li>以上為公開報導與官方文件之結構化整理，屬分析框架，<strong>非投票建議、非情報預測</strong>。</li>
+        <li>詳細對照已寫入本倉 <code>工作日誌.md</code>（2026-11-28）。</li>
+      </ul>
+
+      <div class="chain">
+        <strong>日期連續（依主題一天接一天）</strong>：
+        <a class="inline" href="../202608/20260830-learning-log.html">0830</a> →
+        <a class="inline" href="../202608/20260831-learning-log.html">0831</a> →
+        <a class="inline" href="../202609/20260901-learning-log.html">0901</a> →
+        <a class="inline" href="../202609/20260902-learning-log.html">0902</a> →
+        <a class="inline" href="../202609/20260903-learning-log.html">0903</a> →
+        <a class="inline" href="../202609/20260904-learning-log.html">0904</a> →
+        <a class="inline" href="../202609/20260905-learning-log.html">0905</a> →
+        <a class="inline" href="../202609/20260906-learning-log.html">0906</a> →
+        <a class="inline" href="../202609/20260907-learning-log.html">0907</a> →
+        <a class="inline" href="../202609/20260908-learning-log.html">0908</a> →
+        <a class="inline" href="../202609/20260909-learning-log.html">0909</a> →
+        <a class="inline" href="../202609/20260910-learning-log.html">0910</a> →
+        <a class="inline" href="../202609/20260911-learning-log.html">0911</a> →
+        <a class="inline" href="../202609/20260912-learning-log.html">0912</a> →
+        <a class="inline" href="../202609/20260913-learning-log.html">0913</a> →
+        <a class="inline" href="../202609/20260914-learning-log.html">0914</a> →
+        <a class="inline" href="../202609/20260915-learning-log.html">0915</a> →
+        <a class="inline" href="./20261128-learning-log.html">1128</a>
+        ｜<a class="inline" href="../index.html">學習日誌首頁</a>
+      </div>
+      <p class="note">
+        本篇：<a class="inline" href="https://copyshae.github.io/-/directory/202611/20261128-learning-log.html">https://copyshae.github.io/-/directory/202611/20261128-learning-log.html</a>
+        ｜上一則：<a class="inline" href="../202609/20260915-learning-log.html">0915 雙目錄可滑動點選</a>
+        
+        ｜<a class="inline" href="../index.html">學習日誌首頁</a>
+      </p>
+    </article>
+  </div>
+</body>
+</html>
