@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-# Sync learning logs 0901-0914 to Desktop\hello-world and push GitHub Pages (master).
+# Sync learning logs 0901-0918 to Desktop\hello-world and push GitHub Pages (master).
 # ASCII-safe for Windows PowerShell 5.1 (save as UTF-8 with BOM).
 $ErrorActionPreference = "Stop"
 $branch = "main"
@@ -31,11 +31,11 @@ $files = @(
   "directory/202608/index.html",
   "directory/202609/index.html"
 )
-# 0820-0831 + 0901-0914
+# 0820-0831 + 0901-0918
 for ($d = 20; $d -le 31; $d++) {
   $files += ("directory/202608/202608{0:D2}-learning-log.html" -f $d)
 }
-for ($d = 1; $d -le 14; $d++) {
+for ($d = 1; $d -le 18; $d++) {
   $files += ("directory/202609/202609{0:D2}-learning-log.html" -f $d)
 }
 
@@ -53,8 +53,8 @@ if ($cur -ne $pagesBranch) {
 git pull origin $pagesBranch 2>$null
 
 Write-Host ""
-Write-Host "=== git status (expect 0901-0914 logs) ==="
-git add directory/index.html directory/learning-log.html directory/202608/
+Write-Host "=== git status (expect 0901-0918 logs) ==="
+git add directory/index.html directory/learning-log.html directory/202608/ directory/202609/
 git status --short
 
 $pending = git status --porcelain
@@ -65,7 +65,7 @@ if (-not $pending) {
   exit 1
 }
 
-$msg = "learning log 0901-0914 remapped (0829 unchanged, env-edu moved to 0828)"
+$msg = "learning log 0901-0918 (continue after 0915)"
 git commit -m $msg
 Write-Host ""
 Write-Host "=== git push origin master ==="
@@ -81,5 +81,5 @@ Write-Host "=== OK ===" -ForegroundColor Green
 git log -1 --oneline
 Write-Host ""
 Write-Host "Wait 1-2 min, then open:"
-Write-Host "  https://copyshae.github.io/hello-world/directory/202608/index.html"
-Write-Host "  Top entry should be 20260914; 0820=daily-14; 0828=env-edu"
+Write-Host "  https://copyshae.github.io/hello-world/directory/202609/index.html"
+Write-Host "  Top entry should be 20260918"
