@@ -283,13 +283,22 @@ def patch_0915_next() -> None:
                 "        ｜<a class=\"inline\" href=\"../index.html\">學習日誌首頁</a>",
             )
         if '下一則：<a class="inline" href="../202611/20261128-learning-log.html">' not in t:
-            t = t.replace(
+            for old in (
                 "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
+                "        \n"
                 "        ｜App：",
                 "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
-                "        ｜下一則：<a class=\"inline\" href=\"../202611/20261128-learning-log.html\">1128 二林選情與核電／戰時核安</a>\n"
                 "        ｜App：",
-            )
+            ):
+                new = (
+                    "｜上一則：<a class=\"inline\" href=\"./20260914-learning-log.html\">0914 新聞主播頭條修復</a>\n"
+                    "        ｜下一則：<a class=\"inline\" href=\"../202611/20261128-learning-log.html\">1128 二林選情與核電／戰時核安</a>\n"
+                    "        ｜App："
+                )
+                if old in t:
+                    t = t.replace(old, new)
+                    break
+
         path.write_text(t, encoding="utf-8")
         print("patched", path)
 
